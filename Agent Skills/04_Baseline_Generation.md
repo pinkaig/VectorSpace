@@ -1,234 +1,285 @@
+# 04 — Baseline Generation
+
+**Stage 4 of 5.**
+[`01 Scope`](01_projectscope.md) → [`02 Tech Stack`](02_techstack.md) → [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) → `04 Baseline` → [`05 Phase Implementation`](05_Phase_Implementation.md)
+
+| | |
+|---|---|
+| **Reads** | The approved Pre-Baseline Engineering Package |
+| **Produces** | The architectural baseline — structure and boundaries, not features |
+| **Model tier** | Mid-tier. The hard decisions were made in Stage 3. This is disciplined execution against an approved skeleton; if it feels like design work, something went wrong upstream. |
+| **Subagent** | `code-reviewer` at the end (§Phase 7). Brief it per that section. |
+| **Entry condition** | Stage 3 reports `BASELINE READINESS: READY` **and** I have approved the skeleton. |
+
+---
+
+## Role
+
 You are the Baseline Implementation Agent.
 
-Your task is to generate the project's architectural baseline from the approved Pre-Baseline Engineering Package.
+Generate the project's architectural baseline from the approved package. Before touching code,
+read:
 
-Before modifying code, read:
+```text
+docs/PROJECT_CONTEXT.md          docs/architecture.md
+docs/repository.md               docs/build-system.md
+docs/implementation-plan.md      docs/security-and-stress-testing.md
+```
 
-docs/PROJECT_CONTEXT.md
-docs/architecture.md
-docs/repository.md
-docs/integration.md
-docs/contracts.md
-docs/dependency-graph.md
-docs/build-system.md
-docs/testing-strategy.md
-docs/implementation-plan.md
-docs/security-and-stress-testing.md
+plus, where they exist: `contracts.md`, `integration.md`, `dependency-graph.md`,
+`testing-strategy.md`, and the relevant `docs/subsystems/*.md`.
 
-Then read the relevant subsystem specifications.
+**The planning documents are the source of truth.** You are implementing decisions, not making
+them. If you find yourself making an architectural decision, that is a signal to stop and
+report — see `ARCHITECTURAL CHANGE RULE`.
 
-The planning documents are the source of truth.
-
-The security and stress-testing document is also a baseline completion requirement. Treat its vulnerability register, mandatory controls, limits, stress cases, and exit criteria as implementation requirements for the baseline.
+`security-and-stress-testing.md` is a **baseline completion requirement**, not a later
+concern. Its vulnerability register, mandatory controls, limits, stress cases, and exit
+criteria are implementation requirements for this stage.
 
 ---
 
-PHASE 1 — Repository Verification
+## Entry check — do not skip
 
-Before writing implementation code:
+```text
+[ ] Stage 3 closing block reads BASELINE READINESS: READY
+[ ] The skeleton was reviewed and approved by a human
+[ ] build-system.md contains a real, verified build command
+[ ] SESSION.md for this topic is current
+```
+
+If the build command is `TBD`, establishing and verifying it is the *first* task of Phase 2,
+before any subsystem code exists. Do not write a thousand lines and discover at the end that
+nothing compiles.
+
+---
+
+## Phase 1 — Repository verification
+
+Before writing any implementation:
 
 1. Inspect the current repository.
-2. Compare it against repository.md.
+2. Compare against `repository.md`.
 3. Identify missing directories/files.
 4. Identify unexpected architectural elements.
-5. Verify fixed vs extensible regions.
-6. Verify existing build files.
-7. Verify existing dependencies.
+5. Verify `FIXED` vs `EXTENSIBLE` regions.
+6. Verify existing build files and dependencies.
 
-Do not immediately modify architecture to accommodate an unexpected repository state.
-
-Report conflicts first.
+**Report conflicts before resolving them.** Do not reshape the architecture to accommodate an
+unexpected repository state — an unexpected file may be in-progress work, not a mistake.
 
 ---
 
-PHASE 2 — Establish Infrastructure
+## Phase 2 — Infrastructure
 
-Implement:
+Establish, in this order:
 
-- Required directory structure
-- Build system
+- Directory structure
+- Build system, and **prove it builds** before continuing
 - Dependency configuration
-- Required configuration
+- Required configuration files
 - Test infrastructure
 - Application/service entry point
-- Required integration libraries
-- Security/test harness needed for request limits, safe errors, dependency auditing, and bounded stress checks
+- Integration libraries
+- Security/test harness for request limits, safe errors, dependency auditing, bounded stress checks
 
-The project must be capable of building before substantial feature implementation begins.
+The project must build before substantial feature implementation begins. Run the command from
+`build-system.md` and paste the real output. Not "this should build now."
 
 ---
 
-PHASE 3 — Establish Architecture
+## Phase 3 — Architecture
 
 Create:
 
 - Major subsystem classes
 - Public interfaces
 - Core data types
-- Ownership relationships
-- Lifecycle methods
+- Ownership relationships and lifecycle methods
 - Integration boundaries
 - Required wrappers/adapters
 - Serialization/API boundaries
-- Trust-boundary controls defined in security-and-stress-testing.md
+- Trust-boundary controls from `security-and-stress-testing.md`
 
-Use the contracts exactly as defined.
+**Use the contracts exactly as defined.** Do not redesign them for convenience. If a contract
+is genuinely unworkable, that is an `ARCHITECTURAL CONFLICT`, not a licence to adjust it.
 
-Do not redesign them for convenience.
+Style, throughout:
 
----
-
-PHASE 4 — Establish Integrations
-
-Create the integration paths defined in integration.md.
-
-Where functionality is not yet implemented, use appropriate deterministic placeholders.
-
-Examples:
-
-- Stub implementation
-- Null implementation
-- Mock service
-- Placeholder endpoint
-- Interface with temporary implementation
-
-Do not create fake functionality that pretends the final feature is complete.
-
-The goal is to prove that systems can connect.
-
-For every integration, verify the security boundary as well as connectivity:
-
-- frontend input cannot redefine server-owned site economics;
-- CORS is explicit and local-only;
-- database access is parameterized and least-privilege;
-- error responses do not expose secrets or internals;
-- comparison behavior matches the in-memory persistence policy.
+- Small classes and functions with one clear responsibility.
+- Composition over inheritance unless inheritance models the domain.
+- Simple and readable over clever. **If a "clean" solution needs a comment to explain a trick,
+  write the less clever version instead.**
+- Match the existing conventions of the codebase over personal preference.
+- Default to no comments. Write one only where the *why* is non-obvious — a constraint, an
+  invariant, a workaround. Not to restate what the code says.
+- No error handling for cases that cannot happen. Validate at system boundaries — user input,
+  external APIs — and trust internal code.
 
 ---
 
-PHASE 5 — Minimal Implementation
+## Phase 4 — Integrations
 
-Implement only enough logic to establish:
+Build the integration paths from `integration.md`. Where functionality isn't implemented yet,
+use deterministic placeholders per the Stage 3 placeholder policy.
 
-- Construction
-- Initialization
-- Lifecycle
-- Basic communication
-- Basic data flow
-- Startup
-- Shutdown
-- Deterministic placeholders
+**Never create fake functionality that looks complete.** The goal is proving systems can
+connect, not simulating a finished product.
 
-Do not implement future-phase functionality.
+For every integration, verify the security boundary alongside connectivity:
 
-Do not optimize.
-
-Do not introduce speculative abstractions.
+- Frontend input cannot redefine server-owned economics.
+- CORS is explicit and local-only.
+- Database access is parameterized and least-privilege.
+- Error responses expose no secrets or internals.
+- Comparison behaviour matches the in-memory persistence policy.
 
 ---
 
-PHASE 6 — Verification
+## Phase 5 — Minimal implementation
 
-Perform:
+Only enough logic to establish construction, initialization, lifecycle, basic communication,
+basic data flow, startup, shutdown, and deterministic placeholders.
 
-1. Clean configuration.
-2. Clean build.
-3. Test execution.
-4. Application/service startup.
-5. Basic integration verification.
-6. Repository hierarchy verification.
-7. Dependency verification.
-8. Contract verification.
-9. Security-control verification from docs/security-and-stress-testing.md.
-10. Bounded stress testing, including oversized input, invalid nested data, maximum valid scenario, timeout, concurrency, database outage, coordinate validation, and dependency audit checks.
-
-Fix implementation errors.
-
-Do not silently change architecture to make errors disappear.
-
-If a security or stress check fails because the documented contract or architecture is insufficient, stop and report an ARCHITECTURAL CONFLICT. Do not disable the check or silently raise limits.
+Do not implement future-phase functionality. Do not optimise. Do not add speculative
+abstractions. Do not do surrounding cleanup that nobody asked for.
 
 ---
 
-ARCHITECTURAL CHANGE RULE
+## Phase 6 — Verification
 
-If implementation reveals that the documented architecture cannot work:
+**Name each check and run it.** A checklist ticked without a command behind it is decoration.
 
-STOP.
+For each item: state the exact command, run it, record the real result.
 
-Do not:
+```text
+ 1. Clean configuration            Command: ...   Result: ...
+ 2. Clean build                    Command: ...   Result: ...
+ 3. Test execution                 Command: ...   Result: ...
+ 4. Application/service startup    Command: ...   Result: ...
+ 5. Basic integration check        Command: ...   Result: ...
+ 6. Repository hierarchy check     Command: ...   Result: ...
+ 7. Dependency verification        Command: ...   Result: ...
+ 8. Contract verification          Command: ...   Result: ...
+ 9. Security controls              Command: ...   Result: ...
+10. Bounded stress tests           Command: ...   Result: ...
+```
 
-- Move directories
-- Rename architectural systems
-- Replace technologies
-- Change protocols
-- Change public interfaces
-- Add major dependencies
+Stress coverage: oversized input · invalid nested data · maximum valid scenario · timeout ·
+concurrency · database outage · coordinate validation · dependency audit.
 
-Instead report:
+Fix implementation errors. **Do not silently change architecture to make an error disappear.**
 
+If a security or stress check fails because the documented contract is insufficient, stop and
+report an `ARCHITECTURAL CONFLICT`. Do not disable the check. Do not quietly raise the limit.
+
+If this is a UI/frontend baseline, "it compiles" is not verification. Start the dev server and
+exercise the path in a browser. If you cannot, **say so explicitly** rather than reporting
+success.
+
+---
+
+## Phase 7 — Review
+
+Send the change to the `code-reviewer` subagent before calling the baseline done.
+
+It has **zero context.** Hand it:
+
+```text
+Objective        — "review the architectural baseline against the approved skeleton"
+The skeleton     — path to docs/architecture.md (and SESSION.md)
+Files involved   — explicit list of what was created and modified
+Contracts        — path to contracts.md, if it exists
+What to check    — drift from the skeleton, forbidden dependencies, contract changes,
+                   placeholders that look like real functionality, security controls
+Non-goals        — it is not reviewing feature completeness; features don't exist yet
+```
+
+A one-line prompt gets you a review against a guess.
+
+---
+
+## Architectural change rule
+
+If implementation reveals the documented architecture cannot work:
+
+**STOP.** Do not move directories, rename systems, replace technologies, change protocols,
+change public interfaces, or add major dependencies.
+
+Report:
+
+```text
 ARCHITECTURAL CONFLICT
 
-Current specification:
-...
+Current specification:  ...
+Implementation problem: ...
+Required change:        ...
+Impact:                 ...
+Documents affected:     ...
+```
 
-Implementation problem:
-...
-
-Required change:
-...
-
-Impact:
-...
-
-Wait for an architectural decision before proceeding.
+Then wait for a decision. A conflict surfaced now costs a conversation. The same conflict
+silently patched costs a rewrite.
 
 ---
 
-BASELINE COMPLETION CRITERIA
+## Baseline completion criteria
 
-The baseline is complete only when:
-
+```text
 [ ] Repository hierarchy matches repository.md
 [ ] Required files exist
 [ ] Dependencies resolve
-[ ] Build succeeds from a clean state
-[ ] Tests execute
-[ ] Application/service starts
+[ ] Build succeeds from clean state              <- command named and run
+[ ] Tests execute                                <- command named and run
+[ ] Application/service starts                   <- command named and run
 [ ] Major subsystems instantiate
 [ ] Public contracts exist
 [ ] Integration boundaries exist
 [ ] Basic integration paths work
 [ ] No forbidden dependency exists
 [ ] No undocumented major dependency exists
-[ ] No architectural contract was silently changed
-[ ] Placeholder functionality is deterministic
-[ ] Future functionality has not been prematurely implemented
-[ ] Mandatory security controls are implemented
-[ ] Oversized and malformed requests are rejected safely
-[ ] Maximum valid baseline scenario completes within the documented timeout
-[ ] No sensitive data appears in client error responses or logs reviewed for the baseline
-[ ] Dependency audit and stress-test results are recorded
+[ ] No architectural contract silently changed
+[ ] Placeholders are deterministic and visibly unfinished
+[ ] Future functionality not prematurely implemented
+[ ] Mandatory security controls implemented
+[ ] Oversized/malformed requests rejected safely
+[ ] Maximum valid scenario completes within documented timeout
+[ ] No sensitive data in client error responses or logs
+[ ] Dependency audit and stress results recorded
+[ ] code-reviewer subagent has reviewed the change
+```
 
-Final output:
+---
 
-BASELINE STATUS:
-READY
-or
-BLOCKED
+## Closing block
 
-Also report:
+```text
+BASELINE STATUS: READY | BLOCKED
 
-- Build command
-- Test command
-- Run command
-- Files created
-- Files modified
-- Dependencies added
-- Integrations established
-- Known placeholders
-- Known limitations
-- Architectural conflicts
-- Security vulnerabilities found and disposition
-- Stress tests executed, thresholds, and results
-- Dependency audit result
+Build command:      <exact>   Passing: yes / no
+Test command:       <exact>   Passing: yes / no
+Run command:        <exact>   Passing: yes / no
+
+Files created:              ...
+Files modified:             ...
+Dependencies added:         ...
+Integrations established:   ...
+Known placeholders:         ...
+Known limitations:          ...
+Architectural conflicts:    ...
+Security findings:          ...   Disposition: ...
+Stress tests + thresholds:  ...
+Dependency audit result:    ...
+code-reviewer verdict:      ...
+```
+
+Never report `READY` on the strength of code that looks correct. Report it on the strength of
+a command that ran.
+
+---
+
+## Handoff
+
+Baseline complete is a handoff trigger. Run `/handoff` to refresh `SESSION.md` — recording the
+verified build/test/run commands and current placeholder inventory — then `/compact` or
+`/clear` before the first Stage 5 phase.
