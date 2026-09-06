@@ -2,7 +2,7 @@
 
 ## Objective / topic
 
-Design and prepare the VThere Spatial Experience Builder for Stage 4 baseline implementation using the DigiPen project brief, the five-stage Agent Skills workflow, and the existing browser editor prototype.
+Implement and stabilize the VThere Spatial Experience Builder Stage 4 baseline, with persistence-safe editing history, structured debugging/logging, contributor environment checks, and documentation that lets a fresh session continue implementation safely.
 
 ## Decisions made and why
 
@@ -14,6 +14,8 @@ Design and prepare the VThere Spatial Experience Builder for Stage 4 baseline im
 - Testing: Vitest, Playwright, pytest, and HTTPX.
 - Custom technical component: standalone framework-agnostic `packages/authoring-engine/` owning gizmo hit testing, transform constraints, selection sessions, command grouping, undo/redo, and persistence checkpoints. It must not own React, rendering, HTTP, storage, or runtime behavior.
 - Persistence is release-blocking: canonical versioned serialization, undo/redo continuity, debounced autosave, last-known-good backup recovery, truthful failure states, revision conflict protection, and immutable published snapshots.
+- Debugging uses a framework-agnostic TypeScript logger with levels, redaction, child namespaces, and injectable test sinks; the FastAPI API logs request IDs, duration, status, and exception traces.
+- Environment setup uses PowerShell, Bash, and Node preflight checks instead of CMake because the stack is Vite/React/TypeScript plus Python/FastAPI, not native C/C++.
 
 ## Current skeleton / plan state
 
@@ -35,20 +37,23 @@ Design and prepare the VThere Spatial Experience Builder for Stage 4 baseline im
   - `docs/source-brief-audit.md`
 - Existing prototype has a React/Three.js editor with scene tree, primitive asset placement, viewport selection/dragging, inspector, undo/redo, JSON export, local draft persistence, debounced autosave, backup recovery, and truthful storage failure status.
 - Architecture is aligned with the DOCX core plan. Stage 4 Phase 0 has started: the canonical project package, standalone authoring-engine command timeline, API health route, and first isolated tests now exist. The current `src/` editor remains the temporary UI surface until a verified package-aware build allows the app move.
+- Engineering guidance exists in `docs/DEVELOPMENT_GUIDE.md`, `docs/ENGINEERING_PRACTICES.md`, `docs/DEBUGGING.md`, and `docs/ENVIRONMENT_SETUP.md`.
+- The root `package.json` has Node/npm engine requirements, `check:environment`, `predev`, and `prebuild` scripts. The root `package-lock.json` exists after dependency installation.
 
 ## Build / verify command and status
 
 From `VThere Spatial Experience Builder/`:
 
 ```text
-npm install
-npm run build
-npm run dev
-python -m pytest
-uvicorn app.main:app --reload
+npm.cmd install
+npm.cmd run check:environment
+npm.cmd test
+npm.cmd run build
+python -m pytest apps/api/tests -q
+python -m uvicorn apps.api.app.main:app --reload --port 8000
 ```
 
-Current status: **partially implemented, verified locally**. Node.js 24.19.0, npm 11.17.0, and Python 3.12.10 are available. `npm install`, `npm run build`, the isolated authoring-engine test, API dependency installation, and the API health test pass. Browser tests, full backend integration tests, and the planned app move remain outstanding.
+Current status: **partially implemented, verified locally**. Node.js 24.19.0, npm 11.17.0, and Python 3.12.10 are available. The environment check, frontend tests, production build, and API health test pass. The build still reports a Vite chunk-size warning and the API test reports a Starlette deprecation warning. Browser tests, full backend integration tests, and the planned app move remain outstanding.
 
 ## Files touched in the DOCX audit session
 
@@ -61,11 +66,44 @@ Current status: **partially implemented, verified locally**. Node.js 24.19.0, np
 - `docs/pre-baseline-validation.md`
 - `SESSION.md`
 
+## Files touched for baseline, debugging, and setup
+
+- `package.json`
+- `package-lock.json`
+- `scripts/check-environment.mjs`
+- `scripts/check-environment.ps1`
+- `scripts/check-environment.sh`
+- `packages/project/package.json`
+- `packages/project/src/index.ts`
+- `packages/authoring-engine/package.json`
+- `packages/authoring-engine/src/index.ts`
+- `packages/authoring-engine/src/index.test.ts`
+- `packages/debugging/package.json`
+- `packages/debugging/src/index.ts`
+- `packages/debugging/src/index.test.ts`
+- `src/model.ts`
+- `src/serializer.ts`
+- `apps/api/app/main.py`
+- `apps/api/requirements.txt`
+- `apps/api/tests/test_health.py`
+- `apps/runtime/README.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/DEBUGGING.md`
+- `docs/ENGINEERING_PRACTICES.md`
+- `docs/ENVIRONMENT_SETUP.md`
+- `docs/architecture.md`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/pre-baseline-validation.md`
+- `README.md`
+
 Earlier implementation/design files remain in the folder as described above.
 
 ## Failed approaches already tried
 
 - Attempted `npm install` and build verification; failed because `npm`/Node.js was not installed or discoverable on Windows.
+- Installing Node.js through winget initially required an administrator prompt; the first installation attempt was cancelled, then the runtime was installed successfully.
+- PowerShell's `npm.ps1` execution policy blocked plain `npm`; project commands should use `npm.cmd` on Windows.
+- The first Node preflight implementation attempted to execute `npm`/`npm.cmd` as a child process and failed on Windows path/shim behavior. It now invokes npm's CLI JavaScript through the active Node executable and passes.
 - Initial broad Stage 3 review omitted the formal validation block, per-phase verification commands, and testing-strategy document; these were added before this handoff.
 - Temporary DOCX extraction was used for audit search and then removed; no extracted review artifact remains in the topic folder.
 
@@ -80,7 +118,8 @@ Earlier implementation/design files remain in the folder as described above.
 - Final team roster, Jira ownership, mentor slot, and 80% team / 20% individual evidence process.
 - Pilot consent/safeguarding requirements, NDA, IP/reuse/publication terms, analytics privacy, and final handoff terms.
 - CI/deployment automation provider.
+- Whether to add Playwright and broader API/integration tests in the next baseline slice.
 
 ## Next recommended step
 
-Obtain human approval of the Stage 3 skeleton and resolve the product/brief decisions above. Next, move the verified editor into `apps/editor/`, preserve the shared project and authoring-engine imports, then add persistence round-trip tests before implementing further runtime/API phases.
+Obtain human approval of the Stage 3 skeleton and resolve the product/brief decisions above. Next, add persistence serialization/recovery round-trip tests and move the verified editor into `apps/editor/` without creating a duplicate project model. Then replace UI snapshot history with the authoring-engine timeline before implementing runtime/API persistence.
