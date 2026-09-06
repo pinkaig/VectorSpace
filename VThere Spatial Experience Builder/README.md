@@ -24,3 +24,5 @@ The current implementation is the technical spike and editor foundation. Interac
 ## Development guide
 
 See [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md) for folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands.
+
+For first-time machine setup and missing-tool diagnostics, see [`docs/ENVIRONMENT_SETUP.md`](docs/ENVIRONMENT_SETUP.md).

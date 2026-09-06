@@ -35,6 +35,14 @@ npm.cmd install
 npm.cmd run dev
 ```
 
+Before starting, run the environment check if you are setting up a new machine:
+
+```powershell
+.\scripts\check-environment.ps1
+```
+
+The check reports missing Node.js, npm, or dependencies and exits with a non-zero code so setup problems are visible in scripts and CI. On macOS/Linux use `bash scripts/check-environment.sh`. Once Node.js is available, `npm.cmd run dev` automatically runs the Node-based preflight check before Vite starts.
+
 Open the Vite URL, normally `http://localhost:5173`.
 
 Run the API separately when working on API code:
