@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+
+# Build and test output
+dist/
+build/
+out/
+coverage/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+**/bin/
+**/tmp/
+
+# Frontend and tooling caches
+.vite/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and generated logs
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Generated archives and local exports
+*.zip
+*.tar
+*.tar.gz
