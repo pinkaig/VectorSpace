@@ -66,5 +66,6 @@ Baseline choices are Node.js 22/npm, Python 3.12/pip, PostgreSQL 16/PostGIS 3.4,
 - `docs/dependency-graph.md`
 - `docs/build-system.md`
 - `docs/testing-strategy.md`
+- `docs/security-and-stress-testing.md`
 - `docs/implementation-plan.md`
 - `docs/subsystems/simulation-domain.md`

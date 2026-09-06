@@ -13,10 +13,13 @@ docs/dependency-graph.md
 docs/build-system.md
 docs/testing-strategy.md
 docs/implementation-plan.md
+docs/security-and-stress-testing.md
 
 Then read the relevant subsystem specifications.
 
 The planning documents are the source of truth.
+
+The security and stress-testing document is also a baseline completion requirement. Treat its vulnerability register, mandatory controls, limits, stress cases, and exit criteria as implementation requirements for the baseline.
 
 ---
 
@@ -49,6 +52,7 @@ Implement:
 - Test infrastructure
 - Application/service entry point
 - Required integration libraries
+- Security/test harness needed for request limits, safe errors, dependency auditing, and bounded stress checks
 
 The project must be capable of building before substantial feature implementation begins.
 
@@ -66,6 +70,7 @@ Create:
 - Integration boundaries
 - Required wrappers/adapters
 - Serialization/API boundaries
+- Trust-boundary controls defined in security-and-stress-testing.md
 
 Use the contracts exactly as defined.
 
@@ -90,6 +95,14 @@ Examples:
 Do not create fake functionality that pretends the final feature is complete.
 
 The goal is to prove that systems can connect.
+
+For every integration, verify the security boundary as well as connectivity:
+
+- frontend input cannot redefine server-owned site economics;
+- CORS is explicit and local-only;
+- database access is parameterized and least-privilege;
+- error responses do not expose secrets or internals;
+- comparison behavior matches the in-memory persistence policy.
 
 ---
 
@@ -126,10 +139,14 @@ Perform:
 6. Repository hierarchy verification.
 7. Dependency verification.
 8. Contract verification.
+9. Security-control verification from docs/security-and-stress-testing.md.
+10. Bounded stress testing, including oversized input, invalid nested data, maximum valid scenario, timeout, concurrency, database outage, coordinate validation, and dependency audit checks.
 
 Fix implementation errors.
 
 Do not silently change architecture to make errors disappear.
+
+If a security or stress check fails because the documented contract or architecture is insufficient, stop and report an ARCHITECTURAL CONFLICT. Do not disable the check or silently raise limits.
 
 ---
 
@@ -187,6 +204,11 @@ The baseline is complete only when:
 [ ] No architectural contract was silently changed
 [ ] Placeholder functionality is deterministic
 [ ] Future functionality has not been prematurely implemented
+[ ] Mandatory security controls are implemented
+[ ] Oversized and malformed requests are rejected safely
+[ ] Maximum valid baseline scenario completes within the documented timeout
+[ ] No sensitive data appears in client error responses or logs reviewed for the baseline
+[ ] Dependency audit and stress-test results are recorded
 
 Final output:
 
@@ -207,3 +229,6 @@ Also report:
 - Known placeholders
 - Known limitations
 - Architectural conflicts
+- Security vulnerabilities found and disposition
+- Stress tests executed, thresholds, and results
+- Dependency audit result

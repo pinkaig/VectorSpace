@@ -15,6 +15,7 @@ docs/dependency-graph.md
 docs/build-system.md
 docs/testing-strategy.md
 docs/implementation-plan.md
+docs/security-and-stress-testing.md
 
 Then read the specification for the requested phase/subsystem.
 
@@ -58,6 +59,8 @@ Read only the additional project files necessary to understand those boundaries.
 
 The repository documentation is persistent project memory.
 
+The security and stress-testing document is a living phase contract. Read its vulnerability register, mandatory controls, applicable stress cases, and evidence log before editing. Update the evidence log after relevant checks; do not treat security or load behavior as out-of-scope cleanup.
+
 ---
 
 IMPLEMENTATION RULES
@@ -96,6 +99,7 @@ Before implementing a system, verify its:
 - Inputs
 - Outputs
 - Lifecycle
+- Trust boundary, input/resource limits, error disclosure behavior, and applicable stress cases
 
 Do not invent a new API if an existing contract already defines one.
 
@@ -113,8 +117,11 @@ After each meaningful increment:
 2. Run relevant tests.
 3. Verify the affected integration.
 4. Inspect for architecture drift.
+5. Run the applicable security and stress checks from docs/security-and-stress-testing.md.
 
 Do not accumulate a large unverified change set.
+
+At minimum, any phase touching an API, contract, repository, simulation loop, result serializer, frontend API client, or database path must run the relevant malformed-input, boundary-limit, determinism, and error-safety checks.
 
 ---
 
@@ -148,6 +155,8 @@ Affected documents:
 
 Do not implement the architectural change without approval.
 
+If a security or stress test exposes a contract weakness, report it using the same ARCHITECTURAL CONFLICT format. Do not bypass validation, remove a limit, expose internal errors, or change a trust boundary silently.
+
 ---
 
 ACCEPTANCE
@@ -164,6 +173,10 @@ A phase is complete only when:
 [ ] Repository structure remains valid
 [ ] No unrelated functionality was introduced
 [ ] Documentation is updated if approved implementation changed documented behaviour
+[ ] Applicable security controls are implemented
+[ ] Applicable stress tests pass within documented thresholds
+[ ] Vulnerability register and evidence log are updated
+[ ] No sensitive data is exposed by errors or logs reviewed for the phase
 
 ---
 
@@ -187,3 +200,6 @@ Report:
 - Deferred work
 - Architectural conflicts
 - Documentation requiring update
+- Security vulnerabilities found and disposition
+- Stress tests executed and results
+- Evidence log updates

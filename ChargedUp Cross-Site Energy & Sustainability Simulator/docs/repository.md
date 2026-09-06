@@ -22,6 +22,7 @@ project-root/
 │   ├── build-system.md
 │   ├── testing-strategy.md
 │   ├── implementation-plan.md
+│   ├── security-and-stress-testing.md
 │   └── subsystems/
 │       └── simulation-domain.md
 ├── frontend/
