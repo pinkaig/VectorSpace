@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.data.repository import InMemoryAuthoritativeRepository
+from app.db.session import check_database
 from app.schemas.models import CompareRequest, ComparisonResult, ScenarioRequest
 from app.simulation import SimulationEngine
 
@@ -29,7 +30,7 @@ async def safe_exception_handler(request: Request, exception: Exception):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "database": "degraded", "environment": settings.app_env}
+    return {"status": "ok", "database": "ready" if check_database() else "degraded", "environment": settings.app_env}
 
 
 @app.get("/api/sites")

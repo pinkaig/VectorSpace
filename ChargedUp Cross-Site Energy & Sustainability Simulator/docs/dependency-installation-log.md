@@ -76,7 +76,7 @@ cd ..\backend
 .venv\Scripts\python.exe -m pytest ..\tests\backend ..\tests\security ..\tests\stress -q
 ```
 
-Results: frontend typecheck, build, and Vitest passed; backend passed 6 tests with one Starlette deprecation warning.
+Results: `npm ci`, frontend typecheck, production build, and Vitest passed. Python compile, backend API/security/stress tests (6 passed), integration test (1 passed), and seed command passed with one Starlette deprecation warning.
 
 ## Dependency audits
 
@@ -92,6 +92,19 @@ Results:
 
 - npm audit: failed with 5 vulnerabilities: 3 moderate, 1 high, and 1 critical. npm recommends `npm audit fix --force`, which would move dependencies outside the approved ranges and was not applied automatically.
 - pip-audit: failed with 11 known findings across `pytest`, `python-dotenv`, and transitive `starlette` versions. Fix versions require upgrades beyond the current baseline pins and need a dependency decision.
+
+## Build status
+
+The frontend and backend source builds are passing. Docker Compose, PostgreSQL migration, and container build remain pending Docker Desktop installation.
+
+Docker Desktop was subsequently installed and verified. Because the project path contains `&`, Compose was run with an explicit project name:
+
+```powershell
+docker compose -p chargedup -f "ChargedUp Cross-Site Energy & Sustainability Simulator\docker-compose.yml" up -d
+docker compose -p chargedup -f "ChargedUp Cross-Site Energy & Sustainability Simulator\docker-compose.yml" ps
+```
+
+Results: PostGIS healthy, backend and frontend containers started, backend image built successfully, frontend image built successfully. Alembic migration and seed completed successfully. Live checks returned `DATABASE=ready`, 2 sites, 96 simulation intervals, 720.0 kWh, and frontend HTTP 200.
 
 ## Remaining setup
 
