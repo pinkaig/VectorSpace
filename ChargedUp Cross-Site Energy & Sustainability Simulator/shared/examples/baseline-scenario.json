@@ -1,0 +1,9 @@
+{
+  "scenario_id": "baseline",
+  "fleet": {"total_vehicles": 40, "ev_percentage": 75, "energy_requirement_kwh": 24, "depot_site_id": "depot-north"},
+  "site_ids": ["depot-north", "external-east"],
+  "charging_strategy": {"depot_share": 0.7, "external_share": 0.3, "charging_window_start": 0, "charging_window_end": 24},
+  "energy_resources": {"grid_enabled": true, "bess_enabled": false, "solar_enabled": false},
+  "sustainability": {"electricity_emissions_factor": 0.4, "ice_baseline_emissions": 500, "fuel_displaced": 300, "reporting_period": "baseline"},
+  "simulation_config": {"start_time": "2026-01-01T00:00:00Z", "end_time": "2026-01-02T00:00:00Z", "timestep_minutes": 15, "seed": 1}
+}
