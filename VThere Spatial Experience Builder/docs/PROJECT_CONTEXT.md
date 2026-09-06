@@ -6,7 +6,7 @@ VThere is a browser-based no-code spatial exhibition authoring tool. Authors bui
 
 ## Current phase
 
-Stage 3 pre-baseline architecture. The existing client is a Phase 1/2 visual spike. Backend, runtime separation, and production persistence are not implemented.
+Stage 4 Phase 0 baseline in progress. The existing client remains a Phase 1/2 visual spike while the canonical project package, authoring-engine history seam, and API health scaffold are established. Backend project persistence, runtime separation, and production persistence are not implemented.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ The runtime has no editing capability. Editor and runtime consume one versioned 
 
 ## Baseline status
 
-Not ready. The skeleton needs human review, Node.js/npm installation, lockfile generation, backend scaffold, and verified build/test commands.
+Partially ready. Node.js/npm and Python are installed; the frontend build, focused Vitest test, and API health test pass. Human architecture approval, the editor move into `apps/editor/`, broader tests, and the remaining shared/API/runtime packages are still required.
 
 ## Entry points
 

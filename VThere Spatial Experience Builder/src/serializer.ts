@@ -1,9 +1,12 @@
 import { ProjectData, cloneProject, defaultProject } from './model'
+import { createLogger } from '../packages/debugging/src/index'
 
 const STORAGE_KEY = 'vthere-project-v1'
 const BACKUP_STORAGE_KEY = 'vthere-project-v1-backup'
 
 export type PersistenceResult = 'saved' | 'saved-with-backup' | 'failed'
+
+const logger = createLogger('editor.persistence')
 
 const readStorage = (key: string): string | null => {
   try {
@@ -24,15 +27,18 @@ export const deserializeProject = (value: string): ProjectData => {
 }
 
 export const loadProject = (): ProjectData => {
-  const candidates = [readStorage(STORAGE_KEY), readStorage(BACKUP_STORAGE_KEY)]
-  for (const saved of candidates) {
+  const candidates = [[STORAGE_KEY, readStorage(STORAGE_KEY)], [BACKUP_STORAGE_KEY, readStorage(BACKUP_STORAGE_KEY)] as const]
+  for (const [source, saved] of candidates) {
     if (!saved) continue
     try {
+      logger.debug('Loading project draft', { source })
       return deserializeProject(saved)
-    } catch {
+    } catch (error) {
+      logger.warn('Project draft was invalid; trying the next recovery source', { source, error })
       continue
     }
   }
+  logger.info('No valid local project found; creating a clean project')
   return defaultProject()
 }
 
@@ -43,11 +49,13 @@ export const saveProject = (project: ProjectData): PersistenceResult => {
     if (previous) localStorage.setItem(BACKUP_STORAGE_KEY, previous)
     localStorage.setItem(STORAGE_KEY, serialized)
     return 'saved'
-  } catch {
+  } catch (error) {
+    logger.warn('Primary project save failed; trying backup storage', { error })
     try {
       localStorage.setItem(BACKUP_STORAGE_KEY, serialized)
       return 'saved-with-backup'
-    } catch {
+    } catch (backupError) {
+      logger.error('Primary and backup project saves failed', { error, backupError })
       return 'failed'
     }
   }

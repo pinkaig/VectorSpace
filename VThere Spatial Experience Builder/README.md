@@ -20,3 +20,7 @@ npm run dev
 ```
 
 The current implementation is the technical spike and editor foundation. Interaction definitions, content components, preview/runtime parity, publishing, and backend persistence follow in later phases.
+
+## Development guide
+
+See [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md) for folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands.

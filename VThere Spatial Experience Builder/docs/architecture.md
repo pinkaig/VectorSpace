@@ -31,6 +31,7 @@ The editor modifies a project. The runtime reads and executes a published projec
 | Validation | Check project correctness | validation rules | UI display | project/interaction | `packages/validation/` |
 | Commands | Modify state and undo/redo | command history | UI controls | project | `packages/commands/` |
 | AuthoringEngine | Standalone custom authoring component | selection/transform sessions, command timeline, draft checkpoints | React, API, database, renderer ownership | project, spatial, commands, serialization, validation | `packages/authoring-engine/` |
+| Debugging | Structured diagnostics and logging | log levels, redaction, injectable sinks, request correlation | business decisions, persistence truth, secrets | shared packages, editor, API | `packages/debugging/`, `apps/api/app/main.py` |
 | RuntimeApplication | Coordinate visitor playback | runtime lifecycle | editing commands | runtime scene, interaction | `apps/runtime/src/` |
 | RuntimeScene | Reconstruct published scene | runtime scene instances | authoring state | project, Three.js | `apps/runtime/src/RuntimeScene.ts` |
 | API | Communicate with server | request lifecycle | browser rendering | repositories/services | `apps/api/` |
