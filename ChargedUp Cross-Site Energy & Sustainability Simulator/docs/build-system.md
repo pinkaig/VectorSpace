@@ -2,13 +2,13 @@
 
 ## Status
 
-This document defines the required reproducible flow. Exact runtime versions, package manager, database access library, and test frameworks must be selected before baseline implementation.
+This document defines the reproducible baseline flow. The baseline uses Node.js 22 LTS/npm, Python 3.12/pip, PostgreSQL 16/PostGIS 3.4, SQLAlchemy 2, Alembic, pytest, Vitest, Recharts, and GitHub Actions. Exact patch versions are pinned by lockfiles and container references.
 
 ## Required toolchain
 
-- Node.js and a locked package manager for the frontend.
-- Python and a reproducible environment for the backend/simulation.
-- PostgreSQL with PostGIS.
+- Node.js 22 LTS and npm with `frontend/package-lock.json`.
+- Python 3.12 and pinned `backend/requirements.txt`.
+- PostgreSQL 16 with PostGIS 3.4.
 - Docker Engine and Docker Compose.
 - Git.
 
@@ -16,34 +16,53 @@ This document defines the required reproducible flow. Exact runtime versions, pa
 
 ```text
 frontend/package.json
+frontend/package-lock.json
 frontend/tsconfig.json
 frontend/vite.config.ts
 backend/pyproject.toml
+backend/requirements.txt
 .env.example
 docker-compose.yml
-Makefile or equivalent documented task runner
+Makefile or documented PowerShell commands
 ```
 
 ## Fresh-checkout flow
 
-The final baseline must support:
-
 ```text
 Fresh checkout
   -> copy .env.example to local environment configuration
-  -> install frontend dependencies
-  -> install backend dependencies
+  -> install frontend dependencies with npm ci
+  -> create Python environment and install backend requirements
   -> start PostgreSQL/PostGIS
-  -> run migrations/seed data
-  -> configure frontend and backend
-  -> build frontend
-  -> run backend tests
-  -> run simulation tests
-  -> run integration/smoke checks
+  -> run Alembic migrations and deterministic seed data
+  -> run frontend typecheck/build and backend tests
+  -> run integration checks
   -> launch frontend and backend
 ```
 
-Exact commands are to be recorded after tool versions and package managers are selected. Agents must not invent a passing command at implementation time.
+## Baseline commands
+
+```text
+cd frontend
+npm ci
+npm run typecheck
+npm run build
+npm run test
+
+cd ../backend
+python -m venv .venv
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pytest
+
+cd ..
+docker compose up -d db
+alembic -c backend/alembic.ini upgrade head
+python scripts/seed_database.py
+docker compose up --build
+```
+
+The implementation phase must run these commands and record the actual results. A command that depends on a generated file must not be claimed as passing before that file exists.
 
 ## Build responsibilities
 
@@ -52,14 +71,14 @@ Exact commands are to be recorded after tool versions and package managers are s
 - TypeScript type checking.
 - Vite development server and production build.
 - Cesium assets configured for the selected bundler.
-- Frontend tests/checks selected before baseline generation.
+- Vitest unit/component tests.
 
 ### Backend
 
-- Python package installation from `pyproject.toml` and lock/reproducibility mechanism.
+- Python package installation from pinned `requirements.txt` and project metadata in `pyproject.toml`.
 - Import/startup check for FastAPI application.
-- Unit and integration test execution.
-- Database migration and seed path.
+- pytest unit and integration test execution.
+- Alembic migration and deterministic seed path.
 
 ### Containers
 
@@ -89,26 +108,26 @@ Local secret files must be ignored.
 
 ## Minimum acceptance commands
 
-The implementation package must record working commands for:
+The implementation package must run and record:
 
-- clean dependency installation;
-- frontend typecheck/build;
-- backend unit tests;
-- simulation tests;
-- integration tests;
-- database migration/seed;
-- frontend startup;
-- backend startup;
-- Docker Compose startup;
-- clean reset.
+- `npm ci`;
+- `npm run typecheck` and `npm run build`;
+- `python -m pytest`;
+- `python -m pytest tests/integration`;
+- `alembic upgrade head` and `python scripts/seed_database.py`;
+- `npm run dev`;
+- `uvicorn app.main:app --reload`;
+- `docker compose up --build`;
+- a documented database-volume reset.
 
 ## Clean-build procedure
 
 1. Remove generated frontend/build outputs and test reports.
-2. Recreate dependency environments from lockfiles.
-3. Recreate local database volume only when a clean database is required.
-4. Apply migrations and deterministic seed data.
-5. Build and test from the fresh state.
+2. Recreate the Python environment and install pinned dependencies.
+3. Run `npm ci` from the frontend directory.
+4. Recreate the local database volume only when a clean database is required.
+5. Apply migrations and deterministic seed data.
+6. Build and test from the fresh state.
 
 Destructive database reset commands must be documented separately from normal development commands.
 

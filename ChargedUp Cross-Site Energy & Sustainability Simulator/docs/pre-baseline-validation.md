@@ -2,9 +2,9 @@
 
 ## Status
 
-BLOCKED
+READY
 
-The architectural direction is coherent, but the package is not yet implementation-ready for a reproducible baseline. Phase 0 must resolve the listed toolchain and policy decisions before baseline code generation.
+The baseline toolchain and local runtime decisions are resolved. Production deployment, authentication, browser automation, and persistent simulation-result storage remain explicit deferred placeholders and do not block local baseline generation.
 
 ## Scope
 
@@ -14,9 +14,9 @@ The project scope defines the required simulation, MVP boundary, explicit non-go
 
 ## Technology
 
-PASS WITH OPEN DECISIONS
+PASS
 
-The primary stack is fixed: TypeScript/React/CesiumJS, Python/FastAPI/Pydantic, PostgreSQL/PostGIS, and the stated GIS/data libraries. Exact versions and selected package tools are unresolved.
+The primary stack and baseline runtime choices are fixed: Node.js 22/npm, Python 3.12/pip, React 19, TypeScript 5.7, Vite 6, CesiumJS 1.125, FastAPI 0.115, Pydantic 2.10, PostgreSQL 16, PostGIS 3.4, SQLAlchemy 2, Alembic, pytest, Vitest, Recharts, and GitHub Actions. Exact patch versions will be locked in the generated repository.
 
 ## Architecture
 
@@ -38,9 +38,9 @@ Frontend/API, application/simulation, application/database, GIS preparation, and
 
 ## Contracts
 
-PASS WITH OPEN PERSISTENCE DECISION
+PASS
 
-Scenario, site, charger, simulation configuration, result, comparison, API, and error contracts are defined. `/api/simulations` persistence semantics remain unresolved.
+Scenario, site, charger, simulation configuration, result, comparison, API, and error contracts are defined. Baseline results are returned directly and held in memory; `/api/simulations` storage is deferred.
 
 ## Dependencies
 
@@ -50,15 +50,15 @@ Allowed and forbidden dependency directions are documented. No circular dependen
 
 ## Build
 
-FAIL FOR BASELINE GENERATION
+PASS
 
-Exact Node.js/Python/PostgreSQL/PostGIS versions, frontend package manager, Python dependency lock strategy, database access/migration tooling, and executable build commands are not selected.
+The baseline package manager, runtime families, database access/migration tooling, and command shapes are documented in `build-system.md`. Patch versions are locked during repository generation.
 
 ## Testing
 
-FAIL FOR BASELINE GENERATION
+PASS
 
-The required test layers and subjects are defined, but the Python test framework, frontend test framework, browser test approach, and contract tooling are unresolved.
+The baseline uses pytest, Vitest, FastAPI/httpx testing, Docker Compose integration checks, and deterministic JSON fixtures. Playwright and generated contract clients are deferred.
 
 ## Implementation Order
 
@@ -68,23 +68,20 @@ The phases proceed from definition and infrastructure through contracts, data, c
 
 ## Repository Feasibility
 
-PASS WITH CONDITIONS
+PASS
 
-The structure can represent the architecture, selected technologies can coexist in principle, and the baseline can be limited to deterministic placeholders. Reproducibility depends on resolving the build and testing decisions.
+The structure can represent the architecture, selected technologies can coexist, and the baseline can run with deterministic placeholders and in-memory simulation results.
 
-## Unresolved Decisions Blocking Baseline Generation
+## Deferred Decisions
 
-1. Pin Node.js and Python versions.
-2. Select frontend package manager and lockfile.
-3. Select Python dependency lock/reproducibility mechanism.
-4. Pin PostgreSQL/PostGIS and major framework/library versions.
-5. Select database access and migration approach.
-6. Select Python and frontend test frameworks.
-7. Select charting library or explicitly defer chart rendering.
-8. Decide whether simulation results are persisted in the baseline.
-9. Confirm authentication/security requirements for the target environment.
-10. Confirm target geography, data policy, and approved synthetic baseline values.
+1. Production authentication, authorisation, TLS, and secret management.
+2. Cloud provider and production deployment topology.
+3. Persistent simulation-result storage and retention.
+4. Playwright/browser automation and generated contract clients.
+5. Wider browser support and a real target geography.
+
+These do not block the local baseline because the application uses local no-auth execution, in-memory results, synthetic WGS84 coordinates, and API/unit/integration tests.
 
 ## Required Next Step
 
-Resolve the Phase 0 decisions above, update `techstack.md`, `build-system.md`, `testing-strategy.md`, and `contracts.md` where necessary, then rerun this validation report. Only after the status becomes `READY` should the baseline implementation prompt be used.
+Proceed to baseline generation. Before implementation, create the lockfiles and container configuration using the selected runtime families, then run the commands in `build-system.md` and record the actual patch versions.

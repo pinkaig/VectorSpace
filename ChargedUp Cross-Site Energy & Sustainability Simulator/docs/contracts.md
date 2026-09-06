@@ -226,7 +226,7 @@ Output: `ComparisonResult`.
 
 ### `/api/simulations` endpoints
 
-The proposed create/get endpoints remain an optional persistence-facing surface. Whether results are stored, how identifiers are generated, and how long they remain available are UNDEFINED. Do not make this surface authoritative until persistence is approved.
+These endpoints are deferred from the baseline. Baseline simulation results are returned directly from `POST /api/scenarios/simulate` and held in frontend/application memory. No result database, retention policy, or simulation identifier is required yet. If added later, these endpoints must receive an approved persistence contract first.
 
 ## Error contract
 

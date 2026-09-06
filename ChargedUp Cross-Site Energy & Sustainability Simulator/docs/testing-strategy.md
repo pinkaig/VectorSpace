@@ -4,6 +4,15 @@
 
 The baseline must prove that the repository builds, the architecture instantiates, contracts are valid, integrations connect, placeholders are deterministic, and the application can start. Full feature coverage is deferred until those foundations exist.
 
+## Selected tools
+
+- `pytest` for Python unit and API tests.
+- `Vitest` for frontend unit/component tests.
+- `httpx` through FastAPI's test client path for API tests.
+- Docker Compose for database-backed integration tests.
+- Playwright is deferred until the end-to-end visual workflow exists.
+- JSON fixtures are manually maintained; generated contract clients are deferred.
+
 ## Test layers
 
 ### Build and static checks
@@ -102,9 +111,9 @@ Review each change for:
 - fixed directory movement;
 - future feature implementation in the baseline.
 
-## Test-tool decisions still required
+## Deferred test tooling
 
-The exact Python test framework, frontend test framework, browser automation choice, database migration tool, and contract validation tooling are unresolved. Select and record them before baseline generation.
+Browser automation with Playwright and generated contract clients are deferred because they do not affect the backend simulation or local baseline startup. The baseline uses pytest, Vitest, FastAPI/httpx testing, Docker Compose, and JSON fixtures.
 
 ## Verification evidence
 

@@ -53,7 +53,7 @@ A synthetic small network with fleet vehicles, depot and external sites, charger
 
 TypeScript, React, CesiumJS, Python, FastAPI, Pydantic, PostgreSQL, PostGIS, GeoJSON, GeoPandas, Shapely, PyProj, NumPy, Pandas, HTTP/REST/JSON, Docker, Docker Compose, GitHub, and CI/CD direction.
 
-Exact versions, package manager, test frameworks, chart library, database access library, CI provider, cloud target, authentication, and persistence policy remain unresolved.
+Baseline choices are Node.js 22/npm, Python 3.12/pip, PostgreSQL 16/PostGIS 3.4, SQLAlchemy 2/Alembic, pytest, Vitest, Recharts, and GitHub Actions. Simulation results are in-memory for the baseline. Production cloud deployment, authentication, and generated contract clients are explicit deferred placeholders.
 
 ## Primary references
 

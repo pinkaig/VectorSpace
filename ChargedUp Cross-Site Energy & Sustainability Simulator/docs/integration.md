@@ -29,7 +29,7 @@
 
 **Error behavior:** transport errors become frontend request errors; HTTP 4xx represents invalid client/scenario input; HTTP 5xx represents unexpected service failures; domain validation errors must not be flattened into successful results.
 
-**Authentication:** UNDEFINED for baseline; do not add authentication without approval.
+**Authentication:** none for the local baseline; production authentication is a deferred placeholder and must be added at the API boundary later.
 
 **Baseline:** health, sites, fleet, scenario validation, simulation placeholder/minimal run, and result response.
 
@@ -61,7 +61,7 @@
 
 **Consumer:** PostgreSQL/PostGIS.
 
-**Protocol:** database connection/query API; exact library is unresolved.
+**Protocol:** SQLAlchemy 2 with the psycopg 3 driver; Alembic manages migrations.
 
 **Data:** relational entities and spatial geometry.
 
@@ -71,7 +71,7 @@
 
 **Error behavior:** unavailable database prevents dependent operations and produces a clear readiness failure; the simulation domain remains independently testable with in-memory data.
 
-**Authentication:** database credentials supplied through environment configuration; production policy unresolved.
+**Authentication:** local database credentials supplied through environment configuration; production secret management is deferred.
 
 **Baseline:** health/readiness path and at least one repository/data path sufficient to prove connectivity.
 
@@ -125,7 +125,7 @@ POST /api/simulations
 GET  /api/simulations/{simulation_id}
 ```
 
-Persistence semantics for `/api/simulations` are unresolved. The baseline may use an in-memory or deterministic fixture implementation until persistence is approved.
+`/api/simulations` persistence endpoints are deferred. The baseline uses `POST /api/scenarios/simulate` with in-memory results and does not require simulation-result storage.
 
 ## Integration change rule
 

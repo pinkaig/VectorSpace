@@ -34,7 +34,7 @@ The stack is selected for the specified interactive spatial dashboard and custom
 ### Infrastructure
 
 - **Docker** and **Docker Compose** for the preferred local service topology.
-- **GitHub Actions or equivalent CI/CD** is the intended direction, but the exact provider is UNDEFINED.
+- **GitHub Actions** is the baseline CI provider.
 
 ## 4. Libraries
 
@@ -75,33 +75,42 @@ FastAPI application service
   -> Independent Python simulation domain
 ```
 
-Exact runtime versions are UNDEFINED and must be pinned before baseline generation.
+Baseline runtime choices:
+
+- Node.js 22 LTS with npm.
+- Python 3.12.
+- PostgreSQL 16 with PostGIS 3.4.
+- React 19, TypeScript 5.7, Vite 6, and CesiumJS 1.125 or the nearest compatible locked release.
+- FastAPI 0.115 and Pydantic 2.10 or the nearest compatible locked releases.
+
+Exact patch releases are recorded in lockfiles and container image digests when the repository is generated.
 
 ## 6. Build System
 
 ### Frontend
 
-- Node package manager and build scripts are required; the specification identifies `package.json`, `tsconfig.json`, and `vite.config.ts` but does not mandate npm, pnpm, or Yarn.
-- Vite is the intended frontend build tool based on the proposed repository layout.
+- npm is the frontend package manager; `package-lock.json` is committed.
+- Vite 6 is the frontend build tool.
 
 ### Backend
 
 - Python packaging/build configuration using `pyproject.toml`.
-- A dependency lock or equivalent reproducible installation mechanism is required before implementation is considered reproducible.
+- `requirements.txt` contains pinned backend dependencies; `pyproject.toml` defines the package and test configuration.
 
 ### Repository/infrastructure
 
 - Dockerfiles for frontend and backend.
 - Docker Compose for local orchestration.
-- Makefile or equivalent documented commands may wrap setup, build, test, and run operations.
+- Makefile or equivalent PowerShell-compatible documented commands may wrap setup, build, test, and run operations.
 - CI must install dependencies, build the frontend, run backend and simulation tests, and perform integration checks.
 
-Exact commands are UNDEFINED until the repository is generated and versions are selected.
+Commands are defined in `docs/build-system.md` and become executable once the baseline repository files exist.
 
 ## 7. Package / Dependency Management
 
 - Frontend dependencies must be declared in `frontend/package.json` and locked with the selected Node package manager.
 - Backend dependencies must be declared in `backend/pyproject.toml`; `requirements.txt` may be maintained as a deployment/install compatibility file if needed.
+- Baseline Python dependencies are installed with `python -m pip install -r requirements.txt`.
 - Database extensions and migrations must be versioned with the backend/data layer.
 - Do not add dependencies merely for convenience.
 - Do not commit secrets or local environment files; provide `.env.example`.
@@ -173,7 +182,7 @@ The simulation domain must not depend on FastAPI, React, CesiumJS, HTTP, or Post
 
 The database stores and serves prepared/persistent data. It must not perform the energy simulation. Database access belongs behind repository/data interfaces rather than inside the simulation domain.
 
-Whether complete simulation results are persisted is UNDEFINED and should not be assumed for the baseline.
+Baseline simulation results are held in application memory for the request and are not persisted. The optional `/api/simulations` storage endpoints are deferred.
 
 ## 11. Networking / Communication
 
@@ -201,7 +210,7 @@ Whether complete simulation results are persisted is UNDEFINED and should not be
 
 - Producer: application services/repositories.
 - Consumer: PostgreSQL/PostGIS.
-- Protocol/API: PostgreSQL client/ORM or query layer, to be selected during implementation.
+- Protocol/API: SQLAlchemy 2 with the psycopg 3 PostgreSQL driver; Alembic manages migrations.
 - Data format: relational records and spatial geometry.
 - Direction: read/write through repositories.
 - Required dependency: PostgreSQL driver and PostGIS-enabled database.
@@ -238,7 +247,7 @@ Exact endpoint details and persistence semantics remain subject to the contracts
 ## 12. Rendering / Engine / Graphics Stack
 
 - CesiumJS is the spatial rendering engine for the 3D globe/city view.
-- Charts may use a compatible charting library, but the exact library is UNDEFINED and must be selected without duplicating simulation logic.
+- Recharts is the baseline charting library. It consumes result data and does not contain simulation rules.
 - The simulation engine is a custom Python time-series domain, not a game engine.
 - CesiumJS consumes completed simulation results; it must not calculate authoritative energy, cost, capacity, or emissions rules.
 
@@ -251,9 +260,9 @@ Exact endpoint details and persistence semantics remain subject to the contracts
 - CI pipeline for frontend build, backend tests, simulation tests, and integration checks.
 - `.env.example` for configuration.
 
-### Future or UNDEFINED
+### Deferred placeholders
 
-- Cloud provider, hosting topology, production ingress, TLS termination, secrets manager, monitoring, and deployment artifact strategy are UNDEFINED.
+- Cloud provider, hosting topology, production ingress, TLS termination, secrets manager, monitoring, and deployment artifact strategy are deferred placeholders.
 - Cloud deployment is future scope and must not drive baseline dependencies.
 
 ## 14. Testing Technologies
@@ -266,7 +275,7 @@ The test stack must verify:
 - Frontend build/type checks and focused frontend tests as the frontend implementation requires.
 - CI checks for dependency installation, builds, tests, and integration boundaries.
 
-The exact Python test framework and frontend test framework are UNDEFINED and must be selected before implementation.
+The baseline uses pytest for Python and Vitest for frontend unit/component tests. Playwright is deferred until the visual end-to-end workflow exists.
 
 ## 15. Development Tools
 
@@ -287,12 +296,14 @@ The exact Python test framework and frontend test framework are UNDEFINED and mu
 ### Target but not yet fixed
 
 - Linux and macOS developer environments through Docker.
-- Browser support matrix and minimum WebGL capabilities are UNDEFINED.
+- Browser support is limited to current Chrome/Edge-class desktop browsers with WebGL; a wider matrix is deferred.
 
 ## 17. Version Constraints
 
-- Exact versions for Node.js, Python, PostgreSQL, PostGIS, React, TypeScript, CesiumJS, FastAPI, Pydantic, NumPy, Pandas, GeoPandas, Shapely, and PyProj are UNDEFINED.
-- Versions must be pinned or lockable before baseline generation.
+- Node.js 22 LTS, Python 3.12, PostgreSQL 16, and PostGIS 3.4 are the baseline runtime families.
+- React 19, TypeScript 5.7, Vite 6, CesiumJS 1.125, FastAPI 0.115, and Pydantic 2.10 are the initial dependency targets.
+- NumPy 2.1, Pandas 2.2, GeoPandas 1.0, Shapely 2.0, and PyProj 3.7 are initial data-library targets.
+- Exact patch versions are pinned in `package-lock.json`, `requirements.txt`, and container image references.
 - Selected versions must be mutually compatible and support the project’s target browser/runtime.
 
 ## 18. Dependency Constraints
@@ -375,14 +386,10 @@ The exact Python test framework and frontend test framework are UNDEFINED and mu
 - Exact FastAPI/Pydantic major versions.
 - Exact PostgreSQL/PostGIS versions.
 - Exact dependency versions for CesiumJS and GIS libraries.
-- Database access approach: direct SQL, query layer, or ORM.
-- Frontend charting library.
-- Python test framework and frontend test framework.
-- CI provider and cloud deployment target.
-- Authentication, authorisation, TLS, and production secrets management.
-- Shared contract generation versus maintained correspondence between Pydantic and TypeScript types.
+- Cloud deployment target, production authentication/authorisation, TLS, and secrets management remain deferred because they do not affect local baseline execution.
+- Shared contracts use maintained Pydantic/TypeScript correspondence plus JSON fixtures in the baseline; generated client types are deferred.
 
 ## TECH STACK STATUS:
 READY
 
-The primary technology choices and integration directions are sufficiently defined for architecture planning. Version, test-tool, deployment, persistence, and security decisions must be resolved before reproducible baseline generation, but they do not require changing the approved stack direction.
+The baseline runtime, package, database, persistence, charting, testing, and CI choices are resolved. Production authentication, cloud deployment, and generated contract tooling remain explicit deferred placeholders and do not block local baseline execution.

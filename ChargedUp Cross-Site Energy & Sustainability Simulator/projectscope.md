@@ -282,10 +282,9 @@ The project satisfies this scope when:
 - What target geography and site coordinates should the baseline use?
 - Will the project use only synthetic data, or is approved historical data available?
 - Which exact baseline numerical values, tariffs, emissions factors, and ICE assumptions are approved?
-- What authentication and authorisation, if any, are required beyond local development?
-- Which CI provider and cloud deployment target are expected?
-- Which dependency versions and browser support matrix are required?
-- Are simulation results persisted, or only scenario metadata and source data?
+- What production authentication and authorisation, if any, are required beyond the local no-auth baseline?
+- Which cloud deployment target, if any, is expected after the local baseline?
+- Should simulation results be persisted in a future phase, or remain request-scoped?
 - What library/license approval process applies to CesiumJS and other dependencies?
 - What exact allocation and charging-strategy algorithms are required for the MVP?
 

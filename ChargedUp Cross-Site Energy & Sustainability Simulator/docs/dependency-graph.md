@@ -94,4 +94,4 @@ No circular dependency is permitted in the baseline without an explicit ADR.
 
 ## External dependencies
 
-Primary external dependencies are the approved frontend frameworks, Python web/data/GIS libraries, PostgreSQL/PostGIS, Docker, and CI tooling. Exact versions and some package choices remain unresolved in `techstack.md`.
+Primary external dependencies are the approved frontend frameworks, Python web/data/GIS libraries, PostgreSQL/PostGIS, SQLAlchemy/Alembic, Docker, and GitHub Actions. Exact patch versions are pinned in the generated repository lockfiles and image references.
