@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AssetKind, ProjectData, SceneObject, cloneProject, defaultProject, makeObject } from './model'
 import { copyProject, downloadProject, loadProject, saveProject } from './serializer'
 import Viewport from './Viewport'
@@ -17,6 +17,7 @@ export default function App() {
   const [future, setFuture] = useState<ProjectData[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [savedAt, setSavedAt] = useState('Local draft')
+  const [persistenceState, setPersistenceState] = useState('Autosave active')
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
 
@@ -61,7 +62,17 @@ export default function App() {
     setFuture((items) => items.slice(0, -1))
     setProject(next)
   }
-  const save = () => { saveProject(project); setSavedAt(`Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`) }
+  const persist = (nextProject: ProjectData, label: string) => {
+    const result = saveProject(nextProject)
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
+    setPersistenceState(result === 'saved' ? 'Primary + backup ready' : result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
+  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
+    return () => window.clearTimeout(timer)
+  }, [project])
+  const save = () => persist(project, 'Saved')
   const reset = () => { setHistory([]); setFuture([]); setSelectedId(null); setProject(defaultProject()); setSavedAt('New local draft') }
 
   return (
@@ -76,7 +87,7 @@ export default function App() {
           <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene tree</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push({ id, name: `Room ${next.scenes.length + 1}`, objects: [] }); next.activeSceneId = id; commit(next) }}>+</button></div>
           <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
           <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
-          <div className="rail-footer"><span className="status-dot" />Autosave ready<button className="text-button" onClick={reset}>Reset draft</button></div>
+          <div className="rail-footer"><span className="status-dot" />{persistenceState}<button className="text-button" onClick={reset}>Reset draft</button></div>
         </aside>
         <section className="center-stage"><div className="stage-toolbar"><div className="mode-switch"><button className="mode active">Select</button><button className="mode">Move</button><button className="mode">Rotate</button><button className="mode">Scale</button></div><div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div></div><Viewport objects={scene.objects} selectedId={selectedId} onSelect={setSelectedId} onMove={moveObject} /><div className="stage-footer"><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move on floor</span><span><kbd>Esc</kbd> clear selection</span></div></section>
         <aside className="right-rail">

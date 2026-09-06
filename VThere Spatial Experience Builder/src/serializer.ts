@@ -1,6 +1,17 @@
 import { ProjectData, cloneProject, defaultProject } from './model'
 
 const STORAGE_KEY = 'vthere-project-v1'
+const BACKUP_STORAGE_KEY = 'vthere-project-v1-backup'
+
+export type PersistenceResult = 'saved' | 'saved-with-backup' | 'failed'
+
+const readStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
 
 export const serializeProject = (project: ProjectData): string => JSON.stringify(project, null, 2)
 
@@ -13,17 +24,33 @@ export const deserializeProject = (value: string): ProjectData => {
 }
 
 export const loadProject = (): ProjectData => {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (!saved) return defaultProject()
-  try {
-    return deserializeProject(saved)
-  } catch {
-    return defaultProject()
+  const candidates = [readStorage(STORAGE_KEY), readStorage(BACKUP_STORAGE_KEY)]
+  for (const saved of candidates) {
+    if (!saved) continue
+    try {
+      return deserializeProject(saved)
+    } catch {
+      continue
+    }
   }
+  return defaultProject()
 }
 
-export const saveProject = (project: ProjectData): void => {
-  localStorage.setItem(STORAGE_KEY, serializeProject(project))
+export const saveProject = (project: ProjectData): PersistenceResult => {
+  const serialized = serializeProject(project)
+  const previous = readStorage(STORAGE_KEY)
+  try {
+    if (previous) localStorage.setItem(BACKUP_STORAGE_KEY, previous)
+    localStorage.setItem(STORAGE_KEY, serialized)
+    return 'saved'
+  } catch {
+    try {
+      localStorage.setItem(BACKUP_STORAGE_KEY, serialized)
+      return 'saved-with-backup'
+    } catch {
+      return 'failed'
+    }
+  }
 }
 
 export const downloadProject = (project: ProjectData): void => {

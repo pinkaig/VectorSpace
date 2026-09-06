@@ -34,7 +34,7 @@ Design and prepare the VThere Spatial Experience Builder for Stage 4 baseline im
   - `docs/pilot-and-conduct.md`
   - `docs/source-brief-audit.md`
 - Existing prototype has a React/Three.js editor with scene tree, primitive asset placement, viewport selection/dragging, inspector, undo/redo, JSON export, local draft persistence, debounced autosave, backup recovery, and truthful storage failure status.
-- Architecture is aligned with the DOCX core plan, but Stage 4 has not started. The monorepo boundaries, backend, runtime app, standalone authoring-engine package, and test suites are planned rather than implemented.
+- Architecture is aligned with the DOCX core plan. Stage 4 Phase 0 has started: the canonical project package, standalone authoring-engine command timeline, API health route, and first isolated tests now exist. The current `src/` editor remains the temporary UI surface until a verified package-aware build allows the app move.
 
 ## Build / verify command and status
 
@@ -48,7 +48,7 @@ python -m pytest
 uvicorn app.main:app --reload
 ```
 
-Current status: **not verified**. Node.js/npm was unavailable in the environment, so no frontend install, lockfile, build, or browser test has run. The backend scaffold does not yet exist. `src/serializer.ts` has no editor diagnostics; React source diagnostics are dependency-resolution errors caused by missing `node_modules`.
+Current status: **partially implemented, verified locally**. Node.js 24.19.0, npm 11.17.0, and Python 3.12.10 are available. `npm install`, `npm run build`, the isolated authoring-engine test, API dependency installation, and the API health test pass. Browser tests, full backend integration tests, and the planned app move remain outstanding.
 
 ## Files touched in the DOCX audit session
 
@@ -83,4 +83,4 @@ Earlier implementation/design files remain in the folder as described above.
 
 ## Next recommended step
 
-Obtain human approval of the Stage 3 skeleton and resolve the product/brief decisions above. Then install Node.js 22 LTS, run `npm install`, generate and commit `package-lock.json`, and begin Stage 4 baseline generation with the shared project/serialization and standalone authoring-engine boundaries first.
+Obtain human approval of the Stage 3 skeleton and resolve the product/brief decisions above. Next, move the verified editor into `apps/editor/`, preserve the shared project and authoring-engine imports, then add persistence round-trip tests before implementing further runtime/API phases.
