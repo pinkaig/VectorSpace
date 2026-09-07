@@ -1,0 +1,91 @@
+What I can do now
+User have
+Project 
+-> can add scenes(rooms)
+
+Library
+Assets : Display block, Ornament, Column. ((suppose to be the specific 20-30 3D objects)
+
+In Viewport,
+-Can click on object, highlighted yellow, can be drag x&y axis,
+The responsiveness is weird, maybe because it is through a browser and its pipeline, maybe the engine trys to run 60fps, but the web stack is slower.
+Overall I think it is okay as the object still move ( but it would not be as exact-accurate )
+
+-Can't toggle transform, scaling and rotating (but can edit through the Properties Inspector.
+-No visual gizmos
+
+
+Moving of the camera / or moving the tgt position ,
+No zooming of the scene.
+
+The Select, Move, Rotate, Scale on the top bar have no functionality at the moment.
+
+Unsure of how export JSON, save project would be used in the import /export and playing the runtime.
+
+
+Can't rename rooms and project.
+
+Allow for click and drag into the project?
+
+
+=============================================
+Things I would like to do today:
+Features to pin point:
+Engagement analytics , creating the layout and concept of it, have the main features of collecting data,
+
+admin panel for VThere admins to have the overall health/data/storage of the app,
+overview of all 3d assets available on the web editor view.
+overall of all projects created using this web app 
+
+
+another admin panel for a Teacher,
+being able to look at various projects being created by their student.
+put the consideration of real-time / live viewing of the student, in the back view.
+
+I would like the project to run multiple command context to run the editor /runtime / admin contexts.
+
+In the context, it should be able to handle pop out screen like a preview or editor tool to do xyz.
+
+actually, can we create a developer mode, so 4 modes,
+editor, runtime, admin and dev mode. 
+
+so dev mode would be able to run editor, runtime and admin, 
+I can toggle between .
+the rationale would be that I would like to have access to all code and functionality of the codebase.
+Add a caveat where it would no longer be feasible to maintain dev mode if we have link up the backend hosting and storage ( and not using the local storage)
+
+
+
+
+
+then
+
+
+then like an admin panel for Vthere or for the Teacher to facilitate overseeing the class.
+
+
+
+
+Things to KIV:
+-responsiveness of browser and the custom  feature.
+-consideration of runtime on mobile,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
