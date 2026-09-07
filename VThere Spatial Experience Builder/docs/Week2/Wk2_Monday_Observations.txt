@@ -58,18 +58,21 @@ Add a caveat where it would no longer be feasible to maintain dev mode if we hav
 
 
 
-then
-
-
-then like an admin panel for Vthere or for the Teacher to facilitate overseeing the class.
-
-
 
 
 Things to KIV:
 -responsiveness of browser and the custom  feature.
 -consideration of runtime on mobile,
+-version control + different versions ( w different npm/libraries used [so the web app is more resistance to versioning-issues] )
+-how do students not loose progress/project from carelessness/brash use.
 
+
+?? idk what is this
+turning your functionality to libraries/npms so it compartmentalise your code and also allow agents to have better scope + ownership of the library features.
+
+TechLead things I have to do:
+CI/CD thing,
+Smoke Test thing.
 
 
 

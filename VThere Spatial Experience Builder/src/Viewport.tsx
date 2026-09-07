@@ -7,11 +7,12 @@ interface ViewportProps {
   selectedId: string | null
   onSelect: (id: string | null) => void
   onMove: (id: string, position: [number, number, number]) => void
+  interactive?: boolean
 }
 
 const colorFor = (kind: SceneObject['assetKind']) => ({ cube: 0x4ea7a0, sphere: 0xe6ad5a, cylinder: 0xd66d75 })[kind]
 
-export default function Viewport({ objects, selectedId, onSelect, onMove }: ViewportProps) {
+export default function Viewport({ objects, selectedId, onSelect, onMove, interactive = true }: ViewportProps) {
   const mountRef = useRef<HTMLDivElement>(null)
   const dataRef = useRef({ objects, selectedId, onSelect, onMove })
   dataRef.current = { objects, selectedId, onSelect, onMove }
@@ -41,6 +42,7 @@ export default function Viewport({ objects, selectedId, onSelect, onMove }: View
     floor.rotation.x = -Math.PI / 2
     scene.add(floor)
     let dragging: { id: string; startX: number; startZ: number; startPointerX: number; startPointerY: number } | null = null
+    let renderedSignature = ''
 
     const resize = () => {
       const width = mount.clientWidth
@@ -50,6 +52,15 @@ export default function Viewport({ objects, selectedId, onSelect, onMove }: View
       renderer.setSize(width, height, false)
     }
     const syncObjects = () => {
+      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
+      if (signature === renderedSignature) return
+      objectsGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
+          else child.material.dispose()
+        }
+      })
       objectsGroup.clear()
       dataRef.current.objects.forEach((item) => {
         const geometry = item.assetKind === 'sphere' ? new THREE.SphereGeometry(0.65, 32, 20) : item.assetKind === 'cylinder' ? new THREE.CylinderGeometry(0.55, 0.55, 1.2, 32) : new THREE.BoxGeometry(1.1, 1.1, 1.1)
@@ -65,6 +76,7 @@ export default function Viewport({ objects, selectedId, onSelect, onMove }: View
         }
         objectsGroup.add(mesh)
       })
+      renderedSignature = signature
     }
     const getPointer = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect()
@@ -94,14 +106,16 @@ export default function Viewport({ objects, selectedId, onSelect, onMove }: View
     const onPointerUp = () => { dragging = null }
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
-    renderer.domElement.addEventListener('pointerdown', onPointerDown)
-    renderer.domElement.addEventListener('pointermove', onPointerMove)
-    renderer.domElement.addEventListener('pointerup', onPointerUp)
+    if (interactive) {
+      renderer.domElement.addEventListener('pointerdown', onPointerDown)
+      renderer.domElement.addEventListener('pointermove', onPointerMove)
+      renderer.domElement.addEventListener('pointerup', onPointerUp)
+    }
     let frame = 0
     const animate = () => { frame = requestAnimationFrame(animate); syncObjects(); renderer.render(scene, camera) }
     resize(); animate()
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); renderer.domElement.removeEventListener('pointerdown', onPointerDown); renderer.domElement.removeEventListener('pointermove', onPointerMove); renderer.domElement.removeEventListener('pointerup', onPointerUp); renderer.dispose(); mount.removeChild(renderer.domElement) }
-  }, [])
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); renderer.domElement.removeEventListener('pointerdown', onPointerDown); renderer.domElement.removeEventListener('pointermove', onPointerMove); renderer.domElement.removeEventListener('pointerup', onPointerUp); objectsGroup.traverse((child) => { if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) { child.geometry.dispose(); if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose()); else child.material.dispose() } }); renderer.dispose(); mount.removeChild(renderer.domElement) }
+  }, [interactive])
 
-  return <div className="viewport" ref={mountRef}><div className="viewport-hint">Drag a selected object across the floor plane</div></div>
+  return <div className="viewport" ref={mountRef}>{interactive && <div className="viewport-hint">Drag a selected object across the floor plane</div>}</div>
 }

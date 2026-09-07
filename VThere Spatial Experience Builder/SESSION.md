@@ -1,86 +1,81 @@
-# VThere Spatial Experience Builder — Session Handoff
+# VThere Spatial Experience Builder - Session Handoff
 
 ## Objective / topic
 
-Design and prepare the VThere Spatial Experience Builder for Stage 4 baseline implementation using the DigiPen project brief, the five-stage Agent Skills workflow, and the existing browser editor prototype.
+`Wk2_Persistence_Loading_of_Json`: make project persistence understandable and usable in the browser, add verified JSON file import, provide a local read-only runtime simulation, and establish a searchable approved asset catalog.
 
 ## Decisions made and why
 
-- Browser editor/runtime: React + TypeScript + Vite + Three.js, because the brief requires a browser-based 3D authoring tool and visitor runtime.
-- Backend: Python 3.12 + FastAPI + Pydantic v2, reusing the repository family's Python direction and providing typed HTTP/OpenAPI contracts.
-- Persistence: PostgreSQL 16 with SQLAlchemy 2/Alembic for structured project/version metadata; Google Cloud Storage for production media/project assets; MinIO locally.
-- Delivery: Google Cloud Run, Firebase Hosting, and Google Cloud CDN as the reference deployment; exact CI provider remains open.
-- Access: Auth0 OIDC Authorization Code + PKCE for browser login; API-side JWT validation and server-side organisation/project authorization.
-- Testing: Vitest, Playwright, pytest, and HTTPX.
-- Custom technical component: standalone framework-agnostic `packages/authoring-engine/` owning gizmo hit testing, transform constraints, selection sessions, command grouping, undo/redo, and persistence checkpoints. It must not own React, rendering, HTTP, storage, or runtime behavior.
-- Persistence is release-blocking: canonical versioned serialization, undo/redo continuity, debounced autosave, last-known-good backup recovery, truthful failure states, revision conflict protection, and immutable published snapshots.
+- Browser `localStorage` remains a local draft mechanism only; it is not durable multi-user persistence.
+- The editor exposes both `Load draft` for browser storage and `Import JSON` for a user-selected `.json` file.
+- Imported files are validated before replacing the current project. Invalid imports leave the current project unchanged.
+- Validation rejects malformed JSON, unsupported schema versions, wrong file types, files over 2 MB, invalid project/scene/object structure, non-finite transforms, duplicate IDs, overlong labels, more than 100 scenes, or more than 5,000 objects.
+- Automatic corruption repair is intentionally not implemented. Silent guessing could destroy valid data; future recovery should produce a report or preview instead.
+- The first save writes both the primary local draft and backup. Existing draft recovery tries primary, then backup, then a clean project.
+- The runtime work is a local read-only simulation using the same current `ProjectData` and Three.js viewport. It is not a published URL or separate `apps/runtime` application yet.
+- Asset management starts with a data-driven approved catalog and search. Arbitrary upload, conversion, remote storage, thumbnails, and missing-asset recovery remain deferred until their contracts are approved.
 
 ## Current skeleton / plan state
 
-- Stage 1 scope document exists at `projectscope.md`.
-- Stage 2 stack document exists at `techstack.md` with pinned frontend dependency versions and resolved backend/storage/auth/testing direction.
-- Stage 3 architecture package exists:
-  - `docs/PROJECT_CONTEXT.md`
-  - `docs/architecture.md`
-  - `docs/repository.md`
-  - `docs/contracts.md`
-  - `docs/build-system.md`
-  - `docs/testing-strategy.md`
-  - `docs/implementation-plan.md`
-  - `docs/pre-baseline-validation.md`
-  - `docs/subsystems/authoring-engine.md`
-  - `docs/asset-library-contract.md`
-  - `docs/roles-and-delivery.md`
-  - `docs/pilot-and-conduct.md`
-  - `docs/source-brief-audit.md`
-- Existing prototype has a React/Three.js editor with scene tree, primitive asset placement, viewport selection/dragging, inspector, undo/redo, JSON export, local draft persistence, debounced autosave, backup recovery, and truthful storage failure status.
-- Architecture is aligned with the DOCX core plan. Stage 4 Phase 0 has started: the canonical project package, standalone authoring-engine command timeline, API health route, and first isolated tests now exist. The current `src/` editor remains the temporary UI surface until a verified package-aware build allows the app move.
+- Phase plan: `docs/Week2/Wk2_Monday_Runtime_Persistence_Plan.md`.
+- Implemented runtime preview controls: `Run simulation`, visitor-style simulation screen, `Exit simulation`, and non-interactive viewport mode.
+- Implemented persistence clarity: `Load draft`, visible localStorage status, save/autosave status, backup status, and JSON export.
+- Implemented JSON import: browser file picker, import status/error reporting, strict validation, and no state replacement on rejection.
+- Implemented asset foundation: `src/assets.ts` owns asset metadata and filtering; the asset panel has searchable approved assets and match counts.
+- Implemented viewport resource cleanup so scene objects are not recreated and GPU resources are not leaked every animation frame.
+- Architecture remains intentionally unchanged. The root `src/` editor is still the current implementation surface; `apps/runtime` remains a placeholder and backend/API publishing is not wired.
 
 ## Build / verify command and status
 
-From `VThere Spatial Experience Builder/`:
+Run from `VThere Spatial Experience Builder/`:
 
-```text
-npm install
-npm run build
-npm run dev
-python -m pytest
-uvicorn app.main:app --reload
+```powershell
+npm.cmd run build
+npm.cmd test
+npm.cmd run dev
 ```
 
-Current status: **partially implemented, verified locally**. Node.js 24.19.0, npm 11.17.0, and Python 3.12.10 are available. `npm install`, `npm run build`, the isolated authoring-engine test, API dependency installation, and the API health test pass. Browser tests, full backend integration tests, and the planned app move remain outstanding.
+Required browser golden path:
 
-## Files touched in the DOCX audit session
+1. Add an asset and save the project.
+2. Reload the page and use `Load draft`.
+3. Export JSON.
+4. Import the exported JSON through the browser file picker.
+5. Try a malformed, oversized, wrong-extension, or structurally invalid JSON file and confirm the current project remains unchanged.
+6. Search the asset catalog.
+7. Run simulation, confirm editor controls are absent, then exit simulation.
 
-- `docs/source-brief-audit.md`
-- `docs/asset-library-contract.md`
-- `docs/roles-and-delivery.md`
-- `docs/pilot-and-conduct.md`
-- `docs/contracts.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/pre-baseline-validation.md`
+Current verification status: VS Code diagnostics report no errors in the touched TypeScript/CSS files. In the current shell, `npm.cmd`, Node.js, and Git were not resolvable, so build, test, browser, and Git diff checks were not run in this handoff session. Do not mark the browser acceptance item complete until those commands run successfully.
+
+## Files touched for this topic
+
+- `src/App.tsx`
+- `src/serializer.ts`
+- `src/assets.ts`
+- `src/Viewport.tsx`
+- `src/RuntimeView.tsx`
+- `src/styles.css`
+- `docs/Week2/Wk2_Monday_Runtime_Persistence_Plan.md`
 - `SESSION.md`
-
-Earlier implementation/design files remain in the folder as described above.
 
 ## Failed approaches already tried
 
-- Attempted `npm install` and build verification; failed because `npm`/Node.js was not installed or discoverable on Windows.
-- Initial broad Stage 3 review omitted the formal validation block, per-phase verification commands, and testing-strategy document; these were added before this handoff.
-- Temporary DOCX extraction was used for audit search and then removed; no extracted review artifact remains in the topic folder.
+- Treating `localStorage` as the only project-loading mechanism was insufficient because it cannot load a JSON file from another browser or machine.
+- Accepting any parsed object with `schemaVersion === 1` was insufficient because malformed structure, duplicate IDs, invalid transforms, and excessive resource counts could pass through.
+- Automatic corruption repair was rejected as unsafe. The current behavior rejects and preserves the active project instead.
+- A full build/test/browser run was attempted but blocked because Node/npm was unavailable in the current PowerShell PATH.
+- A Git diff check was attempted but Git was unavailable in the current PowerShell PATH.
 
 ## Open questions
 
-- Human approval of the Stage 3 skeleton and scope/stack documents.
-- Exact approved MVP six-trigger/six-action vocabulary.
-- Visitor movement model: free first-person, camera-point navigation, or both.
-- Approved two-to-four environments and approximately 20–30 GLB asset inventory, licensing, scale, pivots, and budgets.
-- Exact browser/device performance targets, including iPad/tablet editing feasibility.
-- Official DigiPen Milestone 3 date and complete calendar.
-- Final team roster, Jira ownership, mentor slot, and 80% team / 20% individual evidence process.
-- Pilot consent/safeguarding requirements, NDA, IP/reuse/publication terms, analytics privacy, and final handoff terms.
-- CI/deployment automation provider.
+- Should imported JSON be autosaved immediately, or require an explicit confirmation before replacing the local draft?
+- Should import support a preview/diff screen before commit?
+- What exact asset metadata is required: thumbnail URL, GLB URL, license, scale, pivot, category, and performance budget?
+- Should missing assets block loading, show placeholders, or produce a repair report?
+- When should persistence move from browser storage to the FastAPI/PostgreSQL/object-storage path?
+- When should the local simulation become the separate `apps/runtime` application boundary?
+- What visitor interactions, navigation model, and analytics events must the runtime support?
 
 ## Next recommended step
 
-Obtain human approval of the Stage 3 skeleton and resolve the product/brief decisions above. Next, move the verified editor into `apps/editor/`, preserve the shared project and authoring-engine imports, then add persistence round-trip tests before implementing further runtime/API phases.
+Make Node.js/npm available and run the build, tests, and browser golden path. Then add focused serializer tests for valid import, malformed JSON, wrong schema, duplicate IDs, invalid transforms, size limits, and preservation of the current project after rejection. After that, define the asset metadata contract and implement missing-asset validation before adding arbitrary upload or remote storage.
