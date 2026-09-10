@@ -263,11 +263,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Switching between orbit and walk hands camera control to a different system entirely.
-  // OrbitControls must be explicitly disabled the instant walk mode starts — otherwise it
-  // keeps accumulating its own drag state in the background and snaps the camera when the
-  // author switches back. Re-seed yaw/pitch (walk) or the orbit target from the camera's
-  // current facing so the transition never jumps.
+// Orbit and walk mode use different camera controls. 
+// Disable OrbitControls when walk mode starts to prevent camera snapping. 
+// When switching modes, update the new control using the camera's current direction 
+// so the camera transition stays smooth.
   const previousModeRef = useRef<CameraMode | null>(null)
   useEffect(() => {
     const camera = cameraRef.current

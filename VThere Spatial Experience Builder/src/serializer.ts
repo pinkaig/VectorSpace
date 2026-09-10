@@ -19,10 +19,7 @@ const readStorage = (key: string): string | null => {
 export const serializeProject = (project: ProjectData): string => JSON.stringify(project, null, 2)
 
 /**
- * Fills in fields introduced after a project was first saved (e.g. per-scene
- * environment and starting camera) so drafts from an older schema still open
- * instead of crashing the viewport. See docs/PROJECT_CONTEXT.md on
- * versioning the project file.
+ * Adds missing data to older project files so they can still open correctly without crashing.
  */
 const backfillScenes = (project: ProjectData): ProjectData => {
   project.scenes.forEach((scene) => {

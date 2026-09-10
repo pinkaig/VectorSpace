@@ -4,7 +4,9 @@ import { EnvironmentDefinition, findEnvironment } from './model'
 
 export interface LoadedEnvironment {
   group: THREE.Group
-  /** Releases geometries/materials/textures owned by this environment. */
+  /** Releases geometries/materials/textures owned by this environment. 
+   * works like c++ release, its a cleanup function
+  */
   dispose: () => void
 }
 
@@ -22,10 +24,10 @@ const box = (width: number, height: number, depth: number, material: THREE.Mater
 }
 
 /**
- * Stand-in environments used until VThere supplies the approved 2-4 GLB
- * environments (docs/asset-library-contract.md). Each mirrors the shape of a
- * real one: a floor, enclosing walls and a distinguishing feature, so the
- * loader / orbit / walk pipeline is exercised end to end.
+ * placeholder environments used
+ * environments:
+ * a floor, enclosing walls and a distinguishing feature, so the
+ * loader / orbit / walk pipeline
  */
 const proceduralBuilders: Record<string, () => THREE.Group> = {
   'gallery-hall': () => {

@@ -15,11 +15,11 @@ export interface SceneObject {
 }
 
 /**
- * `procedural` environments are built in-process as a stand-in for a supplied
- * environment; `glb` environments are loaded from a URL. See
- * docs/asset-library-contract.md — the approved 2-4 environment inventory is
- * still an outstanding approval artifact, so procedural placeholders keep the
- * load/orbit/walk pipeline real and testable ahead of that approval.
+* `procedural` environments are created directly in the app. 
+* `glb` environments are loaded from a URL. 
+* Procedural environments are used as temporary placeholders until 
+* the final environment assets are approved. 
+* This allows loading, orbit mode, and walk mode to be tested now.
  */
 export type EnvironmentKind = 'procedural' | 'glb'
 
