@@ -1,4 +1,4 @@
-import { ProjectData, cloneProject, defaultProject } from './model'
+import { ProjectData, cloneProject, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
 import { createLogger } from '../packages/debugging/src/index'
 
 const STORAGE_KEY = 'vthere-project-v1'
@@ -18,12 +18,26 @@ const readStorage = (key: string): string | null => {
 
 export const serializeProject = (project: ProjectData): string => JSON.stringify(project, null, 2)
 
+/**
+ * Fills in fields introduced after a project was first saved (e.g. per-scene
+ * environment and starting camera) so drafts from an older schema still open
+ * instead of crashing the viewport. See docs/PROJECT_CONTEXT.md on
+ * versioning the project file.
+ */
+const backfillScenes = (project: ProjectData): ProjectData => {
+  project.scenes.forEach((scene) => {
+    if (!scene.environmentId) scene.environmentId = defaultEnvironmentId
+    if (!scene.startCamera) scene.startCamera = defaultCameraPose()
+  })
+  return project
+}
+
 export const deserializeProject = (value: string): ProjectData => {
   const parsed: unknown = JSON.parse(value)
   if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1) {
     throw new Error('Unsupported project format')
   }
-  return parsed as ProjectData
+  return backfillScenes(parsed as ProjectData)
 }
 
 export const loadProject = (): ProjectData => {

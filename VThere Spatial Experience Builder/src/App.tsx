@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { AssetKind, ProjectData, SceneObject, cloneProject, defaultProject, makeObject } from './model'
+import { useEffect, useRef, useState } from 'react'
+import { AssetKind, ProjectData, SceneObject, cloneProject, defaultProject, environmentLibrary, makeObject, makeScene } from './model'
 import { copyProject, downloadProject, loadProject, saveProject } from './serializer'
-import Viewport from './Viewport'
+import Viewport, { CameraMode, ViewportHandle } from './Viewport'
 
 const assetCatalog: { kind: AssetKind; label: string; detail: string }[] = [
   { kind: 'cube', label: 'Display block', detail: 'A clean pedestal form' },
@@ -18,6 +18,9 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [savedAt, setSavedAt] = useState('Local draft')
   const [persistenceState, setPersistenceState] = useState('Autosave active')
+  const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
+  const [resetToken, setResetToken] = useState(0)
+  const viewportRef = useRef<ViewportHandle>(null)
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
 
@@ -30,6 +33,20 @@ export default function App() {
     const next = cloneProject(project)
     const target = next.scenes.find((item) => item.id === next.activeSceneId)
     if (target) target.objects = mutate(target.objects)
+    commit(next)
+  }
+  const setEnvironment = (environmentId: string) => {
+    const next = cloneProject(project)
+    const target = next.scenes.find((item) => item.id === next.activeSceneId)
+    if (target) target.environmentId = environmentId
+    commit(next)
+  }
+  const captureStartView = () => {
+    const pose = viewportRef.current?.getCameraPose()
+    if (!pose) return
+    const next = cloneProject(project)
+    const target = next.scenes.find((item) => item.id === next.activeSceneId)
+    if (target) target.startCamera = pose
     commit(next)
   }
   const addObject = (kind: AssetKind) => {
@@ -84,12 +101,24 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside className="left-rail">
-          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene tree</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push({ id, name: `Room ${next.scenes.length + 1}`, objects: [] }); next.activeSceneId = id; commit(next) }}>+</button></div>
+          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene tree</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push(makeScene(id, `Room ${next.scenes.length + 1}`)); next.activeSceneId = id; commit(next) }}>+</button></div>
           <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
           <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
           <div className="rail-footer"><span className="status-dot" />{persistenceState}<button className="text-button" onClick={reset}>Reset draft</button></div>
         </aside>
-        <section className="center-stage"><div className="stage-toolbar"><div className="mode-switch"><button className="mode active">Select</button><button className="mode">Move</button><button className="mode">Rotate</button><button className="mode">Scale</button></div><div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div></div><Viewport objects={scene.objects} selectedId={selectedId} onSelect={setSelectedId} onMove={moveObject} /><div className="stage-footer"><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move on floor</span><span><kbd>Esc</kbd> clear selection</span></div></section>
+        <section className="center-stage">
+          <div className="stage-toolbar">
+            <div className="mode-switch"><button className="mode active">Select</button><button className="mode">Move</button><button className="mode">Rotate</button><button className="mode">Scale</button></div>
+            <div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div>
+          </div>
+          <div className="view-toolbar">
+            <label className="env-select"><span>Environment</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
+            <div className="mode-switch"><button className={cameraMode === 'orbit' ? 'mode active' : 'mode'} onClick={() => setCameraMode('orbit')}>Orbit</button><button className={cameraMode === 'walk' ? 'mode active' : 'mode'} onClick={() => setCameraMode('walk')}>Walk</button></div>
+            <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
+          </div>
+          <Viewport ref={viewportRef} objects={scene.objects} selectedId={selectedId} onSelect={setSelectedId} onMove={moveObject} sceneId={scene.id} environmentId={scene.environmentId} startCamera={scene.startCamera} cameraMode={cameraMode} resetToken={resetToken} />
+          <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move on floor</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
+        </section>
         <aside className="right-rail">
           <section className="panel"><div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{assetCatalog.length}</span></div><div className="asset-list">{assetCatalog.map((asset) => <button className="asset-card" key={asset.kind} onClick={() => addObject(asset.kind)}><span className={`asset-preview ${asset.kind}`}><span /></span><span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span><span className="add-symbol">+</span></button>)}</div></section>
           <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
