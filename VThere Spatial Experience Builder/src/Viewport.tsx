@@ -30,12 +30,19 @@ interface EnvStatus {
 
 const colorFor = (kind: SceneObject['assetKind']) => ({ cube: 0x4ea7a0, sphere: 0xe6ad5a, cylinder: 0xd66d75 })[kind]
 const WALK_SPEED = 3.6
+const SPRINT_MULTIPLIER = 2.2
+const SPRINT_KEYS = new Set(['ShiftLeft', 'ShiftRight'])
 const MOVE_KEYS: Record<string, [number, number]> = {
   KeyW: [0, 1], ArrowUp: [0, 1],
   KeyS: [0, -1], ArrowDown: [0, -1],
   KeyA: [-1, 0], ArrowLeft: [-1, 0],
   KeyD: [1, 0], ArrowRight: [1, 0],
 }
+const VERTICAL_KEYS: Record<string, number> = {
+  Space: 1,
+  ControlLeft: -1, ControlRight: -1,
+}
+const MIN_FLY_HEIGHT = 0.2
 
 const isTypingTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null
@@ -163,10 +170,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     const onPointerDown = (event: PointerEvent) => {
       if (dataRef.current.cameraMode === 'walk') {
+        if (event.button !== 0) return
         looking = { startPointerX: event.clientX, startPointerY: event.clientY, startYaw: yawRef.current, startPitch: pitchRef.current }
         renderer.domElement.setPointerCapture(event.pointerId)
         return
       }
+      if (event.button !== 0) return
       const hit = pick(event)
       if (!hit) { dataRef.current.onSelect(null); return }
       controls.enabled = false
@@ -204,19 +213,25 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return
-      if (!(event.code in MOVE_KEYS)) return
+      if (!(event.code in MOVE_KEYS) && !(event.code in VERTICAL_KEYS) && !SPRINT_KEYS.has(event.code)) return
       if (dataRef.current.cameraMode === 'walk') event.preventDefault()
       pressedKeys.add(event.code)
     }
     const onKeyUp = (event: KeyboardEvent) => { pressedKeys.delete(event.code) }
+    // Right-click no longer does anything in-scene, so suppress the browser's context menu —
+    // otherwise it steals focus and the eventual keyup never arrives, leaving movement stuck on.
+    const onContextMenu = (event: MouseEvent) => { event.preventDefault() }
+    const onBlur = () => { pressedKeys.clear() }
 
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
     renderer.domElement.addEventListener('pointerdown', onPointerDown)
     renderer.domElement.addEventListener('pointermove', onPointerMove)
     renderer.domElement.addEventListener('pointerup', onPointerUp)
+    renderer.domElement.addEventListener('contextmenu', onContextMenu)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
 
     let frame = 0
     let lastTime = performance.now()
@@ -227,6 +242,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       lastTime = now
       syncObjects()
       if (dataRef.current.cameraMode === 'walk') {
+        const isSprinting = pressedKeys.has('ShiftLeft') || pressedKeys.has('ShiftRight')
+        const speed = isSprinting ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED
         let dx = 0
         let dz = 0
         pressedKeys.forEach((code) => { const [x, z] = MOVE_KEYS[code] ?? [0, 0]; dx += x; dz += z })
@@ -234,9 +251,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           const length = Math.hypot(dx, dz) || 1
           const forward = new THREE.Vector3(-Math.sin(yawRef.current), 0, -Math.cos(yawRef.current))
           const right = new THREE.Vector3(Math.cos(yawRef.current), 0, -Math.sin(yawRef.current))
-          const step = (WALK_SPEED * delta) / length
+          const step = (speed * delta) / length
           camera.position.addScaledVector(forward, dz * step)
           camera.position.addScaledVector(right, dx * step)
+        }
+        let dy = 0
+        pressedKeys.forEach((code) => { dy += VERTICAL_KEYS[code] ?? 0 })
+        if (dy !== 0) {
+          camera.position.y = Math.max(MIN_FLY_HEIGHT, camera.position.y + dy * speed * delta)
         }
       } else {
         controls.update()
@@ -252,8 +274,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
       renderer.domElement.removeEventListener('pointermove', onPointerMove)
       renderer.domElement.removeEventListener('pointerup', onPointerUp)
+      renderer.domElement.removeEventListener('contextmenu', onContextMenu)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
@@ -336,7 +360,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           )}
         </div>
       )}
-      <div className="viewport-hint">{cameraMode === 'walk' ? 'Drag to look · WASD to walk · Click to select' : 'Drag a selected object across the floor'}</div>
+      <div className="viewport-hint">{cameraMode === 'walk' ? 'Drag to look · WASD to walk · Space/Ctrl to fly up/down · Shift to sprint · Click to select' : 'Drag a selected object across the floor'}</div>
     </div>
   )
 })
