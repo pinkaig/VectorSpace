@@ -39,13 +39,16 @@ export const defaultProject = (): ProjectData => ({
 export const cloneProject = (project: ProjectData): ProjectData =>
   JSON.parse(JSON.stringify(project)) as ProjectData
 
+// half the height of each primitive's geometry, so a freshly placed object rests on the floor
+const restingHeight: Record<AssetKind, number> = { cube: 0.55, sphere: 0.65, cylinder: 0.6 }
+
 export const makeObject = (assetKind: AssetKind, index: number): SceneObject => ({
   id: `${assetKind}-${Date.now()}-${index}`,
   name: `${assetKind[0].toUpperCase()}${assetKind.slice(1)} ${index}`,
   assetId: `primitive-${assetKind}`,
   assetKind,
   transform: {
-    position: [index * 1.5, 0.8, 0],
+    position: [0, restingHeight[assetKind], 0],
     rotation: [0, 0, 0],
     scale: [1, 1, 1],
   },
