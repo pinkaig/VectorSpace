@@ -1,14 +1,14 @@
-# Pre-Baseline Validation
+﻿# Pre-Baseline Validation
 
 **Status:** IN PROGRESS pending human architecture approval.
 
 | Check | Status | Evidence / blocker |
 |---|---|---|
-| Scope | PASS | `projectscope.md` defines required, optional, future, undefined, and forbidden scope. |
-| Technology | PASS | `techstack.md` selects the browser, API, database, storage, auth, CDN, and test tools; Node.js, npm, and Python are now installed and verified. |
-| Architecture | PASS WITH APPROVAL GATE | `architecture.md` defines Editor, Shared, Runtime, Infrastructure, persistence invariants, and standalone `AuthoringEngine`. |
-| Repository | PASS | `repository.md` classifies fixed, extensible, generated, and optional boundaries. |
-| Integrations | PASS | `contracts.md` and `architecture.md` define client/API, storage, CDN, auth, analytics, and project-data flow. |
+| Scope | PASS | `UNDATED--FOUNDATION--project-scope.md` defines required, optional, future, undefined, and forbidden scope. |
+| Technology | PASS | `UNDATED--FOUNDATION--tech-stack.md` selects the browser, API, database, storage, auth, CDN, and test tools; Node.js, npm, and Python are now installed and verified. |
+| Architecture | PASS WITH APPROVAL GATE | `../02-architecture/UNDATED--FOUNDATION--architecture.md` defines Editor, Shared, Runtime, Infrastructure, persistence invariants, and standalone `AuthoringEngine`. |
+| Repository | PASS | `../02-architecture/UNDATED--FOUNDATION--repository.md` classifies fixed, extensible, generated, and optional boundaries. |
+| Integrations | PASS | `../02-architecture/UNDATED--FOUNDATION--contracts.md` and `../02-architecture/UNDATED--FOUNDATION--architecture.md` define client/API, storage, CDN, auth, analytics, and project-data flow. |
 | Contracts | PASS | Versioned project JSON, API resources, interaction events/actions, errors, and signed asset URLs are documented. |
 | Dependencies | PASS | Direction is UI/apps -> shared packages; shared packages do not import UI/API/database concerns. |
 | Build | PASS WITH WARNING | `npm install` and `npm run build` pass; Vite reports a large production chunk warning. |

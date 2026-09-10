@@ -1,4 +1,4 @@
-# VThere Spatial Experience Builder
+﻿# VThere Spatial Experience Builder
 
 Initial Phase 1 and Phase 2 implementation for the browser-based spatial authoring tool.
 
@@ -23,6 +23,6 @@ The current implementation is the technical spike and editor foundation. Interac
 
 ## Development guide
 
-See [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md) for folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands.
+See [`docs/README.md`](docs/README.md) for the documentation map. For development workflow, folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands, read [`docs/04-engineering/UNDATED--CURRENT--development-guide.md`](docs/04-engineering/UNDATED--CURRENT--development-guide.md).
 
-For first-time machine setup and missing-tool diagnostics, see [`docs/ENVIRONMENT_SETUP.md`](docs/ENVIRONMENT_SETUP.md).
+For first-time machine setup and missing-tool diagnostics, see [`docs/04-engineering/UNDATED--CURRENT--environment-setup.md`](docs/04-engineering/UNDATED--CURRENT--environment-setup.md).

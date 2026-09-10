@@ -1,4 +1,4 @@
-# VThere Spatial Experience Builder - Session Handoff
+﻿# VThere Spatial Experience Builder - Session Handoff
 
 ## Objective / topic
 
@@ -17,7 +17,7 @@
 
 ## Current skeleton / plan state
 
-- Phase plan: `docs/Week2/Wk2_Monday_Runtime_Persistence_Plan.md`.
+- Phase plan: `docs/07-research-and-history/2026-09-07--HISTORY--week2-runtime-persistence-plan.md`.
 - Implemented runtime preview controls: `Run simulation`, visitor-style simulation screen, `Exit simulation`, and non-interactive viewport mode.
 - Implemented persistence clarity: `Load draft`, visible localStorage status, save/autosave status, backup status, and JSON export.
 - Implemented JSON import: browser file picker, import status/error reporting, strict validation, and no state replacement on rejection.
@@ -55,7 +55,7 @@ Current verification status: VS Code diagnostics report no errors in the touched
 - `src/Viewport.tsx`
 - `src/RuntimeView.tsx`
 - `src/styles.css`
-- `docs/Week2/Wk2_Monday_Runtime_Persistence_Plan.md`
+- `docs/07-research-and-history/2026-09-07--HISTORY--week2-runtime-persistence-plan.md`
 - `SESSION.md`
 
 ## Failed approaches already tried

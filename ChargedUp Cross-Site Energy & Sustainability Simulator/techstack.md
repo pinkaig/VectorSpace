@@ -1,4 +1,4 @@
-# ChargedUp Cross-Site Energy & Sustainability Simulator Technology Stack
+﻿# ChargedUp Cross-Site Energy & Sustainability Simulator Technology Stack
 
 ## 1. Technology Overview
 
@@ -104,7 +104,7 @@ Exact patch releases are recorded in lockfiles and container image digests when 
 - Makefile or equivalent PowerShell-compatible documented commands may wrap setup, build, test, and run operations.
 - CI must install dependencies, build the frontend, run backend and simulation tests, and perform integration checks.
 
-Commands are defined in `docs/build-system.md` and become executable once the baseline repository files exist.
+Commands are defined in `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md` and become executable once the baseline repository files exist.
 
 ## 7. Package / Dependency Management
 
@@ -304,7 +304,7 @@ The baseline uses pytest for Python and Vitest for frontend unit/component tests
 - React 19, TypeScript 5.7, Vite 6, CesiumJS 1.125, FastAPI 0.115, and Pydantic 2.10 are the initial dependency targets.
 - NumPy 2.1, Pandas 2.2, GeoPandas 1.0, Shapely 2.0, and PyProj 3.7 are initial data-library targets.
 - Exact patch versions are pinned in `package-lock.json`, `requirements.txt`, and container image references.
-- Selected versions must be mutually compatible and support the project’s target browser/runtime.
+- Selected versions must be mutually compatible and support the projectâ€™s target browser/runtime.
 
 ## 18. Dependency Constraints
 

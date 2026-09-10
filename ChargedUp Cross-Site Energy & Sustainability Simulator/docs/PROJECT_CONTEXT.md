@@ -1,4 +1,4 @@
-# Project Context
+﻿# Project Context
 
 ## Identity
 
@@ -16,14 +16,14 @@ Pre-baseline architecture planning. Scope and technology stack are approved for 
 
 ```text
 React + CesiumJS
-        │ HTTP/JSON/GeoJSON
-        ▼
+        â”‚ HTTP/JSON/GeoJSON
+        â–¼
 FastAPI + Pydantic application services
-        │ in-process typed calls
-        ▼
+        â”‚ in-process typed calls
+        â–¼
 Independent Python simulation domain
-        │ repository interfaces
-        ▼
+        â”‚ repository interfaces
+        â–¼
 PostgreSQL + PostGIS
 ```
 
@@ -57,15 +57,15 @@ Baseline choices are Node.js 22/npm, Python 3.12/pip, PostgreSQL 16/PostGIS 3.4,
 
 ## Primary references
 
-- `projectscope.md`
-- `techstack.md`
-- `docs/architecture.md`
-- `docs/repository.md`
+- `UNDATED--FOUNDATION--project-scope.md`
+- `UNDATED--FOUNDATION--tech-stack.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md`
 - `docs/integration.md`
-- `docs/contracts.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md`
 - `docs/dependency-graph.md`
-- `docs/build-system.md`
-- `docs/testing-strategy.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md`
 - `docs/security-and-stress-testing.md`
-- `docs/implementation-plan.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md`
 - `docs/subsystems/simulation-domain.md`

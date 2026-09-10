@@ -1,4 +1,4 @@
-# Week 2 Monday: Runtime and Persistence Slice
+﻿# Week 2 Monday: Runtime and Persistence Slice
 
 Date: 2026-09-07
 
@@ -40,7 +40,7 @@ This is a focused vertical slice of the documented runtime and persistence archi
 - `src/Viewport.tsx`
 - `src/RuntimeView.tsx`
 - `src/styles.css`
-- `docs/Week2/Wk2_Monday_Runtime_Persistence_Plan.md`
+- `2026-09-07--HISTORY--week2-runtime-persistence-plan.md`
 
 No new backend, authentication, storage provider, or package boundary is introduced in this slice.
 

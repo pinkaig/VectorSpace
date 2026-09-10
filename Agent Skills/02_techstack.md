@@ -1,14 +1,14 @@
-# 02 — Technology Stack
+﻿# 02 â€” Technology Stack
 
 **Stage 2 of 5.**
-[`01 Scope`](01_projectscope.md) → `02 Tech Stack` → [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) → [`04 Baseline`](04_Baseline_Generation.md) → [`05 Phase Implementation`](05_Phase_Implementation.md)
+[`01 Scope`](01_UNDATED--FOUNDATION--project-scope.md) â†’ `02 Tech Stack` â†’ [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) â†’ [`04 Baseline`](04_Baseline_Generation.md) â†’ [`05 Phase Implementation`](05_Phase_Implementation.md)
 
 | | |
 |---|---|
-| **Reads** | `projectscope.md`, existing project docs, explicitly required technologies |
-| **Produces** | `techstack.md` |
+| **Reads** | `UNDATED--FOUNDATION--project-scope.md`, existing project docs, explicitly required technologies |
+| **Produces** | `UNDATED--FOUNDATION--tech-stack.md` |
 | **Model tier** | Mid-tier for assembling the document. Top tier only if a genuinely contested choice needs arguing (e.g. two viable databases with different architectural consequences). |
-| **Human gate** | I read `techstack.md` and approve before Stage 3 begins. |
+| **Human gate** | I read `UNDATED--FOUNDATION--tech-stack.md` and approve before Stage 3 begins. |
 
 ---
 
@@ -23,32 +23,32 @@ integrations built. Naming a library is this stage's job; calling it is not.
 
 ---
 
-## Learn gate — this stage matters most
+## Learn gate â€” this stage matters most
 
 A stack chosen from names I can't explain is a stack I can't review, and every later stage
 inherits it.
 
 Before finalising, produce a **table of contents of the mechanisms** this stack commits us to.
-Not product names — mechanisms. For example:
+Not product names â€” mechanisms. For example:
 
 ```text
-connection pooling          — why a pool exists, what exhausting it looks like
-schema migration            — forward/backward, why ordering matters
-async request handling      — event loop vs. thread-per-request
-ORM session lifecycle       — when a write actually hits the disk
-CORS preflight              — why a browser sends OPTIONS first
+connection pooling          â€” why a pool exists, what exhausting it looks like
+schema migration            â€” forward/backward, why ordering matters
+async request handling      â€” event loop vs. thread-per-request
+ORM session lifecycle       â€” when a write actually hits the disk
+CORS preflight              â€” why a browser sends OPTIONS first
 ```
 
 Then split the list in two:
 
 ```text
-FAMILIAR   — proceed
-UNFAMILIAR — /learn <mechanism> before this stack is approved
+FAMILIAR   â€” proceed
+UNFAMILIAR â€” /learn <mechanism> before this stack is approved
 ```
 
 For anything under `UNFAMILIAR`, stop and route to the `tutor` subagent (or I type
 `/learn <mechanism>`). The tutor's job is a **minimal isolated example showing the
-function-call flow** — bare mechanism, compiled and run, real output. Default to C++ so the
+function-call flow** â€” bare mechanism, compiled and run, real output. Default to C++ so the
 control flow is explicit and nothing hides behind a framework.
 
 Where a mechanism has no honest C++ analogue (an HTTP preflight, a SQL transaction), use the
@@ -59,10 +59,10 @@ Do not skip ahead to "and here's how this maps onto our project." That is Stage 
 
 ---
 
-## Output — `techstack.md`
+## Output â€” `UNDATED--FOUNDATION--tech-stack.md`
 
-Sections 1–18 are a checklist. **Omit any section that does not apply** and say so in one line
-rather than padding it — a stack document with an empty "Rendering / Graphics Stack" heading
+Sections 1â€“18 are a checklist. **Omit any section that does not apply** and say so in one line
+rather than padding it â€” a stack document with an empty "Rendering / Graphics Stack" heading
 teaches a later agent nothing.
 
 1. Technology Overview
@@ -75,7 +75,7 @@ teaches a later agent nothing.
 8. Frontend Stack
 9. Backend Stack
 10. Database / Storage
-11. Networking / Communication — protocols, APIs, message formats
+11. Networking / Communication â€” protocols, APIs, message formats
 12. Rendering / Engine / Graphics Stack
 13. Cloud / Infrastructure
 14. Testing Technologies
@@ -111,11 +111,11 @@ that stack, and paste the actual output:
 ```text
 Target:    backend
 Command:   <exact command>
-Verified:  yes / no — with real output pasted below
+Verified:  yes / no â€” with real output pasted below
 ```
 
 If the toolchain doesn't exist yet and the command can't be run, write `TBD` and say what
-would have to exist first. `TBD` is honest. An unverified command that looks right is not —
+would have to exist first. `TBD` is honest. An unverified command that looks right is not â€”
 it will be copied into three later documents before anyone discovers it was never real.
 
 This section is the source that populates **Build & verification** in `CLAUDE.md`. Keep the
@@ -150,7 +150,7 @@ Recommended next step:           ...
 ```
 
 `BLOCKED` if a critical technology, runtime, dependency, or integration decision is unresolved
-— **or if any mechanism is still flagged `UNFAMILIAR`.** An unreviewed stack is a blocked
+â€” **or if any mechanism is still flagged `UNFAMILIAR`.** An unreviewed stack is a blocked
 stack.
 
 ---

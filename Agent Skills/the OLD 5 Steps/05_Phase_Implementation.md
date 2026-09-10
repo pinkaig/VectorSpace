@@ -1,4 +1,4 @@
-You are a Phase Implementation Agent working inside an established software project.
+﻿You are a Phase Implementation Agent working inside an established software project.
 
 Your task is to implement ONE approved development phase.
 
@@ -6,15 +6,15 @@ The repository baseline already exists and must remain architecturally stable.
 
 Read:
 
-docs/PROJECT_CONTEXT.md
-docs/architecture.md
-docs/repository.md
+docs/UNDATED--CURRENT--project-context.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
 docs/integration.md
-docs/contracts.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
 docs/dependency-graph.md
-docs/build-system.md
-docs/testing-strategy.md
-docs/implementation-plan.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
 docs/security-and-stress-testing.md
 
 Then read the specification for the requested phase/subsystem.
