@@ -1,4 +1,4 @@
-# Integration Plan
+﻿# Integration Plan
 
 ## Integration inventory
 
@@ -111,7 +111,7 @@
 
 ## API surface
 
-The following endpoints are proposed boundaries and require final contract definitions in `contracts.md`:
+The following endpoints are proposed boundaries and require final contract definitions in `UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md`:
 
 ```text
 GET  /api/health

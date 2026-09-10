@@ -1,4 +1,4 @@
-# Engineering Practices
+﻿# Engineering Practices
 
 These practices are deliberately practical for the current VThere stack: React, TypeScript, Three.js, FastAPI, PostgreSQL, local draft storage, and a shared project document.
 
@@ -99,7 +99,7 @@ The UI can then show a truthful recovery path, and tests can assert the exact fa
 
 Use the shared logger in [`packages/debugging/src/index.ts`](../packages/debugging/src/index.ts) when an operation starts, completes, recovers, or fails. Include stable IDs, operation names, durations, and request IDs.
 
-Do not log full project documents, credentials, access tokens, or binary assets. See [`DEBUGGING.md`](DEBUGGING.md) for the redaction and investigation rules.
+Do not log full project documents, credentials, access tokens, or binary assets. See [`UNDATED--CURRENT--debugging.md`](UNDATED--CURRENT--debugging.md) for the redaction and investigation rules.
 
 ### 8. Keep adapters at the edges
 
@@ -120,7 +120,7 @@ It also prevents a future API or storage change from forcing a rewrite of author
 For each new feature:
 
 1. Write the user-visible behavior and failure behavior in one short note.
-2. Identify the owning boundary in [`docs/architecture.md`](architecture.md).
+2. Identify the owning boundary in [`architecture`](../02-architecture/UNDATED--FOUNDATION--architecture.md).
 3. Extend the canonical model only if the feature needs persistent data.
 4. Implement pure domain logic and its focused tests.
 5. Wrap it in a command if it changes authored state.
@@ -189,8 +189,8 @@ These are the highest-value follow-ups for the current repository:
 
 ## Related documents
 
-- [Development guide](DEVELOPMENT_GUIDE.md)
-- [Debugging and logging](DEBUGGING.md)
-- [Testing strategy](testing-strategy.md)
-- [Architecture boundaries](architecture.md)
-- [Implementation phases](implementation-plan.md)
+- [Development guide](UNDATED--CURRENT--development-guide.md)
+- [Debugging and logging](UNDATED--CURRENT--debugging.md)
+- [Testing strategy](../03-delivery/UNDATED--FOUNDATION--testing-strategy.md)
+- [Architecture boundaries](../02-architecture/UNDATED--FOUNDATION--architecture.md)
+- [Implementation phases](../03-delivery/UNDATED--FOUNDATION--implementation-plan.md)

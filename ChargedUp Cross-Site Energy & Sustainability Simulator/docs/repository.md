@@ -1,76 +1,76 @@
-# Repository Plan
+﻿# Repository Plan
 
 ## Proposed hierarchy
 
 ```text
 project-root/
-├── README.md
-├── LICENSE
-├── .gitignore
-├── .env.example
-├── docker-compose.yml
-├── Makefile
-├── docs/
-│   ├── PROJECT_CONTEXT.md
-│   ├── projectscope.md
-│   ├── techstack.md
-│   ├── architecture.md
-│   ├── repository.md
-│   ├── integration.md
-│   ├── contracts.md
-│   ├── dependency-graph.md
-│   ├── build-system.md
-│   ├── testing-strategy.md
-│   ├── implementation-plan.md
-│   ├── security-and-stress-testing.md
-│   └── subsystems/
-│       └── simulation-domain.md
-├── frontend/
-│   ├── package.json
-│   ├── package-lock.json or selected lockfile
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   ├── public/
-│   └── src/
-│       ├── main.tsx
-│       ├── App.tsx
-│       ├── api/
-│       ├── types/
-│       ├── state/
-│       ├── components/
-│       ├── cesium/
-│       ├── charts/
-│       └── utils/
-├── backend/
-│   ├── pyproject.toml
-│   ├── requirements.txt or generated install file
-│   └── app/
-│       ├── main.py
-│       ├── api/
-│       ├── schemas/
-│       ├── services/
-│       ├── simulation/
-│       ├── data/
-│       ├── db/
-│       └── config/
-├── shared/
-│   ├── schemas/
-│   └── examples/
-├── data/
-│   ├── raw/
-│   ├── processed/
-│   ├── synthetic/
-│   └── README.md
-├── scripts/
-├── tests/
-│   ├── backend/
-│   ├── frontend/
-│   └── integration/
-├── infra/
-│   ├── docker/
-│   ├── nginx/
-│   └── cloud/
-└── .github/workflows/
+â”œâ”€â”€ README.md
+â”œâ”€â”€ LICENSE
+â”œâ”€â”€ .gitignore
+â”œâ”€â”€ .env.example
+â”œâ”€â”€ docker-compose.yml
+â”œâ”€â”€ Makefile
+â”œâ”€â”€ docs/
+â”‚   â”œâ”€â”€ UNDATED--CURRENT--project-context.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--project-scope.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--tech-stack.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
+â”‚   â”œâ”€â”€ integration.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
+â”‚   â”œâ”€â”€ dependency-graph.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
+â”‚   â”œâ”€â”€ security-and-stress-testing.md
+â”‚   â””â”€â”€ subsystems/
+â”‚       â””â”€â”€ simulation-domain.md
+â”œâ”€â”€ frontend/
+â”‚   â”œâ”€â”€ package.json
+â”‚   â”œâ”€â”€ package-lock.json or selected lockfile
+â”‚   â”œâ”€â”€ tsconfig.json
+â”‚   â”œâ”€â”€ vite.config.ts
+â”‚   â”œâ”€â”€ public/
+â”‚   â””â”€â”€ src/
+â”‚       â”œâ”€â”€ main.tsx
+â”‚       â”œâ”€â”€ App.tsx
+â”‚       â”œâ”€â”€ api/
+â”‚       â”œâ”€â”€ types/
+â”‚       â”œâ”€â”€ state/
+â”‚       â”œâ”€â”€ components/
+â”‚       â”œâ”€â”€ cesium/
+â”‚       â”œâ”€â”€ charts/
+â”‚       â””â”€â”€ utils/
+â”œâ”€â”€ backend/
+â”‚   â”œâ”€â”€ pyproject.toml
+â”‚   â”œâ”€â”€ requirements.txt or generated install file
+â”‚   â””â”€â”€ app/
+â”‚       â”œâ”€â”€ main.py
+â”‚       â”œâ”€â”€ api/
+â”‚       â”œâ”€â”€ schemas/
+â”‚       â”œâ”€â”€ services/
+â”‚       â”œâ”€â”€ simulation/
+â”‚       â”œâ”€â”€ data/
+â”‚       â”œâ”€â”€ db/
+â”‚       â””â”€â”€ config/
+â”œâ”€â”€ shared/
+â”‚   â”œâ”€â”€ schemas/
+â”‚   â””â”€â”€ examples/
+â”œâ”€â”€ data/
+â”‚   â”œâ”€â”€ raw/
+â”‚   â”œâ”€â”€ processed/
+â”‚   â”œâ”€â”€ synthetic/
+â”‚   â””â”€â”€ README.md
+â”œâ”€â”€ scripts/
+â”œâ”€â”€ tests/
+â”‚   â”œâ”€â”€ backend/
+â”‚   â”œâ”€â”€ frontend/
+â”‚   â””â”€â”€ integration/
+â”œâ”€â”€ infra/
+â”‚   â”œâ”€â”€ docker/
+â”‚   â”œâ”€â”€ nginx/
+â”‚   â””â”€â”€ cloud/
+â””â”€â”€ .github/workflows/
 ```
 
 ## Directory classification

@@ -1,7 +1,7 @@
-# Source Brief Audit
+﻿# Source Brief Audit
 
 **Source:** `VThere_DigiPen_Spatial_Experience_Builder_Project_5.docx`
-**Audited documents:** `projectscope.md`, `techstack.md`, Stage 3 architecture documents
+**Audited documents:** `UNDATED--FOUNDATION--project-scope.md`, `UNDATED--FOUNDATION--tech-stack.md`, Stage 3 architecture documents
 **Audit date:** 2026-09-06
 
 ## Coverage summary
@@ -13,7 +13,7 @@
 | Chrome, Safari, Firefox browser support | PARTIAL | Browser baseline exists, but Firefox and exact supported versions need confirmation |
 | Supplied 3D environments | OUTSTANDING | Environment asset inventory and licensing are not yet defined |
 | Two to four environments | OUTSTANDING | Add a target count after VThere confirms available environments |
-| Curated 20–30 asset library | OUTSTANDING | Asset count, thumbnails, categories, scale, orientation, and pivot standards need an asset contract |
+| Curated 20â€“30 asset library | OUTSTANDING | Asset count, thumbnails, categories, scale, orientation, and pivot standards need an asset contract |
 | glTF/GLB as the supported 3D format | OUTSTANDING | Declare GLB as the only MVP 3D asset format |
 | Orbit, pan, zoom, and first-person walk mode | OUTSTANDING | Visitor/editor camera modes are not yet specified in contracts |
 | Loading states for large environments | OUTSTANDING | Add loading, progress, error, and retry states to runtime acceptance tests |
@@ -37,10 +37,10 @@
 | Published runtime contains no editor capability | COVERED | Runtime boundary |
 | Gaussian Splat viewing as possible stretch | PARTIAL | Generation is forbidden; viewing is not explicitly categorized and should remain excluded unless approved |
 | Team role ownership | PARTIAL | Architecture boundaries exist; UXGD/IMGD/RTIS/BFA ownership matrix and deliverables need project planning |
-| DigiPen 5–9 team composition | COVERED | Scope constraint |
+| DigiPen 5â€“9 team composition | COVERED | Scope constraint |
 | Jira/Scrum and UXGD PM | COVERED | Scope/stack constraints |
 | 80% team / 20% individual grading evidence | OUTSTANDING | Add contribution evidence requirements to project operations docs |
-| Pitch Weeks 1–2 and Milestone 3 MVP | COVERED/PARTIAL | Scope says Milestone 3; official dates and phase gates are not recorded |
+| Pitch Weeks 1â€“2 and Milestone 3 MVP | COVERED/PARTIAL | Scope says Milestone 3; official dates and phase gates are not recorded |
 | Pilot with people outside the team | OUTSTANDING | Add pilot protocol, usability observation, and defect triage phase |
 | NDA, confidentiality, IP, reuse, handoff | OUTSTANDING | Must be confirmed in writing with DigiPen/VThere before using real assets or partner data |
 | School-student pilot consent/safeguarding | OUTSTANDING | Required if a classroom pilot is conducted |
@@ -64,7 +64,7 @@ Choose whether visitors use free first-person movement, camera-point navigation,
 
 ### 3. Asset and environment inventory
 
-Before baseline data is created, record the approved two-to-four environments and approximately 20–30 GLB assets, including license/source, scale, units, orientation, pivot, thumbnail, collision/interaction proxy, file size, and attribution.
+Before baseline data is created, record the approved two-to-four environments and approximately 20â€“30 GLB assets, including license/source, scale, units, orientation, pivot, thumbnail, collision/interaction proxy, file size, and attribution.
 
 ### 4. Project lifecycle and roles
 
@@ -80,10 +80,10 @@ Replace relative phase names with the official DigiPen calendar, confirm the Mil
 
 ## Required follow-up artifacts
 
-- `docs/asset-library-contract.md` for environment/asset inventory and licensing.
-- `docs/roles-and-delivery.md` for UXGD/IMGD/RTIS/BFA ownership, Jira evidence, milestones, and handoff.
-- `docs/pilot-and-conduct.md` for usability testing, safeguarding, confidentiality, IP, and data handling.
-- `docs/contracts.md` update for final trigger/action vocabulary, camera/navigation behavior, project lifecycle states, and loading states.
+- `../05-subsystems/UNDATED--CURRENT--asset-library-contract.md` for environment/asset inventory and licensing.
+- `../03-delivery/UNDATED--GOVERNANCE--roles-and-delivery.md` for UXGD/IMGD/RTIS/BFA ownership, Jira evidence, milestones, and handoff.
+- `../07-research-and-history/UNDATED--GOVERNANCE--pilot-and-conduct.md` for usability testing, safeguarding, confidentiality, IP, and data handling.
+- `../02-architecture/UNDATED--FOUNDATION--contracts.md` for final trigger/action vocabulary, camera/navigation behavior, project lifecycle states, and loading states.
 
 ## Audit conclusion
 

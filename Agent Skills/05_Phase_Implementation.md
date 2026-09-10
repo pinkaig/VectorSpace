@@ -1,14 +1,14 @@
-# 05 — Phase Implementation
+﻿# 05 â€” Phase Implementation
 
-**Stage 5 of 5 — the loop.** Run once per approved phase from `implementation-plan.md`.
-[`01 Scope`](01_projectscope.md) → [`02 Tech Stack`](02_techstack.md) → [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) → [`04 Baseline`](04_Baseline_Generation.md) → `05 Phase Implementation`
+**Stage 5 of 5 â€” the loop.** Run once per approved phase from `UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md`.
+[`01 Scope`](01_UNDATED--FOUNDATION--project-scope.md) â†’ [`02 Tech Stack`](02_UNDATED--FOUNDATION--tech-stack.md) â†’ [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) â†’ [`04 Baseline`](04_Baseline_Generation.md) â†’ `05 Phase Implementation`
 
 | | |
 |---|---|
 | **Reads** | Planning docs + the spec for **one** phase |
 | **Produces** | One implemented phase, verified, reviewed |
-| **Model tier** | Mid-tier, usually. Cheapest capable model for boilerplate and small edits. **If the phase turns out to need new architecture, that is a Stage 3 problem — stop, don't push on with a mismatched tier.** |
-| **Subagents** | `tutor` up front if unfamiliar · `code-reviewer` at the end |
+| **Model tier** | Mid-tier, usually. Cheapest capable model for boilerplate and small edits. **If the phase turns out to need new architecture, that is a Stage 3 problem â€” stop, don't push on with a mismatched tier.** |
+| **Subagents** | `tutor` up front if unfamiliar Â· `code-reviewer` at the end |
 | **Entry condition** | Baseline is `READY`. The phase is approved and named. |
 
 ---
@@ -23,12 +23,12 @@ architecturally stable.
 Read:
 
 ```text
-docs/PROJECT_CONTEXT.md          docs/architecture.md
-docs/repository.md               docs/build-system.md
-docs/implementation-plan.md      docs/security-and-stress-testing.md
+docs/UNDATED--CURRENT--project-context.md          docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md               docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md      docs/security-and-stress-testing.md
 ```
 
-plus `contracts.md`, `integration.md`, `dependency-graph.md`, `testing-strategy.md` and the
+plus `UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md`, `integration.md`, `dependency-graph.md`, `UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md` and the
 relevant `docs/subsystems/*.md` where they exist. Then read the spec for the requested phase.
 
 ---
@@ -47,7 +47,7 @@ Before implementing, state:
 - Directories allowed to change
 - Required outputs
 - Acceptance criteria
-- **Verification commands** — the exact commands, from `build-system.md`
+- **Verification commands** â€” the exact commands, from `UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md`
 
 **Do not implement work belonging to another phase.** Noticing an unrelated improvement is not
 permission to make it. Note it as deferred work and move on.
@@ -58,19 +58,19 @@ permission to make it. Note it as deferred work and move on.
 
 Before writing anything, ask: is any mechanism in this phase new to me?
 
-If yes — **stop and route to `tutor`** (`/learn <mechanism>`) before the skeleton, not after,
-and not in parallel. The order is `learn → skeleton → implement → review`.
+If yes â€” **stop and route to `tutor`** (`/learn <mechanism>`) before the skeleton, not after,
+and not in parallel. The order is `learn â†’ skeleton â†’ implement â†’ review`.
 
 What the tutor should return:
 
 1. A table of contents of the concepts involved.
-2. A minimal, isolated example showing the **function-call flow** — bare mechanism, not this
+2. A minimal, isolated example showing the **function-call flow** â€” bare mechanism, not this
    project's code, default C++ so the control flow is explicit.
 3. Compiled and run, with **real output shown**. Not a snippet that merely looks right.
 
 `g++ -std=c++20 -Wall -Wextra -o <out> <file>.cpp && ./<out>` (add `-pthread` for threading).
 
-The tutor must not map the concept onto this project — that is the architect's job, a separate
+The tutor must not map the concept onto this project â€” that is the architect's job, a separate
 step, only once the mechanism is understood on its own.
 
 For familiar territory, skip straight to the skeleton.
@@ -87,7 +87,7 @@ their signatures (no bodies), and a line on how data moves between them.
 ### Trivial-change exemption
 
 Skip the skeleton when the change is confined to one file, adds no new
-class/function/interface, and is under ~20 lines — a typo, a debug print, a constant, filling
+class/function/interface, and is under ~20 lines â€” a typo, a debug print, a constant, filling
 in a body already agreed. Also exempt when I say "just do it."
 
 **If a "trivial" change starts growing past that, stop and skeleton it.** Most architectural
@@ -110,7 +110,7 @@ Read only what is needed to understand those boundaries. If answering one questi
 reading many files, send the `Explore` subagent instead of loading them all into context.
 
 The repository documentation is persistent project memory. `security-and-stress-testing.md` is
-a **living phase contract** — read its register, controls, applicable stress cases, and
+a **living phase contract** â€” read its register, controls, applicable stress cases, and
 evidence log before editing, and update the evidence log after. Security and load behaviour
 are not end-of-project cleanup.
 
@@ -118,19 +118,19 @@ are not end-of-project cleanup.
 
 ## Implementation rules
 
-**You may:** implement existing interfaces · add implementation detail · add tests · add files
-inside extensible directories · refactor private internals · fix defects the phase requires.
+**You may:** implement existing interfaces Â· add implementation detail Â· add tests Â· add files
+inside extensible directories Â· refactor private internals Â· fix defects the phase requires.
 
-**You may not silently:** change architecture · rename fixed systems · move fixed directories ·
-change public contracts · replace technologies · change integration protocols · introduce major
-dependencies · create undocumented systems · implement unrelated future features.
+**You may not silently:** change architecture Â· rename fixed systems Â· move fixed directories Â·
+change public contracts Â· replace technologies Â· change integration protocols Â· introduce major
+dependencies Â· create undocumented systems Â· implement unrelated future features.
 
 Style:
 
 - Small units, one responsibility. Composition over inheritance unless inheritance models the domain.
 - Simple over clever. A clean solution needing a comment to explain the trick is the wrong solution.
 - Match the codebase's existing conventions over personal preference.
-- No comments by default — only where the *why* is genuinely non-obvious. Never comments
+- No comments by default â€” only where the *why* is genuinely non-obvious. Never comments
   referencing this task, this fix, or the ticket. Those rot.
 - No half-finished implementations. No backwards-compatibility shims. If something is
   genuinely unused, delete it rather than renaming it `_unused`.
@@ -140,12 +140,12 @@ Style:
 
 ## Contract first
 
-Before implementing a system, verify its responsibility · public API · ownership ·
-dependencies · inputs · outputs · lifecycle · trust boundary, input/resource limits, error
+Before implementing a system, verify its responsibility Â· public API Â· ownership Â·
+dependencies Â· inputs Â· outputs Â· lifecycle Â· trust boundary, input/resource limits, error
 disclosure behaviour, applicable stress cases.
 
 **Do not invent a new API where a contract already defines one.** If the contract is
-insufficient, report it — don't quietly widen it.
+insufficient, report it â€” don't quietly widen it.
 
 ---
 
@@ -168,7 +168,7 @@ error-safety checks.
 
 ---
 
-## Verification — name the check, run the check
+## Verification â€” name the check, run the check
 
 Before saying a phase is done, name what proves it works and actually run it:
 
@@ -183,7 +183,7 @@ Stress        Command: <exact>   Threshold: ...   Result: ...
 
 **Never write "this should work."** If a check can't be run, say which one and why, plainly.
 
-For UI/frontend phases: start the dev server and exercise the feature in a browser — golden
+For UI/frontend phases: start the dev server and exercise the feature in a browser â€” golden
 path and edge cases, watching for regressions elsewhere. Type checks and tests verify code
 correctness, not feature correctness. If you can't test the UI, say so explicitly rather than
 claiming success.
@@ -192,14 +192,14 @@ claiming success.
 
 ## Review
 
-Send the change to `code-reviewer` before calling the phase done. Zero context — hand it:
+Send the change to `code-reviewer` before calling the phase done. Zero context â€” hand it:
 
 ```text
-Objective       — "review phase <name> against the approved skeleton"
-The skeleton    — the approved phase skeleton, or path to SESSION.md
-Files involved  — explicit list, created and modified
-Contracts       — path, if relevant
-What to check   — drift, forbidden dependencies, contract changes, scope creep beyond
+Objective       â€” "review phase <name> against the approved skeleton"
+The skeleton    â€” the approved phase skeleton, or path to SESSION.md
+Files involved  â€” explicit list, created and modified
+Contracts       â€” path, if relevant
+What to check   â€” drift, forbidden dependencies, contract changes, scope creep beyond
                   the phase, security controls, test coverage
 ```
 
@@ -282,6 +282,6 @@ code-reviewer verdict:    ...
 Finishing a phase is a handoff trigger. Run `/handoff` to refresh the topic's `SESSION.md`,
 then `/compact` or `/clear` before the next phase.
 
-Also worth a `/handoff` mid-phase if the session has clearly gone long — many files touched,
+Also worth a `/handoff` mid-phase if the session has clearly gone long â€” many files touched,
 several distinct sub-tasks. And run `/cost` occasionally on long sessions so spend doesn't
 surprise you.

@@ -1,4 +1,4 @@
-# VThere Spatial Experience Builder — Project Context
+﻿# VThere Spatial Experience Builder â€” Project Context
 
 ## Identity
 
@@ -38,4 +38,4 @@ Partially ready. Node.js/npm and Python are installed; the frontend build, focus
 
 Agents may implement existing interfaces, add tests, add files inside extensible directories, and fix defects. Agents may not silently rename canonical systems, move fixed boundaries, change technologies, replace frameworks, change protocols, change public contracts, add major dependencies, create top-level systems, or change subsystem responsibilities. Architectural conflicts must stop for a decision.
 
-See `docs/architecture.md`, `docs/repository.md`, `docs/contracts.md`, `docs/build-system.md`, `docs/testing-strategy.md`, `docs/implementation-plan.md`, `docs/subsystems/authoring-engine.md`, `docs/asset-library-contract.md`, `docs/roles-and-delivery.md`, `docs/pilot-and-conduct.md`, `docs/source-brief-audit.md`, and `docs/pre-baseline-validation.md`.
+See `../02-architecture/UNDATED--FOUNDATION--architecture.md`, `../02-architecture/UNDATED--FOUNDATION--repository.md`, `../02-architecture/UNDATED--FOUNDATION--contracts.md`, `../02-architecture/UNDATED--FOUNDATION--build-system.md`, `../03-delivery/UNDATED--FOUNDATION--testing-strategy.md`, `../03-delivery/UNDATED--FOUNDATION--implementation-plan.md`, `../05-subsystems/authoring-engine.md`, `../05-subsystems/UNDATED--CURRENT--asset-library-contract.md`, `../03-delivery/UNDATED--GOVERNANCE--roles-and-delivery.md`, `../07-research-and-history/UNDATED--GOVERNANCE--pilot-and-conduct.md`, `2026-09-06--HISTORY--source-brief-audit.md`, and `../03-delivery/UNDATED--CURRENT--pre-baseline-validation.md`.
