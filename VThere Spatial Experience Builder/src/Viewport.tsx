@@ -1,6 +1,10 @@
-import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { useEffect, useRef } from "react";
 import { SceneObject } from "./model";
+import { AxisName, AxisArrow } from "./gizmos/types";
+import { AXIS_COLORS, AXIS_HOVER_COLORS } from "./gizmos/colors";
+import { closestPointOnAxis } from "./gizmos/math";
+import { makeAxisArrow, extentAlong, setArrowColor } from "./gizmos/moveGizmo";
 
 interface ViewportProps {
   objects: SceneObject[];
@@ -48,62 +52,6 @@ export default function Viewport({
 
     const gizmoGroup = new THREE.Group(); // kept separate from objectsGroup so syncObjects rebuilds don't touch it
     scene.add(gizmoGroup);
-
-    const AXIS_COLORS: Record<AxisName, number> = {
-      x: 0xe0483e,
-      y: 0x4ea7a0,
-      z: 0xe6ad5a,
-    };
-
-    const AXIS_HOVER_COLORS: Record<AxisName, number> = {
-      x: 0xff8f7a, // lighter red
-      y: 0x8fd6cf, // lighter teal
-      z: 0xf5cd8f, // lighter orange
-    };
-
-    type AxisName = "x" | "y" | "z";
-
-    interface AxisArrow {
-      axis: AxisName;
-      group: THREE.Group; // the whole arrow (shaft + head) as one movable/rotatable unit
-      body: THREE.Mesh; // the shaft
-      head: THREE.Mesh; // the cone tip
-      direction: THREE.Vector3; // unit vector for this axis, used later for drag math
-    }
-
-    // builds one arrow pointing along the given axis. Cylinder/cone point along Y
-    // by default, so X and Z need a rotation to match; Y doesn't need one
-    const makeAxisArrow = (axis: AxisName): AxisArrow => {
-      const color = AXIS_COLORS[axis]; // add this line
-      const body = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, 0.6, 12), // thicker (0.03→0.05), shorter (1→0.6)
-        new THREE.MeshBasicMaterial({ color }),
-      );
-      const head = new THREE.Mesh(
-        new THREE.ConeGeometry(0.12, 0.15, 12), // thicker (0.08→0.12), shorter (0.2→0.15)
-        new THREE.MeshBasicMaterial({ color }),
-      );
-      body.position.y = 0.3; // needs to update as well if length and size is changed, since it's half the new shaft length (0.6 / 2)
-      head.position.y = 0.65; // needs to update as well if length and size is changed, just past the new shaft's end
-
-      const group = new THREE.Group();
-      group.add(body, head);
-
-      const direction = new THREE.Vector3();
-      if (axis === "x") {
-        group.rotation.z = -Math.PI / 2; // rotate to point along X
-        direction.set(1, 0, 0);
-      }
-      if (axis === "y") {
-        direction.set(0, 1, 0); // no rotation needed, already points along Y
-      }
-      if (axis === "z") {
-        group.rotation.x = Math.PI / 2; // rotate to point along Z
-        direction.set(0, 0, 1);
-      }
-
-      return { axis, group, body, head, direction };
-    };
 
     const axisArrows: AxisArrow[] = [
       makeAxisArrow("x"),
@@ -199,14 +147,6 @@ export default function Viewport({
       renderedSignature = signature;
     };
 
-    // measures the object's real current size along one axis, from its actual
-    // mesh's world-space bounding box, so it stays correct for any scale or shape
-    const extentAlong = (mesh: THREE.Object3D, axis: AxisName) => {
-      const box = new THREE.Box3().setFromObject(mesh);
-      const size = new THREE.Vector3();
-      box.getSize(size);
-      return (axis === "x" ? size.x : axis === "y" ? size.y : size.z) / 2; // half-width along that axis
-    };
     const gizmoGap = 0.15; // extra breathing room past the object's edge
 
     // keeps the gizmo's position and every arrow's offset matched to the selected
@@ -254,32 +194,8 @@ export default function Viewport({
       return null; // cursor isn't over any arrow
     };
 
-    const setArrowColor = (arrow: AxisArrow, color: number) => {
-      (arrow.body.material as THREE.MeshBasicMaterial).color.setHex(color);
-      (arrow.head.material as THREE.MeshBasicMaterial).color.setHex(color); // kept in sync with the shaft
-    };
     const resetAllArrowColors = () =>
       axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis])); // clears hover highlight off every arrow at once
-
-    // finds the point along a given axis closest to the cursor's ray, using the
-    // closest-point-between-two-skew-lines formula. Returns null when the camera
-    // is looking nearly straight down the axis (unstable/degenerate case)
-    const closestPointOnAxis = (
-      rayOrigin: THREE.Vector3,
-      rayDir: THREE.Vector3,
-      axisOrigin: THREE.Vector3,
-      axisDir: THREE.Vector3,
-    ): number | null => {
-      const r = new THREE.Vector3().subVectors(axisOrigin, rayOrigin);
-      const b = axisDir.dot(rayDir);
-      const c = rayDir.dot(rayDir);
-      const d = axisDir.dot(r);
-      const e = rayDir.dot(r);
-      const denom = c - b * b;
-      if (Math.abs(denom) < 1e-6) return null; // ray nearly parallel to the axis
-      const t = (b * e - c * d) / denom;
-      return t; // no extra negation needed, r's sign above is already correct
-    };
 
     const onPointerDown = (event: PointerEvent) => {
       const gizmoHit = pickGizmo(event);
