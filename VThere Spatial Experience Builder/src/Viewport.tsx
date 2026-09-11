@@ -46,31 +46,71 @@ export default function Viewport({
     const objectsGroup = new THREE.Group();
     scene.add(objectsGroup);
 
-    // seperate group for the axis, kept outside objectsGroup so syncObjects'
-    // full rebuild-on-signature-change dosen't tear it down every frame or every drag
-    const gizmoGroup = new THREE.Group();
+    const gizmoGroup = new THREE.Group(); // kept separate from objectsGroup so syncObjects rebuilds don't touch it
     scene.add(gizmoGroup);
 
-    // build the x-axis arrow once: a thin cylinder for body, a cone for the head,
-    // grouped together so that they move together
-    const arrowBody = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.03, 0.03, 1, 12),
-      new THREE.MeshBasicMaterial({ color: 0xe0483e }),
-    );
-    const arrowHead = new THREE.Mesh(
-      new THREE.ConeGeometry(0.08, 0.2, 12),
-      new THREE.MeshBasicMaterial({ color: 0xe0483e }),
-    );
+    const AXIS_COLORS: Record<AxisName, number> = {
+      x: 0xe0483e,
+      y: 0x4ea7a0,
+      z: 0xe6ad5a,
+    };
 
-    // CylinderGeomtry and ConeGeometry are built pointing along Y by default
-    // so we rotate the whole unit -90deg around Z to make it point along the X axis instead
-    const xArrow = new THREE.Group();
-    arrowBody.position.y = 0.5; // shift the body so that its base sits at the group's origin, not at its center
-    arrowHead.position.y = 1.05; // sit cone just past end of the shift
-    xArrow.add(arrowBody, arrowHead);
-    xArrow.rotation.z = -Math.PI / 2;
+    const AXIS_HOVER_COLORS: Record<AxisName, number> = {
+      x: 0xff8f7a, // lighter red
+      y: 0x8fd6cf, // lighter teal
+      z: 0xf5cd8f, // lighter orange
+    };
 
-    gizmoGroup.add(xArrow);
+    type AxisName = "x" | "y" | "z";
+
+    interface AxisArrow {
+      axis: AxisName;
+      group: THREE.Group; // the whole arrow (shaft + head) as one movable/rotatable unit
+      body: THREE.Mesh; // the shaft
+      head: THREE.Mesh; // the cone tip
+      direction: THREE.Vector3; // unit vector for this axis, used later for drag math
+    }
+
+    // builds one arrow pointing along the given axis. Cylinder/cone point along Y
+    // by default, so X and Z need a rotation to match; Y doesn't need one
+    const makeAxisArrow = (axis: AxisName): AxisArrow => {
+      const color = AXIS_COLORS[axis]; // add this line
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 0.6, 12), // thicker (0.03→0.05), shorter (1→0.6)
+        new THREE.MeshBasicMaterial({ color }),
+      );
+      const head = new THREE.Mesh(
+        new THREE.ConeGeometry(0.12, 0.15, 12), // thicker (0.08→0.12), shorter (0.2→0.15)
+        new THREE.MeshBasicMaterial({ color }),
+      );
+      body.position.y = 0.3; // needs to update as well if length and size is changed, since it's half the new shaft length (0.6 / 2)
+      head.position.y = 0.65; // needs to update as well if length and size is changed, just past the new shaft's end
+
+      const group = new THREE.Group();
+      group.add(body, head);
+
+      const direction = new THREE.Vector3();
+      if (axis === "x") {
+        group.rotation.z = -Math.PI / 2; // rotate to point along X
+        direction.set(1, 0, 0);
+      }
+      if (axis === "y") {
+        direction.set(0, 1, 0); // no rotation needed, already points along Y
+      }
+      if (axis === "z") {
+        group.rotation.x = Math.PI / 2; // rotate to point along Z
+        direction.set(0, 0, 1);
+      }
+
+      return { axis, group, body, head, direction };
+    };
+
+    const axisArrows: AxisArrow[] = [
+      makeAxisArrow("x"),
+      makeAxisArrow("y"),
+      makeAxisArrow("z"),
+    ]; // one arrow per axis, built once
+    axisArrows.forEach((arrow) => gizmoGroup.add(arrow.group));
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2));
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
@@ -90,6 +130,14 @@ export default function Viewport({
     scene.add(floor);
     let dragging: { id: string; offsetX: number; offsetZ: number } | null =
       null;
+    let axisDragging: {
+      id: string;
+      axis: AxisName;
+      origin: THREE.Vector3;
+      direction: THREE.Vector3;
+      grabT: number; // was: offset: number;
+    } | null = null;
+    let lastAxisDragPosition: [number, number, number] | null = null; // final position, committed once on release
 
     // track the last computed position during a drag, so onPointerUp can
     // commit it once without needing to recompute or re-raycast
@@ -151,27 +199,31 @@ export default function Viewport({
       renderedSignature = signature;
     };
 
-    // measures the object's actual current size from its real mesh, so it stays correct for any scale or shape
-    const extentFor = (mesh: THREE.Object3D) => {
+    // measures the object's real current size along one axis, from its actual
+    // mesh's world-space bounding box, so it stays correct for any scale or shape
+    const extentAlong = (mesh: THREE.Object3D, axis: AxisName) => {
       const box = new THREE.Box3().setFromObject(mesh);
       const size = new THREE.Vector3();
       box.getSize(size);
-      return size.x / 2;
+      return (axis === "x" ? size.x : axis === "y" ? size.y : size.z) / 2; // half-width along that axis
     };
+    const gizmoGap = 0.15; // extra breathing room past the object's edge
 
-    const gizmoGap = 0.15 //extra gap past the edge of object
-
-    // keeps the gizmo's position and arrow offset matched to whichever object is selected, skipping updates mid-drag so it doesn't fight onPointerMove
+    // keeps the gizmo's position and every arrow's offset matched to the selected
+    // object, each frame. Skips updates mid-drag so it doesn't fight onPointerMove
     const syncGizmo = () => {
       const selected = dataRef.current.objects.find(
         (object) => object.id === dataRef.current.selectedId,
       );
-      gizmoGroup.visible = !!selected;
-      if (selected && !dragging) {
-        gizmoGroup.position.set(...selected.transform.position);
+      gizmoGroup.visible = !!selected; // hide entirely when nothing's selected
+      if (selected && !dragging && !axisDragging) {
+        gizmoGroup.position.set(...selected.transform.position); // gizmo origin stays at object's center
         const mesh = objectsGroup.getObjectByName(selected.id);
         if (mesh) {
-          xArrow.position.x = extentFor(mesh) + gizmoGap;
+          axisArrows.forEach((arrow) => {
+            const offset = extentAlong(mesh, arrow.axis) + gizmoGap;
+            arrow.group.position.copy(arrow.direction).multiplyScalar(offset); // push each arrow outward along its own axis
+          });
         }
       }
     };
@@ -189,10 +241,77 @@ export default function Viewport({
       return hit?.object ?? null;
     };
 
-    // separate raycast just for the gizmo arrow, checked before the normal
-    // object pick, so clicking the arrow doesn't get treated as clicking
-    // (or missing) the object underneath it
+    // raycasts against all three arrows, returns whichever one (if any) is under the cursor
+    const pickGizmo = (
+      event: PointerEvent,
+    ): { hit: THREE.Object3D; arrow: AxisArrow } | null => {
+      getPointer(event);
+      raycaster.setFromCamera(pointer, camera);
+      for (const arrow of axisArrows) {
+        const hit = raycaster.intersectObjects(arrow.group.children, true)[0]; // true = check body + head meshes
+        if (hit) return { hit: hit.object, arrow }; // stop at the first arrow actually hit
+      }
+      return null; // cursor isn't over any arrow
+    };
+
+    const setArrowColor = (arrow: AxisArrow, color: number) => {
+      (arrow.body.material as THREE.MeshBasicMaterial).color.setHex(color);
+      (arrow.head.material as THREE.MeshBasicMaterial).color.setHex(color); // kept in sync with the shaft
+    };
+    const resetAllArrowColors = () =>
+      axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis])); // clears hover highlight off every arrow at once
+
+    // finds the point along a given axis closest to the cursor's ray, using the
+    // closest-point-between-two-skew-lines formula. Returns null when the camera
+    // is looking nearly straight down the axis (unstable/degenerate case)
+    const closestPointOnAxis = (
+      rayOrigin: THREE.Vector3,
+      rayDir: THREE.Vector3,
+      axisOrigin: THREE.Vector3,
+      axisDir: THREE.Vector3,
+    ): number | null => {
+      const r = new THREE.Vector3().subVectors(axisOrigin, rayOrigin);
+      const b = axisDir.dot(rayDir);
+      const c = rayDir.dot(rayDir);
+      const d = axisDir.dot(r);
+      const e = rayDir.dot(r);
+      const denom = c - b * b;
+      if (Math.abs(denom) < 1e-6) return null; // ray nearly parallel to the axis
+      const t = (b * e - c * d) / denom;
+      return t; // no extra negation needed, r's sign above is already correct
+    };
+
     const onPointerDown = (event: PointerEvent) => {
+      const gizmoHit = pickGizmo(event);
+      if (gizmoHit) {
+        // clicked an arrow, not the object body — start an axis-constrained drag instead
+        const selected = dataRef.current.objects.find(
+          (object) => object.id === dataRef.current.selectedId,
+        );
+        if (selected) {
+          const axisOrigin = new THREE.Vector3(...selected.transform.position); // where the object currently is
+          getPointer(event);
+          raycaster.setFromCamera(pointer, camera);
+          const hitT = closestPointOnAxis(
+            raycaster.ray.origin,
+            raycaster.ray.direction,
+            axisOrigin,
+            gizmoHit.arrow.direction,
+          );
+          if (hitT !== null) {
+            axisDragging = {
+              id: selected.id,
+              axis: gizmoHit.arrow.axis,
+              origin: axisOrigin,
+              direction: gizmoHit.arrow.direction.clone(),
+              grabT: hitT, // was: offset: -hitT,
+            };
+          }
+        }
+        renderer.domElement.setPointerCapture(event.pointerId);
+        return; // don't fall through to normal object selection below
+      }
+
       const hit = pick(event);
       if (!hit) {
         dataRef.current.onSelect(null);
@@ -220,6 +339,35 @@ export default function Viewport({
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (!axisDragging && !dragging) {
+        // only show hover feedback when nothing's actively being dragged
+        const hovering = pickGizmo(event); // same raycast as clicking, just for feedback instead of action
+        resetAllArrowColors(); // clear any previous hover highlight first
+        if (hovering) setArrowColor(hovering.arrow, AXIS_HOVER_COLORS[hovering.arrow.axis]); // highlight only the one under the cursor
+      }
+
+      if (axisDragging) {
+        getPointer(event);
+        raycaster.setFromCamera(pointer, camera);
+        const hitT = closestPointOnAxis(
+          raycaster.ray.origin,
+          raycaster.ray.direction,
+          axisDragging.origin,
+          axisDragging.direction,
+        );
+        if (hitT === null) return; // degenerate camera angle this frame, skip rather than jump
+        const travel = hitT - axisDragging.grabT; // how far the cursor has moved along the axis since the grab point
+        const next = axisDragging.origin
+          .clone()
+          .addScaledVector(axisDragging.direction, travel); // apply that travel distance to the object's starting position
+        const nextPos: [number, number, number] = [next.x, next.y, next.z];
+        const mesh = objectsGroup.getObjectByName(axisDragging.id);
+        if (mesh) mesh.position.set(...nextPos); // move mesh directly, same pattern as floor-drag
+        gizmoGroup.position.set(...nextPos); // keep gizmo glued to object during this drag
+        lastAxisDragPosition = nextPos; // remembered so onPointerUp can commit without recomputing
+        return; // don't also run the floor-drag logic below
+      }
+
       if (!dragging) return;
 
       // rebuild the ray from the camera through the current cursor position,
@@ -257,7 +405,11 @@ export default function Viewport({
     };
 
     const onPointerUp = () => {
-      // only commit if we were actually dragging something and moved it at least once
+      if (axisDragging && lastAxisDragPosition) {
+        dataRef.current.onMove(axisDragging.id, lastAxisDragPosition); // single commit, one undo entry
+      }
+      axisDragging = null;
+      lastAxisDragPosition = null;
       if (dragging && lastDragPosition) {
         dataRef.current.onMove(dragging.id, lastDragPosition);
       }
@@ -280,7 +432,7 @@ export default function Viewport({
       renderer.render(scene, camera);
     };
     resize();
-    animate();  
+    animate();
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
@@ -303,8 +455,8 @@ export default function Viewport({
       gizmoGroup.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach ((material) => material.dispose())
-          else child.material.dispose() 
+          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose()) // multi-material case
+          else child.material.dispose()
         }
       })
 
