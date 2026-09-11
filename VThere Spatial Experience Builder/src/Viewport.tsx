@@ -151,13 +151,28 @@ export default function Viewport({
       renderedSignature = signature;
     };
 
+    // measures the object's actual current size from its real mesh, so it stays correct for any scale or shape
+    const extentFor = (mesh: THREE.Object3D) => {
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      return size.x / 2;
+    };
+
+    const gizmoGap = 0.15 //extra gap past the edge of object
+
+    // keeps the gizmo's position and arrow offset matched to whichever object is selected, skipping updates mid-drag so it doesn't fight onPointerMove
     const syncGizmo = () => {
       const selected = dataRef.current.objects.find(
         (object) => object.id === dataRef.current.selectedId,
       );
       gizmoGroup.visible = !!selected;
-      if (selected) {
+      if (selected && !dragging) {
         gizmoGroup.position.set(...selected.transform.position);
+        const mesh = objectsGroup.getObjectByName(selected.id);
+        if (mesh) {
+          xArrow.position.x = extentFor(mesh) + gizmoGap;
+        }
       }
     };
 
@@ -174,6 +189,9 @@ export default function Viewport({
       return hit?.object ?? null;
     };
 
+    // separate raycast just for the gizmo arrow, checked before the normal
+    // object pick, so clicking the arrow doesn't get treated as clicking
+    // (or missing) the object underneath it
     const onPointerDown = (event: PointerEvent) => {
       const hit = pick(event);
       if (!hit) {
@@ -233,6 +251,7 @@ export default function Viewport({
       if (mesh) {
         mesh.position.set(next[0], next[1], next[2]);
       }
+      gizmoGroup.position.set(next[0], next[1], next[2]); // keep gizmo glued to object while dragging, not just at rest
       // remember this so onPointerUp can commit it without recomputing anything
       lastDragPosition = next;
     };
