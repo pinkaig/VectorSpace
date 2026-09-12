@@ -129,7 +129,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     applyPoseRef.current = applyPose
     applyPose(dataRef.current.startCamera)
 
-    let dragging: { id: string; startX: number; startZ: number; startPointerX: number; startPointerY: number } | null = null
+    let dragging: { id: string; plane: THREE.Plane; offset: THREE.Vector3 } | null = null
+    const dragPoint = new THREE.Vector3()
     let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
     const pressedKeys = new Set<string>()
 
@@ -181,7 +182,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       controls.enabled = false
       dataRef.current.onSelect(hit.name)
       const item = dataRef.current.objects.find((object) => object.id === hit.name)
-      if (item) dragging = { id: item.id, startX: item.transform.position[0], startZ: item.transform.position[2], startPointerX: event.clientX, startPointerY: event.clientY }
+      if (item) {
+        const objectPosition = new THREE.Vector3(...item.transform.position)
+        const cameraForward = camera.getWorldDirection(new THREE.Vector3())
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, objectPosition)
+        if (raycaster.ray.intersectPlane(plane, dragPoint)) {
+          dragging = { id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) }
+        }
+      }
       renderer.domElement.setPointerCapture(event.pointerId)
     }
     const onPointerMove = (event: PointerEvent) => {
@@ -194,9 +202,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         return
       }
       if (!dragging) return
-      const scale = 0.012
-      const next: [number, number, number] = [dragging.startX + (event.clientX - dragging.startPointerX) * scale, dataRef.current.objects.find((item) => item.id === dragging?.id)?.transform.position[1] ?? 0, dragging.startZ + (event.clientY - dragging.startPointerY) * scale]
-      dataRef.current.onMove(dragging.id, next)
+      getPointer(event)
+      raycaster.setFromCamera(pointer, camera)
+      if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
+      dragPoint.add(dragging.offset)
+      dataRef.current.onMove(dragging.id, [dragPoint.x, dragPoint.y, dragPoint.z])
     }
     const onPointerUp = (event: PointerEvent) => {
       if (looking) {
