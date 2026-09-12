@@ -1,16 +1,18 @@
 import * as THREE from "three";
 import { useEffect, useRef } from "react";
 import { SceneObject } from "./model";
-import { AxisName, AxisArrow } from "./gizmos/types";
-import { AXIS_COLORS, AXIS_HOVER_COLORS } from "./gizmos/colors";
-import { closestPointOnAxis } from "./gizmos/math";
-import { makeAxisArrow, extentAlong, setArrowColor } from "./gizmos/moveGizmo";
+import { AxisName, AxisArrow } from "./gizmo/types";
+import { AXIS_COLORS, AXIS_HOVER_COLORS } from "./gizmo/colors";
+import { closestPointOnAxis } from "./gizmo/math";
+import { makeAxisArrow, extentAlong, setArrowColor } from "./gizmo/moveGizmo";
+import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from "./gizmo/scaleGizmo";
 
 interface ViewportProps {
   objects: SceneObject[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, position: [number, number, number]) => void;
+  onScale: (id: string, scale: [number, number, number]) => void;
   interactive?: boolean;
 }
 
@@ -22,11 +24,12 @@ export default function Viewport({
   selectedId,
   onSelect,
   onMove,
+  onScale,
   interactive = true,
 }: ViewportProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove });
-  dataRef.current = { objects, selectedId, onSelect, onMove };
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale });
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale };
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -53,12 +56,21 @@ export default function Viewport({
     const gizmoGroup = new THREE.Group(); // kept separate from objectsGroup so syncObjects rebuilds don't touch it
     scene.add(gizmoGroup);
 
+    // this is for move/transform feature in gizmo
     const axisArrows: AxisArrow[] = [
       makeAxisArrow("x"),
       makeAxisArrow("y"),
       makeAxisArrow("z"),
     ]; // one arrow per axis, built once
     axisArrows.forEach((arrow) => gizmoGroup.add(arrow.group));
+
+    // this is for scale feature gizmo
+    const scaleHandles: AxisScaleHandle[] = [
+      makeAxisScaleHandle("x"),
+      makeAxisScaleHandle("y"),
+      makeAxisScaleHandle("z"),
+    ]; // one arrow per axis, built once
+    scaleHandles.forEach((handle) => gizmoGroup.add(handle.mesh));
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2));
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
@@ -86,6 +98,16 @@ export default function Viewport({
       grabT: number; // was: offset: number;
     } | null = null;
     let lastAxisDragPosition: [number, number, number] | null = null; // final position, committed once on release
+
+    let scaleDragging: {
+      id: string;
+      axis: AxisName;
+      origin: THREE.Vector3; // object's position, scale pivots around its own center, doesn't move
+      direction: THREE.Vector3;
+      grabT: number; // where along the axis clicked
+      startScale: [number, number, number]; // object's scale when the drag began
+    } | null = null;
+    let lastScaleValue: [number, number, number] | null = null; // final scale, committed once on release
 
     // track the last computed position during a drag, so onPointerUp can
     // commit it once without needing to recompute or re-raycast
@@ -148,6 +170,7 @@ export default function Viewport({
     };
 
     const gizmoGap = 0.15; // extra breathing room past the object's edge
+    const ARROW_LENGTH = 0.725;
 
     // keeps the gizmo's position and every arrow's offset matched to the selected
     // object, each frame. Skips updates mid-drag so it doesn't fight onPointerMove
@@ -163,6 +186,12 @@ export default function Viewport({
           axisArrows.forEach((arrow) => {
             const offset = extentAlong(mesh, arrow.axis) + gizmoGap;
             arrow.group.position.copy(arrow.direction).multiplyScalar(offset); // push each arrow outward along its own axis
+          });
+
+          scaleHandles.forEach((handle) => {
+            const offset =
+              extentAlong(mesh, handle.axis) + gizmoGap + ARROW_LENGTH;
+            handle.mesh.position.copy(handle.direction).multiplyScalar(offset); // push each handle outward along its own axis
           });
         }
       }
@@ -184,48 +213,98 @@ export default function Viewport({
     // raycasts against all three arrows, returns whichever one (if any) is under the cursor
     const pickGizmo = (
       event: PointerEvent,
-    ): { hit: THREE.Object3D; arrow: AxisArrow } | null => {
+    ): {
+      hit: THREE.Object3D;
+      axis: AxisName;
+      kind: "arrow" | "scale";
+    } | null => {
       getPointer(event);
       raycaster.setFromCamera(pointer, camera);
       for (const arrow of axisArrows) {
         const hit = raycaster.intersectObjects(arrow.group.children, true)[0]; // true = check body + head meshes
-        if (hit) return { hit: hit.object, arrow }; // stop at the first arrow actually hit
+        if (hit) return { hit: hit.object, axis: arrow.axis, kind: "arrow" };
+      }
+
+      for (const handle of scaleHandles) {
+        const hit = raycaster.intersectObject(handle.mesh, true)[0];
+        if (hit) return { hit: hit.object, axis: handle.axis, kind: "scale" };
       }
       return null; // cursor isn't over any arrow
     };
 
     const resetAllArrowColors = () =>
-      axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis])); // clears hover highlight off every arrow at once
+      axisArrows.forEach((arrow) =>
+        setArrowColor(arrow, AXIS_COLORS[arrow.axis]),
+      ); // clears hover highlight off every arrow at once
+
+    const resetAllScaleHandleColors = () =>
+      scaleHandles.forEach((handle) => setScaleHandleColor(handle, AXIS_COLORS[handle.axis]));
 
     const onPointerDown = (event: PointerEvent) => {
       const gizmoHit = pickGizmo(event);
       if (gizmoHit) {
-        // clicked an arrow, not the object body — start an axis-constrained drag instead
-        const selected = dataRef.current.objects.find(
-          (object) => object.id === dataRef.current.selectedId,
-        );
-        if (selected) {
-          const axisOrigin = new THREE.Vector3(...selected.transform.position); // where the object currently is
-          getPointer(event);
-          raycaster.setFromCamera(pointer, camera);
-          const hitT = closestPointOnAxis(
-            raycaster.ray.origin,
-            raycaster.ray.direction,
-            axisOrigin,
-            gizmoHit.arrow.direction,
+        if (gizmoHit.kind === "arrow") {
+          // clicked an arrow, not the object body — start an axis-constrained drag instead
+          const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!; // find the matching arrow by axis, since pickGizmo now returns axis+kind, not the arrow object itself
+          const selected = dataRef.current.objects.find(
+            (object) => object.id === dataRef.current.selectedId,
           );
-          if (hitT !== null) {
-            axisDragging = {
-              id: selected.id,
-              axis: gizmoHit.arrow.axis,
-              origin: axisOrigin,
-              direction: gizmoHit.arrow.direction.clone(),
-              grabT: hitT, // was: offset: -hitT,
-            };
+          if (selected) {
+            const axisOrigin = new THREE.Vector3(...selected.transform.position); // where the object currently is
+            getPointer(event);
+            raycaster.setFromCamera(pointer, camera);
+            const hitT = closestPointOnAxis(
+              raycaster.ray.origin,
+              raycaster.ray.direction,
+              axisOrigin,
+              arrow.direction,
+            );
+            if (hitT !== null) {
+              axisDragging = {
+                id: selected.id,
+                axis: arrow.axis,
+                origin: axisOrigin,
+                direction: arrow.direction.clone(),
+                grabT: hitT, // was: offset: -hitT,
+              };
+            }
           }
         }
+
+        if (gizmoHit.kind === "scale") {
+          // clicked a scale cube, start a scale drag along that axis
+          const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!; // find the matching handle by axis
+          const selected = dataRef.current.objects.find(
+            (object) => object.id === dataRef.current.selectedId,
+          );
+          if (selected) {
+            const mesh = objectsGroup.getObjectByName(selected.id); // read live scale from the mesh, not stale React state, since scale isn't committed back to React yet mid-drag
+            if (mesh) {
+              const axisOrigin = new THREE.Vector3(...selected.transform.position);
+              getPointer(event);
+              raycaster.setFromCamera(pointer, camera);
+              const hitT = closestPointOnAxis(
+                raycaster.ray.origin,
+                raycaster.ray.direction,
+                axisOrigin,
+                handle.direction,
+              );
+              if (hitT !== null) {
+                scaleDragging = {
+                  id: selected.id,
+                  axis: handle.axis,
+                  origin: axisOrigin,
+                  direction: handle.direction.clone(),
+                  grabT: hitT,
+                  startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z], // actual current scale, not stale prop
+                };
+              }
+            }
+          }
+        }
+
         renderer.domElement.setPointerCapture(event.pointerId);
-        return; // don't fall through to normal object selection below
+        return;
       }
 
       const hit = pick(event);
@@ -259,7 +338,15 @@ export default function Viewport({
         // only show hover feedback when nothing's actively being dragged
         const hovering = pickGizmo(event); // same raycast as clicking, just for feedback instead of action
         resetAllArrowColors(); // clear any previous hover highlight first
-        if (hovering) setArrowColor(hovering.arrow, AXIS_HOVER_COLORS[hovering.arrow.axis]); // highlight only the one under the cursor
+        resetAllScaleHandleColors(); // same, but for scale cubes
+        if (hovering && hovering.kind === "arrow") {
+          const arrow = axisArrows.find((item) => item.axis === hovering.axis)!;
+          setArrowColor(arrow, AXIS_HOVER_COLORS[hovering.axis]);
+        }
+        if (hovering && hovering.kind === "scale") {
+          const handle = scaleHandles.find((item) => item.axis === hovering.axis)!;
+          setScaleHandleColor(handle, AXIS_HOVER_COLORS[hovering.axis]);
+        }
       }
 
       if (axisDragging) {
@@ -282,6 +369,27 @@ export default function Viewport({
         gizmoGroup.position.set(...nextPos); // keep gizmo glued to object during this drag
         lastAxisDragPosition = nextPos; // remembered so onPointerUp can commit without recomputing
         return; // don't also run the floor-drag logic below
+      }
+
+      if (scaleDragging) {
+        getPointer(event);
+        raycaster.setFromCamera(pointer, camera);
+        const hitT = closestPointOnAxis(
+          raycaster.ray.origin,
+          raycaster.ray.direction,
+          scaleDragging.origin,
+          scaleDragging.direction,
+        );
+        if (hitT === null) return; // degenerate camera angle this frame, skip rather than jump
+        const travel = hitT - scaleDragging.grabT; // how far you've dragged along the axis since grabbing
+        const scaleFactor = 1 + travel; // dragging outward (positive travel) grows it, inward shrinks it
+        const axisIndex = scaleDragging.axis === "x" ? 0 : scaleDragging.axis === "y" ? 1 : 2;
+        const nextScale: [number, number, number] = [...scaleDragging.startScale];
+        nextScale[axisIndex] = Math.max(0.05, scaleDragging.startScale[axisIndex] * scaleFactor); // clamp so it can't invert or vanish
+        const mesh = objectsGroup.getObjectByName(scaleDragging.id);
+        if (mesh) mesh.scale.set(...nextScale); // update mesh directly, same pattern as move
+        lastScaleValue = nextScale; // remembered for onPointerUp to commit later
+        return;
       }
 
       if (!dragging) return;
@@ -324,8 +432,16 @@ export default function Viewport({
       if (axisDragging && lastAxisDragPosition) {
         dataRef.current.onMove(axisDragging.id, lastAxisDragPosition); // single commit, one undo entry
       }
+
       axisDragging = null;
       lastAxisDragPosition = null;
+
+      if (scaleDragging && lastScaleValue) {
+        dataRef.current.onScale(scaleDragging.id, lastScaleValue); // single commit, one undo entry
+      }
+      scaleDragging = null;
+      lastScaleValue = null;
+
       if (dragging && lastDragPosition) {
         dataRef.current.onMove(dragging.id, lastDragPosition);
       }
@@ -370,11 +486,12 @@ export default function Viewport({
       // dispose the gizmo's geometry/materials too, same pattern as objectsGroup above
       gizmoGroup.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose()) // multi-material case
-          else child.material.dispose()
+          child.geometry.dispose();
+          if (Array.isArray(child.material))
+            child.material.forEach((material) => material.dispose()); // multi-material case
+          else child.material.dispose();
         }
-      })
+      });
 
       renderer.dispose();
       mount.removeChild(renderer.domElement);

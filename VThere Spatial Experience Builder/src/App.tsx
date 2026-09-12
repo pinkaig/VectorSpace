@@ -79,6 +79,11 @@ export default function App() {
       ),
     );
   };
+
+  const scaleObject = (id: string, scale: [number, number, number]) => {
+    updateScene((objects) => objects.map((item) => item.id === id ? { ...item, transform: { ...item.transform, scale } } : item))
+  }
+
   const renameSelected = (name: string) => {
     if (!selected) return;
     updateScene((objects) =>
@@ -332,6 +337,7 @@ export default function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onMove={moveObject}
+            onScale={scaleObject}
           />
           <div className="stage-footer">
             <span>
