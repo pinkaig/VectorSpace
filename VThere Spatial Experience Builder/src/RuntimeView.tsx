@@ -40,6 +40,10 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           selectedId={null}
           onSelect={() => undefined}
           onMove={() => undefined}
+          sceneId={scene.id}
+          environmentId={scene.environmentId}
+          startCamera={scene.startCamera}
+          cameraMode="walk"
           interactive={false}
         />
       </section>

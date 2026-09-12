@@ -49,7 +49,7 @@ const MOVE_KEYS: Record<string, [number, number]> = {
 }
 const VERTICAL_KEYS: Record<string, number> = {
   Space: 1,
-  ControlLeft: -1, ControlRight: -1,
+  KeyC: -1,
 }
 const MIN_FLY_HEIGHT = 0.2
 const GIZMO_GAP = 0.15 // extra breathing room past the object's edge
@@ -566,8 +566,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   const hint = cameraMode === 'walk'
     ? interactive
-      ? 'Drag to look · WASD to walk · Space/Ctrl to fly up/down · Shift to sprint · Click to select'
-      : 'Drag to look · WASD to walk · Space/Ctrl to fly up/down · Shift to sprint'
+      ? 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint · Click to select'
+      : 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint'
     : !interactive
       ? null
       : gizmoMode === 'move'
