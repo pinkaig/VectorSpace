@@ -13,6 +13,7 @@ interface ViewportProps {
   onSelect: (id: string | null) => void;
   onMove: (id: string, position: [number, number, number]) => void;
   onScale: (id: string, scale: [number, number, number]) => void;
+  gizmoMode: 'select' | 'move' | 'rotate' | 'scale';
   interactive?: boolean;
 }
 
@@ -25,11 +26,12 @@ export default function Viewport({
   onSelect,
   onMove,
   onScale,
+  gizmoMode,
   interactive = true,
 }: ViewportProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale });
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale };
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, gizmoMode });
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, gizmoMode };
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -178,20 +180,24 @@ export default function Viewport({
       const selected = dataRef.current.objects.find(
         (object) => object.id === dataRef.current.selectedId,
       );
-      gizmoGroup.visible = !!selected; // hide entirely when nothing's selected
+      const mode = dataRef.current.gizmoMode;
+      gizmoGroup.visible = !!selected && (mode === 'move' || mode === 'scale'); // only show the gizmo group at all in move or scale mode
+      axisArrows.forEach((arrow) => { arrow.group.visible = mode === 'move'; }); // arrows only visible in move mode
+      scaleHandles.forEach((handle) => { handle.mesh.visible = mode === 'scale'; }); // cubes only visible in scale mode
+
       if (selected && !dragging && !axisDragging) {
         gizmoGroup.position.set(...selected.transform.position); // gizmo origin stays at object's center
         const mesh = objectsGroup.getObjectByName(selected.id);
         if (mesh) {
           axisArrows.forEach((arrow) => {
             const offset = extentAlong(mesh, arrow.axis) + gizmoGap;
-            arrow.group.position.copy(arrow.direction).multiplyScalar(offset); // push each arrow outward along its own axis
+            arrow.group.position.copy(arrow.direction).multiplyScalar(offset);
           });
 
           scaleHandles.forEach((handle) => {
             const offset =
               extentAlong(mesh, handle.axis) + gizmoGap + ARROW_LENGTH;
-            handle.mesh.position.copy(handle.direction).multiplyScalar(offset); // push each handle outward along its own axis
+            handle.mesh.position.copy(handle.direction).multiplyScalar(offset);
           });
         }
       }
@@ -220,16 +226,22 @@ export default function Viewport({
     } | null => {
       getPointer(event);
       raycaster.setFromCamera(pointer, camera);
-      for (const arrow of axisArrows) {
-        const hit = raycaster.intersectObjects(arrow.group.children, true)[0]; // true = check body + head meshes
-        if (hit) return { hit: hit.object, axis: arrow.axis, kind: "arrow" };
+      const mode = dataRef.current.gizmoMode;
+
+      if (mode === 'move') {
+        for (const arrow of axisArrows) {
+          const hit = raycaster.intersectObjects(arrow.group.children, true)[0];
+          if (hit) return { hit: hit.object, axis: arrow.axis, kind: "arrow" };
+        }
       }
 
-      for (const handle of scaleHandles) {
-        const hit = raycaster.intersectObject(handle.mesh, true)[0];
-        if (hit) return { hit: hit.object, axis: handle.axis, kind: "scale" };
+      if (mode === 'scale') {
+        for (const handle of scaleHandles) {
+          const hit = raycaster.intersectObject(handle.mesh, true)[0];
+          if (hit) return { hit: hit.object, axis: handle.axis, kind: "scale" };
+        }
       }
-      return null; // cursor isn't over any arrow
+      return null;
     };
 
     const resetAllArrowColors = () =>

@@ -26,6 +26,7 @@ export default function App() {
   const [history, setHistory] = useState<ProjectData[]>([]);
   const [future, setFuture] = useState<ProjectData[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [gizmoMode, setGizmoMode] = useState<'select' | 'move' | 'rotate' | 'scale'>('move')
   const [savedAt, setSavedAt] = useState(
     initialLoad.source === "default"
       ? "New local project"
@@ -322,10 +323,10 @@ export default function App() {
         <section className="center-stage">
           <div className="stage-toolbar">
             <div className="mode-switch">
-              <button className="mode active">Select</button>
-              <button className="mode">Move</button>
-              <button className="mode">Rotate</button>
-              <button className="mode">Scale</button>
+              <button className={gizmoMode === 'select' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('select')}>Select</button>
+              <button className={gizmoMode === 'move' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('move')}>Move</button>
+              <button className={gizmoMode === 'rotate' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('rotate')}>Rotate</button>
+              <button className={gizmoMode === 'scale' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('scale')}>Scale</button>
             </div>
             <div className="stage-meta">
               <span className="live-dot" />
@@ -338,6 +339,7 @@ export default function App() {
             onSelect={setSelectedId}
             onMove={moveObject}
             onScale={scaleObject}
+            gizmoMode={gizmoMode}
           />
           <div className="stage-footer">
             <span>
