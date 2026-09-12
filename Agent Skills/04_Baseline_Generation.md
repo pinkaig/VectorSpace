@@ -1,14 +1,14 @@
-# 04 — Baseline Generation
+﻿# 04 â€” Baseline Generation
 
 **Stage 4 of 5.**
-[`01 Scope`](01_projectscope.md) → [`02 Tech Stack`](02_techstack.md) → [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) → `04 Baseline` → [`05 Phase Implementation`](05_Phase_Implementation.md)
+[`01 Scope`](01_UNDATED--FOUNDATION--project-scope.md) â†’ [`02 Tech Stack`](02_UNDATED--FOUNDATION--tech-stack.md) â†’ [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) â†’ `04 Baseline` â†’ [`05 Phase Implementation`](05_Phase_Implementation.md)
 
 | | |
 |---|---|
 | **Reads** | The approved Pre-Baseline Engineering Package |
-| **Produces** | The architectural baseline — structure and boundaries, not features |
+| **Produces** | The architectural baseline â€” structure and boundaries, not features |
 | **Model tier** | Mid-tier. The hard decisions were made in Stage 3. This is disciplined execution against an approved skeleton; if it feels like design work, something went wrong upstream. |
-| **Subagent** | `code-reviewer` at the end (§Phase 7). Brief it per that section. |
+| **Subagent** | `code-reviewer` at the end (Â§Phase 7). Brief it per that section. |
 | **Entry condition** | Stage 3 reports `BASELINE READINESS: READY` **and** I have approved the skeleton. |
 
 ---
@@ -21,17 +21,17 @@ Generate the project's architectural baseline from the approved package. Before 
 read:
 
 ```text
-docs/PROJECT_CONTEXT.md          docs/architecture.md
-docs/repository.md               docs/build-system.md
-docs/implementation-plan.md      docs/security-and-stress-testing.md
+docs/UNDATED--CURRENT--project-context.md          docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md               docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md      docs/security-and-stress-testing.md
 ```
 
-plus, where they exist: `contracts.md`, `integration.md`, `dependency-graph.md`,
-`testing-strategy.md`, and the relevant `docs/subsystems/*.md`.
+plus, where they exist: `UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md`, `integration.md`, `dependency-graph.md`,
+`UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md`, and the relevant `docs/subsystems/*.md`.
 
 **The planning documents are the source of truth.** You are implementing decisions, not making
 them. If you find yourself making an architectural decision, that is a signal to stop and
-report — see `ARCHITECTURAL CHANGE RULE`.
+report â€” see `ARCHITECTURAL CHANGE RULE`.
 
 `security-and-stress-testing.md` is a **baseline completion requirement**, not a later
 concern. Its vulnerability register, mandatory controls, limits, stress cases, and exit
@@ -39,12 +39,12 @@ criteria are implementation requirements for this stage.
 
 ---
 
-## Entry check — do not skip
+## Entry check â€” do not skip
 
 ```text
 [ ] Stage 3 closing block reads BASELINE READINESS: READY
 [ ] The skeleton was reviewed and approved by a human
-[ ] build-system.md contains a real, verified build command
+[ ] UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md contains a real, verified build command
 [ ] SESSION.md for this topic is current
 ```
 
@@ -54,23 +54,23 @@ nothing compiles.
 
 ---
 
-## Phase 1 — Repository verification
+## Phase 1 â€” Repository verification
 
 Before writing any implementation:
 
 1. Inspect the current repository.
-2. Compare against `repository.md`.
+2. Compare against `UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md`.
 3. Identify missing directories/files.
 4. Identify unexpected architectural elements.
 5. Verify `FIXED` vs `EXTENSIBLE` regions.
 6. Verify existing build files and dependencies.
 
 **Report conflicts before resolving them.** Do not reshape the architecture to accommodate an
-unexpected repository state — an unexpected file may be in-progress work, not a mistake.
+unexpected repository state â€” an unexpected file may be in-progress work, not a mistake.
 
 ---
 
-## Phase 2 — Infrastructure
+## Phase 2 â€” Infrastructure
 
 Establish, in this order:
 
@@ -84,11 +84,11 @@ Establish, in this order:
 - Security/test harness for request limits, safe errors, dependency auditing, bounded stress checks
 
 The project must build before substantial feature implementation begins. Run the command from
-`build-system.md` and paste the real output. Not "this should build now."
+`UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md` and paste the real output. Not "this should build now."
 
 ---
 
-## Phase 3 — Architecture
+## Phase 3 â€” Architecture
 
 Create:
 
@@ -111,14 +111,14 @@ Style, throughout:
 - Simple and readable over clever. **If a "clean" solution needs a comment to explain a trick,
   write the less clever version instead.**
 - Match the existing conventions of the codebase over personal preference.
-- Default to no comments. Write one only where the *why* is non-obvious — a constraint, an
+- Default to no comments. Write one only where the *why* is non-obvious â€” a constraint, an
   invariant, a workaround. Not to restate what the code says.
-- No error handling for cases that cannot happen. Validate at system boundaries — user input,
-  external APIs — and trust internal code.
+- No error handling for cases that cannot happen. Validate at system boundaries â€” user input,
+  external APIs â€” and trust internal code.
 
 ---
 
-## Phase 4 — Integrations
+## Phase 4 â€” Integrations
 
 Build the integration paths from `integration.md`. Where functionality isn't implemented yet,
 use deterministic placeholders per the Stage 3 placeholder policy.
@@ -136,7 +136,7 @@ For every integration, verify the security boundary alongside connectivity:
 
 ---
 
-## Phase 5 — Minimal implementation
+## Phase 5 â€” Minimal implementation
 
 Only enough logic to establish construction, initialization, lifecycle, basic communication,
 basic data flow, startup, shutdown, and deterministic placeholders.
@@ -146,7 +146,7 @@ abstractions. Do not do surrounding cleanup that nobody asked for.
 
 ---
 
-## Phase 6 — Verification
+## Phase 6 â€” Verification
 
 **Name each check and run it.** A checklist ticked without a command behind it is decoration.
 
@@ -165,8 +165,8 @@ For each item: state the exact command, run it, record the real result.
 10. Bounded stress tests           Command: ...   Result: ...
 ```
 
-Stress coverage: oversized input · invalid nested data · maximum valid scenario · timeout ·
-concurrency · database outage · coordinate validation · dependency audit.
+Stress coverage: oversized input Â· invalid nested data Â· maximum valid scenario Â· timeout Â·
+concurrency Â· database outage Â· coordinate validation Â· dependency audit.
 
 Fix implementation errors. **Do not silently change architecture to make an error disappear.**
 
@@ -179,20 +179,20 @@ success.
 
 ---
 
-## Phase 7 — Review
+## Phase 7 â€” Review
 
 Send the change to the `code-reviewer` subagent before calling the baseline done.
 
 It has **zero context.** Hand it:
 
 ```text
-Objective        — "review the architectural baseline against the approved skeleton"
-The skeleton     — path to docs/architecture.md (and SESSION.md)
-Files involved   — explicit list of what was created and modified
-Contracts        — path to contracts.md, if it exists
-What to check    — drift from the skeleton, forbidden dependencies, contract changes,
+Objective        â€” "review the architectural baseline against the approved skeleton"
+The skeleton     â€” path to docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md (and SESSION.md)
+Files involved   â€” explicit list of what was created and modified
+Contracts        â€” path to UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md, if it exists
+What to check    â€” drift from the skeleton, forbidden dependencies, contract changes,
                    placeholders that look like real functionality, security controls
-Non-goals        — it is not reviewing feature completeness; features don't exist yet
+Non-goals        â€” it is not reviewing feature completeness; features don't exist yet
 ```
 
 A one-line prompt gets you a review against a guess.
@@ -226,7 +226,7 @@ silently patched costs a rewrite.
 ## Baseline completion criteria
 
 ```text
-[ ] Repository hierarchy matches repository.md
+[ ] Repository hierarchy matches UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
 [ ] Required files exist
 [ ] Dependencies resolve
 [ ] Build succeeds from clean state              <- command named and run
@@ -280,6 +280,6 @@ a command that ran.
 
 ## Handoff
 
-Baseline complete is a handoff trigger. Run `/handoff` to refresh `SESSION.md` — recording the
-verified build/test/run commands and current placeholder inventory — then `/compact` or
+Baseline complete is a handoff trigger. Run `/handoff` to refresh `SESSION.md` â€” recording the
+verified build/test/run commands and current placeholder inventory â€” then `/compact` or
 `/clear` before the first Stage 5 phase.

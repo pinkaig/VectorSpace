@@ -1,21 +1,30 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { CameraPose, SceneObject } from './model'
+import { CameraPose, SceneObject, defaultCameraPose, defaultEnvironmentId } from './model'
 import { loadEnvironment } from './environments'
+import { AxisName, AxisArrow } from './gizmo/types'
+import { AXIS_COLORS, AXIS_HOVER_COLORS } from './gizmo/colors'
+import { closestPointOnAxis } from './gizmo/math'
+import { makeAxisArrow, extentAlong, setArrowColor } from './gizmo/moveGizmo'
+import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 
 export type CameraMode = 'orbit' | 'walk'
+export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
 
 interface ViewportProps {
   objects: SceneObject[]
   selectedId: string | null
   onSelect: (id: string | null) => void
   onMove: (id: string, position: [number, number, number]) => void
-  sceneId: string
-  environmentId: string
-  startCamera: CameraPose
-  cameraMode: CameraMode
-  resetToken: number
+  onScale?: (id: string, scale: [number, number, number]) => void
+  gizmoMode?: GizmoMode
+  sceneId?: string
+  environmentId?: string
+  startCamera?: CameraPose
+  cameraMode?: CameraMode
+  resetToken?: number
+  interactive?: boolean
 }
 
 export interface ViewportHandle {
@@ -43,6 +52,8 @@ const VERTICAL_KEYS: Record<string, number> = {
   ControlLeft: -1, ControlRight: -1,
 }
 const MIN_FLY_HEIGHT = 0.2
+const GIZMO_GAP = 0.15 // extra breathing room past the object's edge
+const ARROW_LENGTH = 0.725
 
 const isTypingTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null
@@ -50,12 +61,21 @@ const isTypingTarget = (target: EventTarget | null) => {
 }
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
-  { objects, selectedId, onSelect, onMove, sceneId, environmentId, startCamera, cameraMode, resetToken },
+  {
+    objects, selectedId, onSelect, onMove, onScale,
+    gizmoMode = 'select',
+    sceneId = '',
+    environmentId = defaultEnvironmentId,
+    startCamera = defaultCameraPose(),
+    cameraMode = 'orbit',
+    resetToken = 0,
+    interactive = true,
+  },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, startCamera, cameraMode })
-  dataRef.current = { objects, selectedId, onSelect, onMove, startCamera, cameraMode }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, gizmoMode, startCamera, cameraMode })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, gizmoMode, startCamera, cameraMode }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -80,7 +100,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   }), [])
 
   // Scene/renderer/camera setup — created once. All per-render values are read from refs so
-  // toggling camera mode or editing objects never tears down the WebGL context.
+  // toggling camera mode, gizmo mode, or editing objects never tears down the WebGL context.
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
@@ -99,6 +119,18 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     environmentGroupRef.current = environmentGroup
     scene.add(environmentGroup)
     scene.add(objectsGroup)
+
+    const gizmoGroup = new THREE.Group() // kept separate from objectsGroup so syncObjects rebuilds don't touch it
+    scene.add(gizmoGroup)
+
+    // move gizmo: one arrow per axis, built once
+    const axisArrows: AxisArrow[] = [makeAxisArrow('x'), makeAxisArrow('y'), makeAxisArrow('z')]
+    axisArrows.forEach((arrow) => gizmoGroup.add(arrow.group))
+
+    // scale gizmo: one handle per axis, built once
+    const scaleHandles: AxisScaleHandle[] = [makeAxisScaleHandle('x'), makeAxisScaleHandle('y'), makeAxisScaleHandle('z')]
+    scaleHandles.forEach((handle) => gizmoGroup.add(handle.mesh))
+
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
     keyLight.position.set(4, 8, 5)
@@ -107,7 +139,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     grid.position.y = 0.01
     scene.add(grid)
 
-    // Orbit/pan/zoom for arranging content — disabled while walking or dragging an object.
+    // Orbit/pan/zoom for arranging content — disabled while walking or dragging/gizmo-manipulating an object.
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
     controls.dampingFactor = 0.12
@@ -129,10 +161,22 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     applyPoseRef.current = applyPose
     applyPose(dataRef.current.startCamera)
 
+    // Free (non-axis-constrained) drag: raycasts onto a plane facing the camera and passing
+    // through the object's position, so X/Y/Z can all change depending on the camera angle.
     let dragging: { id: string; plane: THREE.Plane; offset: THREE.Vector3 } | null = null
+    let lastDragPosition: [number, number, number] | null = null
     const dragPoint = new THREE.Vector3()
+
+    let axisDragging: { id: string; axis: AxisName; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number } | null = null
+    let lastAxisDragPosition: [number, number, number] | null = null
+
+    let scaleDragging: { id: string; axis: AxisName; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number; startScale: [number, number, number] } | null = null
+    let lastScaleValue: [number, number, number] | null = null
+
     let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
     const pressedKeys = new Set<string>()
+
+    let renderedSignature = ''
 
     const resize = () => {
       const width = mount.clientWidth
@@ -142,6 +186,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.setSize(width, height, false)
     }
     const syncObjects = () => {
+      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
+      if (signature === renderedSignature) return
+      objectsGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
+          else child.material.dispose()
+        }
+      })
       objectsGroup.clear()
       dataRef.current.objects.forEach((item) => {
         const geometry = item.assetKind === 'sphere' ? new THREE.SphereGeometry(0.65, 32, 20) : item.assetKind === 'cylinder' ? new THREE.CylinderGeometry(0.55, 0.55, 1.2, 32) : new THREE.BoxGeometry(1.1, 1.1, 1.1)
@@ -157,7 +210,34 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         }
         objectsGroup.add(mesh)
       })
+      renderedSignature = signature
     }
+
+    // Keeps the gizmo's position and every arrow/handle's offset matched to the selected
+    // object, each frame. Skips updates mid-drag so it doesn't fight onPointerMove.
+    const syncGizmo = () => {
+      const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId)
+      const mode = dataRef.current.gizmoMode
+      gizmoGroup.visible = !!selected && (mode === 'move' || mode === 'scale')
+      axisArrows.forEach((arrow) => { arrow.group.visible = mode === 'move' })
+      scaleHandles.forEach((handle) => { handle.mesh.visible = mode === 'scale' })
+
+      if (selected && !dragging && !axisDragging && !scaleDragging) {
+        gizmoGroup.position.set(...selected.transform.position)
+        const mesh = objectsGroup.getObjectByName(selected.id)
+        if (mesh) {
+          axisArrows.forEach((arrow) => {
+            const offset = extentAlong(mesh, arrow.axis) + GIZMO_GAP
+            arrow.group.position.copy(arrow.direction).multiplyScalar(offset)
+          })
+          scaleHandles.forEach((handle) => {
+            const offset = extentAlong(mesh, handle.axis) + GIZMO_GAP + ARROW_LENGTH
+            handle.mesh.position.copy(handle.direction).multiplyScalar(offset)
+          })
+        }
+      }
+    }
+
     const getPointer = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect()
       pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
@@ -169,6 +249,26 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const hit = raycaster.intersectObjects(objectsGroup.children, false)[0]
       return hit?.object ?? null
     }
+    // Raycasts against the visible gizmo handles, returns whichever one (if any) is under the cursor.
+    const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' } | null => {
+      getPointer(event)
+      raycaster.setFromCamera(pointer, camera)
+      const mode = dataRef.current.gizmoMode
+      if (mode === 'move') {
+        for (const arrow of axisArrows) {
+          if (raycaster.intersectObjects(arrow.group.children, true)[0]) return { axis: arrow.axis, kind: 'arrow' }
+        }
+      }
+      if (mode === 'scale') {
+        for (const handle of scaleHandles) {
+          if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'scale' }
+        }
+      }
+      return null
+    }
+    const resetAllArrowColors = () => axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis]))
+    const resetAllScaleHandleColors = () => scaleHandles.forEach((handle) => setScaleHandleColor(handle, AXIS_COLORS[handle.axis]))
+
     const onPointerDown = (event: PointerEvent) => {
       if (dataRef.current.cameraMode === 'walk') {
         if (event.button !== 0) return
@@ -176,7 +276,43 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         renderer.domElement.setPointerCapture(event.pointerId)
         return
       }
+      // Camera look/walk navigation always works; object selection, dragging, and the
+      // gizmo are editing actions and stay off in read-only (e.g. visitor simulation) mode.
+      if (!interactive) return
       if (event.button !== 0) return
+
+      const gizmoHit = pickGizmo(event)
+      if (gizmoHit) {
+        const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId)
+        if (selected) {
+          const axisOrigin = new THREE.Vector3(...selected.transform.position)
+          if (gizmoHit.kind === 'arrow') {
+            const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
+            getPointer(event)
+            raycaster.setFromCamera(pointer, camera)
+            const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, arrow.direction)
+            if (hitT !== null) {
+              controls.enabled = false
+              axisDragging = { id: selected.id, axis: arrow.axis, origin: axisOrigin, direction: arrow.direction.clone(), grabT: hitT }
+            }
+          } else {
+            const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
+            const mesh = objectsGroup.getObjectByName(selected.id) // read live scale from the mesh, not stale React state
+            if (mesh) {
+              getPointer(event)
+              raycaster.setFromCamera(pointer, camera)
+              const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, handle.direction)
+              if (hitT !== null) {
+                controls.enabled = false
+                scaleDragging = { id: selected.id, axis: handle.axis, origin: axisOrigin, direction: handle.direction.clone(), grabT: hitT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] }
+              }
+            }
+          }
+        }
+        renderer.domElement.setPointerCapture(event.pointerId)
+        return
+      }
+
       const hit = pick(event)
       if (!hit) { dataRef.current.onSelect(null); return }
       controls.enabled = false
@@ -192,6 +328,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       }
       renderer.domElement.setPointerCapture(event.pointerId)
     }
+
     const onPointerMove = (event: PointerEvent) => {
       if (looking) {
         const sensitivity = 0.0045
@@ -201,13 +338,61 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         camera.rotation.set(pitchRef.current, yawRef.current, 0)
         return
       }
+
+      if (!axisDragging && !scaleDragging && !dragging) {
+        // Only show hover feedback when nothing's actively being dragged.
+        const hovering = pickGizmo(event)
+        resetAllArrowColors()
+        resetAllScaleHandleColors()
+        if (hovering?.kind === 'arrow') setArrowColor(axisArrows.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
+        if (hovering?.kind === 'scale') setScaleHandleColor(scaleHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
+      }
+
+      if (axisDragging) {
+        getPointer(event)
+        raycaster.setFromCamera(pointer, camera)
+        const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisDragging.origin, axisDragging.direction)
+        if (hitT === null) return // degenerate camera angle this frame, skip rather than jump
+        const travel = hitT - axisDragging.grabT
+        const next = axisDragging.origin.clone().addScaledVector(axisDragging.direction, travel)
+        const nextPos: [number, number, number] = [next.x, next.y, next.z]
+        const mesh = objectsGroup.getObjectByName(axisDragging.id)
+        if (mesh) mesh.position.set(...nextPos)
+        gizmoGroup.position.set(...nextPos)
+        lastAxisDragPosition = nextPos
+        return
+      }
+
+      if (scaleDragging) {
+        getPointer(event)
+        raycaster.setFromCamera(pointer, camera)
+        const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, scaleDragging.origin, scaleDragging.direction)
+        if (hitT === null) return
+        const travel = hitT - scaleDragging.grabT
+        const scaleFactor = 1 + travel
+        const axisIndex = scaleDragging.axis === 'x' ? 0 : scaleDragging.axis === 'y' ? 1 : 2
+        const nextScale: [number, number, number] = [...scaleDragging.startScale]
+        nextScale[axisIndex] = Math.max(0.05, scaleDragging.startScale[axisIndex] * scaleFactor) // clamp so it can't invert or vanish
+        const mesh = objectsGroup.getObjectByName(scaleDragging.id)
+        if (mesh) mesh.scale.set(...nextScale)
+        lastScaleValue = nextScale
+        return
+      }
+
       if (!dragging) return
       getPointer(event)
       raycaster.setFromCamera(pointer, camera)
       if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
       dragPoint.add(dragging.offset)
-      dataRef.current.onMove(dragging.id, [dragPoint.x, dragPoint.y, dragPoint.z])
+      const nextPos: [number, number, number] = [dragPoint.x, dragPoint.y, dragPoint.z]
+      // Mutate the mesh directly during the drag (and commit once on release) so dragging
+      // doesn't spam an undo-history entry on every pointermove.
+      const mesh = objectsGroup.getObjectByName(dragging.id)
+      if (mesh) mesh.position.set(...nextPos)
+      gizmoGroup.position.set(...nextPos)
+      lastDragPosition = nextPos
     }
+
     const onPointerUp = (event: PointerEvent) => {
       if (looking) {
         const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY)
@@ -218,7 +403,18 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         }
         return
       }
+      if (axisDragging && lastAxisDragPosition) dataRef.current.onMove(axisDragging.id, lastAxisDragPosition) // single commit, one undo entry
+      axisDragging = null
+      lastAxisDragPosition = null
+
+      if (scaleDragging && lastScaleValue) dataRef.current.onScale?.(scaleDragging.id, lastScaleValue) // single commit, one undo entry
+      scaleDragging = null
+      lastScaleValue = null
+
+      if (dragging && lastDragPosition) dataRef.current.onMove(dragging.id, lastDragPosition)
       dragging = null
+      lastDragPosition = null
+
       controls.enabled = dataRef.current.cameraMode === 'orbit'
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -235,6 +431,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
+    // Always registered: walk-mode look/WASD navigation must work even in read-only mode.
+    // Editing actions (select/drag/gizmo) are gated inside onPointerDown itself via `interactive`.
     renderer.domElement.addEventListener('pointerdown', onPointerDown)
     renderer.domElement.addEventListener('pointermove', onPointerMove)
     renderer.domElement.addEventListener('pointerup', onPointerUp)
@@ -251,6 +449,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const delta = Math.min((now - lastTime) / 1000, 0.1)
       lastTime = now
       syncObjects()
+      syncGizmo()
       if (dataRef.current.cameraMode === 'walk') {
         const isSprinting = pressedKeys.has('ShiftLeft') || pressedKeys.has('ShiftRight')
         const speed = isSprinting ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED
@@ -291,15 +490,29 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
+      objectsGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
+          else child.material.dispose()
+        }
+      })
+      gizmoGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
+          else child.material.dispose()
+        }
+      })
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [interactive])
 
-// Orbit and walk mode use different camera controls. 
-// Disable OrbitControls when walk mode starts to prevent camera snapping. 
-// When switching modes, update the new control using the camera's current direction 
+// Orbit and walk mode use different camera controls.
+// Disable OrbitControls when walk mode starts to prevent camera snapping.
+// When switching modes, update the new control using the camera's current direction
 // so the camera transition stays smooth.
   const previousModeRef = useRef<CameraMode | null>(null)
   useEffect(() => {
@@ -351,6 +564,18 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken])
 
+  const hint = cameraMode === 'walk'
+    ? interactive
+      ? 'Drag to look · WASD to walk · Space/Ctrl to fly up/down · Shift to sprint · Click to select'
+      : 'Drag to look · WASD to walk · Space/Ctrl to fly up/down · Shift to sprint'
+    : !interactive
+      ? null
+      : gizmoMode === 'move'
+        ? 'Drag an axis arrow to move on one axis, or drag the object to move freely'
+        : gizmoMode === 'scale'
+          ? 'Drag a scale handle to resize along one axis'
+          : 'Click to select · Drag to move'
+
   return (
     <div className="viewport" ref={mountRef}>
       {envStatus.state !== 'ready' && (
@@ -370,7 +595,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           )}
         </div>
       )}
-      <div className="viewport-hint">{cameraMode === 'walk' ? 'Drag to look · WASD to walk · Space/Ctrl to fly up/down · Shift to sprint · Click to select' : 'Drag a selected object across the floor'}</div>
+      {hint && <div className="viewport-hint">{hint}</div>}
     </div>
   )
 })

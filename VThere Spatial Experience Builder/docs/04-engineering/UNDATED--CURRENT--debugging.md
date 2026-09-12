@@ -1,4 +1,4 @@
-# Debugging and Logging
+﻿# Debugging and Logging
 
 VThere uses small, explicit logging tools so failures can be diagnosed without scattering permanent `console.log` calls through business logic.
 
@@ -81,8 +81,8 @@ python -m uvicorn apps.api.app.main:app --reload --port 8000
 
 ## Related ownership guides
 
-- [Development guide](DEVELOPMENT_GUIDE.md)
-- [Engineering practices](ENGINEERING_PRACTICES.md)
-- [Architecture boundaries](architecture.md)
-- [Persistence and implementation phases](implementation-plan.md)
-- [Authoring engine design](subsystems/authoring-engine.md)
+- [Development guide](UNDATED--CURRENT--development-guide.md)
+- [Engineering practices](UNDATED--FOUNDATION--engineering-practices.md)
+- [Architecture boundaries](../02-architecture/UNDATED--FOUNDATION--architecture.md)
+- [Persistence and implementation phases](../03-delivery/UNDATED--FOUNDATION--implementation-plan.md)
+- [Authoring engine design](../05-subsystems/authoring-engine.md)

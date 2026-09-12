@@ -1,4 +1,4 @@
-# VThere Development Guide
+﻿# VThere Development Guide
 
 This is the practical map for navigating the VThere Spatial Experience Builder and starting business-logic work without breaking persistence, editing history, or editor/runtime parity.
 
@@ -62,14 +62,14 @@ PowerShell may block `npm.ps1`; use `npm.cmd` as shown above.
 |---|---|---|
 | Add or change project data | [`packages/project/src/index.ts`](../packages/project/src/index.ts) | [`src/model.ts`](../src/model.ts), [`src/serializer.ts`](../src/serializer.ts) |
 | Add an editor action | [`src/App.tsx`](../src/App.tsx) | [`packages/authoring-engine/src/index.ts`](../packages/authoring-engine/src/index.ts) |
-| Change viewport behavior | [`src/Viewport.tsx`](../src/Viewport.tsx) | [`docs/architecture.md`](architecture.md) |
-| Change save, recovery, or export | [`src/serializer.ts`](../src/serializer.ts) | [`docs/contracts.md`](contracts.md), [`docs/implementation-plan.md`](implementation-plan.md) |
+| Change viewport behavior | [`src/Viewport.tsx`](../src/Viewport.tsx) | [`architecture`](../02-architecture/UNDATED--FOUNDATION--architecture.md) |
+| Change save, recovery, or export | [`src/serializer.ts`](../src/serializer.ts) | [`contracts`](../02-architecture/UNDATED--FOUNDATION--contracts.md), [`implementation plan`](../03-delivery/UNDATED--FOUNDATION--implementation-plan.md) |
 | Add undo/redo behavior | [`packages/authoring-engine/src/index.ts`](../packages/authoring-engine/src/index.ts) | [`packages/authoring-engine/src/index.test.ts`](../packages/authoring-engine/src/index.test.ts) |
-| Add API behavior | [`apps/api/app/main.py`](../apps/api/app/main.py) | [`apps/api/tests/test_health.py`](../apps/api/tests/test_health.py), [`docs/contracts.md`](contracts.md) |
+| Add API behavior | [`apps/api/app/main.py`](../apps/api/app/main.py) | [`apps/api/tests/test_health.py`](../apps/api/tests/test_health.py), [`contracts`](../02-architecture/UNDATED--FOUNDATION--contracts.md) |
 | Change visual layout | [`src/styles.css`](../src/styles.css) | [`src/App.tsx`](../src/App.tsx) |
-| Add diagnostic logging | [`packages/debugging/src/index.ts`](../packages/debugging/src/index.ts) | [`docs/DEBUGGING.md`](DEBUGGING.md) |
-| Understand intended ownership | [`docs/architecture.md`](architecture.md) | [`docs/repository.md`](repository.md) |
-| Check phase order | [`docs/implementation-plan.md`](implementation-plan.md) | [`docs/pre-baseline-validation.md`](pre-baseline-validation.md) |
+| Add diagnostic logging | [`packages/debugging/src/index.ts`](../packages/debugging/src/index.ts) | [`debugging`](UNDATED--CURRENT--debugging.md) |
+| Understand intended ownership | [`architecture`](../02-architecture/UNDATED--FOUNDATION--architecture.md) | [`repository boundaries`](../02-architecture/UNDATED--FOUNDATION--repository.md) |
+| Check phase order | [`implementation plan`](../03-delivery/UNDATED--FOUNDATION--implementation-plan.md) | [`pre-baseline validation`](../03-delivery/UNDATED--CURRENT--pre-baseline-validation.md) |
 
 ## Business-logic implementation order
 
@@ -106,7 +106,7 @@ The command should:
 4. Have an inverse or an equivalent previous snapshot for undo.
 5. Clear the redo branch after a new edit.
 
-The current prototype uses snapshot history in [`src/App.tsx`](../src/App.tsx). The long-term owner is [`packages/authoring-engine/`](../packages/authoring-engine/), as specified in [`docs/subsystems/authoring-engine.md`](subsystems/authoring-engine.md).
+The current prototype uses snapshot history in [`src/App.tsx`](../src/App.tsx). The long-term owner is [`packages/authoring-engine/`](../packages/authoring-engine/), as specified in [`authoring-engine.md`](../05-subsystems/authoring-engine.md).
 
 ### 4. Connect persistence through one adapter
 
@@ -137,8 +137,8 @@ project state -> viewport renderer
 
 Before changing a shared model or public contract:
 
-- Read [`docs/PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
-- Check the ownership table in [`docs/architecture.md`](architecture.md).
+- Read [`project context`](../01-product/UNDATED--CURRENT--project-context.md).
+- Check the ownership table in [`architecture`](../02-architecture/UNDATED--FOUNDATION--architecture.md).
 - Search for all references to the type or function being changed.
 - Add or update a focused test first when the behavior is persistence, history, serialization, validation, or interaction related.
 - Run the build and the narrowest relevant test.
@@ -171,15 +171,15 @@ The next structurally important work is to add serialization/validation tests, t
 
 ## Reference documents
 
-- [Project context and drift rules](PROJECT_CONTEXT.md)
-- [Architecture ownership and interfaces](architecture.md)
-- [Repository boundaries](repository.md)
-- [Data and API contracts](contracts.md)
-- [Build and test commands](build-system.md)
-- [Implementation phases](implementation-plan.md)
-- [Testing strategy](testing-strategy.md)
-- [Debugging and logging](DEBUGGING.md)
-- [Engineering practices](ENGINEERING_PRACTICES.md)
-- [Pre-baseline validation](pre-baseline-validation.md)
-- [Authoring-engine design](subsystems/authoring-engine.md)
-- [Session handoff](../SESSION.md)
+- [Project context and drift rules](../01-product/UNDATED--CURRENT--project-context.md)
+- [Architecture ownership and interfaces](../02-architecture/UNDATED--FOUNDATION--architecture.md)
+- [Repository boundaries](../02-architecture/UNDATED--FOUNDATION--repository.md)
+- [Data and API contracts](../02-architecture/UNDATED--FOUNDATION--contracts.md)
+- [Build and test commands](../02-architecture/UNDATED--FOUNDATION--build-system.md)
+- [Implementation phases](../03-delivery/UNDATED--FOUNDATION--implementation-plan.md)
+- [Testing strategy](../03-delivery/UNDATED--FOUNDATION--testing-strategy.md)
+- [Debugging and logging](UNDATED--CURRENT--debugging.md)
+- [Engineering practices](UNDATED--FOUNDATION--engineering-practices.md)
+- [Pre-baseline validation](../03-delivery/UNDATED--CURRENT--pre-baseline-validation.md)
+- [Authoring-engine design](../05-subsystems/authoring-engine.md)
+- [Session handoff](../../SESSION.md)

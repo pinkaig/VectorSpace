@@ -1,4 +1,4 @@
-# AI Pre-Baseline Architecture Master Prompt
+﻿# AI Pre-Baseline Architecture Master Prompt
 
 ## Purpose
 
@@ -6,8 +6,8 @@ Use this prompt **before baseline code generation**.
 
 Its purpose is to take an existing project's high-level specifications, especially:
 
-- `projectscope.md`
-- `techstack.md`
+- `UNDATED--FOUNDATION--project-scope.md`
+- `UNDATED--FOUNDATION--tech-stack.md`
 
 and transform them into a complete, internally consistent **Pre-Baseline Engineering Package**.
 
@@ -40,8 +40,8 @@ First locate and read the project's existing planning documents.
 At minimum, inspect:
 
 ```text
-projectscope.md
-techstack.md
+UNDATED--FOUNDATION--project-scope.md
+UNDATED--FOUNDATION--tech-stack.md
 ```
 
 Also inspect any existing:
@@ -107,25 +107,25 @@ Create or propose the following documents:
 
 ```text
 docs/
-│
-├── PROJECT_CONTEXT.md
-│
-├── projectscope.md
-├── techstack.md
-│
-├── architecture.md
-├── repository.md
-├── integration.md
-├── contracts.md
-├── dependency-graph.md
-├── build-system.md
-├── testing-strategy.md
-├── implementation-plan.md
-│
-└── subsystems/
-    ├── <subsystem>.md
-    ├── <subsystem>.md
-    └── ...
+â”‚
+â”œâ”€â”€ UNDATED--CURRENT--project-context.md
+â”‚
+â”œâ”€â”€ UNDATED--FOUNDATION--project-scope.md
+â”œâ”€â”€ UNDATED--FOUNDATION--tech-stack.md
+â”‚
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
+â”œâ”€â”€ integration.md
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
+â”œâ”€â”€ dependency-graph.md
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
+â”‚
+â””â”€â”€ subsystems/
+    â”œâ”€â”€ <subsystem>.md
+    â”œâ”€â”€ <subsystem>.md
+    â””â”€â”€ ...
 ```
 
 Do not create unnecessary subsystem documents.
@@ -134,7 +134,7 @@ Create one when a subsystem is sufficiently complex that its responsibilities, d
 
 ---
 
-## 4. PROJECT_CONTEXT.md
+## 4. UNDATED--CURRENT--project-context.md
 
 Create a short orientation document for future agents.
 
@@ -156,7 +156,7 @@ Keep this document concise. It is intended to be the first document an implement
 
 ---
 
-## 5. architecture.md
+## 5. UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
 
 Define the system's architectural regions and responsibilities.
 
@@ -191,7 +191,7 @@ Do not allow classes or systems to acquire responsibilities merely because an im
 
 ---
 
-## 6. repository.md
+## 6. UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
 
 Define the intended repository structure before implementation.
 
@@ -201,17 +201,17 @@ Example:
 
 ```text
 project/
-├── src/
-│   ├── ...
-│
-├── tests/
-│   ├── ...
-│
-├── assets/
-├── config/
-├── scripts/
-├── docs/
-└── ...
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ ...
+â”‚
+â”œâ”€â”€ tests/
+â”‚   â”œâ”€â”€ ...
+â”‚
+â”œâ”€â”€ assets/
+â”œâ”€â”€ config/
+â”œâ”€â”€ scripts/
+â”œâ”€â”€ docs/
+â””â”€â”€ ...
 ```
 
 Classify important directories and files as:
@@ -263,15 +263,15 @@ Identify every important integration point.
 This includes, where applicable:
 
 ```text
-Frontend ↔ Backend
-Backend ↔ Database
-Application ↔ Engine
-Engine ↔ Rendering API
-Application ↔ Networking
-Application ↔ External APIs
-Application ↔ Plugins
-Application ↔ SDKs
-Application ↔ Cloud services
+Frontend â†” Backend
+Backend â†” Database
+Application â†” Engine
+Engine â†” Rendering API
+Application â†” Networking
+Application â†” External APIs
+Application â†” Plugins
+Application â†” SDKs
+Application â†” Cloud services
 ```
 
 For every integration define:
@@ -300,7 +300,7 @@ The baseline should establish important integration links early.
 
 ---
 
-## 8. contracts.md
+## 8. UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
 
 Define stable interfaces between systems.
 
@@ -348,9 +348,9 @@ Represent it in a readable form such as:
 
 ```text
 Application
-    ↓
+    â†“
 Runtime
-    ↓
+    â†“
 Shared
 ```
 
@@ -358,9 +358,9 @@ and/or:
 
 ```text
 Frontend
-    ↓ HTTP
+    â†“ HTTP
 Backend
-    ↓ SQL
+    â†“ SQL
 Database
 ```
 
@@ -390,7 +390,7 @@ Do not permit circular architectural dependencies unless explicitly justified.
 
 ---
 
-## 10. build-system.md
+## 10. UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
 
 Define exactly how the baseline is expected to build.
 
@@ -415,15 +415,15 @@ Define the minimum baseline acceptance condition:
 
 ```text
 Fresh checkout
-    ↓
+    â†“
 Install dependencies
-    ↓
+    â†“
 Configure
-    ↓
+    â†“
 Build
-    ↓
+    â†“
 Run tests
-    ↓
+    â†“
 Launch application/service
 ```
 
@@ -431,7 +431,7 @@ The future baseline agent must be able to reproduce this process without guessin
 
 ---
 
-## 11. testing-strategy.md
+## 11. UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
 
 Define how the baseline will be verified.
 
@@ -463,7 +463,7 @@ Do not require full feature testing before those features exist.
 
 ---
 
-## 12. implementation-plan.md
+## 12. UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
 
 Break implementation into bounded phases.
 
@@ -472,15 +472,15 @@ Organize phases according to dependency and architectural stability rather than 
 A typical structure may be:
 
 ```text
-Phase 0 — Repository and Build Infrastructure
-Phase 1 — Core Types and Interfaces
-Phase 2 — Integration Skeleton
-Phase 3 — Core Subsystems
-Phase 4 — Functional Systems
-Phase 5 — Cross-System Integration
-Phase 6 — Feature Completion
-Phase 7 — Testing and Hardening
-Phase 8 — Optimization / Polish
+Phase 0 â€” Repository and Build Infrastructure
+Phase 1 â€” Core Types and Interfaces
+Phase 2 â€” Integration Skeleton
+Phase 3 â€” Core Subsystems
+Phase 4 â€” Functional Systems
+Phase 5 â€” Cross-System Integration
+Phase 6 â€” Feature Completion
+Phase 7 â€” Testing and Hardening
+Phase 8 â€” Optimization / Polish
 ```
 
 Adapt this to the project.
@@ -658,11 +658,11 @@ If an implementation requires an architectural change:
 
 ```text
 STOP
-↓
+â†“
 REPORT CONFLICT
-↓
+â†“
 DESCRIBE REQUIRED CHANGE
-↓
+â†“
 WAIT FOR ARCHITECTURAL DECISION
 ```
 
@@ -677,64 +677,64 @@ After generating all planning documents, perform a consistency pass.
 Verify that:
 
 ```text
-projectscope.md
-        ↕
-techstack.md
-        ↕
-architecture.md
-        ↕
-repository.md
-        ↕
+UNDATED--FOUNDATION--project-scope.md
+        â†•
+UNDATED--FOUNDATION--tech-stack.md
+        â†•
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+        â†•
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
+        â†•
 integration.md
-        ↕
-contracts.md
-        ↕
+        â†•
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
+        â†•
 dependency-graph.md
-        ↕
-build-system.md
-        ↕
-testing-strategy.md
-        ↕
-implementation-plan.md
+        â†•
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+        â†•
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
+        â†•
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
 ```
 
 do not contradict one another.
 
 Specifically check:
 
-### Scope ↔ Architecture
+### Scope â†” Architecture
 
 Every required major capability has an architectural home.
 
-### Architecture ↔ Repository
+### Architecture â†” Repository
 
 Every major architectural component has a repository location.
 
-### Architecture ↔ Dependencies
+### Architecture â†” Dependencies
 
 Subsystem dependencies follow the defined architecture.
 
-### Architecture ↔ Contracts
+### Architecture â†” Contracts
 
 Subsystem boundaries have appropriate interfaces.
 
-### Tech Stack ↔ Integration
+### Tech Stack â†” Integration
 
 Every selected technology has a defined place in the integration graph.
 
-### Integration ↔ Contracts
+### Integration â†” Contracts
 
 Communication paths have defined data/API contracts.
 
-### Build ↔ Tech Stack
+### Build â†” Tech Stack
 
 All required technologies can actually be built/configured.
 
-### Testing ↔ Architecture
+### Testing â†” Architecture
 
 Important architectural boundaries are testable.
 
-### Implementation Plan ↔ Dependencies
+### Implementation Plan â†” Dependencies
 
 Phases occur in a valid dependency order.
 
@@ -779,7 +779,7 @@ Do not put every project detail into one document.
 Use:
 
 ```text
-PROJECT_CONTEXT.md
+UNDATED--CURRENT--project-context.md
 ```
 
 as the entry point.
@@ -957,30 +957,30 @@ Your output from this task must be the **Pre-Baseline Engineering Package**, not
 The expected result is:
 
 ```text
-projectscope.md
-techstack.md
+UNDATED--FOUNDATION--project-scope.md
+UNDATED--FOUNDATION--tech-stack.md
 
-        ↓
+        â†“
 
-PROJECT_CONTEXT.md
-architecture.md
-repository.md
+UNDATED--CURRENT--project-context.md
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
 integration.md
-contracts.md
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
 dependency-graph.md
-build-system.md
-testing-strategy.md
-implementation-plan.md
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
+UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
 
-        ↓
+        â†“
 
 subsystem specifications
 
-        ↓
+        â†“
 
 cross-document validation
 
-        ↓
+        â†“
 
 PRE-Baseline Validation Report
 ```

@@ -1,14 +1,14 @@
-# 01 — Project Scope
+﻿# 01 â€” Project Scope
 
 **Stage 1 of 5.**
-`01 Scope` → [`02 Tech Stack`](02_techstack.md) → [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) → [`04 Baseline`](04_Baseline_Generation.md) → [`05 Phase Implementation`](05_Phase_Implementation.md)
+`01 Scope` â†’ [`02 Tech Stack`](02_UNDATED--FOUNDATION--tech-stack.md) â†’ [`03 Pre-Baseline Architecture`](03_AI_Pre_Baseline_Architecture_Master_Prompt.md) â†’ [`04 Baseline`](04_Baseline_Generation.md) â†’ [`05 Phase Implementation`](05_Phase_Implementation.md)
 
 | | |
 |---|---|
-| **Produces** | `projectscope.md` |
+| **Produces** | `UNDATED--FOUNDATION--project-scope.md` |
 | **Model tier** | Mid-tier. This is structured extraction from a brief, not hard design. Don't reach for the top tier. |
 | **Subagent** | None needed. If the brief spans many files, send `Explore` to gather them first. |
-| **Human gate** | I read `projectscope.md` and approve it before Stage 2 begins. |
+| **Human gate** | I read `UNDATED--FOUNDATION--project-scope.md` and approve it before Stage 2 begins. |
 
 ---
 
@@ -28,32 +28,32 @@ explicitly required. Do not design classes or file structures. Do not invent fun
 ## Domain learn gate
 
 Read the brief first. Before writing scope, list any **domain** concepts the reader would need
-to understand in order to judge whether this scope is correct — energy tariffs, tax
+to understand in order to judge whether this scope is correct â€” energy tariffs, tax
 depreciation, thread scheduling, whatever the domain happens to be.
 
 If that list is non-empty, put it at the top of your output under `## Domain concepts you may
 want first` and say plainly:
 
 > These are domain concepts, not code mechanisms. If any are unfamiliar, ask before approving
-> this scope — approving a scope you can't evaluate is worse than a delay.
+> this scope â€” approving a scope you can't evaluate is worse than a delay.
 
 Do not teach them here. Do not stall the document waiting for an answer. Just surface them.
 
 ---
 
-## Output — `projectscope.md`
+## Output â€” `UNDATED--FOUNDATION--project-scope.md`
 
 ### 1. Project Overview
-Project name · purpose · problem being solved · intended users · high-level system description.
+Project name Â· purpose Â· problem being solved Â· intended users Â· high-level system description.
 
 ### 2. Objectives
 Primary, then secondary. Keep them measurable enough to test against later.
 
 ### 3. Functional Requirements
-Required capabilities · inputs · outputs · important workflows.
+Required capabilities Â· inputs Â· outputs Â· important workflows.
 
 ### 4. Non-Functional Requirements
-Performance · reliability · scalability · security · usability · maintainability · platform
+Performance Â· reliability Â· scalability Â· security Â· usability Â· maintainability Â· platform
 constraints.
 
 Only include a line where the brief actually implies a constraint. An invented
@@ -73,12 +73,12 @@ Minimum functionality required. Minimum demonstrable system.
 Features that may come later. These are **not** baseline requirements.
 
 ### 9. Constraints
-Academic/project · team · platform · time · required technologies where explicitly stated.
+Academic/project Â· team Â· platform Â· time Â· required technologies where explicitly stated.
 
 ### 10. Acceptance Criteria
 What must be true for the project to satisfy its scope.
 
-Write each one so it names a check somebody could actually run — a demo, a test, a measurement.
+Write each one so it names a check somebody could actually run â€” a demo, a test, a measurement.
 "The system is reliable" is not an acceptance criterion. "A simulation run completes and returns
 results for the maximum documented site count" is.
 
@@ -92,7 +92,7 @@ Requirements that cannot be determined from the provided information.
 
 ## Rules
 
-- Tag every capability as `REQUIRED` · `OPTIONAL` · `FUTURE` · `UNDEFINED` · `FORBIDDEN`.
+- Tag every capability as `REQUIRED` Â· `OPTIONAL` Â· `FUTURE` Â· `UNDEFINED` Â· `FORBIDDEN`.
 - Do not silently resolve an ambiguous requirement. Record it in Open Questions instead.
 - Do not invent a requirement because it is technically possible or would be nice to have.
 - Do not prescribe implementation architecture.
@@ -114,7 +114,7 @@ Recommended next step:     ...
 ```
 
 `BLOCKED` if an unresolved requirement could substantially change the architecture or the
-technology decisions. A scope that is `BLOCKED` still gets written and handed over — it is
+technology decisions. A scope that is `BLOCKED` still gets written and handed over â€” it is
 blocked for *approval*, not for *drafting*.
 
 ---
@@ -122,4 +122,4 @@ blocked for *approval*, not for *drafting*.
 ## Handoff
 
 When this stage is approved, refresh the topic's `SESSION.md` (`/handoff`) before starting
-Stage 2. Scope approval is one of the defined handoff triggers — Stage 2 is a clean context.
+Stage 2. Scope approval is one of the defined handoff triggers â€” Stage 2 is a clean context.
