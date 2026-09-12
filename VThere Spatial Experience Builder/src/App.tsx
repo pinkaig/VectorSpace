@@ -29,6 +29,7 @@ export default function App() {
   const [future, setFuture] = useState<ProjectData[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gizmoMode, setGizmoMode] = useState<GizmoMode>('select')
+  const [scaleSpace, setScaleSpace] = useState<'world' | 'local'>('world')
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
   const [resetToken, setResetToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
@@ -206,6 +207,12 @@ export default function App() {
               <button className={gizmoMode === 'rotate' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('rotate')}>Rotate</button>
               <button className={gizmoMode === 'scale' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('scale')}>Scale</button>
             </div>
+            {gizmoMode === 'scale' && (
+              <div className="mode-switch">
+                <button className={scaleSpace === 'world' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('world')} title="Scale handles stay aligned to world X/Y/Z">World</button>
+                <button className={scaleSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Snap to object</button>
+              </div>
+            )}
             <div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div>
           </div>
           <div className="view-toolbar">
@@ -222,6 +229,7 @@ export default function App() {
             onScale={scaleObject}
             onRotate={rotateObject}
             gizmoMode={gizmoMode}
+            scaleSpace={scaleSpace}
             sceneId={scene.id}
             environmentId={scene.environmentId}
             startCamera={scene.startCamera}

@@ -6,7 +6,7 @@ import { loadEnvironment } from './environments'
 import { AxisName, AxisArrow } from './gizmo/types'
 import { AXIS_COLORS, AXIS_HOVER_COLORS } from './gizmo/colors'
 import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
-import { makeAxisArrow, extentAlong, setArrowColor } from './gizmo/moveGizmo'
+import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
 
@@ -21,6 +21,7 @@ interface ViewportProps {
   onScale?: (id: string, scale: [number, number, number]) => void
   onRotate?: (id: string, rotation: [number, number, number]) => void
   gizmoMode?: GizmoMode
+  scaleSpace?: 'world' | 'local'
   sceneId?: string
   environmentId?: string
   startCamera?: CameraPose
@@ -66,6 +67,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   {
     objects, selectedId, onSelect, onMove, onScale, onRotate,
     gizmoMode = 'select',
+    scaleSpace = 'world',
     sceneId = '',
     environmentId = defaultEnvironmentId,
     startCamera = defaultCameraPose(),
@@ -76,8 +78,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, startCamera, cameraMode })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, startCamera, cameraMode }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, startCamera, cameraMode })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, startCamera, cameraMode }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -242,9 +244,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             const offset = extentAlong(mesh, arrow.axis) + GIZMO_GAP
             arrow.group.position.copy(arrow.direction).multiplyScalar(offset)
           })
+          const isLocalScale = dataRef.current.scaleSpace === 'local'
           scaleHandles.forEach((handle) => {
-            const offset = extentAlong(mesh, handle.axis) + GIZMO_GAP + ARROW_LENGTH
-            handle.mesh.position.copy(handle.direction).multiplyScalar(offset)
+            const direction = isLocalScale ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation)) : handle.direction
+            const offset = (isLocalScale ? extentAlongLocal(mesh as THREE.Mesh, handle.axis) : extentAlong(mesh, handle.axis)) + GIZMO_GAP + ARROW_LENGTH
+            handle.mesh.position.copy(direction).multiplyScalar(offset)
           })
           if (mode === 'rotate') {
             const box = new THREE.Box3().setFromObject(mesh)
@@ -325,12 +329,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
             const mesh = objectsGroup.getObjectByName(selected.id) // read live scale from the mesh, not stale React state
             if (mesh) {
+              const direction = dataRef.current.scaleSpace === 'local'
+                ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation))
+                : handle.direction.clone()
               getPointer(event)
               raycaster.setFromCamera(pointer, camera)
-              const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, handle.direction)
+              const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, direction)
               if (hitT !== null) {
                 controls.enabled = false
-                scaleDragging = { id: selected.id, axis: handle.axis, origin: axisOrigin, direction: handle.direction.clone(), grabT: hitT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] }
+                scaleDragging = { id: selected.id, axis: handle.axis, origin: axisOrigin, direction, grabT: hitT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] }
               }
             }
           } else {
