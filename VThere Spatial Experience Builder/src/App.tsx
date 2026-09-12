@@ -244,7 +244,38 @@ export default function App() {
   )
 }
 
+const radToDeg = (radians: number) => radians * (180 / Math.PI)
+const degToRad = (degrees: number) => degrees * (Math.PI / 180)
+
 function Inspector({ object, onRename, onTransform }: { object: SceneObject; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void }) {
-  const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => <div className="field-group"><label>{label}</label><div className="vector-fields">{values.map((value, index) => <label className="number-field" key={`${key}-${index}`}><span>{['X', 'Y', 'Z'][index]}</span><input type="number" step="0.1" value={Number(value.toFixed(2))} onChange={(event) => { const next = [...values] as [number, number, number]; next[index] = Number(event.target.value); onTransform({ [key]: next }) }} /></label>)}</div></div>
+  const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
+    const isRotation = key === 'rotation'
+    const displayValues = isRotation ? values.map(radToDeg) : values
+    return (
+      <div className="field-group">
+        <label>{isRotation ? `${label} (°)` : label}</label>
+        <div className="vector-fields">
+          {displayValues.map((value, index) => (
+            <label className="number-field" key={`${key}-${index}`}>
+              <span>{['X', 'Y', 'Z'][index]}</span>
+              <input
+                type="number"
+                step={isRotation ? 1 : 0.1}
+                min={isRotation ? 0 : undefined}
+                max={isRotation ? 360 : undefined}
+                value={Number(value.toFixed(isRotation ? 1 : 2))}
+                onChange={(event) => {
+                  const entered = Number(event.target.value)
+                  const next = [...values] as [number, number, number]
+                  next[index] = isRotation ? degToRad(Math.min(360, Math.max(0, entered))) : entered
+                  onTransform({ [key]: next })
+                }}
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+    )
+  }
   return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}</div>
 }
