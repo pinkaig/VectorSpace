@@ -388,6 +388,12 @@ export default function App() {
               )}
             </div>
           </section>
+          {/* Panel inspector panel 
+          
+          
+          
+          
+          */}
           <section className="panel inspector-panel">
             <div className="panel-heading">
               <div>
@@ -441,7 +447,7 @@ function Inspector({
               step="0.1"
               value={Number(value.toFixed(2))}
               onChange={(event) => {
-                const next = [...values] as [number, number, number];
+                const next = [...values] as [number, number, number]; {/* Note for rotation, the numerical input is currently radian */}
                 next[index] = Number(event.target.value);
                 onTransform({ [key]: next });
               }}
