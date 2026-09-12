@@ -5,9 +5,10 @@ import { CameraPose, SceneObject, defaultCameraPose, defaultEnvironmentId } from
 import { loadEnvironment } from './environments'
 import { AxisName, AxisArrow } from './gizmo/types'
 import { AXIS_COLORS, AXIS_HOVER_COLORS } from './gizmo/colors'
-import { closestPointOnAxis } from './gizmo/math'
+import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
 import { makeAxisArrow, extentAlong, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
+import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -18,6 +19,7 @@ interface ViewportProps {
   onSelect: (id: string | null) => void
   onMove: (id: string, position: [number, number, number]) => void
   onScale?: (id: string, scale: [number, number, number]) => void
+  onRotate?: (id: string, rotation: [number, number, number]) => void
   gizmoMode?: GizmoMode
   sceneId?: string
   environmentId?: string
@@ -62,7 +64,7 @@ const isTypingTarget = (target: EventTarget | null) => {
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   {
-    objects, selectedId, onSelect, onMove, onScale,
+    objects, selectedId, onSelect, onMove, onScale, onRotate,
     gizmoMode = 'select',
     sceneId = '',
     environmentId = defaultEnvironmentId,
@@ -74,8 +76,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, gizmoMode, startCamera, cameraMode })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, gizmoMode, startCamera, cameraMode }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, startCamera, cameraMode })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, startCamera, cameraMode }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -131,6 +133,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const scaleHandles: AxisScaleHandle[] = [makeAxisScaleHandle('x'), makeAxisScaleHandle('y'), makeAxisScaleHandle('z')]
     scaleHandles.forEach((handle) => gizmoGroup.add(handle.mesh))
 
+    // rotate gizmo: one ring per axis, built once
+    const rotateHandles: AxisRotateHandle[] = [makeAxisRotateHandle('x'), makeAxisRotateHandle('y'), makeAxisRotateHandle('z')]
+    rotateHandles.forEach((handle) => gizmoGroup.add(handle.mesh))
+
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
     keyLight.position.set(4, 8, 5)
@@ -172,6 +178,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     let scaleDragging: { id: string; axis: AxisName; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number; startScale: [number, number, number] } | null = null
     let lastScaleValue: [number, number, number] | null = null
+
+    // Rotation is accumulated incrementally frame-to-frame (rather than as a single delta from
+    // the initial grab angle) so dragging past the atan2 wraparound point doesn't snap.
+    let rotateDragging: { id: string; axisIndex: 0 | 1 | 2; center: THREE.Vector3; normal: THREE.Vector3; plane: THREE.Plane; lastAngle: number; currentRotation: [number, number, number] } | null = null
+    let lastRotateValue: [number, number, number] | null = null
 
     let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
     const pressedKeys = new Set<string>()
@@ -218,11 +229,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const syncGizmo = () => {
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId)
       const mode = dataRef.current.gizmoMode
-      gizmoGroup.visible = !!selected && (mode === 'move' || mode === 'scale')
+      gizmoGroup.visible = !!selected && (mode === 'move' || mode === 'scale' || mode === 'rotate')
       axisArrows.forEach((arrow) => { arrow.group.visible = mode === 'move' })
       scaleHandles.forEach((handle) => { handle.mesh.visible = mode === 'scale' })
+      rotateHandles.forEach((handle) => { handle.mesh.visible = mode === 'rotate' })
 
-      if (selected && !dragging && !axisDragging && !scaleDragging) {
+      if (selected && !dragging && !axisDragging && !scaleDragging && !rotateDragging) {
         gizmoGroup.position.set(...selected.transform.position)
         const mesh = objectsGroup.getObjectByName(selected.id)
         if (mesh) {
@@ -234,6 +246,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             const offset = extentAlong(mesh, handle.axis) + GIZMO_GAP + ARROW_LENGTH
             handle.mesh.position.copy(handle.direction).multiplyScalar(offset)
           })
+          if (mode === 'rotate') {
+            const box = new THREE.Box3().setFromObject(mesh)
+            const size = new THREE.Vector3()
+            box.getSize(size)
+            const targetRadius = Math.max(size.x, size.y, size.z) / 2 + GIZMO_GAP + 0.2
+            const scale = targetRadius / ROTATE_RING_BASE_RADIUS
+            rotateHandles.forEach((handle) => handle.mesh.scale.setScalar(scale))
+          }
         }
       }
     }
@@ -250,7 +270,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       return hit?.object ?? null
     }
     // Raycasts against the visible gizmo handles, returns whichever one (if any) is under the cursor.
-    const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' } | null => {
+    const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' | 'rotate' } | null => {
       getPointer(event)
       raycaster.setFromCamera(pointer, camera)
       const mode = dataRef.current.gizmoMode
@@ -264,10 +284,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'scale' }
         }
       }
+      if (mode === 'rotate') {
+        for (const handle of rotateHandles) {
+          if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'rotate' }
+        }
+      }
       return null
     }
     const resetAllArrowColors = () => axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis]))
     const resetAllScaleHandleColors = () => scaleHandles.forEach((handle) => setScaleHandleColor(handle, AXIS_COLORS[handle.axis]))
+    const resetAllRotateHandleColors = () => rotateHandles.forEach((handle) => setRotateHandleColor(handle, AXIS_COLORS[handle.axis]))
 
     const onPointerDown = (event: PointerEvent) => {
       if (dataRef.current.cameraMode === 'walk') {
@@ -295,7 +321,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
               controls.enabled = false
               axisDragging = { id: selected.id, axis: arrow.axis, origin: axisOrigin, direction: arrow.direction.clone(), grabT: hitT }
             }
-          } else {
+          } else if (gizmoHit.kind === 'scale') {
             const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
             const mesh = objectsGroup.getObjectByName(selected.id) // read live scale from the mesh, not stale React state
             if (mesh) {
@@ -305,6 +331,25 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
               if (hitT !== null) {
                 controls.enabled = false
                 scaleDragging = { id: selected.id, axis: handle.axis, origin: axisOrigin, direction: handle.direction.clone(), grabT: hitT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] }
+              }
+            }
+          } else {
+            const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
+            const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(handle.normal, axisOrigin)
+            getPointer(event)
+            raycaster.setFromCamera(pointer, camera)
+            const hitPoint = new THREE.Vector3()
+            if (raycaster.ray.intersectPlane(plane, hitPoint)) {
+              controls.enabled = false
+              const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
+              rotateDragging = {
+                id: selected.id,
+                axisIndex,
+                center: axisOrigin,
+                normal: handle.normal.clone(),
+                plane,
+                lastAngle: angleAroundAxis(hitPoint, axisOrigin, handle.normal),
+                currentRotation: [...selected.transform.rotation],
               }
             }
           }
@@ -339,13 +384,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         return
       }
 
-      if (!axisDragging && !scaleDragging && !dragging) {
+      if (!axisDragging && !scaleDragging && !rotateDragging && !dragging) {
         // Only show hover feedback when nothing's actively being dragged.
         const hovering = pickGizmo(event)
         resetAllArrowColors()
         resetAllScaleHandleColors()
+        resetAllRotateHandleColors()
         if (hovering?.kind === 'arrow') setArrowColor(axisArrows.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
         if (hovering?.kind === 'scale') setScaleHandleColor(scaleHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
+        if (hovering?.kind === 'rotate') setRotateHandleColor(rotateHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
       }
 
       if (axisDragging) {
@@ -376,6 +423,25 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         const mesh = objectsGroup.getObjectByName(scaleDragging.id)
         if (mesh) mesh.scale.set(...nextScale)
         lastScaleValue = nextScale
+        return
+      }
+
+      if (rotateDragging) {
+        getPointer(event)
+        raycaster.setFromCamera(pointer, camera)
+        const hitPoint = new THREE.Vector3()
+        if (!raycaster.ray.intersectPlane(rotateDragging.plane, hitPoint)) return // degenerate camera angle this frame, skip rather than jump
+        const angle = angleAroundAxis(hitPoint, rotateDragging.center, rotateDragging.normal)
+        let step = angle - rotateDragging.lastAngle
+        if (step > Math.PI) step -= Math.PI * 2 // unwrap so crossing the atan2 seam doesn't snap
+        if (step < -Math.PI) step += Math.PI * 2
+        rotateDragging.lastAngle = angle
+        const nextRotation = [...rotateDragging.currentRotation] as [number, number, number]
+        nextRotation[rotateDragging.axisIndex] += step
+        rotateDragging.currentRotation = nextRotation // accumulate: next frame's step applies on top of this
+        const mesh = objectsGroup.getObjectByName(rotateDragging.id)
+        if (mesh) mesh.rotation.set(...nextRotation)
+        lastRotateValue = nextRotation
         return
       }
 
@@ -410,6 +476,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       if (scaleDragging && lastScaleValue) dataRef.current.onScale?.(scaleDragging.id, lastScaleValue) // single commit, one undo entry
       scaleDragging = null
       lastScaleValue = null
+
+      if (rotateDragging && lastRotateValue) {
+        const twoPi = Math.PI * 2
+        // Normalize into [0, 2π) — matches the Inspector's 0-360° convention — without
+        // affecting the live drag, which needs unbounded accumulation to avoid snapping.
+        const normalized = lastRotateValue.map((value) => ((value % twoPi) + twoPi) % twoPi) as [number, number, number]
+        dataRef.current.onRotate?.(rotateDragging.id, normalized) // single commit, one undo entry
+      }
+      rotateDragging = null
+      lastRotateValue = null
 
       if (dragging && lastDragPosition) dataRef.current.onMove(dragging.id, lastDragPosition)
       dragging = null
@@ -574,7 +650,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         ? 'Drag an axis arrow to move on one axis, or drag the object to move freely'
         : gizmoMode === 'scale'
           ? 'Drag a scale handle to resize along one axis'
-          : 'Click to select · Drag to move'
+          : gizmoMode === 'rotate'
+            ? 'Drag a ring to rotate around that axis'
+            : 'Click to select · Drag to move'
 
   return (
     <div className="viewport" ref={mountRef}>

@@ -88,6 +88,9 @@ export default function App() {
   const scaleObject = (id: string, scale: [number, number, number]) => {
     updateScene((objects) => objects.map((item) => item.id === id ? { ...item, transform: { ...item.transform, scale } } : item))
   }
+  const rotateObject = (id: string, rotation: [number, number, number]) => {
+    updateScene((objects) => objects.map((item) => item.id === id ? { ...item, transform: { ...item.transform, rotation } } : item))
+  }
   const renameSelected = (name: string) => {
     if (!selected) return
     updateScene((objects) => objects.map((item) => item.id === selected.id ? { ...item, name } : item))
@@ -217,6 +220,7 @@ export default function App() {
             onSelect={setSelectedId}
             onMove={moveObject}
             onScale={scaleObject}
+            onRotate={rotateObject}
             gizmoMode={gizmoMode}
             sceneId={scene.id}
             environmentId={scene.environmentId}
