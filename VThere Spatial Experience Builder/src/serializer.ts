@@ -53,6 +53,17 @@ const readStorage = (key: string): string | null => {
 
 export const serializeProject = (project: ProjectData): string => JSON.stringify(project, null, 2)
 
+/**
+ * Adds missing data to older project files so they can still open correctly without crashing.
+ */
+const backfillScenes = (project: ProjectData): ProjectData => {
+  project.scenes.forEach((scene) => {
+    if (!scene.environmentId) scene.environmentId = defaultEnvironmentId
+    if (!scene.startCamera) scene.startCamera = defaultCameraPose()
+  })
+  return project
+}
+
 const isTuple = (value: unknown): value is [number, number, number] => Array.isArray(value) && value.length === 3 && value.every((item) => typeof item === 'number' && Number.isFinite(item))
 
 const validateProject = (parsed: unknown): ProjectData => {
@@ -78,7 +89,7 @@ const validateProject = (parsed: unknown): ProjectData => {
     }
   }
   if (!sceneIds.has(candidate.activeSceneId)) throw new Error('Project active scene does not exist')
-  return parsed as ProjectData
+  return backfillScenes(parsed as ProjectData)
 }
 
 export const deserializeProject = (value: string): ProjectData => {
