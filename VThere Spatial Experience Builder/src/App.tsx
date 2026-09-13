@@ -422,6 +422,9 @@ export default function App() {
   );
 }
 
+{/**Additional features suggestion / reccomendatoin 
+  interaction (text box) component? users can press button to interact to have something happen like info pop up*/}
+
 function Inspector({
   object,
   onRename,
