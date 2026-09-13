@@ -1,3 +1,28 @@
+/**
+ * @file        serializer.ts
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Project JSON serialization, validation, import, export, and draft recovery.
+ *
+ * @responsibility
+ * Converts ProjectData to and from JSON, validates untrusted project input,
+ * and manages current and backup browser draft records.
+ *
+ * @inputs
+ * ProjectData, JSON strings, browser File values, and localStorage records.
+ *
+ * @outputs
+ * Validated ProjectData, persistence results, downloaded JSON, and errors
+ * describing rejected input or failed storage operations.
+ *
+ * @members
+ * ProjectLoadResult, serializeProject, deserializeProject, importProjectFile,
+ * loadProjectWithSource, saveProject, downloadProject, and copyProject.
+ *
+ * @documentation
+ * Larger system guide: docs/05-subsystems/project-serialization.md
+ */
 import { ProjectData, cloneProject, defaultProject } from './model'
 import { createLogger } from '../packages/debugging/src/index'
 

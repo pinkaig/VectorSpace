@@ -1,3 +1,27 @@
+/**
+ * @file        index.ts
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Small typed logger with level filtering and context redaction.
+ *
+ * @responsibility
+ * Creates namespace-aware loggers, filters events by minimum level, protects
+ * sensitive context values, and supports injectable sinks for tests.
+ *
+ * @inputs
+ * Namespace, LoggerOptions, log level, message, and optional context values.
+ *
+ * @outputs
+ * LogEvent values sent to the configured sink.
+ *
+ * @members
+ * LogLevel, LogEvent, LogSink, LoggerOptions, createLogger, and
+ * createMemorySink.
+ *
+ * @documentation
+ * Larger system guide: docs/04-engineering/UNDATED--CURRENT--debugging.md
+ */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export interface LogEvent {

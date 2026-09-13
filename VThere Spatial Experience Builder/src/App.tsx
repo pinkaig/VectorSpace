@@ -1,3 +1,27 @@
+/**
+ * @file        App.tsx
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Top-level editor coordinator and React application shell.
+ *
+ * @responsibility
+ * Owns project editing state, selection, undo/redo, draft persistence,
+ * editor/runtime mode selection, and composition of the editor panels.
+ *
+ * @inputs
+ * Initial project data from serializer.ts and user events from the editor UI.
+ *
+ * @outputs
+ * Editor or RuntimeView JSX and project updates sent to child components.
+ *
+ * @members
+ * project, history, future, selectedId, viewMode, assetQuery, commit,
+ * updateScene, addObject, updateSelected, moveObject, undo, redo, persist.
+ *
+ * @documentation
+ * Larger system guide: docs/02-architecture/UNDATED--FOUNDATION--architecture.md
+ */
 import { useEffect, useRef, useState } from 'react'
 import { AssetKind, ProjectData, SceneObject, cloneProject, defaultProject, makeObject } from './model'
 import { copyProject, downloadProject, importProjectFile, loadProjectWithSource, saveProject } from './serializer'

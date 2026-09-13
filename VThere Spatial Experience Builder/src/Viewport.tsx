@@ -1,3 +1,27 @@
+/**
+ * @file        Viewport.tsx
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       React-to-Three.js 3D viewport bridge.
+ *
+ * @responsibility
+ * Creates the Three.js scene, reconstructs project objects, handles editor
+ * selection and floor movement, and owns renderer lifecycle cleanup.
+ *
+ * @inputs
+ * ViewportProps: objects, selectedId, onSelect, onMove, and interactive mode.
+ *
+ * @outputs
+ * A React mount element containing a WebGL canvas and optional editor hint.
+ *
+ * @members
+ * mountRef, dataRef, scene, camera, renderer, raycaster, objectsGroup,
+ * resize, syncObjects, pointer handlers, ResizeObserver, animation frame.
+ *
+ * @documentation
+ * Larger system guide: docs/05-subsystems/viewport.md
+ */
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { SceneObject } from './model'

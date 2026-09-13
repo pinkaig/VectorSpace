@@ -1,3 +1,27 @@
+/**
+ * @file        index.ts
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Canonical shared project, scene, object, and transform model.
+ *
+ * @responsibility
+ * Defines renderer-independent project data and creates safe default and
+ * cloned project values for editor, serializer, and runtime consumers.
+ *
+ * @inputs
+ * AssetKind and object index values for makeObject().
+ *
+ * @outputs
+ * Typed project structures, defaultProject(), cloneProject(), and makeObject().
+ *
+ * @members
+ * AssetKind, TransformData, SceneObject, SceneData, ProjectData,
+ * defaultProject, cloneProject, and makeObject.
+ *
+ * @documentation
+ * Larger system guide: docs/05-subsystems/project-serialization.md
+ */
 export type AssetKind = 'cube' | 'sphere' | 'cylinder'
 
 export interface TransformData {
