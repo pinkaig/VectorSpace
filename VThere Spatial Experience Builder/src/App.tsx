@@ -190,9 +190,19 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside className="left-rail">
-          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene tree</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push(makeScene(id, `Room ${next.scenes.length + 1}`)); next.activeSceneId = id; commit(next) }}>+</button></div>
+          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push(makeScene(id, `Room ${next.scenes.length + 1}`)); next.activeSceneId = id; commit(next) }}>+</button></div>
           <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
           <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
+          <section className="panel">
+            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
+            <div className="asset-tools">
+              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+            </div>
+            <div className="asset-list">
+              {filterAssets(assetQuery).map((asset) => <button className="asset-card" key={asset.kind} onClick={() => addObject(asset.kind)}><span className={`asset-preview ${asset.kind}`}><span /></span><span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span><span className="add-symbol">+</span></button>)}
+              {filterAssets(assetQuery).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+            </div>
+          </section>
           <div className="rail-footer">
             <span className="status-dot" />
             {persistenceState}
@@ -247,16 +257,6 @@ export default function App() {
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
-          <section className="panel">
-            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
-            <div className="asset-tools">
-              <input aria-label="Search assets" placeholder="Search approved assets" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-            </div>
-            <div className="asset-list">
-              {filterAssets(assetQuery).map((asset) => <button className="asset-card" key={asset.kind} onClick={() => addObject(asset.kind)}><span className={`asset-preview ${asset.kind}`}><span /></span><span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span><span className="add-symbol">+</span></button>)}
-              {filterAssets(assetQuery).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
-            </div>
-          </section>
           <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>

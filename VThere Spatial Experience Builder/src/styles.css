@@ -196,7 +196,7 @@ button:disabled {
 }
 .tree-list {
   padding: 12px 10px;
-  flex: 1;
+  flex: 0.4;
   min-height: 0;
   overflow: auto;
 }
@@ -247,13 +247,17 @@ button:disabled {
   color: #4f656b;
 }
 .rail-footer {
+  margin-top: auto; /*push footer to the bottom*/
   border-top: 1px solid #1c2b32;
   padding: 14px 17px;
   color: #799095;
+
   display: flex;
   align-items: center;
   gap: 7px;
+
   font-size: 10px;
+  flex-shrink: 0;
 }
 .status-dot,
 .live-dot {
