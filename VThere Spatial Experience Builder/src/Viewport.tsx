@@ -22,6 +22,7 @@ interface ViewportProps {
   onRotate?: (id: string, rotation: [number, number, number]) => void
   gizmoMode?: GizmoMode
   scaleSpace?: 'world' | 'local'
+  rotateSpace?: 'world' | 'local'
   sceneId?: string
   environmentId?: string
   startCamera?: CameraPose
@@ -68,6 +69,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     objects, selectedId, onSelect, onMove, onScale, onRotate,
     gizmoMode = 'select',
     scaleSpace = 'world',
+    rotateSpace = 'world',
     sceneId = '',
     environmentId = defaultEnvironmentId,
     startCamera = defaultCameraPose(),
@@ -78,8 +80,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, startCamera, cameraMode })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, startCamera, cameraMode }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -183,7 +185,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     // Rotation is accumulated incrementally frame-to-frame (rather than as a single delta from
     // the initial grab angle) so dragging past the atan2 wraparound point doesn't snap.
-    let rotateDragging: { id: string; axisIndex: 0 | 1 | 2; center: THREE.Vector3; normal: THREE.Vector3; plane: THREE.Plane; lastAngle: number; currentRotation: [number, number, number] } | null = null
+    let rotateDragging: {
+      id: string
+      axisIndex: 0 | 1 | 2
+      center: THREE.Vector3
+      normal: THREE.Vector3
+      plane: THREE.Plane
+      lastAngle: number
+      spaceMode: 'world' | 'local'
+      currentRotation: [number, number, number] // used in world mode: Euler component is incremented directly
+      currentQuaternion: THREE.Quaternion // used in local mode: rotation is composed around the fixed local axis
+    } | null = null
     let lastRotateValue: [number, number, number] | null = null
 
     let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
@@ -256,7 +268,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             box.getSize(size)
             const targetRadius = Math.max(size.x, size.y, size.z) / 2 + GIZMO_GAP + 0.2
             const scale = targetRadius / ROTATE_RING_BASE_RADIUS
-            rotateHandles.forEach((handle) => handle.mesh.scale.setScalar(scale))
+            const isLocalRotate = dataRef.current.rotateSpace === 'local'
+            const objectQuaternion = isLocalRotate ? new THREE.Quaternion().setFromEuler(new THREE.Euler(...selected.transform.rotation)) : null
+            rotateHandles.forEach((handle) => {
+              handle.mesh.scale.setScalar(scale)
+              // In local mode the ring rotates with the object, so it stays flush with the
+              // object's actual face instead of always standing up along the world axis.
+              if (objectQuaternion) handle.mesh.quaternion.copy(objectQuaternion).multiply(handle.baseQuaternion)
+              else handle.mesh.quaternion.copy(handle.baseQuaternion)
+            })
           }
         }
       }
@@ -342,7 +362,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             }
           } else {
             const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
-            const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(handle.normal, axisOrigin)
+            const isLocalRotate = dataRef.current.rotateSpace === 'local'
+            const objectEuler = new THREE.Euler(...selected.transform.rotation)
+            // The rotation axis stays fixed in world space for the whole drag either way —
+            // spinning an object around its own local axis never moves that axis — so it's
+            // safe to resolve it once here, at grab time.
+            const normal = isLocalRotate ? handle.normal.clone().applyEuler(objectEuler) : handle.normal.clone()
+            const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, axisOrigin)
             getPointer(event)
             raycaster.setFromCamera(pointer, camera)
             const hitPoint = new THREE.Vector3()
@@ -353,10 +379,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
                 id: selected.id,
                 axisIndex,
                 center: axisOrigin,
-                normal: handle.normal.clone(),
+                normal,
                 plane,
-                lastAngle: angleAroundAxis(hitPoint, axisOrigin, handle.normal),
+                lastAngle: angleAroundAxis(hitPoint, axisOrigin, normal),
+                spaceMode: isLocalRotate ? 'local' : 'world',
                 currentRotation: [...selected.transform.rotation],
+                currentQuaternion: new THREE.Quaternion().setFromEuler(objectEuler),
               }
             }
           }
@@ -443,11 +471,23 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         if (step > Math.PI) step -= Math.PI * 2 // unwrap so crossing the atan2 seam doesn't snap
         if (step < -Math.PI) step += Math.PI * 2
         rotateDragging.lastAngle = angle
-        const nextRotation = [...rotateDragging.currentRotation] as [number, number, number]
-        nextRotation[rotateDragging.axisIndex] += step
-        rotateDragging.currentRotation = nextRotation // accumulate: next frame's step applies on top of this
         const mesh = objectsGroup.getObjectByName(rotateDragging.id)
-        if (mesh) mesh.rotation.set(...nextRotation)
+        let nextRotation: [number, number, number]
+        if (rotateDragging.spaceMode === 'local') {
+          // World-space rotation about the (fixed) local axis, composed on top of whatever
+          // rotation the object already had — unlike the world-mode path, a plain per-component
+          // Euler increment would be wrong once the object has rotation on other axes too.
+          const deltaQuat = new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step)
+          rotateDragging.currentQuaternion.premultiply(deltaQuat)
+          const euler = new THREE.Euler().setFromQuaternion(rotateDragging.currentQuaternion, 'XYZ')
+          nextRotation = [euler.x, euler.y, euler.z]
+          if (mesh) mesh.quaternion.copy(rotateDragging.currentQuaternion)
+        } else {
+          nextRotation = [...rotateDragging.currentRotation] as [number, number, number]
+          nextRotation[rotateDragging.axisIndex] += step
+          rotateDragging.currentRotation = nextRotation // accumulate: next frame's step applies on top of this
+          if (mesh) mesh.rotation.set(...nextRotation)
+        }
         lastRotateValue = nextRotation
         return
       }

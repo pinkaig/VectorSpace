@@ -30,6 +30,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gizmoMode, setGizmoMode] = useState<GizmoMode>('select')
   const [scaleSpace, setScaleSpace] = useState<'world' | 'local'>('world')
+  const [rotateSpace, setRotateSpace] = useState<'world' | 'local'>('world')
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
   const [resetToken, setResetToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
@@ -213,6 +214,12 @@ export default function App() {
                 <button className={scaleSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Local</button>
               </div>
             )}
+            {gizmoMode === 'rotate' && (
+              <div className="mode-switch">
+                <button className={rotateSpace === 'world' ? 'mode active' : 'mode'} onClick={() => setRotateSpace('world')} title="Rotation rings stay aligned to world X/Y/Z">World</button>
+                <button className={rotateSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setRotateSpace('local')} title="Rotation rings rotate with the object, so they stay on its actual axes">Local</button>
+              </div>
+            )}
             <div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div>
           </div>
           <div className="view-toolbar">
@@ -230,6 +237,7 @@ export default function App() {
             onRotate={rotateObject}
             gizmoMode={gizmoMode}
             scaleSpace={scaleSpace}
+            rotateSpace={rotateSpace}
             sceneId={scene.id}
             environmentId={scene.environmentId}
             startCamera={scene.startCamera}
