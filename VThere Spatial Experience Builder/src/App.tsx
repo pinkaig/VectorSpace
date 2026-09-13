@@ -210,7 +210,7 @@ export default function App() {
             {gizmoMode === 'scale' && (
               <div className="mode-switch">
                 <button className={scaleSpace === 'world' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('world')} title="Scale handles stay aligned to world X/Y/Z">World</button>
-                <button className={scaleSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Snap to object</button>
+                <button className={scaleSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Local</button>
               </div>
             )}
             <div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div>
