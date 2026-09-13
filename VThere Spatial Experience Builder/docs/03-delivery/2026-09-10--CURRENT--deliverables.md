@@ -1,4 +1,6 @@
 # VThere Deliverables, Ownership, and Milestones
+**THIS DOCUMENT IS ALL WRONG, we are not that stacked to have these roles**
+
 
 **Status:** Initial engineering baseline  
 **Jira project:** To be confirmed  
