@@ -23,7 +23,7 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/project-serialization.md
  */
-import { ProjectData, cloneProject, defaultProject } from './model'
+import { ProjectData, cloneProject, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
 import { createLogger } from '../packages/debugging/src/index'
 
 const STORAGE_KEY = 'vthere-project-v1'
