@@ -33,6 +33,9 @@ import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
 import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
+import { createViewCube, ArrowKind } from './gizmo/viewCube'
+import { createAxisIndicator } from './gizmo/axisIndicator'
+import { upFor, matchFaceView, nudgeView, rollView } from './gizmo/viewSnap'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -53,6 +56,10 @@ interface ViewportProps {
   cameraMode?: CameraMode
   resetToken?: number
   interactive?: boolean
+  orthographic?: boolean
+  onOrthographicChange?: (value: boolean) => void
+  showViewCube?: boolean
+  showAxisIndicator?: boolean
 }
 
 export interface ViewportHandle {
@@ -65,7 +72,7 @@ interface EnvStatus {
   message?: string
 }
 
-const colorFor = (kind: SceneObject['assetKind']) => ({ cube: 0x4ea7a0, sphere: 0xe6ad5a, cylinder: 0xd66d75 })[kind]
+export const colorFor = (kind: SceneObject['assetKind']) => ({ cube: 0x4ea7a0, sphere: 0xe6ad5a, cylinder: 0xd66d75 })[kind]
 const WALK_SPEED = 3.6
 const SPRINT_MULTIPLIER = 2.2
 const SPRINT_KEYS = new Set(['ShiftLeft', 'ShiftRight'])
@@ -100,12 +107,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     cameraMode = 'orbit',
     resetToken = 0,
     interactive = true,
+    orthographic = false,
+    onOrthographicChange,
+    showViewCube = true,
+    showAxisIndicator = true,
   },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showViewCube, showAxisIndicator })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showViewCube, showAxisIndicator }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -164,6 +175,47 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // rotate gizmo: one ring per axis, built once
     const rotateHandles: AxisRotateHandle[] = [makeAxisRotateHandle('x'), makeAxisRotateHandle('y'), makeAxisRotateHandle('z')]
     rotateHandles.forEach((handle) => gizmoGroup.add(handle.mesh))
+
+    // Orthographic camera mirrors the perspective camera's position/rotation every frame
+    // (see activeCamera below) so switching projection never requires re-binding controls.
+    const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200)
+    let activeCamera: THREE.Camera = camera
+
+    // Corner overlay widgets: each owns a tiny scene rendered into a scissor rect of the
+    // same canvas/renderer (no extra WebGL context), rotated opposite the main camera so
+    // it always shows the world's orientation relative to the current view.
+    const viewCube = createViewCube()
+    const axisIndicator = createAxisIndicator()
+    const VIEW_CUBE_DIM = 96
+    const AXIS_INDICATOR_DIM = 84
+    const OVERLAY_MARGIN = 8 // matches the CSS backdrop insets in styles.css
+    const overlayRaycaster = new THREE.Raycaster()
+    const overlayPointer = new THREE.Vector2()
+    type OverlayRect = { left: number; top: number; right: number; bottom: number }
+    const overlayRect = (corner: 'top-right' | 'bottom-left', dim: number, rect: DOMRect): OverlayRect =>
+      corner === 'top-right'
+        ? { left: rect.right - OVERLAY_MARGIN - dim, top: rect.top + OVERLAY_MARGIN, right: rect.right - OVERLAY_MARGIN, bottom: rect.top + OVERLAY_MARGIN + dim }
+        : { left: rect.left + OVERLAY_MARGIN, top: rect.bottom - OVERLAY_MARGIN - dim, right: rect.left + OVERLAY_MARGIN + dim, bottom: rect.bottom - OVERLAY_MARGIN }
+    const pointInRect = (x: number, y: number, r: OverlayRect) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+    const ndcInRect = (x: number, y: number, r: OverlayRect) => {
+      overlayPointer.x = ((x - r.left) / (r.right - r.left)) * 2 - 1
+      overlayPointer.y = -((y - r.top) / (r.bottom - r.top)) * 2 + 1
+      return overlayPointer
+    }
+    // Reorients the camera to look along `direction` with the given `up`, keeping the
+    // current distance from and pivot around controls.target — shared by every widget
+    // interaction (ViewCube faces/corners/arrows, Home, axis indicator) below.
+    const applyViewOrientation = (direction: THREE.Vector3, up: THREE.Vector3) => {
+      const distance = camera.position.distanceTo(controls.target)
+      camera.up.copy(up)
+      camera.position.copy(controls.target).addScaledVector(direction, distance)
+      camera.lookAt(controls.target)
+      controls.update()
+      const forward = controls.target.clone().sub(camera.position).normalize()
+      yawRef.current = Math.atan2(-forward.x, -forward.z)
+      pitchRef.current = Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1))
+    }
+    const snapCameraTo = (direction: THREE.Vector3) => applyViewOrientation(direction, upFor(direction))
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
@@ -313,14 +365,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     const pick = (event: PointerEvent) => {
       getPointer(event)
-      raycaster.setFromCamera(pointer, camera)
+      raycaster.setFromCamera(pointer, activeCamera)
       const hit = raycaster.intersectObjects(objectsGroup.children, false)[0]
       return hit?.object ?? null
     }
     // Raycasts against the visible gizmo handles, returns whichever one (if any) is under the cursor.
     const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' | 'rotate' } | null => {
       getPointer(event)
-      raycaster.setFromCamera(pointer, camera)
+      raycaster.setFromCamera(pointer, activeCamera)
       const mode = dataRef.current.gizmoMode
       if (mode === 'move') {
         for (const arrow of axisArrows) {
@@ -344,6 +396,60 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const resetAllRotateHandleColors = () => rotateHandles.forEach((handle) => setRotateHandleColor(handle, AXIS_COLORS[handle.axis]))
 
     const onPointerDown = (event: PointerEvent) => {
+      // ViewCube / axis indicator hits are consumed here, before any other interaction —
+      // both widgets only make sense while orbiting, so they're inert in walk mode.
+      if (dataRef.current.cameraMode === 'orbit' && event.button === 0) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        if (dataRef.current.showViewCube) {
+          const box = overlayRect('top-right', VIEW_CUBE_DIM, rect)
+          if (pointInRect(event.clientX, event.clientY, box)) {
+            const ndc = ndcInRect(event.clientX, event.clientY, box)
+            viewCube.scene.updateMatrixWorld(true)
+            overlayRaycaster.setFromCamera(ndc, viewCube.camera)
+
+            const homeHit = overlayRaycaster.intersectObject(viewCube.homeSprite, false)[0]
+            if (homeHit) {
+              applyPoseRef.current(dataRef.current.startCamera)
+              dataRef.current.onOrthographicChange?.(false)
+              return
+            }
+            const currentDirection = camera.position.clone().sub(controls.target).normalize()
+            if (matchFaceView(currentDirection) !== null) {
+              const arrowHit = overlayRaycaster.intersectObjects(viewCube.arrows.map((arrow) => arrow.sprite), false)[0]
+              if (arrowHit) {
+                const kind = arrowHit.object.userData.kind as ArrowKind
+                const currentUp = camera.up.clone()
+                const next = kind.startsWith('roll')
+                  ? rollView(currentDirection, currentUp, kind.replace('roll-', '') as 'left' | 'right')
+                  : nudgeView(currentDirection, currentUp, kind as 'up' | 'down' | 'left' | 'right')
+                applyViewOrientation(next.direction, next.up)
+                dataRef.current.onOrthographicChange?.(true)
+                return
+              }
+            }
+            const hit = overlayRaycaster.intersectObjects([viewCube.cubeMesh, ...viewCube.corners], false)[0]
+            if (hit) {
+              const direction = hit.object === viewCube.cubeMesh
+                ? viewCube.faceDirections[hit.face!.materialIndex]
+                : (hit.object.userData.direction as THREE.Vector3)
+              snapCameraTo(direction)
+              dataRef.current.onOrthographicChange?.(true)
+            }
+            return
+          }
+        }
+        if (dataRef.current.showAxisIndicator) {
+          const box = overlayRect('bottom-left', AXIS_INDICATOR_DIM, rect)
+          if (pointInRect(event.clientX, event.clientY, box)) {
+            const ndc = ndcInRect(event.clientX, event.clientY, box)
+            axisIndicator.group.updateMatrixWorld(true)
+            overlayRaycaster.setFromCamera(ndc, axisIndicator.camera)
+            const hit = overlayRaycaster.intersectObjects(axisIndicator.interactiveObjects, false)[0]
+            if (hit) snapCameraTo(hit.object.userData.direction as THREE.Vector3)
+            return
+          }
+        }
+      }
       if (dataRef.current.cameraMode === 'walk') {
         if (event.button !== 0) return
         looking = { startPointerX: event.clientX, startPointerY: event.clientY, startYaw: yawRef.current, startPitch: pitchRef.current }
@@ -363,7 +469,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           if (gizmoHit.kind === 'arrow') {
             const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
             getPointer(event)
-            raycaster.setFromCamera(pointer, camera)
+            raycaster.setFromCamera(pointer, activeCamera)
             const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, arrow.direction)
             if (hitT !== null) {
               controls.enabled = false
@@ -377,7 +483,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
                 ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation))
                 : handle.direction.clone()
               getPointer(event)
-              raycaster.setFromCamera(pointer, camera)
+              raycaster.setFromCamera(pointer, activeCamera)
               const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, direction)
               if (hitT !== null) {
                 controls.enabled = false
@@ -394,7 +500,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             const normal = isLocalRotate ? handle.normal.clone().applyEuler(objectEuler) : handle.normal.clone()
             const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, axisOrigin)
             getPointer(event)
-            raycaster.setFromCamera(pointer, camera)
+            raycaster.setFromCamera(pointer, activeCamera)
             const hitPoint = new THREE.Vector3()
             if (raycaster.ray.intersectPlane(plane, hitPoint)) {
               controls.enabled = false
@@ -443,6 +549,49 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         return
       }
 
+      if (dataRef.current.cameraMode === 'orbit' && !axisDragging && !scaleDragging && !rotateDragging && !dragging) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        let overlayHovered = false
+        if (dataRef.current.showViewCube) {
+          const box = overlayRect('top-right', VIEW_CUBE_DIM, rect)
+          if (pointInRect(event.clientX, event.clientY, box)) {
+            overlayHovered = true
+            const ndc = ndcInRect(event.clientX, event.clientY, box)
+            viewCube.scene.updateMatrixWorld(true)
+            overlayRaycaster.setFromCamera(ndc, viewCube.camera)
+
+            const homeHit = overlayRaycaster.intersectObject(viewCube.homeSprite, false)[0]
+            viewCube.setHomeHover(!!homeHit)
+
+            const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(viewCube.arrows.map((arrow) => arrow.sprite), false)[0]
+            viewCube.setArrowHover((arrowHit?.object as THREE.Sprite | undefined) ?? null)
+
+            const hit = homeHit || arrowHit ? undefined : overlayRaycaster.intersectObjects([viewCube.cubeMesh, ...viewCube.corners], false)[0]
+            viewCube.setFaceHover(hit && hit.object === viewCube.cubeMesh ? hit.face!.materialIndex : null)
+            viewCube.setCornerHover(hit && hit.object !== viewCube.cubeMesh ? (hit.object as THREE.Mesh) : null)
+          } else {
+            viewCube.setFaceHover(null)
+            viewCube.setCornerHover(null)
+            viewCube.setHomeHover(false)
+            viewCube.setArrowHover(null)
+          }
+        }
+        if (dataRef.current.showAxisIndicator) {
+          const box = overlayRect('bottom-left', AXIS_INDICATOR_DIM, rect)
+          if (pointInRect(event.clientX, event.clientY, box)) {
+            overlayHovered = true
+            const ndc = ndcInRect(event.clientX, event.clientY, box)
+            axisIndicator.group.updateMatrixWorld(true)
+            overlayRaycaster.setFromCamera(ndc, axisIndicator.camera)
+            const hit = overlayRaycaster.intersectObjects(axisIndicator.interactiveObjects, false)[0]
+            axisIndicator.setHover((hit?.object as THREE.Sprite) ?? null)
+          } else {
+            axisIndicator.setHover(null)
+          }
+        }
+        if (overlayHovered) return
+      }
+
       if (!axisDragging && !scaleDragging && !rotateDragging && !dragging) {
         // Only show hover feedback when nothing's actively being dragged.
         const hovering = pickGizmo(event)
@@ -456,7 +605,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
       if (axisDragging) {
         getPointer(event)
-        raycaster.setFromCamera(pointer, camera)
+        raycaster.setFromCamera(pointer, activeCamera)
         const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisDragging.origin, axisDragging.direction)
         if (hitT === null) return // degenerate camera angle this frame, skip rather than jump
         const travel = hitT - axisDragging.grabT
@@ -471,7 +620,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
       if (scaleDragging) {
         getPointer(event)
-        raycaster.setFromCamera(pointer, camera)
+        raycaster.setFromCamera(pointer, activeCamera)
         const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, scaleDragging.origin, scaleDragging.direction)
         if (hitT === null) return
         const travel = hitT - scaleDragging.grabT
@@ -487,7 +636,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
       if (rotateDragging) {
         getPointer(event)
-        raycaster.setFromCamera(pointer, camera)
+        raycaster.setFromCamera(pointer, activeCamera)
         const hitPoint = new THREE.Vector3()
         if (!raycaster.ray.intersectPlane(rotateDragging.plane, hitPoint)) return // degenerate camera angle this frame, skip rather than jump
         const angle = angleAroundAxis(hitPoint, rotateDragging.center, rotateDragging.normal)
@@ -518,7 +667,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
       if (!dragging) return
       getPointer(event)
-      raycaster.setFromCamera(pointer, camera)
+      raycaster.setFromCamera(pointer, activeCamera)
       if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
       dragPoint.add(dragging.offset)
       const nextPos: [number, number, number] = [dragPoint.x, dragPoint.y, dragPoint.z]
@@ -619,7 +768,55 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       } else {
         controls.update()
       }
-      renderer.render(scene, camera)
+
+      // Orthographic mode reuses the perspective camera's live position/rotation, only
+      // swapping the projection — see the orthoCamera comment near its declaration.
+      const useOrtho = dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic
+      if (useOrtho) {
+        const distance = Math.max(camera.position.distanceTo(controls.target), 0.01)
+        const halfHeight = distance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+        const halfWidth = halfHeight * camera.aspect
+        orthoCamera.left = -halfWidth
+        orthoCamera.right = halfWidth
+        orthoCamera.top = halfHeight
+        orthoCamera.bottom = -halfHeight
+        orthoCamera.near = camera.near
+        orthoCamera.far = camera.far
+        orthoCamera.position.copy(camera.position)
+        orthoCamera.quaternion.copy(camera.quaternion)
+        orthoCamera.updateProjectionMatrix()
+      }
+      activeCamera = useOrtho ? orthoCamera : camera
+
+      const width = mount.clientWidth
+      const height = mount.clientHeight
+      renderer.setScissorTest(false)
+      renderer.setViewport(0, 0, width, height)
+      renderer.render(scene, activeCamera)
+
+      if (dataRef.current.cameraMode === 'orbit') {
+        if (dataRef.current.showViewCube) {
+          const currentDirection = camera.position.clone().sub(controls.target).normalize()
+          viewCube.syncToCamera(currentDirection, camera.up)
+          viewCube.setArrowsVisible(matchFaceView(currentDirection) !== null)
+          renderer.clearDepth()
+          renderer.setScissorTest(true)
+          const x = width - OVERLAY_MARGIN - VIEW_CUBE_DIM
+          const y = height - OVERLAY_MARGIN - VIEW_CUBE_DIM
+          renderer.setScissor(x, y, VIEW_CUBE_DIM, VIEW_CUBE_DIM)
+          renderer.setViewport(x, y, VIEW_CUBE_DIM, VIEW_CUBE_DIM)
+          renderer.render(viewCube.scene, viewCube.camera)
+        }
+        if (dataRef.current.showAxisIndicator) {
+          axisIndicator.group.quaternion.copy(camera.quaternion).invert()
+          renderer.clearDepth()
+          renderer.setScissorTest(true)
+          renderer.setScissor(OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM, AXIS_INDICATOR_DIM)
+          renderer.setViewport(OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM, AXIS_INDICATOR_DIM)
+          renderer.render(axisIndicator.group, axisIndicator.camera)
+        }
+        renderer.setScissorTest(false)
+      }
     }
     resize()
     animate()
@@ -635,6 +832,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', onBlur)
       controls.dispose()
+      viewCube.dispose()
+      axisIndicator.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       objectsGroup.traverse((child) => {
@@ -745,6 +944,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         </div>
       )}
       {hint && <div className="viewport-hint">{hint}</div>}
+      {cameraMode === 'orbit' && showViewCube && <div className="viewcube-backdrop" />}
+      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
+      {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
     </div>
   )
 })

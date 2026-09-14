@@ -330,6 +330,34 @@ button:disabled {
   width: 100%;
   height: 100%;
 }
+.quad-viewport {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  background: #203039;
+}
+.quad-viewport .viewport {
+  min-width: 0;
+  min-height: 0;
+}
+.reference-viewport-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  color: #81989b;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  border: 1px solid #2a444a;
+  border-radius: 3px;
+  background: rgba(13, 24, 30, 0.6);
+  pointer-events: none;
+}
 .viewport-hint {
   position: absolute;
   right: 16px;
@@ -544,6 +572,41 @@ button:disabled {
   display: flex;
   gap: 8px;
   margin-left: auto;
+}
+.viewcube-backdrop,
+.axis-indicator-backdrop {
+  position: absolute;
+  border-radius: 6px;
+  background: rgba(13, 24, 30, 0.45);
+  border: 1px solid #2a444a;
+  pointer-events: none;
+}
+.viewcube-backdrop {
+  top: 8px;
+  right: 8px;
+  width: 96px;
+  height: 96px;
+}
+.axis-indicator-backdrop {
+  left: 8px;
+  bottom: 8px;
+  width: 84px;
+  height: 84px;
+}
+.viewport-projection-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  color: #9fe4d7;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border: 1px solid #2a444a;
+  border-radius: 3px;
+  background: rgba(13, 24, 30, 0.6);
+  pointer-events: none;
 }
 .viewport-overlay {
   position: absolute;

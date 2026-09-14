@@ -62,12 +62,12 @@ export interface CameraPose {
 }
 
 export const environmentLibrary: EnvironmentDefinition[] = [
-  {
-    id: 'env-gallery-hall',
-    name: 'Gallery Hall',
+    {
+    id: 'env-empty',
+    name: 'Empty',
     kind: 'procedural',
-    proceduralId: 'gallery-hall',
-    description: 'A bright rectangular gallery room with a skylight band. Placeholder environment.',
+    proceduralId: 'empty',
+    description: 'No walls or floor — just the grid, for working against a blank scene.',
   },
   {
     id: 'env-riverside-warehouse',
@@ -75,6 +75,13 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     kind: 'procedural',
     proceduralId: 'riverside-warehouse',
     description: 'An open warehouse shell facing the water, standing in for the Singapore River trade site. Placeholder environment.',
+  },
+  {
+    id: 'env-gallery-hall',
+    name: 'Gallery Hall',
+    kind: 'procedural',
+    proceduralId: 'gallery-hall',
+    description: 'A bright rectangular gallery room with a skylight band. Placeholder environment.',
   },
 ]
 
