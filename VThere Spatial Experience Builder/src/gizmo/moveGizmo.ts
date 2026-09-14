@@ -42,6 +42,17 @@ export const extentAlong = (mesh: THREE.Object3D, axis: AxisName) => {
   return (axis === 'x' ? size.x : axis === 'y' ? size.y : size.z) / 2 // half width along that axis
 }
 
+// measures the object's half-size along one of its own LOCAL axes, from the geometry's
+// bounding box (which never rotates) scaled by the mesh's current scale. Unlike extentAlong,
+// this stays correct relative to the object's own faces even after the object is rotated.
+export const extentAlongLocal = (mesh: THREE.Mesh, axis: AxisName) => {
+  mesh.geometry.computeBoundingBox()
+  const size = new THREE.Vector3()
+  mesh.geometry.boundingBox!.getSize(size)
+  const half = axis === 'x' ? size.x * mesh.scale.x : axis === 'y' ? size.y * mesh.scale.y : size.z * mesh.scale.z
+  return half / 2
+}
+
 // sets both meshes of one arrow to the same color together, since the shaft
 // and head are two separate materials but should always look like one arrow
 export const setArrowColor = (arrow: AxisArrow, color: number) => {

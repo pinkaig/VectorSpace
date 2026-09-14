@@ -6,6 +6,9 @@ import * as THREE from "three";
 import { AxisName } from "./types";
 import { AXIS_COLORS } from "./colors";
 
+export const setScaleHandleColor = (handle: AxisScaleHandle, color: number) => {
+  ;(handle.mesh.material as THREE.MeshBasicMaterial).color.setHex(color)
+}
 
 export interface AxisScaleHandle {
     axis: AxisName;
@@ -14,7 +17,7 @@ export interface AxisScaleHandle {
 }
 
 // builds one scale handle per axis, each handle is a small cube positined along given axis
-export const makeAxisScaleHandles = (axis: AxisName) : AxisScaleHandle =>  {
+export const makeAxisScaleHandle = (axis: AxisName) : AxisScaleHandle =>  {
     const color = AXIS_COLORS[axis]
     const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(0.12, 0.12, 0.12),
@@ -22,8 +25,8 @@ export const makeAxisScaleHandles = (axis: AxisName) : AxisScaleHandle =>  {
     )
 
     const direction = new THREE.Vector3()
-    if (axis = 'x') direction.set(1, 0, 0)
-    if (axis = 'y') direction.set(0, 1, 0)
-    if (axis = 'z') direction.set(0, 0, 1)
+    if (axis === 'x') direction.set(1, 0, 0)
+    if (axis === 'y') direction.set(0, 1, 0)
+    if (axis === 'z') direction.set(0, 0, 1)
     return { axis, mesh, direction }
 }

@@ -1,4 +1,29 @@
-import { ProjectData, cloneProject, defaultProject } from './model'
+/**
+ * @file        serializer.ts
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Project JSON serialization, validation, import, export, and draft recovery.
+ *
+ * @responsibility
+ * Converts ProjectData to and from JSON, validates untrusted project input,
+ * and manages current and backup browser draft records.
+ *
+ * @inputs
+ * ProjectData, JSON strings, browser File values, and localStorage records.
+ *
+ * @outputs
+ * Validated ProjectData, persistence results, downloaded JSON, and errors
+ * describing rejected input or failed storage operations.
+ *
+ * @members
+ * ProjectLoadResult, serializeProject, deserializeProject, importProjectFile,
+ * loadProjectWithSource, saveProject, downloadProject, and copyProject.
+ *
+ * @documentation
+ * Larger system guide: docs/05-subsystems/project-serialization.md
+ */
+import { ProjectData, cloneProject, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
 import { createLogger } from '../packages/debugging/src/index'
 
 const STORAGE_KEY = 'vthere-project-v1'
@@ -28,6 +53,17 @@ const readStorage = (key: string): string | null => {
 
 export const serializeProject = (project: ProjectData): string => JSON.stringify(project, null, 2)
 
+/**
+ * Adds missing data to older project files so they can still open correctly without crashing.
+ */
+const backfillScenes = (project: ProjectData): ProjectData => {
+  project.scenes.forEach((scene) => {
+    if (!scene.environmentId) scene.environmentId = defaultEnvironmentId
+    if (!scene.startCamera) scene.startCamera = defaultCameraPose()
+  })
+  return project
+}
+
 const isTuple = (value: unknown): value is [number, number, number] => Array.isArray(value) && value.length === 3 && value.every((item) => typeof item === 'number' && Number.isFinite(item))
 
 const validateProject = (parsed: unknown): ProjectData => {
@@ -53,7 +89,7 @@ const validateProject = (parsed: unknown): ProjectData => {
     }
   }
   if (!sceneIds.has(candidate.activeSceneId)) throw new Error('Project active scene does not exist')
-  return parsed as ProjectData
+  return backfillScenes(parsed as ProjectData)
 }
 
 export const deserializeProject = (value: string): ProjectData => {

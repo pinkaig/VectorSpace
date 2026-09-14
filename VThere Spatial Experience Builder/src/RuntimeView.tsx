@@ -1,5 +1,28 @@
-import Viewport from "./Viewport";
-import { ProjectData } from "./model";
+/**
+ * @file        RuntimeView.tsx
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Visitor-facing runtime presentation for the active scene.
+ *
+ * @responsibility
+ * Selects the active scene, renders runtime metadata, and mounts a read-only
+ * Viewport without editor interaction callbacks.
+ *
+ * @inputs
+ * RuntimeViewProps: ProjectData and an exit callback.
+ *
+ * @outputs
+ * Runtime shell JSX containing a non-interactive 3D viewport.
+ *
+ * @members
+ * RuntimeViewProps, active-scene lookup, and Viewport interactive=false.
+ *
+ * @documentation
+ * Larger system guide: docs/05-subsystems/viewport.md
+ */
+import Viewport from './Viewport'
+import { ProjectData } from './model'
 
 interface RuntimeViewProps {
   project: ProjectData;
@@ -40,6 +63,10 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           selectedId={null}
           onSelect={() => undefined}
           onMove={() => undefined}
+          sceneId={scene.id}
+          environmentId={scene.environmentId}
+          startCamera={scene.startCamera}
+          cameraMode="walk"
           interactive={false}
         />
       </section>

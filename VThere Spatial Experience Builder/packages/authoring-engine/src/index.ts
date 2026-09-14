@@ -1,3 +1,26 @@
+/**
+ * @file        index.ts
+ * @author      Sherman Goh Wee Hao
+ * @date        2026-09-13
+ * @reviewed    2026-09-13
+ * @brief       Renderer-independent command timeline for editor history.
+ *
+ * @responsibility
+ * Stores immutable past and future snapshots and provides commit, undo, and
+ * redo operations without depending on React, Three.js, or persistence.
+ *
+ * @inputs
+ * Generic state values, a clone function, labels, and a history limit.
+ *
+ * @outputs
+ * CommandTimeline snapshots with current state and undo/redo capabilities.
+ *
+ * @members
+ * HistoryEntry, CommandTimeline, createCommandTimeline, commit, undo, and redo.
+ *
+ * @documentation
+ * Larger system guide: docs/05-subsystems/authoring-engine.md
+ */
 export interface HistoryEntry<T> {
   label: string
   state: T

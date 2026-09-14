@@ -23,3 +23,14 @@ export const closestPointOnAxis = (
   const t = (b * e - c * d) / denom
   return t
 }
+
+// Calculates the angle (in radians) from center to point around axis.
+// The same axis always produces the same reference direction,
+// so the angle stays consistent while dragging.
+export const angleAroundAxis = (point: THREE.Vector3, center: THREE.Vector3, axis: THREE.Vector3): number => {
+  const reference = Math.abs(axis.y) < 0.99 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
+  const basisU = new THREE.Vector3().crossVectors(reference, axis).normalize()
+  const basisV = new THREE.Vector3().crossVectors(axis, basisU).normalize()
+  const relative = point.clone().sub(center)
+  return Math.atan2(relative.dot(basisV), relative.dot(basisU))
+}

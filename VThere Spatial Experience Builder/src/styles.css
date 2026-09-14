@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
 
+
 :root {
   font-family: "Manrope", sans-serif;
   color: #e9f0ed;
@@ -195,7 +196,7 @@ button:disabled {
 }
 .tree-list {
   padding: 12px 10px;
-  flex: 1;
+  flex: 0.4;
   min-height: 0;
   overflow: auto;
 }
@@ -246,13 +247,17 @@ button:disabled {
   color: #4f656b;
 }
 .rail-footer {
+  margin-top: auto; /*push footer to the bottom*/
   border-top: 1px solid #1c2b32;
   padding: 14px 17px;
   color: #799095;
+
   display: flex;
   align-items: center;
   gap: 7px;
+
   font-size: 10px;
+  flex-shrink: 0;
 }
 .status-dot,
 .live-dot {
@@ -508,6 +513,87 @@ button:disabled {
   color: #67928f;
   font-size: 22px;
 }
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #203039;
+  background: rgba(11, 18, 24, 0.5);
+  flex-wrap: wrap;
+}
+.env-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #81989b;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.env-select select {
+  border: 1px solid #2a444a;
+  border-radius: 2px;
+  background: #0d181e;
+  color: #e1edeb;
+  padding: 6px 8px;
+  font-size: 11px;
+  outline: none;
+}
+.view-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.viewport-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(8, 13, 18, 0.82);
+  color: #cdddd9;
+  text-align: center;
+  padding: 20px;
+}
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #2a444a;
+  border-top-color: #9fe4d7;
+  animation: spin 0.9s linear infinite;
+}
+.progress-track {
+  width: 160px;
+  height: 4px;
+  border-radius: 2px;
+  background: #1c2b32;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #9fe4d7;
+  transition: width 0.15s ease;
+}
+.overlay-error {
+  color: #e8a3a3;
+  font-weight: 600;
+  margin: 0;
+}
+.overlay-detail {
+  color: #8a9ea0;
+  font-size: 10px;
+  margin: 0;
+  max-width: 320px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (max-width: 1100px) {
   body {
     min-width: 0;
@@ -602,3 +688,4 @@ button:disabled {
   font-size: 10px;
   padding: 10px 4px;
 }
+
