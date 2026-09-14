@@ -61,7 +61,7 @@ export default function App() {
   // Orthographic button — shows that same pane top-left plus Top/Front/Right references.
   const [layoutMode, setLayoutMode] = useState<'quad' | 'single'>('single')
   const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
-  const [showViewCube, setShowViewCube] = useState(true)
+  const [showOctaOrb, setShowOctaOrb] = useState(true)
   const [showAxisIndicator, setShowAxisIndicator] = useState(true)
   const [resetToken, setResetToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
@@ -271,7 +271,7 @@ export default function App() {
               <button className={layoutMode === 'quad' ? 'mode active' : 'mode'} onClick={() => setLayoutMode('quad')} title="Perspective + Top + Front + Right, all at once">Orthographic</button>
             </div>
             <div className="mode-switch">
-              <button className={showViewCube ? 'mode active' : 'mode'} onClick={() => setShowViewCube((value) => !value)} title="Show or hide the ViewCube">Cube</button>
+              <button className={showOctaOrb ? 'mode active' : 'mode'} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">OctaOrb</button>
               <button className={showAxisIndicator ? 'mode active' : 'mode'} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
             </div>
             <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
@@ -294,7 +294,7 @@ export default function App() {
                 startCamera={scene.startCamera}
                 cameraMode={cameraMode}
                 resetToken={resetToken}
-                showViewCube={showViewCube}
+                showOctaOrb={showOctaOrb}
                 showAxisIndicator={showAxisIndicator}
               />
               <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
@@ -320,7 +320,7 @@ export default function App() {
               resetToken={resetToken}
               orthographic={singleViewOrthographic}
               onOrthographicChange={setSingleViewOrthographic}
-              showViewCube={showViewCube}
+              showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
             />
           )}

@@ -33,7 +33,7 @@ import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
 import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
-import { createViewCube, ArrowKind } from './gizmo/viewCube'
+import { createOctaOrb, ArrowKind } from './gizmo/octaOrb'
 import { createAxisIndicator } from './gizmo/axisIndicator'
 import { upFor, matchFaceView, nudgeView, rollView } from './gizmo/viewSnap'
 
@@ -58,7 +58,7 @@ interface ViewportProps {
   interactive?: boolean
   orthographic?: boolean
   onOrthographicChange?: (value: boolean) => void
-  showViewCube?: boolean
+  showOctaOrb?: boolean
   showAxisIndicator?: boolean
 }
 
@@ -109,14 +109,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     interactive = true,
     orthographic = false,
     onOrthographicChange,
-    showViewCube = true,
+    showOctaOrb = true,
     showAxisIndicator = true,
   },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showViewCube, showAxisIndicator })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showViewCube, showAxisIndicator }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -153,6 +153,21 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     mount.appendChild(renderer.domElement)
 
+    // OctaOrb's orb names render here, not as in-scene sprites — at the widget's small
+    // on-screen size, world-unit text came out illegibly tiny no matter how it was tuned.
+    // A real DOM element is crisp at any size and only needs updating on hover.
+    const octaOrbTooltip = document.createElement('div')
+    octaOrbTooltip.className = 'octaorb-tooltip'
+    octaOrbTooltip.style.display = 'none'
+    mount.appendChild(octaOrbTooltip)
+    const showOctaOrbTooltip = (label: string, clientX: number, clientY: number, rect: DOMRect) => {
+      octaOrbTooltip.textContent = label
+      octaOrbTooltip.style.left = `${clientX - rect.left}px`
+      octaOrbTooltip.style.top = `${clientY - rect.top}px`
+      octaOrbTooltip.style.display = 'block'
+    }
+    const hideOctaOrbTooltip = () => { octaOrbTooltip.style.display = 'none' }
+
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
     const objectsGroup = new THREE.Group()
@@ -184,9 +199,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Corner overlay widgets: each owns a tiny scene rendered into a scissor rect of the
     // same canvas/renderer (no extra WebGL context), rotated opposite the main camera so
     // it always shows the world's orientation relative to the current view.
-    const viewCube = createViewCube()
+    const octaOrb = createOctaOrb()
     const axisIndicator = createAxisIndicator()
-    const VIEW_CUBE_DIM = 96
+    const OCTAORB_DIM = 128
     const AXIS_INDICATOR_DIM = 84
     const OVERLAY_MARGIN = 8 // matches the CSS backdrop insets in styles.css
     const overlayRaycaster = new THREE.Raycaster()
@@ -204,7 +219,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     // Reorients the camera to look along `direction` with the given `up`, keeping the
     // current distance from and pivot around controls.target — shared by every widget
-    // interaction (ViewCube faces/corners/arrows, Home, axis indicator) below.
+    // interaction (OctaOrb tips/panels/arrows, Home, axis indicator) below.
     const applyViewOrientation = (direction: THREE.Vector3, up: THREE.Vector3) => {
       const distance = camera.position.distanceTo(controls.target)
       camera.up.copy(up)
@@ -231,7 +246,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     controls.dampingFactor = 0.12
     controls.maxDistance = 40
     controls.minDistance = 1
-    controls.maxPolarAngle = Math.PI * 0.49
+    // Full range, not just down to the horizon — OctaOrb's BOTTOM tip snaps the camera to
+    // straight-up-from-below (polar angle Math.PI), and controls.update() runs every frame
+    // regardless of how the camera got there, so any tighter cap here would clamp that snap
+    // back to near-horizontal on the very next frame.
+    controls.maxPolarAngle = Math.PI
     controlsRef.current = controls
 
     const applyPose = (pose: CameraPose) => {
@@ -396,18 +415,18 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const resetAllRotateHandleColors = () => rotateHandles.forEach((handle) => setRotateHandleColor(handle, AXIS_COLORS[handle.axis]))
 
     const onPointerDown = (event: PointerEvent) => {
-      // ViewCube / axis indicator hits are consumed here, before any other interaction —
+      // OctaOrb / axis indicator hits are consumed here, before any other interaction —
       // both widgets only make sense while orbiting, so they're inert in walk mode.
       if (dataRef.current.cameraMode === 'orbit' && event.button === 0) {
         const rect = renderer.domElement.getBoundingClientRect()
-        if (dataRef.current.showViewCube) {
-          const box = overlayRect('top-right', VIEW_CUBE_DIM, rect)
+        if (dataRef.current.showOctaOrb) {
+          const box = overlayRect('top-right', OCTAORB_DIM, rect)
           if (pointInRect(event.clientX, event.clientY, box)) {
             const ndc = ndcInRect(event.clientX, event.clientY, box)
-            viewCube.scene.updateMatrixWorld(true)
-            overlayRaycaster.setFromCamera(ndc, viewCube.camera)
+            octaOrb.scene.updateMatrixWorld(true)
+            overlayRaycaster.setFromCamera(ndc, octaOrb.camera)
 
-            const homeHit = overlayRaycaster.intersectObject(viewCube.homeSprite, false)[0]
+            const homeHit = overlayRaycaster.intersectObject(octaOrb.homeSprite, false)[0]
             if (homeHit) {
               applyPoseRef.current(dataRef.current.startCamera)
               dataRef.current.onOrthographicChange?.(false)
@@ -415,7 +434,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             }
             const currentDirection = camera.position.clone().sub(controls.target).normalize()
             if (matchFaceView(currentDirection) !== null) {
-              const arrowHit = overlayRaycaster.intersectObjects(viewCube.arrows.map((arrow) => arrow.sprite), false)[0]
+              const arrowHit = overlayRaycaster.intersectObjects(octaOrb.arrows.map((arrow) => arrow.sprite), false)[0]
               if (arrowHit) {
                 const kind = arrowHit.object.userData.kind as ArrowKind
                 const currentUp = camera.up.clone()
@@ -427,12 +446,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
                 return
               }
             }
-            const hit = overlayRaycaster.intersectObjects([viewCube.cubeMesh, ...viewCube.corners], false)[0]
+            const hit = overlayRaycaster.intersectObjects(octaOrb.vertexMeshes, false)[0]
             if (hit) {
-              const direction = hit.object === viewCube.cubeMesh
-                ? viewCube.faceDirections[hit.face!.materialIndex]
-                : (hit.object.userData.direction as THREE.Vector3)
-              snapCameraTo(direction)
+              snapCameraTo(hit.object.userData.direction as THREE.Vector3)
               dataRef.current.onOrthographicChange?.(true)
             }
             return
@@ -552,28 +568,29 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       if (dataRef.current.cameraMode === 'orbit' && !axisDragging && !scaleDragging && !rotateDragging && !dragging) {
         const rect = renderer.domElement.getBoundingClientRect()
         let overlayHovered = false
-        if (dataRef.current.showViewCube) {
-          const box = overlayRect('top-right', VIEW_CUBE_DIM, rect)
+        if (dataRef.current.showOctaOrb) {
+          const box = overlayRect('top-right', OCTAORB_DIM, rect)
           if (pointInRect(event.clientX, event.clientY, box)) {
             overlayHovered = true
             const ndc = ndcInRect(event.clientX, event.clientY, box)
-            viewCube.scene.updateMatrixWorld(true)
-            overlayRaycaster.setFromCamera(ndc, viewCube.camera)
+            octaOrb.scene.updateMatrixWorld(true)
+            overlayRaycaster.setFromCamera(ndc, octaOrb.camera)
 
-            const homeHit = overlayRaycaster.intersectObject(viewCube.homeSprite, false)[0]
-            viewCube.setHomeHover(!!homeHit)
+            const homeHit = overlayRaycaster.intersectObject(octaOrb.homeSprite, false)[0]
+            octaOrb.setHomeHover(!!homeHit)
 
-            const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(viewCube.arrows.map((arrow) => arrow.sprite), false)[0]
-            viewCube.setArrowHover((arrowHit?.object as THREE.Sprite | undefined) ?? null)
+            const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(octaOrb.arrows.map((arrow) => arrow.sprite), false)[0]
+            octaOrb.setArrowHover((arrowHit?.object as THREE.Sprite | undefined) ?? null)
 
-            const hit = homeHit || arrowHit ? undefined : overlayRaycaster.intersectObjects([viewCube.cubeMesh, ...viewCube.corners], false)[0]
-            viewCube.setFaceHover(hit && hit.object === viewCube.cubeMesh ? hit.face!.materialIndex : null)
-            viewCube.setCornerHover(hit && hit.object !== viewCube.cubeMesh ? (hit.object as THREE.Mesh) : null)
+            const hit = homeHit || arrowHit ? undefined : overlayRaycaster.intersectObjects(octaOrb.vertexMeshes, false)[0]
+            octaOrb.setVertexHover((hit?.object as THREE.Mesh | undefined) ?? null)
+            if (hit) showOctaOrbTooltip(hit.object.userData.label as string, event.clientX, event.clientY, rect)
+            else hideOctaOrbTooltip()
           } else {
-            viewCube.setFaceHover(null)
-            viewCube.setCornerHover(null)
-            viewCube.setHomeHover(false)
-            viewCube.setArrowHover(null)
+            octaOrb.setVertexHover(null)
+            octaOrb.setHomeHover(false)
+            octaOrb.setArrowHover(null)
+            hideOctaOrbTooltip()
           }
         }
         if (dataRef.current.showAxisIndicator) {
@@ -732,6 +749,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     renderer.domElement.addEventListener('pointerdown', onPointerDown)
     renderer.domElement.addEventListener('pointermove', onPointerMove)
     renderer.domElement.addEventListener('pointerup', onPointerUp)
+    renderer.domElement.addEventListener('pointerleave', hideOctaOrbTooltip)
     renderer.domElement.addEventListener('contextmenu', onContextMenu)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
@@ -795,17 +813,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.render(scene, activeCamera)
 
       if (dataRef.current.cameraMode === 'orbit') {
-        if (dataRef.current.showViewCube) {
+        if (dataRef.current.showOctaOrb) {
           const currentDirection = camera.position.clone().sub(controls.target).normalize()
-          viewCube.syncToCamera(currentDirection, camera.up)
-          viewCube.setArrowsVisible(matchFaceView(currentDirection) !== null)
+          octaOrb.syncToCamera(currentDirection, camera.up)
+          octaOrb.setArrowsVisible(matchFaceView(currentDirection) !== null)
           renderer.clearDepth()
           renderer.setScissorTest(true)
-          const x = width - OVERLAY_MARGIN - VIEW_CUBE_DIM
-          const y = height - OVERLAY_MARGIN - VIEW_CUBE_DIM
-          renderer.setScissor(x, y, VIEW_CUBE_DIM, VIEW_CUBE_DIM)
-          renderer.setViewport(x, y, VIEW_CUBE_DIM, VIEW_CUBE_DIM)
-          renderer.render(viewCube.scene, viewCube.camera)
+          const x = width - OVERLAY_MARGIN - OCTAORB_DIM
+          const y = height - OVERLAY_MARGIN - OCTAORB_DIM
+          renderer.setScissor(x, y, OCTAORB_DIM, OCTAORB_DIM)
+          renderer.setViewport(x, y, OCTAORB_DIM, OCTAORB_DIM)
+          renderer.render(octaOrb.scene, octaOrb.camera)
         }
         if (dataRef.current.showAxisIndicator) {
           axisIndicator.group.quaternion.copy(camera.quaternion).invert()
@@ -827,13 +845,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
       renderer.domElement.removeEventListener('pointermove', onPointerMove)
       renderer.domElement.removeEventListener('pointerup', onPointerUp)
+      renderer.domElement.removeEventListener('pointerleave', hideOctaOrbTooltip)
       renderer.domElement.removeEventListener('contextmenu', onContextMenu)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', onBlur)
       controls.dispose()
-      viewCube.dispose()
+      octaOrb.dispose()
       axisIndicator.dispose()
+      mount.removeChild(octaOrbTooltip)
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       objectsGroup.traverse((child) => {
@@ -944,7 +964,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         </div>
       )}
       {hint && <div className="viewport-hint">{hint}</div>}
-      {cameraMode === 'orbit' && showViewCube && <div className="viewcube-backdrop" />}
+      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
     </div>

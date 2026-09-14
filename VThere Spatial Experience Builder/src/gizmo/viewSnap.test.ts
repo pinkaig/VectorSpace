@@ -39,7 +39,7 @@ describe('nudgeView', () => {
     // pole's one fixed orientation regardless of which side you approached from, so
     // e.g. Right -> up -> Top -> down -> Front, not back to Right. That's intentional:
     // every named view always snaps to a single upright orientation, never a
-    // path-dependent one — matching real ViewCube behavior.
+    // path-dependent one — matching real ViewCube-style navigation widget behavior.
     const start = { direction: new THREE.Vector3(0, 0, 1), up: upFor(new THREE.Vector3(0, 0, 1)) } // FRONT
     const forward = nudgeView(start.direction, start.up, 'right')
     const back = nudgeView(forward.direction, forward.up, 'left')

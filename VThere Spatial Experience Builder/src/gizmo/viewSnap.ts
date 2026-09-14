@@ -2,10 +2,10 @@
  * @file        viewSnap.ts
  * @project     Spatial Experience Builder
  * @author      Goh Pin Kai
- * @brief       shared camera-orientation math for the ViewCube and axis indicator -
+ * @brief       shared camera-orientation math for OctaOrb and the axis indicator -
  *              the six canonical axis-aligned views, a stable "up" vector for each direction
  *              (so straight-down/up views don't leave orientation undefined), face-alignment
- *              detection, and the 90-degree nudge/roll rotations used by the ViewCube's arrows.
+ *              detection, and the 90-degree nudge/roll rotations used by OctaOrb's arrows.
  * 
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -42,7 +42,7 @@ export const upFor = (direction: THREE.Vector3): THREE.Vector3 =>
 
 // Returns the index into FACE_VIEWS the current view direction matches (within a small
 // tolerance), or null if the camera is at a free/corner angle — used to show the
-// ViewCube's nudge/roll arrows only once the view is flat against one face.
+// OctaOrb's nudge/roll arrows only once the view is flat against one face.
 export const matchFaceView = (direction: THREE.Vector3): number | null => {
   for (let i = 0; i < FACE_VIEWS.length; i++) {
     if (direction.dot(FACE_VIEWS[i].direction) > FACE_ALIGN_EPSILON) return i
@@ -54,7 +54,7 @@ export type NudgeDirection = 'up' | 'down' | 'left' | 'right'
 export type RollDirection = 'left' | 'right'
 
 // Pivots the view 90 degrees so the side that was previously up/down/left/right on
-// screen faces the camera instead — the ViewCube's four nudge arrows. `direction` and
+// screen faces the camera instead — OctaOrb's four nudge arrows. `direction` and
 // `up` describe the current view (from target to camera, and the current up vector).
 // The landing orientation always snaps to that destination face's own canonical up
 // (via upFor) rather than carrying the rotation forward — nudging is only ever done
@@ -71,7 +71,7 @@ export const nudgeView = (direction: THREE.Vector3, up: THREE.Vector3, way: Nudg
 }
 
 // Rolls the view 90 degrees around the current view direction (the direction itself
-// doesn't change, only which way is "up" on screen) — the ViewCube's two curved arrows.
+// doesn't change, only which way is "up" on screen) — OctaOrb's two curved arrows.
 export const rollView = (direction: THREE.Vector3, up: THREE.Vector3, way: RollDirection): { direction: THREE.Vector3; up: THREE.Vector3 } => {
   const right = new THREE.Vector3().crossVectors(up, direction).normalize()
   return { direction: direction.clone(), up: way === 'left' ? right : right.negate() }
