@@ -1,0 +1,37 @@
+{
+  "name": "vthere-spatial-experience-builder",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "check:environment": "node scripts/check-environment.mjs",
+    "predev": "node scripts/check-environment.mjs",
+    "prebuild": "node scripts/check-environment.mjs",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "4.4.1",
+    "three": "0.177.0",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
+    "@types/three": "0.177.0",
+    "@playwright/test": "1.55.0",
+    "vitest": "3.1.2"
+  }
+}
