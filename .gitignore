@@ -9,6 +9,8 @@ dist/
 build/
 out/
 coverage/
+playwright-report/
+test-results/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
