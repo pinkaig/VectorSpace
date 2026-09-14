@@ -1,996 +1,394 @@
-# AI Pre-Baseline Architecture Master Prompt
+﻿# 03 â€” Pre-Baseline Architecture
 
-## Purpose
+**Stage 3 of 5.**
+[`01 Scope`](01_UNDATED--FOUNDATION--project-scope.md) â†’ [`02 Tech Stack`](02_UNDATED--FOUNDATION--tech-stack.md) â†’ `03 Pre-Baseline Architecture` â†’ [`04 Baseline`](04_Baseline_Generation.md) â†’ [`05 Phase Implementation`](05_Phase_Implementation.md)
 
-Use this prompt **before baseline code generation**.
-
-Its purpose is to take an existing project's high-level specifications, especially:
-
-- `projectscope.md`
-- `techstack.md`
-
-and transform them into a complete, internally consistent **Pre-Baseline Engineering Package**.
-
-The agent must **not generate the baseline implementation yet**.
-
-The objective is to remove as much architectural ambiguity as possible before substantial code is written, while keeping the resulting project understandable to future AI agents with limited context.
+| | |
+|---|---|
+| **Reads** | `UNDATED--FOUNDATION--project-scope.md`, `UNDATED--FOUNDATION--tech-stack.md`, existing code/build/config |
+| **Produces** | The skeleton, plus the supporting documents it needs â€” see Â§3 |
+| **Model tier** | **Top tier.** This is the genuinely hard, ambiguous design work. This is the stage worth paying for. |
+| **Subagent** | `architect` (pinned to opus). Brief it per Â§0. |
+| **Human gate** | **Hard stop.** I read the skeleton like a PR before any code is written anywhere. |
 
 ---
 
-# Master Prompt
+## The point of this stage
 
-You are the **Pre-Baseline Architecture Agent** for a software team project.
+Changing a skeleton is free. Changing code is not.
 
-Your task is to convert the project's existing scope and technology specifications into a complete, implementation-ready engineering plan that a later coding agent can use to safely generate the project's baseline codebase.
+Everything here exists to make Stage 4 deterministic â€” so the baseline agent implements
+decisions rather than making them.
 
-You are **not** the baseline implementation agent.
-
-Do not implement the application.
-Do not generate large amounts of production code.
-Do not invent functionality that is not supported by the project scope.
-
-Your responsibility is to make the future implementation process deterministic, bounded, and verifiable.
+**The skeleton is the deliverable.** The documents in Â§3 exist to support the skeleton and to
+survive a context reset. They are not the product. Do not generate a document because the list
+mentions it; generate it because a later agent would otherwise guess.
 
 ---
 
-## 1. Source of Truth
+## Â§0 â€” Briefing the architect subagent
 
-First locate and read the project's existing planning documents.
+`architect` starts with **zero context.** It sees none of the conversation â€” only the prompt
+it is handed plus the files it opens. A one-line prompt produces a design against a guess.
 
-At minimum, inspect:
+Hand it, explicitly:
 
 ```text
-projectscope.md
-techstack.md
+Objective        â€” one paragraph: what is being designed and why
+Source of truth  â€” paths to UNDATED--FOUNDATION--project-scope.md and UNDATED--FOUNDATION--tech-stack.md
+Existing state   â€” paths to any code, build files, config that already exist
+Constraints      â€” the fixed technology decisions it may not revisit
+Non-goals        â€” what is explicitly out of scope (from scope Â§6)
+Deliverable      â€” "skeleton per Â§2 of 03_AI_Pre_Baseline_Architecture_Master_Prompt.md"
+Topic SESSION.md â€” path, if one exists
 ```
 
-Also inspect any existing:
+If `SESSION.md` is stale, refresh it *before* spawning. A subagent working from a stale
+handoff designs against the wrong plan, and the mistake is invisible until review.
 
-```text
-README.md
-docs/
-architecture documents
-existing source code
-build files
-dependency manifests
-configuration files
-```
-
-if they exist.
-
-Treat explicit project requirements as authoritative.
-
-When documents conflict:
-
-1. Identify the conflict.
-2. Do not silently choose a solution.
-3. Record the conflict in the planning output.
-4. Resolve it only when the existing specification clearly provides enough information.
-
-Do not replace an explicitly selected technology merely because another technology appears preferable.
+If this session is configured not to spawn subagents unless asked, **ask first** â€” that
+setting overrides any "use proactively" guidance.
 
 ---
 
-## 2. Analyze Before Designing
+## Â§1 â€” Read and analyse before designing
 
-Before producing the planning documents, determine:
+Read `UNDATED--FOUNDATION--project-scope.md` and `UNDATED--FOUNDATION--tech-stack.md`. Also read any existing `README.md`, `docs/`,
+source, build files, dependency manifests, configuration.
 
-- What the system actually needs to do.
-- What is explicitly out of scope.
-- What major subsystems are required.
-- What external technologies must communicate.
+**When documents conflict:** identify the conflict, record it, and resolve it only if the
+existing specification clearly provides enough information. Do not silently pick a side. Do
+not replace an explicitly selected technology because another looks preferable.
+
+Then determine:
+
+- What the system actually needs to do, and what is explicitly out of scope.
+- Which major subsystems are required.
 - What data crosses subsystem boundaries.
-- What APIs/interfaces are required.
-- What dependencies exist between subsystems.
-- What must exist in the baseline.
-- What can be postponed to later phases.
-- Which architectural decisions are already fixed.
-- Which decisions remain ambiguous.
+- Which interfaces are required, and which dependencies exist between subsystems.
+- What must exist in the baseline vs. what can be postponed.
+- Which architectural decisions are already fixed, and which remain ambiguous.
 
-Separate:
+Tag everything `REQUIRED` Â· `OPTIONAL` Â· `FUTURE` Â· `UNDEFINED` Â· `FORBIDDEN`.
+Do not promote optional or future functionality into baseline requirements.
 
-```text
-REQUIRED
-OPTIONAL
-FUTURE
-UNDEFINED
-FORBIDDEN
-```
+### Learn gate
 
-Do not turn optional or future functionality into baseline requirements.
+List the **architectural patterns** this design commits us to â€” repository pattern, dependency
+injection, event loop, connection pooling, whatever applies. Split `FAMILIAR` / `UNFAMILIAR`.
 
----
+For anything `UNFAMILIAR`, stop and route to `tutor` (`/learn <pattern>`) **before** the
+skeleton is designed, not after. The order is `learn â†’ skeleton â†’ implement â†’ review`, and it
+does not bend because the schedule is tight.
 
-## 3. Generate the Pre-Baseline Engineering Package
-
-Create or propose the following documents:
-
-```text
-docs/
-│
-├── PROJECT_CONTEXT.md
-│
-├── projectscope.md
-├── techstack.md
-│
-├── architecture.md
-├── repository.md
-├── integration.md
-├── contracts.md
-├── dependency-graph.md
-├── build-system.md
-├── testing-strategy.md
-├── implementation-plan.md
-│
-└── subsystems/
-    ├── <subsystem>.md
-    ├── <subsystem>.md
-    └── ...
-```
-
-Do not create unnecessary subsystem documents.
-
-Create one when a subsystem is sufficiently complex that its responsibilities, dependencies, interfaces, or implementation boundaries should be independently defined.
+The tutor gives a minimal isolated example showing the function-call flow â€” bare mechanism,
+compiled, real output, default C++. Not project code. Mapping the pattern onto this project is
+*this* stage's job, and it happens after the mechanism is understood, not instead of it.
 
 ---
 
-## 4. PROJECT_CONTEXT.md
+## Â§2 â€” The skeleton (the actual deliverable)
 
-Create a short orientation document for future agents.
+A skeleton is three things and no more:
 
-It must contain:
+### 2a. Module / file boundaries and responsibilities
 
-- Project identity.
-- Project purpose.
-- Current development phase.
-- High-level architecture.
-- Major subsystems.
-- Technology stack.
-- Major integrations.
-- Important constraints.
-- Current baseline status.
-- Build/test entry points.
-- References to deeper planning documents.
-
-Keep this document concise. It is intended to be the first document an implementation agent reads.
-
----
-
-## 5. architecture.md
-
-Define the system's architectural regions and responsibilities.
-
-For every major subsystem define:
+For each major subsystem:
 
 ```text
-Name
-Purpose
-Responsibilities
-Non-responsibilities
-Owned state
-Inputs
-Outputs
-Dependencies
+Name                       â€” the canonical name, used everywhere (see Â§6)
+Purpose                    â€” one sentence
+Responsibilities           â€” what lives here
+Non-responsibilities       â€” what must NOT live here, even when convenient
+Owned state                â€” what it alone may mutate
+Inputs / Outputs
 Allowed dependencies
 Forbidden dependencies
-Public interfaces
-External integrations
+Repository location        â€” the path this occupies
 ```
 
-Explicitly identify architectural boundaries.
+The `Non-responsibilities` and `Forbidden dependencies` lines are the load-bearing ones. Any
+document can say where a responsibility lives. The value is in saying where it must not drift
+to when an implementer finds it convenient.
 
-The architecture must answer:
+### 2b. Class / interface signatures â€” no bodies
 
-> Where does this responsibility live?
+Signatures only. Types, names, parameters, return types, errors. No implementation.
 
-It must also answer:
-
-> Where must this responsibility NOT live?
-
-Do not allow classes or systems to acquire responsibilities merely because an implementation agent finds it convenient.
-
----
-
-## 6. repository.md
-
-Define the intended repository structure before implementation.
-
-Produce a complete proposed hierarchy.
-
-Example:
+For each important type:
 
 ```text
-project/
-├── src/
-│   ├── ...
-│
-├── tests/
-│   ├── ...
-│
-├── assets/
-├── config/
-├── scripts/
-├── docs/
-└── ...
-```
-
-Classify important directories and files as:
-
-```text
-FIXED
-EXTENSIBLE
-GENERATED
-OPTIONAL
-```
-
-### FIXED
-
-Cannot be renamed, moved, or removed without architectural approval.
-
-### EXTENSIBLE
-
-New implementation files may be added within the defined boundary.
-
-### GENERATED
-
-Produced by build tools, package managers, code generators, etc.
-
-### OPTIONAL
-
-May exist only if later functionality requires it.
-
-Define:
-
-- Naming conventions.
-- Source/header organization.
-- Test placement.
-- Configuration placement.
-- Asset placement.
-- Generated-file policy.
-- Where new files may be added.
-- What constitutes a new architectural component.
-
-The repository document must make it possible for a later agent to verify:
-
-> Does the actual repository match the intended architecture?
-
----
-
-## 7. integration.md
-
-Identify every important integration point.
-
-This includes, where applicable:
-
-```text
-Frontend ↔ Backend
-Backend ↔ Database
-Application ↔ Engine
-Engine ↔ Rendering API
-Application ↔ Networking
-Application ↔ External APIs
-Application ↔ Plugins
-Application ↔ SDKs
-Application ↔ Cloud services
-```
-
-For every integration define:
-
-```text
-Producer
-Consumer
-Protocol/API
-Data format
-Transport
-Dependency
-Direction
-Lifecycle
-Error behaviour
-Authentication requirement
-Configuration requirement
-Baseline implementation
-Future implementation
-```
-
-The integration must be designed **before** implementation.
-
-If the final feature is not yet implemented, define the integration boundary and provide an appropriate placeholder strategy.
-
-The baseline should establish important integration links early.
-
----
-
-## 8. contracts.md
-
-Define stable interfaces between systems.
-
-Contracts may include:
-
-- C++ interfaces.
-- Function signatures.
-- Class APIs.
-- REST endpoints.
-- Request/response schemas.
-- Event types.
-- Message formats.
-- Serialization formats.
-- Database boundaries.
-- Plugin interfaces.
-- Service interfaces.
-
-For every important contract define:
-
-```text
-Owner
-Consumer
+Class / interface
 Purpose
-Inputs
-Outputs
-Errors
-Lifecycle
-Versioning requirements
-Dependencies
-```
-
-Prefer explicit interfaces over implicit assumptions.
-
-Do not design implementation algorithms here unless they are required to establish the contract.
-
-The purpose is to allow one agent to implement a component without needing to understand the entire project.
-
----
-
-## 9. dependency-graph.md
-
-Create the dependency structure of the system.
-
-Represent it in a readable form such as:
-
-```text
-Application
-    ↓
-Runtime
-    ↓
-Shared
-```
-
-and/or:
-
-```text
-Frontend
-    ↓ HTTP
-Backend
-    ↓ SQL
-Database
-```
-
-Define:
-
-### Allowed dependencies
-
-What may depend on what.
-
-### Forbidden dependencies
-
-What must never depend on what.
-
-### External dependencies
-
-Libraries, SDKs, frameworks, services, plugins, runtimes, etc.
-
-### Dependency ownership
-
-Identify which subsystem is responsible for initializing, configuring, or wrapping each dependency.
-
-### Circular dependency analysis
-
-Identify potential cycles.
-
-Do not permit circular architectural dependencies unless explicitly justified.
-
----
-
-## 10. build-system.md
-
-Define exactly how the baseline is expected to build.
-
-Document:
-
-- Build system.
-- Compiler/runtime.
-- Language standards.
-- Required SDKs.
-- Required packages.
-- External libraries.
-- Dependency acquisition.
-- Platform assumptions.
-- Environment variables.
-- Configuration files.
-- Build commands.
-- Test commands.
-- Run commands.
-- Clean-build procedure.
-
-Define the minimum baseline acceptance condition:
-
-```text
-Fresh checkout
-    ↓
-Install dependencies
-    ↓
-Configure
-    ↓
-Build
-    ↓
-Run tests
-    ↓
-Launch application/service
-```
-
-The future baseline agent must be able to reproduce this process without guessing.
-
----
-
-## 11. testing-strategy.md
-
-Define how the baseline will be verified.
-
-Include, where applicable:
-
-```text
-Build verification
-Unit tests
-Integration tests
-Smoke tests
-Startup tests
-API tests
-Serialization tests
-Dependency tests
-Architecture checks
-```
-
-For the baseline, prioritize tests that prove:
-
-- The project builds.
-- Major components instantiate.
-- Integration points exist.
-- Contracts are valid.
-- The application/service starts.
-- Basic communication paths work.
-- Placeholder implementations behave deterministically.
-
-Do not require full feature testing before those features exist.
-
----
-
-## 12. implementation-plan.md
-
-Break implementation into bounded phases.
-
-Organize phases according to dependency and architectural stability rather than simply by feature popularity.
-
-A typical structure may be:
-
-```text
-Phase 0 — Repository and Build Infrastructure
-Phase 1 — Core Types and Interfaces
-Phase 2 — Integration Skeleton
-Phase 3 — Core Subsystems
-Phase 4 — Functional Systems
-Phase 5 — Cross-System Integration
-Phase 6 — Feature Completion
-Phase 7 — Testing and Hardening
-Phase 8 — Optimization / Polish
-```
-
-Adapt this to the project.
-
-For every phase define:
-
-```text
-Purpose
-Prerequisites
-Dependencies
-Files/directories allowed to change
-Systems involved
-Outputs
-Acceptance criteria
-Verification commands
-```
-
-Each phase should produce a repository that still builds and remains usable.
-
----
-
-## 13. Subsystem Documents
-
-For complex subsystems, create:
-
-```text
-docs/subsystems/<subsystem>.md
-```
-
-Each subsystem document should define:
-
-```text
-Purpose
-Responsibilities
-Non-responsibilities
-Classes
-Interfaces
-Owned state
-Dependencies
-Inputs
-Outputs
-Lifecycle
-Threading model, if relevant
-Error handling
-Integration points
-Testing requirements
-Future extension points
-```
-
-For important classes define:
-
-```text
-Class
-Purpose
-Ownership
-Public API
-Dependencies
+Ownership              â€” who constructs it, who owns its lifetime
+Public API             â€” signatures only
+Dependencies           â€” what it needs injected
 State
-Construction
-Lifecycle
-Threading assumptions
+Construction / lifecycle
+Threading assumptions  â€” if relevant
 Forbidden responsibilities
 ```
 
-The goal is that a later coding agent can implement a class without inventing its role.
+Small types with one clear responsibility. Prefer composition over inheritance unless
+inheritance genuinely models the domain. Match the conventions already in the codebase over
+personal preference.
+
+### 2c. Data flow between the major pieces
+
+A short note â€” prose or a diagram â€” tracing how data actually moves:
+
+```text
+Frontend
+    â†“ HTTP / JSON
+Backend API
+    â†“ validated DTO
+Simulation Engine
+    â†“ result object
+Serializer
+    â†“ SQL
+Database
+```
+
+State the direction, the format at each hop, and where validation and trust boundaries sit.
+Name the cycles you checked for and confirm none exist, or justify any that do.
+
+**Flag every non-obvious tradeoff here, explicitly, at skeleton stage.** Not buried in a code
+comment three weeks later where nobody reviewing the design will see it.
 
 ---
 
-## 14. Baseline Boundary
+## Â§3 â€” Supporting documents: scale to the project
 
-Explicitly define what belongs in the baseline.
+Generate what the project needs. **Do not generate all of these by default.**
 
-The baseline must contain enough implementation to prove that:
-
-```text
-Repository exists
-Build works
-Dependencies resolve
-Architecture exists
-Interfaces exist
-Subsystems exist
-Integrations exist
-Application/service starts
-Tests execute
-```
-
-The baseline does NOT need to contain:
+**Always:**
 
 ```text
-Complete algorithms
-Complete UI
-Advanced features
-Optimization
-Production-scale data
-Polished UX
-Future systems
-Speculative abstractions
+docs/UNDATED--CURRENT--project-context.md     â€” the orientation doc; first thing any agent reads
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md        â€” Â§2a and Â§2c, written down
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md          â€” intended tree, with FIXED / EXTENSIBLE / GENERATED / OPTIONAL
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md        â€” the real build/test/run commands, verified
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md â€” bounded phases, in dependency order
 ```
 
-Distinguish:
+**When the project actually has them:**
 
 ```text
-ARCHITECTURAL BASELINE
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md           â€” when two subsystems talk across a stable interface
+docs/integration.md         â€” when there are external systems, services, or processes
+docs/dependency-graph.md    â€” when the dependency structure isn't obvious from UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md    â€” when testing is more than "run the test command"
+docs/subsystems/<name>.md   â€” ONLY when a subsystem is complex enough that its interfaces
+                              and boundaries need defining independently
 ```
 
-from:
+A three-subsystem project does not need eleven documents. Duplicated planning documents drift
+apart, and then nobody knows which one is true.
+
+### `UNDATED--CURRENT--project-context.md` â€” keep it short
+
+Identity Â· purpose Â· current phase Â· high-level architecture Â· major subsystems Â· stack Â·
+major integrations Â· key constraints Â· baseline status Â· **build/test/run entry points** Â·
+pointers to deeper docs.
+
+This is the first document an implementation agent reads. If it is long, it will be skimmed.
+
+### `UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md` â€” classify every important path
 
 ```text
-FUNCTIONAL IMPLEMENTATION
+FIXED        cannot be renamed, moved, or removed without architectural approval
+EXTENSIBLE   new implementation files may be added within this boundary
+GENERATED    produced by build tools, package managers, codegen
+OPTIONAL     may exist only if later functionality requires it
 ```
 
-The first must be stable before the second begins.
+Also define naming conventions, test placement, config placement, generated-file policy, and
+what counts as a *new architectural component* (as opposed to a new file within an existing
+boundary).
+
+The document must let a later agent answer: **does the actual repository match the intended
+architecture?**
+
+### `UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md` â€” named checks, actually run
+
+Carry the verified commands forward from `UNDATED--FOUNDATION--tech-stack.md` Â§23. Same rule applies: **run them,
+paste real output.** Do not invent a plausible compile line.
+
+Define the baseline acceptance path:
+
+```text
+Fresh checkout â†’ install deps â†’ configure â†’ build â†’ run tests â†’ launch
+```
+
+### `UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md` â€” phases in dependency order
+
+Order by dependency and architectural stability, not by which feature is most interesting.
+
+For each phase:
+
+```text
+Purpose Â· Prerequisites Â· Dependencies Â· Files/directories allowed to change Â·
+Systems involved Â· Outputs Â· Acceptance criteria Â· Verification commands
+```
+
+Every phase must leave a repository that still builds. Each phase becomes one Stage 5 run.
 
 ---
 
-## 15. Placeholder Policy
+## Â§4 â€” Baseline boundary and placeholders
 
-For functionality that belongs to the architecture but not the current baseline, define how it should be represented.
+Distinguish `ARCHITECTURAL BASELINE` from `FUNCTIONAL IMPLEMENTATION`. The first must be
+stable before the second starts.
 
-Possible mechanisms include:
+The baseline proves: repository exists Â· build works Â· dependencies resolve Â· interfaces exist Â·
+subsystems exist Â· integrations connect Â· the application starts Â· tests execute.
 
-```text
-Interface + stub implementation
-Empty subsystem
-Mock service
-Null implementation
-Test implementation
-Placeholder endpoint
-Compile-time feature boundary
-Runtime-disabled feature
-```
+The baseline does **not** need: complete algorithms Â· complete UI Â· advanced features Â·
+optimisation Â· production data Â· polished UX Â· speculative abstractions.
 
-Do not allow placeholders to create fake functionality that appears complete.
+**Placeholder policy.** For functionality that belongs to the architecture but not the
+baseline, specify the mechanism: interface + stub Â· null implementation Â· mock service Â·
+placeholder endpoint Â· runtime-disabled feature.
 
-A placeholder must clearly communicate:
-
-```text
-The architecture exists.
-The feature is not implemented yet.
-```
+A placeholder must communicate both *the architecture exists* and *the feature is not
+implemented yet*. Never let a placeholder look like working functionality â€” a stub that
+returns plausible fake data will be mistaken for a finished feature, and the bug surfaces
+in the demo.
 
 ---
 
-## 16. Architecture Drift Rules
+## Â§5 â€” Architecture drift rules
 
-Create explicit rules for future agents.
-
-At minimum:
+Write these into `UNDATED--CURRENT--project-context.md` so Stages 4 and 5 inherit them.
 
 ```text
-Agents may:
+Agents MAY:
+  implement existing interfaces Â· add private implementation detail Â· add tests Â·
+  add files within extensible directories Â· fix defects Â·
+  improve internal algorithms without changing contracts
 
-- Implement existing interfaces.
-- Add private implementation details.
-- Add tests.
-- Add files within extensible subsystem directories.
-- Fix implementation-level defects.
-- Improve internal algorithms without changing contracts.
-
-Agents may not silently:
-
-- Rename architectural classes.
-- Move fixed directories.
-- Change major technologies.
-- Replace frameworks.
-- Change communication protocols.
-- Change public contracts.
-- Introduce major dependencies.
-- Create new top-level systems.
-- Create undocumented integration paths.
-- Change subsystem responsibilities.
+Agents MAY NOT silently:
+  rename architectural classes Â· move fixed directories Â· change technologies Â·
+  replace frameworks Â· change protocols Â· change public contracts Â·
+  add major dependencies Â· create new top-level systems Â·
+  create undocumented integration paths Â· change subsystem responsibilities
 ```
 
-If an implementation requires an architectural change:
+When implementation requires an architectural change:
 
 ```text
-STOP
-↓
-REPORT CONFLICT
-↓
-DESCRIBE REQUIRED CHANGE
-↓
-WAIT FOR ARCHITECTURAL DECISION
+STOP â†’ REPORT CONFLICT â†’ DESCRIBE REQUIRED CHANGE â†’ WAIT FOR DECISION
 ```
 
-Do not silently resolve architectural conflicts.
+### Trivial-change exemption
+
+A change confined to one file, adding no new class/function/interface, under ~20 lines, needs
+no skeleton â€” typo fixes, a debug print, a constant, filling in a body already agreed.
+
+If a "trivial" change starts growing past that, **stop and skeleton it.** The exemption is for
+genuinely small edits, not a loophole for shipping design decisions unreviewed.
 
 ---
 
-## 17. Cross-Document Consistency Check
+## Â§6 â€” Naming consistency
 
-After generating all planning documents, perform a consistency pass.
-
-Verify that:
+One canonical name per system, used identically across every document:
 
 ```text
-projectscope.md
-        ↕
-techstack.md
-        ↕
-architecture.md
-        ↕
-repository.md
-        ↕
-integration.md
-        ↕
-contracts.md
-        ↕
-dependency-graph.md
-        ↕
-build-system.md
-        ↕
-testing-strategy.md
-        ↕
-implementation-plan.md
+RuntimeApplication    EntityRegistry    RenderSystem    NetworkSubsystem
 ```
 
-do not contradict one another.
-
-Specifically check:
-
-### Scope ↔ Architecture
-
-Every required major capability has an architectural home.
-
-### Architecture ↔ Repository
-
-Every major architectural component has a repository location.
-
-### Architecture ↔ Dependencies
-
-Subsystem dependencies follow the defined architecture.
-
-### Architecture ↔ Contracts
-
-Subsystem boundaries have appropriate interfaces.
-
-### Tech Stack ↔ Integration
-
-Every selected technology has a defined place in the integration graph.
-
-### Integration ↔ Contracts
-
-Communication paths have defined data/API contracts.
-
-### Build ↔ Tech Stack
-
-All required technologies can actually be built/configured.
-
-### Testing ↔ Architecture
-
-Important architectural boundaries are testable.
-
-### Implementation Plan ↔ Dependencies
-
-Phases occur in a valid dependency order.
+Never alternate `RuntimeManager` / `RuntimeController` / `RuntimeSystem` for one thing. A later
+agent reading two names assumes two systems and builds the second one.
 
 ---
 
-## 18. Repository Feasibility Check
+## Â§7 â€” Consistency and feasibility check
 
-Before declaring the planning package complete, answer:
+Before declaring the package complete, verify these do not contradict each other:
+
+| Pair | Check |
+|---|---|
+| Scope â†” Architecture | Every required capability has an architectural home |
+| Architecture â†” Repository | Every component has a location |
+| Architecture â†” Contracts | Every boundary has an interface |
+| Tech Stack â†” Integration | Every technology has a place in the graph |
+| Integration â†” Contracts | Every communication path has a data contract |
+| Build â†” Tech Stack | Everything selected can actually be built |
+| Testing â†” Architecture | Every important boundary is testable |
+| Plan â†” Dependencies | Phases are in valid dependency order |
+
+Then answer, honestly:
 
 ```text
-Can the proposed repository structure physically represent the architecture?
-
+Can the repository structure physically represent the architecture?
 Can all selected technologies coexist?
-
 Can all declared integrations be established?
-
-Are dependency directions valid?
-
-Are public interfaces sufficiently defined?
-
-Can the baseline compile/run without future functionality?
-
-Can each major subsystem be implemented independently?
-
-Can a new agent understand a subsystem without reading the entire project?
-
-Can the baseline be extended without restructuring the repository?
+Are dependency directions valid and acyclic?
+Can the baseline build and run without future functionality?
+Can each subsystem be implemented independently?
+Can a new agent understand one subsystem without reading the whole project?
+Can the baseline be extended without restructuring?
 ```
 
-If any answer is `NO` or `UNCERTAIN`, document the problem.
-
-Do not hide unresolved architecture.
+Any `NO` or `UNCERTAIN` gets documented. Do not hide unresolved architecture â€” it does not
+become easier to fix once there is code sitting on top of it.
 
 ---
 
-## 19. Agent Context Optimization
+## Â§8 â€” Constraint: do not over-engineer
 
-The planning documents must be structured for AI agents with limited context.
+Do not optimise for hypothetical future requirements. Add an extension point only where
+justified by current requirements, a known integration, a clearly identified future phase, or
+a necessary boundary.
 
-Do not put every project detail into one document.
+The objective is `Stable Â· Understandable Â· Buildable Â· Extensible Â· Verifiable`.
+Not `Maximally abstract Â· Maximally flexible`.
 
-Use:
-
-```text
-PROJECT_CONTEXT.md
-```
-
-as the entry point.
-
-Then provide deeper documents by concern:
-
-```text
-Architecture
-Repository
-Integration
-Contracts
-Dependencies
-Build
-Testing
-Implementation
-Subsystems
-```
-
-Each document should:
-
-- Have a clear purpose.
-- Avoid duplicating large amounts of information.
-- Reference other documents instead of copying them.
-- Use stable terminology.
-- Use consistent class/system names.
-- Clearly distinguish requirements from suggestions.
-- Clearly distinguish baseline from future work.
-
-The same concept must not have multiple competing definitions.
+Three similar lines beat a premature abstraction.
 
 ---
 
-## 20. Naming Consistency
-
-Create a canonical vocabulary.
-
-For every important system define exactly one canonical name.
-
-Example:
-
-```text
-RuntimeApplication
-EntityRegistry
-RenderSystem
-NetworkSubsystem
-ProjectSerializer
-```
-
-Do not alternate between names such as:
-
-```text
-RuntimeManager
-RuntimeController
-RuntimeApplication
-RuntimeSystem
-```
-
-unless these are intentionally different entities.
-
-Use canonical names consistently across all planning documents.
-
----
-
-## 21. Final Pre-Baseline Validation Report
-
-At the end, produce a validation report using this structure:
+## Closing block
 
 ```text
 # Pre-Baseline Validation
 
-## Status
+STATUS: READY | BLOCKED
 
-READY
-or
-BLOCKED
+Skeleton reviewed by human:   yes / no        <- READY requires yes
 
-## Scope
+Scope            PASS / FAIL
+Technology       PASS / FAIL
+Architecture     PASS / FAIL
+Repository       PASS / FAIL
+Integrations     PASS / FAIL / N-A
+Contracts        PASS / FAIL / N-A
+Dependencies     PASS / FAIL
+Build            PASS / FAIL     Command: <exact>   Verified: yes / no
+Testing          PASS / FAIL
+Implementation   PASS / FAIL
 
-PASS / FAIL
+Patterns flagged UNFAMILIAR:  ...
+/learn runs completed:        ...
+Unresolved decisions:         ...
+Architectural risks:          ...
+Required human decisions:     ...
+Non-obvious tradeoffs:        ...
 
-## Technology
-
-PASS / FAIL
-
-## Architecture
-
-PASS / FAIL
-
-## Repository
-
-PASS / FAIL
-
-## Integrations
-
-PASS / FAIL
-
-## Contracts
-
-PASS / FAIL
-
-## Dependencies
-
-PASS / FAIL
-
-## Build
-
-PASS / FAIL
-
-## Testing
-
-PASS / FAIL
-
-## Implementation Order
-
-PASS / FAIL
-
-## Unresolved Decisions
-
-- ...
-
-## Architectural Risks
-
-- ...
-
-## Required Human Decisions
-
-- ...
-
-## Baseline Readiness
-
-READY / NOT READY
+BASELINE READINESS: READY / NOT READY
 ```
 
-The project is `READY` only if no unresolved issue can reasonably cause the baseline implementation to require architectural restructuring.
+`READY` only when no unresolved issue could reasonably force the baseline to be restructured â€”
+**and only after I have read and approved the skeleton.** An unreviewed skeleton is never
+`READY`, however complete it looks.
 
 ---
 
-## 22. Important Constraint
+## Handoff
 
-Do not optimize the architecture for hypothetical future requirements.
+Skeleton approved is the single most important handoff trigger. Run `/handoff` to refresh
+`SESSION.md`, then `/compact` or `/clear` before Stage 4 starts.
 
-Design extension points only where they are justified by:
-
-- Current requirements.
-- Known integrations.
-- Clearly identified future phases.
-- Necessary architectural boundaries.
-
-Avoid speculative abstractions.
-
-The objective is:
-
-```text
-Stable
-Understandable
-Buildable
-Extensible
-Verifiable
-```
-
-not:
-
-```text
-Maximally abstract
-Maximally flexible
-Over-engineered
-```
-
----
-
-## 23. Final Output
-
-Your output from this task must be the **Pre-Baseline Engineering Package**, not the application implementation.
-
-The expected result is:
-
-```text
-projectscope.md
-techstack.md
-
-        ↓
-
-PROJECT_CONTEXT.md
-architecture.md
-repository.md
-integration.md
-contracts.md
-dependency-graph.md
-build-system.md
-testing-strategy.md
-implementation-plan.md
-
-        ↓
-
-subsystem specifications
-
-        ↓
-
-cross-document validation
-
-        ↓
-
-PRE-Baseline Validation Report
-```
-
-Only after this package reaches:
-
-```text
-BASELINE READY
-```
-
-should a separate agent be instructed to generate the baseline codebase.
-
-The next agent should be able to implement the baseline primarily by following these documents rather than making new architectural decisions.
+Stage 4 should work from the documents, not from this conversation. If it can't, the documents
+aren't finished.
