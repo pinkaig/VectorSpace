@@ -17,7 +17,7 @@ Document the VThere implementation and establish the team workflow for documenta
 - File-level documentation is the implementation reference: source headers describe each file's current responsibility, inputs, outputs, members, and larger guide link.
 - Markdown subsystem pages describe the larger cross-file systems, architecture, data flow, examples, error handling, testing, and history.
 - The normal branch workflow is feature branch -> `working` pull request -> CI/review -> `working`; `main` is reserved for milestone/submission pull requests from `working`.
-- The required CI status check is planned to be named `build-and-test`, covering `npm ci`, typecheck, unit tests, production build, and later browser smoke tests.
+- The required CI status check is named `build-and-test`, covering `npm ci`, typecheck, unit tests, production build, and the initial browser smoke test.
 - CD is intentionally deferred until CI and smoke tests are reliable. Deployment should run from protected `main` through a protected GitHub Environment.
 
 ## Current skeleton / plan state
@@ -33,7 +33,7 @@ Document the VThere implementation and establish the team workflow for documenta
 - Implemented documentation standard: `docs/04-engineering/source-file-header-standard.md`.
 - Implemented AI declaration: `docs/ai-declaration.md`; verification is deliberately marked ongoing and must be updated only with completed checks.
 - Updated `docs/README.md` to link the new documentation pages.
-- No `.github/workflows/` directory currently exists; GitHub Actions CI/CD remains planned, not implemented.
+- Repository-level `.github/workflows/ci.yml` now runs the VThere checks on pull requests and pushes to the existing case-sensitive `Working` integration branch and `main`.
 - Architecture remains intentionally unchanged. The root `src/` editor is still the current implementation surface; `apps/runtime` remains a placeholder and backend/API publishing is not wired.
 
 ## Architecture mapping update
@@ -54,7 +54,7 @@ python -m pytest apps/api/tests
 python -m uvicorn apps.api.app.main:app --reload --port 8000
 ```
 
-Current status: **partially implemented, partially verified locally**. The fresh `npm run build` passed with the existing Vite large-chunk warning, and `npm test` passed with 2 test files and 2 tests. `python -m pytest apps/api/tests` could not run because `pytest` is not installed in the selected Python 3.12 environment. Browser tests, full backend integration tests, and the planned app move remain outstanding.
+Current status: **CI implemented and verified locally for the VThere frontend**. `npm.cmd ci`, `npm.cmd run typecheck`, `npm.cmd test` (4 files, 8 tests), `npm.cmd run build`, and `npm.cmd run test:e2e` (1 browser test) passed. The build still reports the existing Vite large-chunk warning. `python -m pytest apps/api/tests` could not run because `pytest` is not installed in the selected Python 3.12 environment; full backend integration tests and the planned app move remain outstanding.
 
 The API pytest result in this handoff is therefore not a passing result for this session; the earlier documented passing result should be re-established after installing the API test dependencies.
 
@@ -66,7 +66,7 @@ The API pytest result in this handoff is therefore not a passing result for this
 6. Search the asset catalog.
 7. Run simulation, confirm editor controls are absent, then exit simulation.
 
-Current verification status: VS Code diagnostics report no errors in the documentation-touched TypeScript files and no comment-related errors were introduced. `npm.cmd`, Node.js, and Git have not been run successfully in this handoff session, so build, unit test, browser, and Git diff checks remain unverified. Do not mark CI/CD or browser acceptance complete until the commands run successfully.
+Current verification status: VS Code diagnostics report no errors in the CI and Playwright files. The frontend CI target commands pass locally on Node.js 24/npm 11; the project requires Node.js 22+/npm 10+. The GitHub-hosted workflow still needs to be exercised by pushing this workflow to GitHub and opening a pull request into `Working`.
 
 CI/CD target verification:
 
@@ -79,7 +79,7 @@ npm.cmd run build
 npm.cmd run test:e2e
 ```
 
-The current `package.json` has `test` and `build`, but does not yet have `typecheck` or `test:e2e` scripts. The workflow and Playwright smoke test must be added before the `build-and-test` ruleset check can be selected in GitHub.
+The current `package.json` includes `typecheck` and `test:e2e`; Playwright is locked in `package-lock.json`, and the smoke test is under `tests/e2e/smoke.spec.ts`.
 
 ## Files touched for this topic
 
@@ -136,11 +136,11 @@ Architecture mapping session:
 - When should the local simulation become the separate `apps/runtime` application boundary?
 - What visitor interactions, navigation model, and analytics events must the runtime support?
 - Should the documentation headers be added to every remaining source and test file, or only files with a public boundary and non-trivial implementation?
-- Should CI target pull requests and pushes to both `working` and `main`, with `working` as the daily integration branch?
+- Confirm whether the repository should rename the existing `Working` branch to lowercase `working`; the workflow currently follows the branch name that exists.
 - Which approved deployment provider will own the protected production environment?
 - Which instructor/team accounts should receive review and Actions visibility?
 
 ## Next recommended step
 
-Make Node.js/npm available and run `npm.cmd ci`, `npm.cmd test`, and `npm.cmd run build`. Add the missing `typecheck` script, create `.github/workflows/ci.yml` with job name `build-and-test`, and configure the `working` and `main` branch rulesets. Then add Playwright and one editor-to-runtime smoke test, verify the workflow on a pull request into `working`, and only after that plan protected CD from `main`. Continue with focused serializer tests for malformed JSON, wrong schema, duplicate IDs, invalid transforms, size limits, and preservation of the current project after rejection.
+Push these changes to the existing `Working` branch, open a pull request targeting `Working`, and confirm that the `build-and-test` check appears and passes in GitHub Actions. Then configure the `Working` and `main` rulesets to require that status check. Keep CD deferred until deployment ownership and the protected production environment are agreed. Continue with focused serializer tests for malformed JSON, wrong schema, duplicate IDs, invalid transforms, size limits, and preservation of the current project after rejection.
 Review and approve `CODEBASE_GUIDE.md`, confirm the AI-use and prompt data-handling statements, and resolve the product/brief decisions above. Install the API test dependencies and rerun `python -m pytest apps/api/tests`. Next, move the verified editor into `apps/editor/`, preserve the shared project and authoring-engine imports, then add persistence round-trip tests before implementing further runtime/API phases.
