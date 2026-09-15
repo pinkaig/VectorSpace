@@ -324,6 +324,139 @@ Consider a renderer-neutral runtime boundary only if evidence shows a need for:
 
 A second renderer should be introduced behind the same project, render-description, and interaction contracts. It should not require a second project model.
 
+## Current Code Map and Student Extension Points
+
+The current codebase is intentionally using a lightweight rendering framework
+made from local modules. The framework owns lifecycle and resource boundaries;
+students can customise the rendering stages without replacing the entire
+viewport.
+
+### Current rendering files
+
+| Rendering responsibility | Current file | Status | Safe customisation area |
+|---|---|---|---|
+| React viewport boundary and public props | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | Implemented, still coordinating the runtime | Add viewport composition or connect a new stage; avoid adding domain rules |
+| Three.js scene, renderer, animation loop, resize, and cleanup | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | Implemented, next major extraction target | Change renderer settings, frame timing, or host lifecycle after preserving disposal |
+| Environment construction | [`src/environments.ts`](../../../src/environments.ts) | Implemented | Add procedural environments or environment asset loaders |
+| Environment loading lifecycle | [`src/viewport/environmentController.ts`](../../../src/viewport/environmentController.ts) | Implemented | Add loading policies, cancellation, retry, or environment replacement behaviour |
+| Environment loading presentation | [`src/viewport/ViewportOverlay.tsx`](../../../src/viewport/ViewportOverlay.tsx) | Implemented | Change loading, failure, and retry UI |
+| Artefact reconstruction | [`src/viewport/syncArtefacts.ts`](../../../src/viewport/syncArtefacts.ts) | Implemented with full rebuilds | Add asset types, materials, visibility, and later incremental synchronisation |
+| Gizmo construction and disposal | [`src/viewport/createGizmoSet.ts`](../../../src/viewport/createGizmoSet.ts) | Implemented | Add editor handles or replace the gizmo set while preserving separate ownership |
+| Gizmo placement and presentation | [`src/viewport/syncGizmo.ts`](../../../src/viewport/syncGizmo.ts) | Implemented | Change sizing, local/world orientation, visibility, or selection presentation |
+| Pointer, picking, drag sessions, and keyboard listeners | [`src/viewport/interactionController.ts`](../../../src/viewport/interactionController.ts) | Implemented | Add interaction modes and input policies; commit through authoring callbacks |
+| Camera pose and walk movement | [`src/viewport/cameraController.ts`](../../../src/viewport/cameraController.ts) | Implemented | Add camera modes, movement policies, or camera constraints |
+| Pure ray/axis/rotation calculations | [`src/viewport/interactionMath.ts`](../../../src/viewport/interactionMath.ts) | Implemented and tested | Add deterministic math without React, DOM, or Three.js dependencies |
+| Three.js math compatibility | [`src/gizmo/math.ts`](../../../src/gizmo/math.ts) | Implemented adapter | Keep Three.js conversion here rather than in pure math tests |
+| Render status contracts | [`src/viewport/renderTypes.ts`](../../../src/viewport/renderTypes.ts) | Implemented | Add renderer lifecycle states or structured failure information |
+
+### Current framework shape
+
+```text
+Viewport.tsx
+  |
+  +--> scene and renderer host                 [still inline]
+  +--> environmentController.ts               [environment stage]
+  +--> syncArtefacts.ts                        [artefact stage]
+  +--> interactionController.ts               [picking/input stage]
+  +--> cameraController.ts                     [camera stage]
+  +--> createGizmoSet.ts + syncGizmo.ts        [editor gizmo stage]
+  +--> ViewportOverlay.tsx                     [presentation stage]
+```
+
+This is already a rendering system in an early, local form. It is not yet a
+general-purpose package or plugin framework. That is intentional: the project
+has one renderer consumer and the contracts are still being discovered.
+
+### Planned stage contract
+
+When the render host is extracted, stages should follow a small lifecycle
+contract rather than importing each other's internal state:
+
+```ts
+interface RenderStage<Context> {
+  setup?(context: Context): void
+  update(context: Context): void
+  dispose(): void
+}
+```
+
+The first stage candidates are:
+
+```text
+EnvironmentStage  -> environmentController.ts
+ArtefactStage     -> syncArtefacts.ts
+CameraStage       -> cameraController.ts
+InteractionStage  -> interactionController.ts
+GizmoStage        -> createGizmoSet.ts + syncGizmo.ts
+OverlayStage      -> ViewportOverlay.tsx
+```
+
+The stage contract should be introduced only when `RenderHost` is extracted.
+Until then, the existing modules are the working implementation and should
+not be wrapped in empty classes solely to resemble a framework.
+
+### What students can build
+
+Students can implement meaningful rendering work in the following locations:
+
+- add new exhibition environments in `src/environments.ts`;
+- add asset-specific geometry and materials in `src/viewport/syncArtefacts.ts`;
+- add or replace editor handles through `src/viewport/createGizmoSet.ts`;
+- change gizmo presentation in `src/viewport/syncGizmo.ts`;
+- add selection or manipulation modes in `src/viewport/interactionController.ts`;
+- add camera constraints or modes in `src/viewport/cameraController.ts`;
+- add pure, testable spatial calculations in `src/viewport/interactionMath.ts`;
+- add render diagnostics or overlays through `src/viewport/ViewportOverlay.tsx`.
+
+Each custom stage should document its input, output, resource owner, cleanup
+path, and whether it changes only renderer state or commits authored project
+state.
+
+### What remains framework-owned
+
+The future `RenderHost` should own:
+
+- the `THREE.Scene` and WebGL renderer;
+- stage registration and ordering;
+- the animation loop and frame timing;
+- resize handling;
+- WebGL and stage cleanup;
+- shared render context and error reporting.
+
+Stages should own their rendering policy, assets, visual behaviour, and
+stage-specific resources. No stage should become a second source of truth for
+`ProjectData`.
+
+### Placeholder rules
+
+Use a placeholder only when it represents a real extension point. A valid
+placeholder must have:
+
+1. a current implementation or safe no-op behaviour;
+2. a typed input/output contract;
+3. one clearly identified owner;
+4. a disposal or cancellation path when it owns resources;
+5. an observable test, fixture, or browser behaviour;
+6. a stated reason it may later be replaced.
+
+Avoid empty `RendererManager`, `StageManager`, or `ObjectManager` classes that
+only forward calls. They add names without creating an ownership boundary.
+
+### Source-of-truth rule
+
+The rendering system reads validated project data and produces disposable
+Three.js objects:
+
+```text
+ProjectData
+    -> render description
+    -> render stages
+    -> Three.js scene
+```
+
+Renderer stages may report input events to the editor, but authoring commands,
+undo/redo, persistence, and hierarchy validation remain outside the renderer.
+
 ## Critical Questions
 
 ### Product
