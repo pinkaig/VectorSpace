@@ -26,16 +26,13 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CameraPose, SceneObject, defaultCameraPose, defaultEnvironmentId } from './model'
-import { AxisArrow } from './gizmo/types'
-import { makeAxisArrow } from './gizmo/moveGizmo'
-import { makeAxisScaleHandle, AxisScaleHandle } from './gizmo/scaleGizmo'
-import { makeAxisRotateHandle, AxisRotateHandle } from './gizmo/rotateGizmo'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, getCameraPose, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
+import { createGizmoSet } from './viewport/createGizmoSet'
 import type { EnvStatus } from './viewport/renderTypes'
 
 export type CameraMode = 'orbit' | 'walk'
@@ -125,20 +122,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     // Keep editor-only gizmos outside the authored artefact group. Artefact
     // synchronisation may rebuild objects, but must never dispose the gizmos.
-    const gizmoGroup = new THREE.Group()
+    const gizmoSet = createGizmoSet()
+    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles } = gizmoSet
     scene.add(gizmoGroup)
-
-    // move gizmo: one arrow per axis, built once
-    const axisArrows: AxisArrow[] = [makeAxisArrow('x'), makeAxisArrow('y'), makeAxisArrow('z')]
-    axisArrows.forEach((arrow) => gizmoGroup.add(arrow.group))
-
-    // scale gizmo: one handle per axis, built once
-    const scaleHandles: AxisScaleHandle[] = [makeAxisScaleHandle('x'), makeAxisScaleHandle('y'), makeAxisScaleHandle('z')]
-    scaleHandles.forEach((handle) => gizmoGroup.add(handle.mesh))
-
-    // rotate gizmo: one ring per axis, built once
-    const rotateHandles: AxisRotateHandle[] = [makeAxisRotateHandle('x'), makeAxisRotateHandle('y'), makeAxisRotateHandle('z')]
-    rotateHandles.forEach((handle) => gizmoGroup.add(handle.mesh))
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
@@ -260,13 +246,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       disposeObjectResources(objectsGroup)
-      gizmoGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
-      })
+      gizmoSet.dispose()
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }

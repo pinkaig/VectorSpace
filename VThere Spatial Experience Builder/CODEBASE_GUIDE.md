@@ -66,6 +66,7 @@ The most important local rendering modules are:
 
 - `src/viewport/syncArtefacts.ts` for artefact reconstruction and disposal;
 - `src/viewport/syncGizmo.ts` for gizmo presentation synchronisation;
+- `src/viewport/createGizmoSet.ts` for gizmo handle assembly and disposal;
 - `src/viewport/interactionMath.ts` for framework-free ray/axis and angle math;
 - `src/viewport/cameraController.ts` for camera poses and walk movement;
 - `src/viewport/interactionController.ts` for pointer, drag, gizmo, and keyboard listeners;

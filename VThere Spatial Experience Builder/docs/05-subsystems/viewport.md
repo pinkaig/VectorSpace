@@ -38,6 +38,7 @@ Use this table as the first stop when changing viewport or rendering behaviour.
 | Pointer, drag, gizmo picking, and keyboard listener ownership | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) | Selection, drag previews, gizmo hits, or one-command-on-release behaviour changes |
 | Artefact geometry, materials, visibility, picking metadata, and disposal | [`src/viewport/syncArtefacts.ts`](../../src/viewport/syncArtefacts.ts) | Artefact reconstruction or resource ownership changes |
 | Gizmo visibility, placement, local/world orientation, and sizing | [`src/viewport/syncGizmo.ts`](../../src/viewport/syncGizmo.ts) | Gizmo presentation follows different object or transform rules |
+| Gizmo handle assembly and disposal | [`src/viewport/createGizmoSet.ts`](../../src/viewport/createGizmoSet.ts) | Handle sets, gizmo resource ownership, or editor gizmo composition changes |
 | Axis and rotation calculations | [`src/viewport/interactionMath.ts`](../../src/viewport/interactionMath.ts) | Ray/axis or angle behaviour changes; keep this framework-free |
 | Three.js compatibility wrappers for gizmo math | [`src/gizmo/math.ts`](../../src/gizmo/math.ts) | Three.js vectors need adapting to the pure math contract |
 | Gizmo geometry and colours | [`src/gizmo/`](../../src/gizmo/) | Handle meshes, dimensions, colours, or material behaviour change |
