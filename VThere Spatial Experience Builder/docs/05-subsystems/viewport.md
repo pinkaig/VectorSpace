@@ -3,6 +3,7 @@
 ## Contents
 
 - [Overview](#overview)
+- [Where to Find Things](#where-to-find-things)
 - [Component structure](#component-structure)
 - [Props and data](#props-and-data)
 - [Three.js objects](#threejs-objects)
@@ -21,6 +22,54 @@
 This page explains the larger rendering system. Current file-level implementation notes are kept in [src/Viewport.tsx](../../src/Viewport.tsx), including its props, refs, scene resources, pointer handlers, and cleanup responsibilities.
 
 Implementation: [src/Viewport.tsx](../../src/Viewport.tsx)
+
+## Where to Find Things
+
+Use this table as the first stop when changing viewport or rendering behaviour.
+
+| Concern | Current owner | Change this when... |
+|---|---|---|
+| React viewport boundary and public props | [`src/Viewport.tsx`](../../src/Viewport.tsx) | The mount element, public callbacks, overlays, or React refs change |
+| Three.js scene, renderer, animation loop, and cleanup | [`src/Viewport.tsx`](../../src/Viewport.tsx) | The renderer lifecycle changes; this remains the next major extraction target |
+| Environment construction and GLB/procedural loading | [`src/environments.ts`](../../src/environments.ts) | Environment assets, loading, progress, or disposal change |
+| Environment loading lifecycle and replacement | [`src/viewport/environmentController.ts`](../../src/viewport/environmentController.ts) | Async loading, cancellation, replacement, or disposal handoff changes |
+| Environment loading UI | [`src/viewport/ViewportOverlay.tsx`](../../src/viewport/ViewportOverlay.tsx) | Loading, retry, and error presentation changes |
+| Artefact geometry, materials, visibility, picking metadata, and disposal | [`src/viewport/syncArtefacts.ts`](../../src/viewport/syncArtefacts.ts) | Artefact reconstruction or resource ownership changes |
+| Gizmo visibility, placement, local/world orientation, and sizing | [`src/viewport/syncGizmo.ts`](../../src/viewport/syncGizmo.ts) | Gizmo presentation follows different object or transform rules |
+| Axis and rotation calculations | [`src/viewport/interactionMath.ts`](../../src/viewport/interactionMath.ts) | Ray/axis or angle behaviour changes; keep this framework-free |
+| Three.js compatibility wrappers for gizmo math | [`src/gizmo/math.ts`](../../src/gizmo/math.ts) | Three.js vectors need adapting to the pure math contract |
+| Gizmo geometry and colours | [`src/gizmo/`](../../src/gizmo/) | Handle meshes, dimensions, colours, or material behaviour change |
+| Keyboard movement constants and input helpers | [`src/viewport/viewportTypes.ts`](../../src/viewport/viewportTypes.ts) | Walk controls, speeds, key mappings, or asset colours change |
+| Authoritative project objects and transforms | [`packages/project/src/index.ts`](../../packages/project/src/index.ts) | Persisted object shape or defaults change |
+| Authoring commands and history | [`packages/authoring-engine/src/index.ts`](../../packages/authoring-engine/src/index.ts) | An edit must be immutable, undoable, or shared by editor controls |
+| Editor composition | [`src/App.tsx`](../../src/App.tsx) | UI state dispatches commands or selects a scene |
+| Visitor composition boundary | [`apps/runtime/src/RuntimeApplication.tsx`](../../apps/runtime/src/RuntimeApplication.tsx) | Runtime becomes independent from the transitional root view |
+
+### Ownership rule
+
+The project snapshot is authoritative. Three.js objects, gizmos, raycasters,
+and renderer caches are disposable projections. A rendering module may read
+project data and report input events, but it must not become the owner of
+project mutations, persistence, or undo/redo.
+
+### Next extraction targets
+
+The remaining large responsibilities in `Viewport.tsx` are intentionally kept
+together for now:
+
+1. `createViewportRuntime`: scene, renderer, camera, animation loop, listeners,
+   and cleanup.
+2. `cameraController`: orbit/walk controls, camera poses, and keyboard motion.
+3. `interactionController`: selection, free drag, axis drag, scale, rotation,
+   and one-command-on-release commits.
+4. `interactionController`: selection, free drag, axis drag, scale, rotation,
+   and one-command-on-release commits.
+
+`environmentController` is already extracted and owns asynchronous environment
+replacement, cancellation, status reporting, and disposal handoff.
+
+Extract these only when each module can own its resources and receive a narrow
+contract. Do not split them merely to reduce the line count of `Viewport.tsx`.
 
 ```text
 React App state
@@ -49,6 +98,12 @@ Viewport
 ├── pointer handlers
 └── requestAnimationFrame loop
 ```
+
+The current implementation has extracted artefact synchronisation, gizmo
+synchronisation, pure interaction mathematics, and overlay presentation into
+the `src/viewport/` modules listed above. The lifecycle and interaction state
+machines still live in `Viewport.tsx` until their ownership contracts are
+stable.
 
 ## Props and data
 

@@ -60,6 +60,19 @@ surface:
   recovery, autosave, and export.
 - `src/styles.css` owns the prototype presentation.
 
+For viewport work, start with [`docs/05-subsystems/viewport.md`](docs/05-subsystems/viewport.md).
+Its “Where to Find Things” table maps rendering ownership to the current files.
+The most important local rendering modules are:
+
+- `src/viewport/syncArtefacts.ts` for artefact reconstruction and disposal;
+- `src/viewport/syncGizmo.ts` for gizmo presentation synchronisation;
+- `src/viewport/interactionMath.ts` for framework-free ray/axis and angle math;
+- `src/viewport/ViewportOverlay.tsx` for loading/error/hint presentation;
+- `src/environments.ts` for environment asset construction and loading.
+
+`src/Viewport.tsx` still owns the Three.js runtime lifecycle and pointer state
+machines. Those are planned extraction targets, not duplicate implementations.
+
 Implemented user-facing behavior includes primitive cube, sphere, and cylinder
 placement; scene and object selection; transform editing; local save/load;
 backup recovery; autosave; JSON export; and snapshot undo/redo.

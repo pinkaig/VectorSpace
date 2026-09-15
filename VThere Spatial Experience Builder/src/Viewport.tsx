@@ -26,7 +26,6 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CameraPose, SceneObject, defaultCameraPose, defaultEnvironmentId } from './model'
-import { loadEnvironment } from './environments'
 import { AxisName, AxisArrow } from './gizmo/types'
 import { AXIS_COLORS, AXIS_HOVER_COLORS } from './gizmo/colors'
 import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
@@ -37,6 +36,8 @@ import { ARROW_LENGTH, GIZMO_GAP, MIN_FLY_HEIGHT, MOVE_KEYS, SPRINT_KEYS, SPRINT
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { normalizeAngle } from './viewport/interactionMath'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
+import { syncGizmo } from './viewport/syncGizmo'
+import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import type { EnvStatus } from './viewport/renderTypes'
 
 export type CameraMode = 'orbit' | 'walk'
@@ -217,48 +218,20 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderedSignature = signature
     }
 
-    // Keeps the gizmo's position and every arrow/handle's offset matched to the selected
-    // object, each frame. Skips updates mid-drag so it doesn't fight onPointerMove.
-    const syncGizmo = () => {
-      const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId)
-      const mode = dataRef.current.gizmoMode
-      gizmoGroup.visible = !!selected && (mode === 'move' || mode === 'scale' || mode === 'rotate')
-      axisArrows.forEach((arrow) => { arrow.group.visible = mode === 'move' })
-      scaleHandles.forEach((handle) => { handle.mesh.visible = mode === 'scale' })
-      rotateHandles.forEach((handle) => { handle.mesh.visible = mode === 'rotate' })
-
-      if (selected && !dragging && !axisDragging && !scaleDragging && !rotateDragging) {
-        gizmoGroup.position.set(...selected.transform.position)
-        const mesh = objectsGroup.getObjectByName(selected.id)
-        if (mesh) {
-          axisArrows.forEach((arrow) => {
-            const offset = extentAlong(mesh, arrow.axis) + GIZMO_GAP
-            arrow.group.position.copy(arrow.direction).multiplyScalar(offset)
-          })
-          const isLocalScale = dataRef.current.scaleSpace === 'local'
-          scaleHandles.forEach((handle) => {
-            const direction = isLocalScale ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation)) : handle.direction
-            const offset = (isLocalScale ? extentAlongLocal(mesh as THREE.Mesh, handle.axis) : extentAlong(mesh, handle.axis)) + GIZMO_GAP + ARROW_LENGTH
-            handle.mesh.position.copy(direction).multiplyScalar(offset)
-          })
-          if (mode === 'rotate') {
-            const box = new THREE.Box3().setFromObject(mesh)
-            const size = new THREE.Vector3()
-            box.getSize(size)
-            const targetRadius = Math.max(size.x, size.y, size.z) / 2 + GIZMO_GAP + 0.2
-            const scale = targetRadius / ROTATE_RING_BASE_RADIUS
-            const isLocalRotate = dataRef.current.rotateSpace === 'local'
-            const objectQuaternion = isLocalRotate ? new THREE.Quaternion().setFromEuler(new THREE.Euler(...selected.transform.rotation)) : null
-            rotateHandles.forEach((handle) => {
-              handle.mesh.scale.setScalar(scale)
-              // In local mode the ring rotates with the object, so it stays flush with the
-              // object's actual face instead of always standing up along the world axis.
-              if (objectQuaternion) handle.mesh.quaternion.copy(objectQuaternion).multiply(handle.baseQuaternion)
-              else handle.mesh.quaternion.copy(handle.baseQuaternion)
-            })
-          }
-        }
-      }
+    const syncGizmoFrame = () => {
+      const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
+      syncGizmo({
+        gizmoGroup,
+        axisArrows,
+        scaleHandles,
+        rotateHandles,
+        selected,
+        selectedMesh: selected ? objectsGroup.getObjectByName(selected.id) : undefined,
+        mode: dataRef.current.gizmoMode,
+        scaleSpace: dataRef.current.scaleSpace,
+        rotateSpace: dataRef.current.rotateSpace,
+        isDragging: !!dragging || !!axisDragging || !!scaleDragging || !!rotateDragging,
+      })
     }
 
     const getPointer = (event: PointerEvent) => {
@@ -552,7 +525,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const delta = Math.min((now - lastTime) / 1000, 0.1)
       lastTime = now
       syncObjects()
-      syncGizmo()
+      syncGizmoFrame()
       if (dataRef.current.cameraMode === 'walk') {
         const isSprinting = pressedKeys.has('ShiftLeft') || pressedKeys.has('ShiftRight')
         const speed = isSprinting ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED
@@ -632,24 +605,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // Environment loading — a separate lifecycle from the renderer so switching scenes or
   // retrying a failed load never rebuilds the WebGL context.
   useEffect(() => {
-    let cancelled = false
-    setEnvStatus({ state: 'loading', progress: 0 })
-    loadEnvironment(environmentId, { onProgress: (ratio) => { if (!cancelled) setEnvStatus({ state: 'loading', progress: ratio }) } })
-      .then((loaded) => {
-        if (cancelled) { loaded.dispose(); return }
-        const holder = environmentGroupRef.current
-        holder?.clear()
-        holder?.add(loaded.group)
-        currentEnvDisposeRef.current?.()
-        currentEnvDisposeRef.current = loaded.dispose
-        setEnvStatus({ state: 'ready', progress: 1 })
-        applyPoseRef.current(dataRef.current.startCamera)
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setEnvStatus({ state: 'error', progress: 0, message: error instanceof Error ? error.message : 'Failed to load environment' })
-      })
-    return () => { cancelled = true }
+    const holder = environmentGroupRef.current
+    if (!holder) return
+    const loadHandle = loadEnvironmentIntoGroup({
+      group: holder,
+      environmentId,
+      currentDispose: currentEnvDisposeRef,
+      onStatus: setEnvStatus,
+      onReady: () => applyPoseRef.current(dataRef.current.startCamera),
+    })
+    return loadHandle.cancel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environmentId, sceneId, reloadToken])
 
