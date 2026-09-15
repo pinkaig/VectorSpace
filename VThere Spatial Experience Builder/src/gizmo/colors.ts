@@ -5,13 +5,13 @@
 import { AxisName } from './types'
 
 export const AXIS_COLORS: Record<AxisName, number> = {
-  x: 0xe0483e, // red, matches original default
-  y: 0x4ea7a0, // teal, matches the cube color
-  z: 0xe6ad5a, // orange, matches the sphere color
+  x: 0xff0000, // red
+  y: 0x00ff00, // green
+  z: 0x0000ff, // blue
 }
 
 export const AXIS_HOVER_COLORS: Record<AxisName, number> = {
   x: 0xff8f7a, // lighter red
-  y: 0x8fd6cf, // lighter teal
-  z: 0xf5cd8f, // lighter orange
+  y: 0xd1ffd1, // lighter green
+  z: 0xb8d5f2, // lighter blue
 }
