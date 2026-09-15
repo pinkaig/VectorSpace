@@ -25,16 +25,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   createCommandTimeline,
-  createObject,
-  createScene,
-  duplicateObject,
-  removeObject,
-  renameObject,
-  setObjectEnabled,
-  setObjectVisible,
-  setActiveScene,
-  updateObjectTransform,
-  updateScene,
 } from '@vthere/authoring-engine'
 import {
   AssetKind,
@@ -51,6 +41,18 @@ import {
   saveProject,
 } from './serializer'
 import { assetCatalog, filterAssets } from './assets'
+import {
+  createEditorObject,
+  createEditorScene,
+  duplicateEditorObject,
+  removeEditorObject,
+  renameEditorObject,
+  selectEditorScene,
+  setEditorObjectEnabled,
+  setEditorObjectVisible,
+  updateEditorScene,
+  updateEditorTransform,
+} from './editor/editorOperations'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 
@@ -92,61 +94,57 @@ export default function App() {
     setProject(timelineRef.current.current)
   }
   const setEnvironment = (environmentId: string) => {
-    commit('Change environment', updateScene(project, { sceneId: project.activeSceneId }, { environmentId }).project)
+    commit('Change environment', updateEditorScene(project, project.activeSceneId, { environmentId }).project)
   }
   const captureStartView = () => {
     const pose = viewportRef.current?.getCameraPose()
     if (!pose) return
-    commit('Set start view', updateScene(project, { sceneId: project.activeSceneId }, { startCamera: pose }).project)
+    commit('Set start view', updateEditorScene(project, project.activeSceneId, { startCamera: pose }).project)
   }
   const addObject = (kind: AssetKind) => {
-    const result = createObject(project, { sceneId: scene.id, assetKind: kind }, {
-      nextId: (_project, sceneId) => `${sceneId}-object-${crypto.randomUUID()}`,
-    })
+    const result = createEditorObject(project, scene.id, kind)
     commit('Create object', result.project)
     setSelectedId(result.objectId ?? null)
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
     if (!selected) return
-    commit('Update transform', updateObjectTransform(project, { sceneId: scene.id, objectId: selected.id, changes }).project)
+    commit('Update transform', updateEditorTransform(project, scene.id, selected.id, changes).project)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
-    commit('Move object', updateObjectTransform(project, { sceneId: scene.id, objectId: id, changes: { position } }).project)
+    commit('Move object', updateEditorTransform(project, scene.id, id, { position }).project)
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
-    commit('Scale object', updateObjectTransform(project, { sceneId: scene.id, objectId: id, changes: { scale } }).project)
+    commit('Scale object', updateEditorTransform(project, scene.id, id, { scale }).project)
   }
   const rotateObject = (id: string, rotation: [number, number, number]) => {
-    commit('Rotate object', updateObjectTransform(project, { sceneId: scene.id, objectId: id, changes: { rotation } }).project)
+    commit('Rotate object', updateEditorTransform(project, scene.id, id, { rotation }).project)
   }
   const renameSelected = (name: string) => {
     if (!selected) return
-    commit('Rename object', renameObject(project, { sceneId: scene.id, objectId: selected.id, name }).project)
+    commit('Rename object', renameEditorObject(project, scene.id, selected.id, name).project)
   }
   const deleteSelected = () => {
     if (!selected) return
-    commit('Delete object', removeObject(project, { sceneId: scene.id, objectId: selected.id }).project)
+    commit('Delete object', removeEditorObject(project, scene.id, selected.id).project)
     setSelectedId(null)
   }
   const duplicateSelected = () => {
     if (!selected) return
-    const result = duplicateObject(project, { sceneId: scene.id, objectId: selected.id }, {
-      nextId: (_project, sceneId) => `${sceneId}-object-${crypto.randomUUID()}`,
-    })
+    const result = duplicateEditorObject(project, scene.id, selected.id)
     commit('Duplicate object', result.project)
     setSelectedId(result.objectId ?? null)
   }
   const setSelectedVisible = (value: boolean) => {
     if (!selected) return
-    commit('Set object visibility', setObjectVisible(project, { sceneId: scene.id, objectId: selected.id, value }).project)
+    commit('Set object visibility', setEditorObjectVisible(project, scene.id, selected.id, value).project)
   }
   const setSelectedEnabled = (value: boolean) => {
     if (!selected) return
-    commit('Set object enabled state', setObjectEnabled(project, { sceneId: scene.id, objectId: selected.id, value }).project)
+    commit('Set object enabled state', setEditorObjectEnabled(project, scene.id, selected.id, value).project)
   }
   const addScene = () => {
     const id = `scene-${project.scenes.length + 1}`
-    commit('Create scene', createScene(project, makeScene(id, `Room ${project.scenes.length + 1}`)).project)
+    commit('Create scene', createEditorScene(project, makeScene(id, `Room ${project.scenes.length + 1}`)).project)
   }
   const undo = () => {
     if (!timelineRef.current.canUndo) return
@@ -232,7 +230,7 @@ export default function App() {
       <div className="workspace">
         <aside className="left-rail">
           <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
-          <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { commit('Select scene', setActiveScene(project, item.id).project); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
+          <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { commit('Select scene', selectEditorScene(project, item.id).project); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
           <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
           <section className="panel">
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>

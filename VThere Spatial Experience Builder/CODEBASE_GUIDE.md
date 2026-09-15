@@ -71,6 +71,7 @@ The most important local rendering modules are:
 - `src/viewport/interactionController.ts` for pointer, drag, gizmo, and keyboard listeners;
 - `src/viewport/environmentController.ts` for environment loading lifecycle;
 - `src/viewport/ViewportOverlay.tsx` for loading/error/hint presentation;
+- `src/editor/editorOperations.ts` for editor-specific authoring policy and browser ID generation. It is intentionally a thin boundary today; do not add domain rules there.
 - `src/environments.ts` for environment asset construction and loading.
 
 `src/Viewport.tsx` still owns the Three.js runtime lifecycle and pointer state
