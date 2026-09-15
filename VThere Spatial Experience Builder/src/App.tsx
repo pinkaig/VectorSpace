@@ -24,24 +24,34 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import {
+  createCommandTimeline,
+  createObject,
+  createScene,
+  duplicateObject,
+  removeObject,
+  renameObject,
+  setObjectEnabled,
+  setObjectVisible,
+  setActiveScene,
+  updateObjectTransform,
+  updateScene,
+} from '@vthere/authoring-engine'
+import {
   AssetKind,
   ProjectData,
   SceneObject,
-  cloneProject,
   defaultProject,
   environmentLibrary,
-  makeObject,
   makeScene,
 } from './model'
 import {
-  copyProject,
   downloadProject,
   importProjectFile,
   loadProjectWithSource,
   saveProject,
 } from './serializer'
 import { assetCatalog, filterAssets } from './assets'
-import RuntimeView from './RuntimeView'
+import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 
 const initialLoad = loadProjectWithSource()
@@ -49,8 +59,7 @@ const initialProject = initialLoad.project
 
 export default function App() {
   const [project, setProject] = useState<ProjectData>(initialProject)
-  const [history, setHistory] = useState<ProjectData[]>([])
-  const [future, setFuture] = useState<ProjectData[]>([])
+  const timelineRef = useRef(createCommandTimeline(initialProject, (state) => JSON.parse(JSON.stringify(state)) as ProjectData))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gizmoMode, setGizmoMode] = useState<GizmoMode>('select')
   const [scaleSpace, setScaleSpace] = useState<'world' | 'local'>('world')
@@ -74,66 +83,80 @@ export default function App() {
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
 
-  const commit = (next: ProjectData) => {
-    setHistory((items) => [...items.slice(-39), copyProject(project)])
-    setFuture([])
-    setProject(next)
+  const commit = (label: string, next: ProjectData) => {
+    timelineRef.current.commit(label, next)
+    setProject(timelineRef.current.current)
   }
-  const updateScene = (mutate: (objects: SceneObject[]) => SceneObject[]) => {
-    const next = cloneProject(project)
-    const target = next.scenes.find((item) => item.id === next.activeSceneId)
-    if (target) target.objects = mutate(target.objects)
-    commit(next)
+  const resetTimeline = (next: ProjectData) => {
+    timelineRef.current = createCommandTimeline(next, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
+    setProject(timelineRef.current.current)
   }
   const setEnvironment = (environmentId: string) => {
-    const next = cloneProject(project)
-    const target = next.scenes.find((item) => item.id === next.activeSceneId)
-    if (target) target.environmentId = environmentId
-    commit(next)
+    commit('Change environment', updateScene(project, { sceneId: project.activeSceneId }, { environmentId }).project)
   }
   const captureStartView = () => {
     const pose = viewportRef.current?.getCameraPose()
     if (!pose) return
-    const next = cloneProject(project)
-    const target = next.scenes.find((item) => item.id === next.activeSceneId)
-    if (target) target.startCamera = pose
-    commit(next)
+    commit('Set start view', updateScene(project, { sceneId: project.activeSceneId }, { startCamera: pose }).project)
   }
   const addObject = (kind: AssetKind) => {
-    const object = makeObject(kind, scene.objects.length + 1)
-    updateScene((objects) => [...objects, object])
-    setSelectedId(object.id)
+    const result = createObject(project, { sceneId: scene.id, assetKind: kind }, {
+      nextId: (_project, sceneId) => `${sceneId}-object-${crypto.randomUUID()}`,
+    })
+    commit('Create object', result.project)
+    setSelectedId(result.objectId ?? null)
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
     if (!selected) return
-    updateScene((objects) => objects.map((item) => item.id === selected.id ? { ...item, transform: { ...item.transform, ...changes } } : item))
+    commit('Update transform', updateObjectTransform(project, { sceneId: scene.id, objectId: selected.id, changes }).project)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
-    updateScene((objects) => objects.map((item) => item.id === id ? { ...item, transform: { ...item.transform, position } } : item))
+    commit('Move object', updateObjectTransform(project, { sceneId: scene.id, objectId: id, changes: { position } }).project)
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
-    updateScene((objects) => objects.map((item) => item.id === id ? { ...item, transform: { ...item.transform, scale } } : item))
+    commit('Scale object', updateObjectTransform(project, { sceneId: scene.id, objectId: id, changes: { scale } }).project)
   }
   const rotateObject = (id: string, rotation: [number, number, number]) => {
-    updateScene((objects) => objects.map((item) => item.id === id ? { ...item, transform: { ...item.transform, rotation } } : item))
+    commit('Rotate object', updateObjectTransform(project, { sceneId: scene.id, objectId: id, changes: { rotation } }).project)
   }
   const renameSelected = (name: string) => {
     if (!selected) return
-    updateScene((objects) => objects.map((item) => item.id === selected.id ? { ...item, name } : item))
+    commit('Rename object', renameObject(project, { sceneId: scene.id, objectId: selected.id, name }).project)
+  }
+  const deleteSelected = () => {
+    if (!selected) return
+    commit('Delete object', removeObject(project, { sceneId: scene.id, objectId: selected.id }).project)
+    setSelectedId(null)
+  }
+  const duplicateSelected = () => {
+    if (!selected) return
+    const result = duplicateObject(project, { sceneId: scene.id, objectId: selected.id }, {
+      nextId: (_project, sceneId) => `${sceneId}-object-${crypto.randomUUID()}`,
+    })
+    commit('Duplicate object', result.project)
+    setSelectedId(result.objectId ?? null)
+  }
+  const setSelectedVisible = (value: boolean) => {
+    if (!selected) return
+    commit('Set object visibility', setObjectVisible(project, { sceneId: scene.id, objectId: selected.id, value }).project)
+  }
+  const setSelectedEnabled = (value: boolean) => {
+    if (!selected) return
+    commit('Set object enabled state', setObjectEnabled(project, { sceneId: scene.id, objectId: selected.id, value }).project)
+  }
+  const addScene = () => {
+    const id = `scene-${project.scenes.length + 1}`
+    commit('Create scene', createScene(project, makeScene(id, `Room ${project.scenes.length + 1}`)).project)
   }
   const undo = () => {
-    const previous = history.at(-1)
-    if (!previous) return
-    setFuture((items) => [...items, copyProject(project)])
-    setHistory((items) => items.slice(0, -1))
-    setProject(previous)
+    if (!timelineRef.current.canUndo) return
+    timelineRef.current.undo()
+    setProject(timelineRef.current.current)
   }
   const redo = () => {
-    const next = future.at(-1)
-    if (!next) return
-    setHistory((items) => [...items, copyProject(project)])
-    setFuture((items) => items.slice(0, -1))
-    setProject(next)
+    if (!timelineRef.current.canRedo) return
+    timelineRef.current.redo()
+    setProject(timelineRef.current.current)
   }
   const persist = (nextProject: ProjectData, label: string) => {
     const result = saveProject(nextProject)
@@ -148,10 +171,8 @@ export default function App() {
   const save = () => persist(project, 'Saved')
   const loadDraft = () => {
     const loaded = loadProjectWithSource()
-    setHistory([])
-    setFuture([])
     setSelectedId(null)
-    setProject(loaded.project)
+    resetTimeline(loaded.project)
     setSavedAt(loaded.source === 'default' ? 'No draft found; opened clean project' : `Loaded ${loaded.source} from this browser`)
     setPersistenceState(loaded.source === 'default' ? 'No local draft found; using clean project' : `Loaded from browser localStorage ${loaded.source}`)
   }
@@ -159,10 +180,8 @@ export default function App() {
     if (!file) return
     try {
       const imported = await importProjectFile(file)
-      setHistory([])
-      setFuture([])
       setSelectedId(null)
-      setProject(imported)
+      resetTimeline(imported)
       setSavedAt(`Imported ${file.name}`)
       setPersistenceState('Imported JSON; pending autosave to browser localStorage')
     } catch (error) {
@@ -173,10 +192,8 @@ export default function App() {
     }
   }
   const reset = () => {
-    setHistory([])
-    setFuture([])
     setSelectedId(null)
-    setProject(defaultProject())
+    resetTimeline(defaultProject())
     setSavedAt('New local draft')
     setPersistenceState('Pending autosave to browser localStorage')
   }
@@ -196,8 +213,8 @@ export default function App() {
         <div className="brand"><span className="brand-mark">V</span><div><strong>VThere</strong><span>Spatial Experience Builder</span></div></div>
         <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
         <div className="top-actions">
-          <button className="button subtle" onClick={undo} disabled={!history.length}>Undo</button>
-          <button className="button subtle" onClick={redo} disabled={!future.length}>Redo</button>
+          <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
+          <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
           <button className="button ghost" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
           <input
@@ -214,8 +231,8 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside className="left-rail">
-          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push(makeScene(id, `Room ${next.scenes.length + 1}`)); next.activeSceneId = id; commit(next) }}>+</button></div>
-          <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
+          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
+          <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { commit('Select scene', setActiveScene(project, item.id).project); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
           <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
           <section className="panel">
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
@@ -281,7 +298,7 @@ export default function App() {
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
-          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
+          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
     </main>
@@ -291,7 +308,7 @@ export default function App() {
 const radToDeg = (radians: number) => radians * (180 / Math.PI)
 const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 
-function Inspector({ object, onRename, onTransform }: { object: SceneObject; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void }) {
+function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange }: { object: SceneObject; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void }) {
   const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
     const isRotation = key === 'rotation'
     const displayValues = isRotation ? values.map(radToDeg) : values
@@ -321,5 +338,5 @@ function Inspector({ object, onRename, onTransform }: { object: SceneObject; onR
       </div>
     )
   }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}</div>
+  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }

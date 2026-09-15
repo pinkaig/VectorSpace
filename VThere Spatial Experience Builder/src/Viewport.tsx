@@ -33,7 +33,11 @@ import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
 import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
-import { ARROW_LENGTH, GIZMO_GAP, MIN_FLY_HEIGHT, MOVE_KEYS, SPRINT_KEYS, SPRINT_MULTIPLIER, VERTICAL_KEYS, WALK_SPEED, colorFor, getVerticalDirection, getWalkDirection, isTypingTarget } from './viewport/viewportTypes'
+import { ARROW_LENGTH, GIZMO_GAP, MIN_FLY_HEIGHT, MOVE_KEYS, SPRINT_KEYS, SPRINT_MULTIPLIER, VERTICAL_KEYS, WALK_SPEED, getVerticalDirection, getWalkDirection, isTypingTarget } from './viewport/viewportTypes'
+import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
+import { normalizeAngle } from './viewport/interactionMath'
+import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
+import type { EnvStatus } from './viewport/renderTypes'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -58,12 +62,6 @@ interface ViewportProps {
 
 export interface ViewportHandle {
   getCameraPose: () => CameraPose
-}
-
-interface EnvStatus {
-  state: 'loading' | 'ready' | 'error'
-  progress: number
-  message?: string
 }
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
@@ -215,28 +213,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const syncObjects = () => {
       const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
       if (signature === renderedSignature) return
-      objectsGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
-      })
-      objectsGroup.clear()
-      dataRef.current.objects.forEach((item) => {
-        const geometry = item.assetKind === 'sphere' ? new THREE.SphereGeometry(0.65, 32, 20) : item.assetKind === 'cylinder' ? new THREE.CylinderGeometry(0.55, 0.55, 1.2, 32) : new THREE.BoxGeometry(1.1, 1.1, 1.1)
-        const material = new THREE.MeshStandardMaterial({ color: colorFor(item.assetKind), roughness: 0.68, metalness: 0.05 })
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.name = item.id
-        mesh.position.set(...item.transform.position)
-        mesh.rotation.set(...item.transform.rotation)
-        mesh.scale.set(...item.transform.scale)
-        if (item.id === dataRef.current.selectedId) {
-          const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xf3d48b }))
-          mesh.add(edges)
-        }
-        objectsGroup.add(mesh)
-      })
+      syncArtefacts({ group: objectsGroup, objects: dataRef.current.objects, selectedId: dataRef.current.selectedId })
       renderedSignature = signature
     }
 
@@ -292,7 +269,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const pick = (event: PointerEvent) => {
       getPointer(event)
       raycaster.setFromCamera(pointer, camera)
-      const hit = raycaster.intersectObjects(objectsGroup.children, false)[0]
+      const pickable = objectsGroup.children.filter((object) => object.visible && object.userData.enabled !== false)
+      const hit = raycaster.intersectObjects(pickable, false)[0]
       return hit?.object ?? null
     }
     // Raycasts against the visible gizmo handles, returns whichever one (if any) is under the cursor.
@@ -530,7 +508,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         const twoPi = Math.PI * 2
         // Normalize into [0, 2π) — matches the Inspector's 0-360° convention — without
         // affecting the live drag, which needs unbounded accumulation to avoid snapping.
-        const normalized = lastRotateValue.map((value) => ((value % twoPi) + twoPi) % twoPi) as [number, number, number]
+        const normalized = lastRotateValue.map(normalizeAngle) as [number, number, number]
         dataRef.current.onRotate?.(rotateDragging.id, normalized) // single commit, one undo entry
       }
       rotateDragging = null
@@ -612,13 +590,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
-      objectsGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
-      })
+      disposeObjectResources(objectsGroup)
       gizmoGroup.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose()
@@ -702,24 +674,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   return (
     <div className="viewport" ref={mountRef}>
-      {envStatus.state !== 'ready' && (
-        <div className="viewport-overlay">
-          {envStatus.state === 'loading' ? (
-            <>
-              <div className="spinner" />
-              <p>Loading environment…</p>
-              <div className="progress-track"><div className="progress-fill" style={{ width: `${Math.round(envStatus.progress * 100)}%` }} /></div>
-            </>
-          ) : (
-            <>
-              <p className="overlay-error">Could not load this environment.</p>
-              <p className="overlay-detail">{envStatus.message}</p>
-              <button className="button subtle" onClick={() => setReloadToken((value) => value + 1)}>Retry</button>
-            </>
-          )}
-        </div>
-      )}
-      {hint && <div className="viewport-hint">{hint}</div>}
+      <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
+      <ViewportHint text={hint} />
     </div>
   )
 })

@@ -35,6 +35,8 @@ export interface SceneObject {
   name: string
   assetId: string
   assetKind: AssetKind
+  visible: boolean
+  enabled: boolean
   transform: TransformData
 }
 
@@ -128,6 +130,8 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
   name: `${assetKind[0].toUpperCase()}${assetKind.slice(1)} ${index}`,
   assetId: `primitive-${assetKind}`,
   assetKind,
+  visible: true,
+  enabled: true,
   transform: {
     position: [0, restingHeight[assetKind], 0],
     rotation: [0, 0, 0],

@@ -60,6 +60,10 @@ const backfillScenes = (project: ProjectData): ProjectData => {
   project.scenes.forEach((scene) => {
     if (!scene.environmentId) scene.environmentId = defaultEnvironmentId
     if (!scene.startCamera) scene.startCamera = defaultCameraPose()
+    scene.objects.forEach((object) => {
+      if (typeof object.visible !== 'boolean') object.visible = true
+      if (typeof object.enabled !== 'boolean') object.enabled = true
+    })
   })
   return project
 }
@@ -83,7 +87,7 @@ const validateProject = (parsed: unknown): ProjectData => {
     for (const object of scene.objects) {
       objectCount += 1
       if (objectCount > MAX_OBJECTS) throw new Error('Project contains too many scene objects')
-      if (!object || typeof object !== 'object' || typeof object.id !== 'string' || typeof object.name !== 'string' || typeof object.assetId !== 'string' || object.id.length > MAX_LABEL_LENGTH || object.name.length > MAX_LABEL_LENGTH || object.assetId.length > MAX_LABEL_LENGTH || !['cube', 'sphere', 'cylinder'].includes(object.assetKind) || !object.transform || !isTuple(object.transform.position) || !isTuple(object.transform.rotation) || !isTuple(object.transform.scale)) throw new Error('Project contains an invalid scene object')
+      if (!object || typeof object !== 'object' || typeof object.id !== 'string' || typeof object.name !== 'string' || typeof object.assetId !== 'string' || object.id.length > MAX_LABEL_LENGTH || object.name.length > MAX_LABEL_LENGTH || object.assetId.length > MAX_LABEL_LENGTH || !['cube', 'sphere', 'cylinder'].includes(object.assetKind) || (object.visible !== undefined && typeof object.visible !== 'boolean') || (object.enabled !== undefined && typeof object.enabled !== 'boolean') || !object.transform || !isTuple(object.transform.position) || !isTuple(object.transform.rotation) || !isTuple(object.transform.scale)) throw new Error('Project contains an invalid scene object')
       if (objectIds.has(object.id)) throw new Error('Project contains duplicate object IDs')
       objectIds.add(object.id)
     }
