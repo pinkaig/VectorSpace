@@ -35,6 +35,7 @@ Use this table as the first stop when changing viewport or rendering behaviour.
 | Environment loading lifecycle and replacement | [`src/viewport/environmentController.ts`](../../src/viewport/environmentController.ts) | Async loading, cancellation, replacement, or disposal handoff changes |
 | Environment loading UI | [`src/viewport/ViewportOverlay.tsx`](../../src/viewport/ViewportOverlay.tsx) | Loading, retry, and error presentation changes |
 | Camera pose and walk movement | [`src/viewport/cameraController.ts`](../../src/viewport/cameraController.ts) | Camera pose capture, pose application, or walk movement changes |
+| Pointer, drag, gizmo picking, and keyboard listener ownership | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) | Selection, drag previews, gizmo hits, or one-command-on-release behaviour changes |
 | Artefact geometry, materials, visibility, picking metadata, and disposal | [`src/viewport/syncArtefacts.ts`](../../src/viewport/syncArtefacts.ts) | Artefact reconstruction or resource ownership changes |
 | Gizmo visibility, placement, local/world orientation, and sizing | [`src/viewport/syncGizmo.ts`](../../src/viewport/syncGizmo.ts) | Gizmo presentation follows different object or transform rules |
 | Axis and rotation calculations | [`src/viewport/interactionMath.ts`](../../src/viewport/interactionMath.ts) | Ray/axis or angle behaviour changes; keep this framework-free |
@@ -60,8 +61,8 @@ together for now:
 
 1. `createViewportRuntime`: scene, renderer, camera, animation loop, listeners,
    and cleanup.
-2. `interactionController`: selection, free drag, axis drag, scale, rotation,
-   and one-command-on-release commits.
+2. Remove the legacy inline pointer-state code from `Viewport.tsx`; the active
+  listener owner is now `interactionController`.
 
 `environmentController` is already extracted and owns asynchronous environment
 replacement, cancellation, status reporting, and disposal handoff.

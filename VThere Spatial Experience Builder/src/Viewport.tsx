@@ -39,6 +39,7 @@ import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, getCameraPose, updateWalkCamera } from './viewport/cameraController'
+import { createViewportInteractionController } from './viewport/interactionController'
 import type { EnvStatus } from './viewport/renderTypes'
 
 export type CameraMode = 'orbit' | 'walk'
@@ -226,6 +227,36 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         isDragging: !!dragging || !!axisDragging || !!scaleDragging || !!rotateDragging,
       })
     }
+
+    const interactionController = createViewportInteractionController({
+      element: renderer.domElement,
+      camera,
+      controls,
+      raycaster,
+      pointer,
+      objectsGroup,
+      gizmoGroup,
+      axisArrows,
+      scaleHandles,
+      rotateHandles,
+      yaw: yawRef,
+      pitch: pitchRef,
+      interactive,
+      callbacks: {
+        getData: () => ({
+          objects: dataRef.current.objects,
+          selectedId: dataRef.current.selectedId,
+          gizmoMode: dataRef.current.gizmoMode,
+          scaleSpace: dataRef.current.scaleSpace,
+          rotateSpace: dataRef.current.rotateSpace,
+          cameraMode: dataRef.current.cameraMode,
+        }),
+        select: (id) => dataRef.current.onSelect(id),
+        commitMove: (id, position) => dataRef.current.onMove(id, position),
+        commitScale: (id, scale) => dataRef.current.onScale?.(id, scale),
+        commitRotate: (id, rotation) => dataRef.current.onRotate?.(id, rotation),
+      },
+    })
 
     const getPointer = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect()
@@ -502,13 +533,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     observer.observe(mount)
     // Always registered: walk-mode look/WASD navigation must work even in read-only mode.
     // Editing actions (select/drag/gizmo) are gated inside onPointerDown itself via `interactive`.
-    renderer.domElement.addEventListener('pointerdown', onPointerDown)
-    renderer.domElement.addEventListener('pointermove', onPointerMove)
-    renderer.domElement.addEventListener('pointerup', onPointerUp)
-    renderer.domElement.addEventListener('contextmenu', onContextMenu)
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('blur', onBlur)
+    // Pointer and keyboard listeners are owned by interactionController.
 
     let frame = 0
     let lastTime = performance.now()
@@ -520,7 +545,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       syncObjects()
       syncGizmoFrame()
       if (dataRef.current.cameraMode === 'walk') {
-        updateWalkCamera(camera, pressedKeys, delta, yawRef.current)
+        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current)
       } else {
         controls.update()
       }
@@ -532,13 +557,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
-      renderer.domElement.removeEventListener('pointerdown', onPointerDown)
-      renderer.domElement.removeEventListener('pointermove', onPointerMove)
-      renderer.domElement.removeEventListener('pointerup', onPointerUp)
-      renderer.domElement.removeEventListener('contextmenu', onContextMenu)
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('blur', onBlur)
+      interactionController.dispose()
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
