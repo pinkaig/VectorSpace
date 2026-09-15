@@ -16,8 +16,8 @@
  * A React mount element containing a WebGL canvas and optional editor hint.
  *
  * @members
- * mountRef, dataRef, scene, camera, renderer, raycaster, objectsGroup,
- * resize, syncObjects, pointer handlers, ResizeObserver, animation frame.
+ * mountRef, dataRef, scene, camera, renderer, objectsGroup, resize,
+ * synchronisation helpers, ResizeObserver, and animation frame.
  *
  * @documentation
  * Larger system guide: docs/05-subsystems/viewport.md
@@ -26,15 +26,11 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CameraPose, SceneObject, defaultCameraPose, defaultEnvironmentId } from './model'
-import { AxisName, AxisArrow } from './gizmo/types'
-import { AXIS_COLORS, AXIS_HOVER_COLORS } from './gizmo/colors'
-import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
-import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
-import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
-import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
-import { ARROW_LENGTH, GIZMO_GAP, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewport/viewportTypes'
+import { AxisArrow } from './gizmo/types'
+import { makeAxisArrow } from './gizmo/moveGizmo'
+import { makeAxisScaleHandle, AxisScaleHandle } from './gizmo/scaleGizmo'
+import { makeAxisRotateHandle, AxisRotateHandle } from './gizmo/rotateGizmo'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
-import { normalizeAngle } from './viewport/interactionMath'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
@@ -127,7 +123,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     scene.add(environmentGroup)
     scene.add(objectsGroup)
 
-    const gizmoGroup = new THREE.Group() // kept separate from objectsGroup so syncObjects rebuilds don't touch it
+    // Keep editor-only gizmos outside the authored artefact group. Artefact
+    // synchronisation may rebuild objects, but must never dispose the gizmos.
+    const gizmoGroup = new THREE.Group()
     scene.add(gizmoGroup)
 
     // move gizmo: one arrow per axis, built once
@@ -166,36 +164,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     applyPoseRef.current(dataRef.current.startCamera)
 
-    // Free (non-axis-constrained) drag: raycasts onto a plane facing the camera and passing
-    // through the object's position, so X/Y/Z can all change depending on the camera angle.
-    let dragging: { id: string; plane: THREE.Plane; offset: THREE.Vector3 } | null = null
-    let lastDragPosition: [number, number, number] | null = null
-    const dragPoint = new THREE.Vector3()
-
-    let axisDragging: { id: string; axis: AxisName; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number } | null = null
-    let lastAxisDragPosition: [number, number, number] | null = null
-
-    let scaleDragging: { id: string; axis: AxisName; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number; startScale: [number, number, number] } | null = null
-    let lastScaleValue: [number, number, number] | null = null
-
-    // Rotation is accumulated incrementally frame-to-frame (rather than as a single delta from
-    // the initial grab angle) so dragging past the atan2 wraparound point doesn't snap.
-    let rotateDragging: {
-      id: string
-      axisIndex: 0 | 1 | 2
-      center: THREE.Vector3
-      normal: THREE.Vector3
-      plane: THREE.Plane
-      lastAngle: number
-      spaceMode: 'world' | 'local'
-      currentRotation: [number, number, number] // used in world mode: Euler component is incremented directly
-      currentQuaternion: THREE.Quaternion // used in local mode: rotation is composed around the fixed local axis
-    } | null = null
-    let lastRotateValue: [number, number, number] | null = null
-
-    let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
-    const pressedKeys = new Set<string>()
-
     let renderedSignature = ''
 
     const resize = () => {
@@ -212,6 +180,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderedSignature = signature
     }
 
+    let interactionController: ReturnType<typeof createViewportInteractionController>
     const syncGizmoFrame = () => {
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
       syncGizmo({
@@ -224,11 +193,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         mode: dataRef.current.gizmoMode,
         scaleSpace: dataRef.current.scaleSpace,
         rotateSpace: dataRef.current.rotateSpace,
-        isDragging: !!dragging || !!axisDragging || !!scaleDragging || !!rotateDragging,
+        isDragging: interactionController.isDragging(),
       })
     }
 
-    const interactionController = createViewportInteractionController({
+    interactionController = createViewportInteractionController({
       element: renderer.domElement,
       camera,
       controls,
@@ -258,282 +227,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       },
     })
 
-    const getPointer = (event: PointerEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect()
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-    }
-    const pick = (event: PointerEvent) => {
-      getPointer(event)
-      raycaster.setFromCamera(pointer, camera)
-      const pickable = objectsGroup.children.filter((object) => object.visible && object.userData.enabled !== false)
-      const hit = raycaster.intersectObjects(pickable, false)[0]
-      return hit?.object ?? null
-    }
-    // Raycasts against the visible gizmo handles, returns whichever one (if any) is under the cursor.
-    const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' | 'rotate' } | null => {
-      getPointer(event)
-      raycaster.setFromCamera(pointer, camera)
-      const mode = dataRef.current.gizmoMode
-      if (mode === 'move') {
-        for (const arrow of axisArrows) {
-          if (raycaster.intersectObjects(arrow.group.children, true)[0]) return { axis: arrow.axis, kind: 'arrow' }
-        }
-      }
-      if (mode === 'scale') {
-        for (const handle of scaleHandles) {
-          if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'scale' }
-        }
-      }
-      if (mode === 'rotate') {
-        for (const handle of rotateHandles) {
-          if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'rotate' }
-        }
-      }
-      return null
-    }
-    const resetAllArrowColors = () => axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis]))
-    const resetAllScaleHandleColors = () => scaleHandles.forEach((handle) => setScaleHandleColor(handle, AXIS_COLORS[handle.axis]))
-    const resetAllRotateHandleColors = () => rotateHandles.forEach((handle) => setRotateHandleColor(handle, AXIS_COLORS[handle.axis]))
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (dataRef.current.cameraMode === 'walk') {
-        if (event.button !== 0) return
-        looking = { startPointerX: event.clientX, startPointerY: event.clientY, startYaw: yawRef.current, startPitch: pitchRef.current }
-        renderer.domElement.setPointerCapture(event.pointerId)
-        return
-      }
-      // Camera look/walk navigation always works; object selection, dragging, and the
-      // gizmo are editing actions and stay off in read-only (e.g. visitor simulation) mode.
-      if (!interactive) return
-      if (event.button !== 0) return
-
-      const gizmoHit = pickGizmo(event)
-      if (gizmoHit) {
-        const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId)
-        if (selected) {
-          const axisOrigin = new THREE.Vector3(...selected.transform.position)
-          if (gizmoHit.kind === 'arrow') {
-            const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
-            getPointer(event)
-            raycaster.setFromCamera(pointer, camera)
-            const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, arrow.direction)
-            if (hitT !== null) {
-              controls.enabled = false
-              axisDragging = { id: selected.id, axis: arrow.axis, origin: axisOrigin, direction: arrow.direction.clone(), grabT: hitT }
-            }
-          } else if (gizmoHit.kind === 'scale') {
-            const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
-            const mesh = objectsGroup.getObjectByName(selected.id) // read live scale from the mesh, not stale React state
-            if (mesh) {
-              const direction = dataRef.current.scaleSpace === 'local'
-                ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation))
-                : handle.direction.clone()
-              getPointer(event)
-              raycaster.setFromCamera(pointer, camera)
-              const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisOrigin, direction)
-              if (hitT !== null) {
-                controls.enabled = false
-                scaleDragging = { id: selected.id, axis: handle.axis, origin: axisOrigin, direction, grabT: hitT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] }
-              }
-            }
-          } else {
-            const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
-            const isLocalRotate = dataRef.current.rotateSpace === 'local'
-            const objectEuler = new THREE.Euler(...selected.transform.rotation)
-            // The rotation axis stays fixed in world space for the whole drag either way —
-            // spinning an object around its own local axis never moves that axis — so it's
-            // safe to resolve it once here, at grab time.
-            const normal = isLocalRotate ? handle.normal.clone().applyEuler(objectEuler) : handle.normal.clone()
-            const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, axisOrigin)
-            getPointer(event)
-            raycaster.setFromCamera(pointer, camera)
-            const hitPoint = new THREE.Vector3()
-            if (raycaster.ray.intersectPlane(plane, hitPoint)) {
-              controls.enabled = false
-              const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
-              rotateDragging = {
-                id: selected.id,
-                axisIndex,
-                center: axisOrigin,
-                normal,
-                plane,
-                lastAngle: angleAroundAxis(hitPoint, axisOrigin, normal),
-                spaceMode: isLocalRotate ? 'local' : 'world',
-                currentRotation: [...selected.transform.rotation],
-                currentQuaternion: new THREE.Quaternion().setFromEuler(objectEuler),
-              }
-            }
-          }
-        }
-        renderer.domElement.setPointerCapture(event.pointerId)
-        return
-      }
-
-      const hit = pick(event)
-      if (!hit) { dataRef.current.onSelect(null); return }
-      controls.enabled = false
-      dataRef.current.onSelect(hit.name)
-      const item = dataRef.current.objects.find((object) => object.id === hit.name)
-      if (item) {
-        const objectPosition = new THREE.Vector3(...item.transform.position)
-        const cameraForward = camera.getWorldDirection(new THREE.Vector3())
-        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, objectPosition)
-        if (raycaster.ray.intersectPlane(plane, dragPoint)) {
-          dragging = { id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) }
-        }
-      }
-      renderer.domElement.setPointerCapture(event.pointerId)
-    }
-
-    const onPointerMove = (event: PointerEvent) => {
-      if (looking) {
-        const sensitivity = 0.0045
-        yawRef.current = looking.startYaw - (event.clientX - looking.startPointerX) * sensitivity
-        pitchRef.current = THREE.MathUtils.clamp(looking.startPitch - (event.clientY - looking.startPointerY) * sensitivity, -1.4, 1.4)
-        camera.rotation.order = 'YXZ'
-        camera.rotation.set(pitchRef.current, yawRef.current, 0)
-        return
-      }
-
-      if (!axisDragging && !scaleDragging && !rotateDragging && !dragging) {
-        // Only show hover feedback when nothing's actively being dragged.
-        const hovering = pickGizmo(event)
-        resetAllArrowColors()
-        resetAllScaleHandleColors()
-        resetAllRotateHandleColors()
-        if (hovering?.kind === 'arrow') setArrowColor(axisArrows.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
-        if (hovering?.kind === 'scale') setScaleHandleColor(scaleHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
-        if (hovering?.kind === 'rotate') setRotateHandleColor(rotateHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
-      }
-
-      if (axisDragging) {
-        getPointer(event)
-        raycaster.setFromCamera(pointer, camera)
-        const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisDragging.origin, axisDragging.direction)
-        if (hitT === null) return // degenerate camera angle this frame, skip rather than jump
-        const travel = hitT - axisDragging.grabT
-        const next = axisDragging.origin.clone().addScaledVector(axisDragging.direction, travel)
-        const nextPos: [number, number, number] = [next.x, next.y, next.z]
-        const mesh = objectsGroup.getObjectByName(axisDragging.id)
-        if (mesh) mesh.position.set(...nextPos)
-        gizmoGroup.position.set(...nextPos)
-        lastAxisDragPosition = nextPos
-        return
-      }
-
-      if (scaleDragging) {
-        getPointer(event)
-        raycaster.setFromCamera(pointer, camera)
-        const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, scaleDragging.origin, scaleDragging.direction)
-        if (hitT === null) return
-        const travel = hitT - scaleDragging.grabT
-        const scaleFactor = 1 + travel
-        const axisIndex = scaleDragging.axis === 'x' ? 0 : scaleDragging.axis === 'y' ? 1 : 2
-        const nextScale: [number, number, number] = [...scaleDragging.startScale]
-        nextScale[axisIndex] = Math.max(0.05, scaleDragging.startScale[axisIndex] * scaleFactor) // clamp so it can't invert or vanish
-        const mesh = objectsGroup.getObjectByName(scaleDragging.id)
-        if (mesh) mesh.scale.set(...nextScale)
-        lastScaleValue = nextScale
-        return
-      }
-
-      if (rotateDragging) {
-        getPointer(event)
-        raycaster.setFromCamera(pointer, camera)
-        const hitPoint = new THREE.Vector3()
-        if (!raycaster.ray.intersectPlane(rotateDragging.plane, hitPoint)) return // degenerate camera angle this frame, skip rather than jump
-        const angle = angleAroundAxis(hitPoint, rotateDragging.center, rotateDragging.normal)
-        let step = angle - rotateDragging.lastAngle
-        if (step > Math.PI) step -= Math.PI * 2 // unwrap so crossing the atan2 seam doesn't snap
-        if (step < -Math.PI) step += Math.PI * 2
-        rotateDragging.lastAngle = angle
-        const mesh = objectsGroup.getObjectByName(rotateDragging.id)
-        let nextRotation: [number, number, number]
-        if (rotateDragging.spaceMode === 'local') {
-          // World-space rotation about the (fixed) local axis, composed on top of whatever
-          // rotation the object already had — unlike the world-mode path, a plain per-component
-          // Euler increment would be wrong once the object has rotation on other axes too.
-          const deltaQuat = new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step)
-          rotateDragging.currentQuaternion.premultiply(deltaQuat)
-          const euler = new THREE.Euler().setFromQuaternion(rotateDragging.currentQuaternion, 'XYZ')
-          nextRotation = [euler.x, euler.y, euler.z]
-          if (mesh) mesh.quaternion.copy(rotateDragging.currentQuaternion)
-        } else {
-          nextRotation = [...rotateDragging.currentRotation] as [number, number, number]
-          nextRotation[rotateDragging.axisIndex] += step
-          rotateDragging.currentRotation = nextRotation // accumulate: next frame's step applies on top of this
-          if (mesh) mesh.rotation.set(...nextRotation)
-        }
-        lastRotateValue = nextRotation
-        return
-      }
-
-      if (!dragging) return
-      getPointer(event)
-      raycaster.setFromCamera(pointer, camera)
-      if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
-      dragPoint.add(dragging.offset)
-      const nextPos: [number, number, number] = [dragPoint.x, dragPoint.y, dragPoint.z]
-      // Mutate the mesh directly during the drag (and commit once on release) so dragging
-      // doesn't spam an undo-history entry on every pointermove.
-      const mesh = objectsGroup.getObjectByName(dragging.id)
-      if (mesh) mesh.position.set(...nextPos)
-      gizmoGroup.position.set(...nextPos)
-      lastDragPosition = nextPos
-    }
-
-    const onPointerUp = (event: PointerEvent) => {
-      if (looking) {
-        const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY)
-        looking = null
-        if (moved < 4) {
-          const hit = pick(event)
-          dataRef.current.onSelect(hit?.name ?? null)
-        }
-        return
-      }
-      if (axisDragging && lastAxisDragPosition) dataRef.current.onMove(axisDragging.id, lastAxisDragPosition) // single commit, one undo entry
-      axisDragging = null
-      lastAxisDragPosition = null
-
-      if (scaleDragging && lastScaleValue) dataRef.current.onScale?.(scaleDragging.id, lastScaleValue) // single commit, one undo entry
-      scaleDragging = null
-      lastScaleValue = null
-
-      if (rotateDragging && lastRotateValue) {
-        const twoPi = Math.PI * 2
-        // Normalize into [0, 2π) — matches the Inspector's 0-360° convention — without
-        // affecting the live drag, which needs unbounded accumulation to avoid snapping.
-        const normalized = lastRotateValue.map(normalizeAngle) as [number, number, number]
-        dataRef.current.onRotate?.(rotateDragging.id, normalized) // single commit, one undo entry
-      }
-      rotateDragging = null
-      lastRotateValue = null
-
-      if (dragging && lastDragPosition) dataRef.current.onMove(dragging.id, lastDragPosition)
-      dragging = null
-      lastDragPosition = null
-
-      controls.enabled = dataRef.current.cameraMode === 'orbit'
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return
-      if (!(event.code in MOVE_KEYS) && !(event.code in VERTICAL_KEYS) && !SPRINT_KEYS.has(event.code)) return
-      if (dataRef.current.cameraMode === 'walk') event.preventDefault()
-      pressedKeys.add(event.code)
-    }
-    const onKeyUp = (event: KeyboardEvent) => { pressedKeys.delete(event.code) }
-    // Right-click no longer does anything in-scene, so suppress the browser's context menu —
-    // otherwise it steals focus and the eventual keyup never arrives, leaving movement stuck on.
-    const onContextMenu = (event: MouseEvent) => { event.preventDefault() }
-    const onBlur = () => { pressedKeys.clear() }
-
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
-    // Always registered: walk-mode look/WASD navigation must work even in read-only mode.
-    // Editing actions (select/drag/gizmo) are gated inside onPointerDown itself via `interactive`.
-    // Pointer and keyboard listeners are owned by interactionController.
+    // Walk-mode look and movement remain available in runtime mode. The
+    // interaction controller gates editor selection and transforms with
+    // `interactive` and owns all pointer/keyboard listener cleanup.
 
     let frame = 0
     let lastTime = performance.now()

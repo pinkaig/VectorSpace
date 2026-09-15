@@ -57,6 +57,9 @@ export interface ViewportInteractionController {
 
 export const createViewportInteractionController = (input: ViewportInteractionInput): ViewportInteractionController => {
   const { element, camera, controls, raycaster, pointer, objectsGroup, gizmoGroup, axisArrows, scaleHandles, rotateHandles, yaw, pitch, callbacks, interactive } = input
+
+  // Each drag state is renderer-side preview state. The project is changed only
+  // by the commit callbacks on pointer release, so one drag creates one history entry.
   let dragging: { id: string; plane: THREE.Plane; offset: THREE.Vector3 } | null = null
   let lastDragPosition: [number, number, number] | null = null
   let axisDragging: { id: string; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number } | null = null
@@ -80,6 +83,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     const pickable = objectsGroup.children.filter((object) => object.visible && object.userData.enabled !== false)
     return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
   }
+
+  // Gizmo hits are kept separate from artefact hits because they start a
+  // constrained transform session rather than selecting a scene object.
   const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' | 'rotate' } | null => {
     getPointer(event)
     raycaster.setFromCamera(pointer, camera)
@@ -125,6 +131,8 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
         const local = data.rotateSpace === 'local'
         const objectEuler = new THREE.Euler(...selected.transform.rotation)
+        // Resolve the rotation plane once at grab time. Local rotation still
+        // uses a fixed world-space axis for the duration of the drag.
         const normal = local ? handle.normal.clone().applyEuler(objectEuler) : handle.normal.clone()
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
         getPointer(event); raycaster.setFromCamera(pointer, camera)
@@ -170,6 +178,8 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (axisDragging) {
       getPointer(event); raycaster.setFromCamera(pointer, camera)
       const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisDragging.origin, axisDragging.direction)
+      // A camera looking down the constrained axis produces an unstable
+      // closest-point solution; skip that frame instead of jumping.
       if (hitT === null) return
       const next = axisDragging.origin.clone().addScaledVector(axisDragging.direction, hitT - axisDragging.grabT)
       lastAxisDragPosition = [next.x, next.y, next.z]
@@ -188,12 +198,19 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     }
     if (rotateDragging) {
       getPointer(event); raycaster.setFromCamera(pointer, camera)
-      const hitPoint = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(rotateDragging.plane, hitPoint)) return
+      const hitPoint = new THREE.Vector3()
+      // A parallel camera ray can miss the rotation plane for a frame.
+      if (!raycaster.ray.intersectPlane(rotateDragging.plane, hitPoint)) return
       const angle = angleAroundAxis(hitPoint, rotateDragging.center, rotateDragging.normal)
-      let step = angle - rotateDragging.lastAngle; if (step > Math.PI) step -= Math.PI * 2; if (step < -Math.PI) step += Math.PI * 2
+      // Unwrap atan2 at +/- PI so crossing the seam does not snap the object.
+      let step = angle - rotateDragging.lastAngle
+      if (step > Math.PI) step -= Math.PI * 2
+      if (step < -Math.PI) step += Math.PI * 2
       rotateDragging.lastAngle = angle
       let rotation: [number, number, number]
       if (rotateDragging.spaceMode === 'local') {
+        // A local-axis rotation must compose quaternions. Incrementing one
+        // Euler component would be wrong after rotation on another axis.
         rotateDragging.currentQuaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step))
         const euler = new THREE.Euler().setFromQuaternion(rotateDragging.currentQuaternion, 'XYZ'); rotation = [euler.x, euler.y, euler.z]
         objectsGroup.getObjectByName(rotateDragging.id)?.quaternion.copy(rotateDragging.currentQuaternion)
@@ -216,6 +233,8 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       if (moved < 4) callbacks.select(pick(event)?.name ?? null)
       return
     }
+    // Commit only the final preview value. Pointer-move events must not spam
+    // the authoring timeline.
     if (axisDragging && lastAxisDragPosition) callbacks.commitMove(axisDragging.id, lastAxisDragPosition)
     if (scaleDragging && lastScaleValue) callbacks.commitScale(scaleDragging.id, lastScaleValue)
     if (rotateDragging && lastRotateValue) callbacks.commitRotate(rotateDragging.id, lastRotateValue.map(normalizeAngle) as [number, number, number])

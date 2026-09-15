@@ -61,13 +61,13 @@ together for now:
 
 1. `createViewportRuntime`: scene, renderer, camera, animation loop, listeners,
    and cleanup.
-2. Remove the legacy inline pointer-state code from `Viewport.tsx`; the active
-  listener owner is now `interactionController`.
 
 `environmentController` is already extracted and owns asynchronous environment
 replacement, cancellation, status reporting, and disposal handoff.
 `cameraController` is also extracted and owns camera pose conversion and walk
 movement; orbit/walk mode transition wiring remains in `Viewport.tsx`.
+`interactionController` is extracted and is the sole owner of pointer, drag,
+gizmo-picking, and keyboard listeners.
 
 Extract these only when each module can own its resources and receive a narrow
 contract. Do not split them merely to reduce the line count of `Viewport.tsx`.
