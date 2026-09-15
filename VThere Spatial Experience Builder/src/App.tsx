@@ -43,6 +43,7 @@ import {
 import { assetCatalog, filterAssets } from './assets'
 import RuntimeView from './RuntimeView'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
+import ReferenceViewport from './ReferenceViewport'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
@@ -56,6 +57,12 @@ export default function App() {
   const [scaleSpace, setScaleSpace] = useState<'world' | 'local'>('world')
   const [rotateSpace, setRotateSpace] = useState<'world' | 'local'>('world')
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
+  // 'single' (default) is one full-size perspective pane. 'quad' — entered via the
+  // Orthographic button — shows that same pane top-left plus Top/Front/Right references.
+  const [layoutMode, setLayoutMode] = useState<'quad' | 'single'>('single')
+  const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
+  const [showOctaOrb, setShowOctaOrb] = useState(true)
+  const [showAxisIndicator, setShowAxisIndicator] = useState(true)
   const [resetToken, setResetToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
     initialLoad.source === 'default'
@@ -259,25 +266,64 @@ export default function App() {
           <div className="view-toolbar">
             <label className="env-select"><span>Environment</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
             <div className="mode-switch"><button className={cameraMode === 'orbit' ? 'mode active' : 'mode'} onClick={() => setCameraMode('orbit')}>Orbit</button><button className={cameraMode === 'walk' ? 'mode active' : 'mode'} onClick={() => setCameraMode('walk')}>Walk</button></div>
+            <div className="mode-switch">
+              <button className={layoutMode === 'single' ? 'mode active' : 'mode'} onClick={() => { setLayoutMode('single'); setSingleViewOrthographic(false) }} title="One full-size perspective view">Perspective</button>
+              <button className={layoutMode === 'quad' ? 'mode active' : 'mode'} onClick={() => setLayoutMode('quad')} title="Perspective + Top + Front + Right, all at once">Orthographic</button>
+            </div>
+            <div className="mode-switch">
+              <button className={showOctaOrb ? 'mode active' : 'mode'} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">OctaOrb</button>
+              <button className={showAxisIndicator ? 'mode active' : 'mode'} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
+            </div>
             <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
           </div>
-          <Viewport
-            ref={viewportRef}
-            objects={scene.objects}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onMove={moveObject}
-            onScale={scaleObject}
-            onRotate={rotateObject}
-            gizmoMode={gizmoMode}
-            scaleSpace={scaleSpace}
-            rotateSpace={rotateSpace}
-            sceneId={scene.id}
-            environmentId={scene.environmentId}
-            startCamera={scene.startCamera}
-            cameraMode={cameraMode}
-            resetToken={resetToken}
-          />
+          {layoutMode === 'quad' ? (
+            <div className="quad-viewport">
+              <Viewport
+                ref={viewportRef}
+                objects={scene.objects}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onMove={moveObject}
+                onScale={scaleObject}
+                onRotate={rotateObject}
+                gizmoMode={gizmoMode}
+                scaleSpace={scaleSpace}
+                rotateSpace={rotateSpace}
+                sceneId={scene.id}
+                environmentId={scene.environmentId}
+                startCamera={scene.startCamera}
+                cameraMode={cameraMode}
+                resetToken={resetToken}
+                showOctaOrb={showOctaOrb}
+                showAxisIndicator={showAxisIndicator}
+              />
+              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
+              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
+              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
+            </div>
+          ) : (
+            <Viewport
+              ref={viewportRef}
+              objects={scene.objects}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onMove={moveObject}
+              onScale={scaleObject}
+              onRotate={rotateObject}
+              gizmoMode={gizmoMode}
+              scaleSpace={scaleSpace}
+              rotateSpace={rotateSpace}
+              sceneId={scene.id}
+              environmentId={scene.environmentId}
+              startCamera={scene.startCamera}
+              cameraMode={cameraMode}
+              resetToken={resetToken}
+              orthographic={singleViewOrthographic}
+              onOrthographicChange={setSingleViewOrthographic}
+              showOctaOrb={showOctaOrb}
+              showAxisIndicator={showAxisIndicator}
+            />
+          )}
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
