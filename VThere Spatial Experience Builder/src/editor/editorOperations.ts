@@ -1,3 +1,26 @@
+/**
+ * @file        editorOperations.ts
+ * @brief       Thin editor-policy adapters over the authoring engine.
+ *
+ * @responsibility
+ * Supplies browser ID generation and editor-oriented operation names while
+ * delegating immutable project transitions to @vthere/authoring-engine.
+ *
+ * @inputs
+ * ProjectData snapshots, editor scene/object identifiers, asset kinds, and
+ * inspector or viewport changes.
+ *
+ * @outputs
+ * ObjectOperationResult values containing new immutable project snapshots.
+ *
+ * @boundary
+ * This file must not become a second command engine, project store, renderer
+ * cache, or persistence layer. Remove forwarding wrappers if no editor policy
+ * remains beyond direct delegation.
+ *
+ * @documentation
+ * Authoring boundary: docs/05-subsystems/authoring-engine.md
+ */
 import {
   createObject,
   createScene,

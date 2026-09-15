@@ -1,3 +1,25 @@
+/**
+ * @file        cameraController.ts
+ * @brief       Camera pose and visitor walk-movement adapter.
+ *
+ * @responsibility
+ * Converts camera poses to and from Three.js cameras, applies orbit targets,
+ * and updates walk movement from the active keyboard state.
+ *
+ * @inputs
+ * Three.js camera/control objects, CameraPose values, pressed keys, and frame
+ * delta time.
+ *
+ * @outputs
+ * Camera orientation values and updated camera transforms.
+ *
+ * @ownership
+ * This module owns camera policy only. It does not own project persistence or
+ * authoring commands.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { CameraPose } from '../model'

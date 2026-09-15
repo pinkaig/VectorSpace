@@ -1,3 +1,24 @@
+/**
+ * @file        interactionMath.ts
+ * @brief       Framework-free ray, axis, and rotation calculations.
+ *
+ * @responsibility
+ * Provides deterministic spatial calculations used by viewport interaction
+ * without importing React, the DOM, or Three.js.
+ *
+ * @inputs
+ * Plain three-number vectors, rays, axes, and angles.
+ *
+ * @outputs
+ * Axis parameters, rotation angles, and normalised angles suitable for the
+ * renderer interaction adapter.
+ *
+ * @testing
+ * Covered by interactionMath.test.ts with parallel-ray and angle cases.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 export type Vector3Tuple = [number, number, number]
 
 const dot = (left: Vector3Tuple, right: Vector3Tuple): number =>

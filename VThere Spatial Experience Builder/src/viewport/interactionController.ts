@@ -1,3 +1,28 @@
+/**
+ * @file        interactionController.ts
+ * @brief       Owns viewport pointer, picking, drag, and keyboard interaction.
+ *
+ * @responsibility
+ * Translates browser input into selection and transform previews, manages free,
+ * axis, scale, and rotation drag sessions, and commits only the final value on
+ * pointer release through narrow callbacks.
+ *
+ * @inputs
+ * Three.js camera, controls, raycaster, render groups, gizmo handles, camera
+ * orientation refs, current viewport data, and authoring callbacks.
+ *
+ * @outputs
+ * Registered browser listeners, renderer-side previews, commit callbacks, and
+ * explicit disposal of all listeners.
+ *
+ * @ownership
+ * The controller owns interaction session state, not ProjectData, history, or
+ * persistence. The editor callback decides how a committed action is recorded.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ * Authoring boundary: docs/05-subsystems/authoring-engine.md
+ */
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneObject } from '../model'

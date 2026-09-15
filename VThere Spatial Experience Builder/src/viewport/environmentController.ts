@@ -1,3 +1,26 @@
+/**
+ * @file        environmentController.ts
+ * @brief       Coordinates asynchronous environment loading and replacement.
+ *
+ * @responsibility
+ * Loads a procedural or GLB environment, reports progress and failures,
+ * replaces the environment group, and hands disposal ownership to the active
+ * viewport lifecycle.
+ *
+ * @inputs
+ * Environment ID, a Three.js group, status callback, ready callback, and the
+ * current environment disposal reference.
+ *
+ * @outputs
+ * An environment load handle with cancellation and status transitions.
+ *
+ * @ownership
+ * Asset construction remains in environments.ts. This module owns lifecycle
+ * coordination, not project data or editor state.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 import * as THREE from 'three'
 import { loadEnvironment } from '../environments'
 import type { EnvStatus } from './renderTypes'

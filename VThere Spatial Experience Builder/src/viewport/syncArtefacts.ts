@@ -1,3 +1,26 @@
+/**
+ * @file        syncArtefacts.ts
+ * @brief       Rebuilds authored artefacts as disposable Three.js objects.
+ *
+ * @responsibility
+ * Creates primitive geometry and materials, applies authored transforms and
+ * visibility state, adds editor selection outlines, and disposes renderer
+ * resources before a full synchronisation rebuild.
+ *
+ * @inputs
+ * SceneObject snapshots, a Three.js group, and the selected object ID.
+ *
+ * @outputs
+ * Updated Three.js artefact objects and explicit resource disposal helpers.
+ *
+ * @ownership
+ * ProjectData remains authoritative. This module owns only the renderer
+ * projection and GPU resources represented by the supplied group.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ * Rendering plan: docs/07-research-and-history/Week3/Wk2_3--PLAN--future-proof-rendering-system.md
+ */
 import * as THREE from 'three'
 import type { SceneObject } from '../model'
 import { colorFor } from './viewportTypes'

@@ -1,3 +1,25 @@
+/**
+ * @file        createGizmoSet.ts
+ * @brief       Builds and disposes the editor gizmo handle set.
+ *
+ * @responsibility
+ * Assembles move arrows, scale handles, and rotation rings under an editor-only
+ * group and provides one disposal owner for their GPU resources.
+ *
+ * @inputs
+ * No project state. Handle geometry is created through the specialised gizmo
+ * factories in src/gizmo/.
+ *
+ * @outputs
+ * A GizmoSet containing the group, typed handles, and dispose function.
+ *
+ * @ownership
+ * Gizmos are presentation resources and remain outside the authored artefact
+ * hierarchy.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 import * as THREE from 'three'
 import { AxisArrow } from '../gizmo/types'
 import { makeAxisArrow } from '../gizmo/moveGizmo'

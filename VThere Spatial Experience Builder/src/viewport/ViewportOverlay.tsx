@@ -1,3 +1,20 @@
+/**
+ * @file        ViewportOverlay.tsx
+ * @brief       React presentation for environment loading and viewport hints.
+ *
+ * @responsibility
+ * Displays loading progress, recoverable environment errors, retry controls,
+ * and interaction hints. It does not load assets or own Three.js resources.
+ *
+ * @inputs
+ * EnvStatus values and a retry callback supplied by the viewport boundary.
+ *
+ * @outputs
+ * React overlay elements above the Three.js canvas.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 import type { EnvStatus } from './renderTypes'
 
 interface ViewportOverlayProps {

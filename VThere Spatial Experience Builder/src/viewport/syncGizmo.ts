@@ -1,3 +1,21 @@
+/**
+ * @file        syncGizmo.ts
+ * @brief       Synchronises editor gizmo presentation with the selected object.
+ *
+ * @responsibility
+ * Controls gizmo visibility, placement, handle offsets, local/world orientation,
+ * and rotation-ring sizing without changing authored project data.
+ *
+ * @inputs
+ * Three.js gizmo handles, the selected SceneObject, its render mesh, gizmo mode,
+ * transform-space settings, and current drag state.
+ *
+ * @outputs
+ * Updated editor-only Three.js gizmo transforms and visibility.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 import * as THREE from 'three'
 import type { SceneObject } from '../model'
 import type { AxisArrow } from '../gizmo/types'

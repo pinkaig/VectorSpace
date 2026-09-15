@@ -1,3 +1,14 @@
+/**
+ * @file        interactionMath.test.ts
+ * @brief       Unit tests for framework-free viewport interaction mathematics.
+ *
+ * @responsibility
+ * Verifies axis projection, degenerate parallel-ray handling, angle wrapping,
+ * and stable rotation-angle calculation without a browser or WebGL context.
+ *
+ * @documentation
+ * Rendering map: docs/05-subsystems/viewport.md
+ */
 import { describe, expect, it } from 'vitest'
 import { angleAroundAxis, closestPointOnAxis, normalizeAngle } from './interactionMath'
 
