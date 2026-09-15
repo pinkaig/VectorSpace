@@ -32,12 +32,13 @@ import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
 import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
-import { ARROW_LENGTH, GIZMO_GAP, MIN_FLY_HEIGHT, MOVE_KEYS, SPRINT_KEYS, SPRINT_MULTIPLIER, VERTICAL_KEYS, WALK_SPEED, getVerticalDirection, getWalkDirection, isTypingTarget } from './viewport/viewportTypes'
+import { ARROW_LENGTH, GIZMO_GAP, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewport/viewportTypes'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { normalizeAngle } from './viewport/interactionMath'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
+import { applyCameraPose, getCameraPose, updateWalkCamera } from './viewport/cameraController'
 import type { EnvStatus } from './viewport/renderTypes'
 
 export type CameraMode = 'orbit' | 'walk'
@@ -100,9 +101,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     getCameraPose: (): CameraPose => {
       const camera = cameraRef.current
       if (!camera) return dataRef.current.startCamera
-      const forward = camera.getWorldDirection(new THREE.Vector3())
-      const target = camera.position.clone().add(forward.multiplyScalar(6))
-      return { position: [camera.position.x, camera.position.y, camera.position.z], target: [target.x, target.y, target.z] }
+      return getCameraPose(camera)
     },
   }), [])
 
@@ -159,18 +158,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     controls.maxPolarAngle = Math.PI * 0.49
     controlsRef.current = controls
 
-    const applyPose = (pose: CameraPose) => {
-      camera.position.set(...pose.position)
-      const target = new THREE.Vector3(...pose.target)
-      camera.lookAt(target)
-      controls.target.copy(target)
-      controls.update()
-      const forward = target.clone().sub(camera.position).normalize()
-      yawRef.current = Math.atan2(-forward.x, -forward.z)
-      pitchRef.current = Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1))
+    applyPoseRef.current = (pose) => {
+      const orientation = applyCameraPose(camera, controls, pose)
+      yawRef.current = orientation.yaw
+      pitchRef.current = orientation.pitch
     }
-    applyPoseRef.current = applyPose
-    applyPose(dataRef.current.startCamera)
+    applyPoseRef.current(dataRef.current.startCamera)
 
     // Free (non-axis-constrained) drag: raycasts onto a plane facing the camera and passing
     // through the object's position, so X/Y/Z can all change depending on the camera angle.
@@ -527,21 +520,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       syncObjects()
       syncGizmoFrame()
       if (dataRef.current.cameraMode === 'walk') {
-        const isSprinting = pressedKeys.has('ShiftLeft') || pressedKeys.has('ShiftRight')
-        const speed = isSprinting ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED
-        const { x: dx, z: dz } = getWalkDirection(pressedKeys)
-        if (dx !== 0 || dz !== 0) {
-          const length = Math.hypot(dx, dz) || 1
-          const forward = new THREE.Vector3(-Math.sin(yawRef.current), 0, -Math.cos(yawRef.current))
-          const right = new THREE.Vector3(Math.cos(yawRef.current), 0, -Math.sin(yawRef.current))
-          const step = (speed * delta) / length
-          camera.position.addScaledVector(forward, dz * step)
-          camera.position.addScaledVector(right, dx * step)
-        }
-        const dy = getVerticalDirection(pressedKeys)
-        if (dy !== 0) {
-          camera.position.y = Math.max(MIN_FLY_HEIGHT, camera.position.y + dy * speed * delta)
-        }
+        updateWalkCamera(camera, pressedKeys, delta, yawRef.current)
       } else {
         controls.update()
       }

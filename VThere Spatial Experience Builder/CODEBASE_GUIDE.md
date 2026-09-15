@@ -67,6 +67,8 @@ The most important local rendering modules are:
 - `src/viewport/syncArtefacts.ts` for artefact reconstruction and disposal;
 - `src/viewport/syncGizmo.ts` for gizmo presentation synchronisation;
 - `src/viewport/interactionMath.ts` for framework-free ray/axis and angle math;
+- `src/viewport/cameraController.ts` for camera poses and walk movement;
+- `src/viewport/environmentController.ts` for environment loading lifecycle;
 - `src/viewport/ViewportOverlay.tsx` for loading/error/hint presentation;
 - `src/environments.ts` for environment asset construction and loading.
 
