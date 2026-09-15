@@ -33,6 +33,7 @@ import { closestPointOnAxis, angleAroundAxis } from './gizmo/math'
 import { makeAxisArrow, extentAlong, extentAlongLocal, setArrowColor } from './gizmo/moveGizmo'
 import { makeAxisScaleHandle, AxisScaleHandle, setScaleHandleColor } from './gizmo/scaleGizmo'
 import { makeAxisRotateHandle, AxisRotateHandle, ROTATE_RING_BASE_RADIUS, setRotateHandleColor } from './gizmo/rotateGizmo'
+import { ARROW_LENGTH, GIZMO_GAP, MIN_FLY_HEIGHT, MOVE_KEYS, SPRINT_KEYS, SPRINT_MULTIPLIER, VERTICAL_KEYS, WALK_SPEED, colorFor, getVerticalDirection, getWalkDirection, isTypingTarget } from './viewport/viewportTypes'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -63,29 +64,6 @@ interface EnvStatus {
   state: 'loading' | 'ready' | 'error'
   progress: number
   message?: string
-}
-
-const colorFor = (kind: SceneObject['assetKind']) => ({ cube: 0x4ea7a0, sphere: 0xe6ad5a, cylinder: 0xd66d75 })[kind]
-const WALK_SPEED = 3.6
-const SPRINT_MULTIPLIER = 2.2
-const SPRINT_KEYS = new Set(['ShiftLeft', 'ShiftRight'])
-const MOVE_KEYS: Record<string, [number, number]> = {
-  KeyW: [0, 1], ArrowUp: [0, 1],
-  KeyS: [0, -1], ArrowDown: [0, -1],
-  KeyA: [-1, 0], ArrowLeft: [-1, 0],
-  KeyD: [1, 0], ArrowRight: [1, 0],
-}
-const VERTICAL_KEYS: Record<string, number> = {
-  Space: 1,
-  KeyC: -1,
-}
-const MIN_FLY_HEIGHT = 0.2
-const GIZMO_GAP = 0.15 // extra breathing room past the object's edge
-const ARROW_LENGTH = 0.725
-
-const isTypingTarget = (target: EventTarget | null) => {
-  const element = target as HTMLElement | null
-  return !!element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.isContentEditable)
 }
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
@@ -600,9 +578,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       if (dataRef.current.cameraMode === 'walk') {
         const isSprinting = pressedKeys.has('ShiftLeft') || pressedKeys.has('ShiftRight')
         const speed = isSprinting ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED
-        let dx = 0
-        let dz = 0
-        pressedKeys.forEach((code) => { const [x, z] = MOVE_KEYS[code] ?? [0, 0]; dx += x; dz += z })
+        const { x: dx, z: dz } = getWalkDirection(pressedKeys)
         if (dx !== 0 || dz !== 0) {
           const length = Math.hypot(dx, dz) || 1
           const forward = new THREE.Vector3(-Math.sin(yawRef.current), 0, -Math.cos(yawRef.current))
@@ -611,8 +587,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           camera.position.addScaledVector(forward, dz * step)
           camera.position.addScaledVector(right, dx * step)
         }
-        let dy = 0
-        pressedKeys.forEach((code) => { dy += VERTICAL_KEYS[code] ?? 0 })
+        const dy = getVerticalDirection(pressedKeys)
         if (dy !== 0) {
           camera.position.y = Math.max(MIN_FLY_HEIGHT, camera.position.y + dy * speed * delta)
         }

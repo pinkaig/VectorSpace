@@ -134,3 +134,58 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
     scale: [1, 1, 1],
   },
 })
+
+/**
+ * PSEUDO-CODE: responsibilities retained by this project package.
+ *
+ * This is documentation only. The executable lifecycle operations live in
+ * `packages/authoring-engine`. This package remains the canonical, serializable
+ * project contract and must not become a mutable object registry.
+ *
+ * ProjectData:
+ *   owns project identity, schemaVersion, scene ordering, and active scene ID
+ *   contains every authored SceneObject exactly once
+ *   is safe to clone, serialize, migrate, validate, and restore
+ *
+ * SceneObject:
+ *   owns persistent object identity, display name, asset identity, asset kind,
+ *   and transform data
+ *   may gain visible, enabled, or parentId only through an approved schema
+ *   migration; these fields are not added by this pseudocode
+ *
+ * Project package pure helpers:
+ *   makeScene(sceneId, name)
+ *     -> create a valid empty scene with default environment and camera
+ *
+ *   makeObject(assetKind, displayIndex)
+ *     -> create default primitive data for an authoring command to insert
+ *
+ *   cloneProject(project)
+ *     -> return a defensive snapshot copy for history or editing
+ *
+ *   findScene(project, sceneId)
+ *     -> read-only lookup; return a scene or an explicit missing-scene result
+ *
+ *   findObject(project, sceneId, objectId)
+ *     -> read-only lookup; return an object or an explicit missing-object result
+ *
+ * Authoring-engine boundary:
+ *   input = { projectSnapshot, operation, dependencies }
+ *   result = authoringEngine.apply(input)
+ *   result.projectSnapshot = a new validated ProjectData value
+ *   result.historyData = undo/redo information for the command timeline
+ *
+ *   create / duplicate / remove / transform / rename operations
+ *     -> belong to `packages/authoring-engine`
+ *     -> never mutate this package's global state because none exists
+ *
+ * Persistence and renderer boundaries:
+ *   serializer.save(projectSnapshot)
+ *   viewport.observe(projectSnapshot)
+ *   runtime.load(validatedProjectSnapshot)
+ *
+ * None of those adapters may become the authority for object meaning. They
+ * observe or restore ProjectData; the authoring engine creates the next
+ * snapshot, and the project package defines its shape.
+ */
+
