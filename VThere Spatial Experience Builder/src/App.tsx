@@ -76,10 +76,20 @@ export default function App() {
   )
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
+  const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
   const fileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
+
+  const toggleSceneExpanded = (id: string) => {
+    setExpandedSceneIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const commit = (next: ProjectData) => {
     setHistory((items) => [...items.slice(-39), copyProject(project)])
@@ -222,8 +232,29 @@ export default function App() {
       <div className="workspace">
         <aside className="left-rail">
           <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={() => { const next = cloneProject(project); const id = `scene-${next.scenes.length + 1}`; next.scenes.push(makeScene(id, `Room ${next.scenes.length + 1}`)); next.activeSceneId = id; commit(next) }}>+</button></div>
-          <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
-          <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
+          
+          <div className="scene-dropdown">{project.scenes.map((item)=>{const isExpanded=expandedSceneIds.has(item.id); const isActive = item.id === scene.id; return (
+            <div className="scene-group" key={item.id}>
+              
+              <button className="icon-button" title={isExpanded? 'Collapse object list': 'Expand object list'} onClick={()=>toggleSceneExpanded(item.id)}>
+                {isExpanded? 'v':'>'}
+              </button>
+              
+              <button className="scene-tab" title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} onClick={() => { if (!isActive) { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) } }}>
+                {item.name}<span>{item.objects.length}</span>
+              </button>
+              
+              {isExpanded && <div className="tree-list"> 
+                {item.objects.length === 0 ? /*check for any objects */
+                  <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div> 
+                  : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
+                    <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(object.id)}><span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
+                    : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit"><span className={`object-dot ${object.assetKind}`} />{object.name}</div>)}</div>}
+            </div>
+            )})}</div>
+
+
+          
           <section className="panel">
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
             <div className="asset-tools">
@@ -327,6 +358,12 @@ export default function App() {
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
+          {/* Panel inspector panel 
+          
+          
+          
+          
+          */}
           <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
