@@ -23,6 +23,7 @@
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { CameraPose } from '../model'
+import { upFor } from '../gizmo/viewSnap'
 import { getVerticalDirection, getWalkDirection, MIN_FLY_HEIGHT, SPRINT_MULTIPLIER, WALK_SPEED } from './viewportTypes'
 
 export interface CameraOrientation {
@@ -54,6 +55,55 @@ export const applyCameraPose = (
     yaw: Math.atan2(-forward.x, -forward.z),
     pitch: Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1)),
   }
+}
+
+// Reorients the camera to look along `direction` with the given `up`, keeping the
+// current distance from and pivot around controls.target — shared by every OctaOrb /
+// axis-indicator / Home interaction so they all preserve the current zoom level.
+export const applyViewOrientation = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  direction: THREE.Vector3,
+  up: THREE.Vector3,
+): CameraOrientation => {
+  const distance = camera.position.distanceTo(controls.target)
+  camera.up.copy(up)
+  camera.position.copy(controls.target).addScaledVector(direction, distance)
+  camera.lookAt(controls.target)
+  controls.update()
+  const forward = controls.target.clone().sub(camera.position).normalize()
+  return {
+    yaw: Math.atan2(-forward.x, -forward.z),
+    pitch: Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1)),
+  }
+}
+
+export const snapCameraTo = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  direction: THREE.Vector3,
+): CameraOrientation => applyViewOrientation(camera, controls, direction, upFor(direction))
+
+// Orthographic camera mirrors the perspective camera's live position/rotation every
+// frame, only swapping the projection — so toggling projection never requires
+// re-binding OrbitControls or any interaction/raycasting code to a different camera type.
+export const syncOrthoCamera = (
+  perspective: THREE.PerspectiveCamera,
+  ortho: THREE.OrthographicCamera,
+  target: THREE.Vector3,
+): void => {
+  const distance = Math.max(perspective.position.distanceTo(target), 0.01)
+  const halfHeight = distance * Math.tan(THREE.MathUtils.degToRad(perspective.fov / 2))
+  const halfWidth = halfHeight * perspective.aspect
+  ortho.left = -halfWidth
+  ortho.right = halfWidth
+  ortho.top = halfHeight
+  ortho.bottom = -halfHeight
+  ortho.near = perspective.near
+  ortho.far = perspective.far
+  ortho.position.copy(perspective.position)
+  ortho.quaternion.copy(perspective.quaternion)
+  ortho.updateProjectionMatrix()
 }
 
 export const updateWalkCamera = (

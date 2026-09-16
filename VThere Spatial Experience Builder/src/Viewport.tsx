@@ -30,9 +30,11 @@ import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
-import { applyCameraPose, getCameraPose, updateWalkCamera } from './viewport/cameraController'
+import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
 import { createGizmoSet } from './viewport/createGizmoSet'
+import { AXIS_INDICATOR_DIM, OCTAORB_DIM, OVERLAY_MARGIN, createViewportOverlays } from './viewport/overlayWidgets'
+import { matchFaceView } from './gizmo/viewSnap'
 import type { EnvStatus } from './viewport/renderTypes'
 
 export type CameraMode = 'orbit' | 'walk'
@@ -54,6 +56,10 @@ interface ViewportProps {
   cameraMode?: CameraMode
   resetToken?: number
   interactive?: boolean
+  orthographic?: boolean
+  onOrthographicChange?: (value: boolean) => void
+  showOctaOrb?: boolean
+  showAxisIndicator?: boolean
 }
 
 export interface ViewportHandle {
@@ -72,12 +78,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     cameraMode = 'orbit',
     resetToken = 0,
     interactive = true,
+    orthographic = false,
+    onOrthographicChange,
+    showOctaOrb = true,
+    showAxisIndicator = true,
   },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -112,6 +122,22 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     mount.appendChild(renderer.domElement)
 
+    // OctaOrb's orb names render here, not as in-scene sprites — at the widget's small
+    // on-screen size, world-unit text came out illegibly tiny no matter how it was tuned.
+    // A real DOM element is crisp at any size and only needs updating on hover.
+    const octaOrbTooltip = document.createElement('div')
+    octaOrbTooltip.className = 'octaorb-tooltip'
+    octaOrbTooltip.style.display = 'none'
+    mount.appendChild(octaOrbTooltip)
+    const showOctaOrbTooltip = (label: string, clientX: number, clientY: number) => {
+      const rect = renderer.domElement.getBoundingClientRect()
+      octaOrbTooltip.textContent = label
+      octaOrbTooltip.style.left = `${clientX - rect.left}px`
+      octaOrbTooltip.style.top = `${clientY - rect.top}px`
+      octaOrbTooltip.style.display = 'block'
+    }
+    const hideOctaOrbTooltip = () => { octaOrbTooltip.style.display = 'none' }
+
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
     const objectsGroup = new THREE.Group()
@@ -125,6 +151,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const gizmoSet = createGizmoSet()
     const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles } = gizmoSet
     scene.add(gizmoGroup)
+
+    // Corner overlay widgets: each owns a tiny scene rendered into a scissor rect of the
+    // same canvas/renderer (no extra WebGL context), rotated opposite the main camera so
+    // it always shows the world's orientation relative to the current view.
+    const overlays = createViewportOverlays()
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
@@ -140,8 +171,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     controls.dampingFactor = 0.12
     controls.maxDistance = 40
     controls.minDistance = 1
-    controls.maxPolarAngle = Math.PI * 0.49
+    // Full range, not just down to the horizon — OctaOrb's BOTTOM tip snaps the camera to
+    // straight-up-from-below (polar angle Math.PI), and controls.update() runs every frame
+    // regardless of how the camera got there, so any tighter cap here would clamp that snap
+    // back to near-horizontal on the very next frame.
+    controls.maxPolarAngle = Math.PI
     controlsRef.current = controls
+
+    // Orthographic camera mirrors the perspective camera's position/rotation every frame
+    // (see syncOrthoCamera) so switching projection never requires re-binding controls.
+    const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200)
+    const activeCameraRef: { current: THREE.Camera } = { current: camera }
 
     applyPoseRef.current = (pose) => {
       const orientation = applyCameraPose(camera, controls, pose)
@@ -189,6 +229,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       controls,
       raycaster,
       pointer,
+      activeCamera: activeCameraRef,
+      overlays,
       objectsGroup,
       gizmoGroup,
       axisArrows,
@@ -205,11 +247,27 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           scaleSpace: dataRef.current.scaleSpace,
           rotateSpace: dataRef.current.rotateSpace,
           cameraMode: dataRef.current.cameraMode,
+          showOctaOrb: dataRef.current.showOctaOrb,
+          showAxisIndicator: dataRef.current.showAxisIndicator,
         }),
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
         commitScale: (id, scale) => dataRef.current.onScale?.(id, scale),
         commitRotate: (id, rotation) => dataRef.current.onRotate?.(id, rotation),
+        applyStartPose: () => applyPoseRef.current(dataRef.current.startCamera),
+        applyOrientation: (direction, up) => {
+          const orientation = applyViewOrientation(camera, controls, direction, up)
+          yawRef.current = orientation.yaw
+          pitchRef.current = orientation.pitch
+        },
+        snapTo: (direction) => {
+          const orientation = snapCameraTo(camera, controls, direction)
+          yawRef.current = orientation.yaw
+          pitchRef.current = orientation.pitch
+        },
+        setOrthographic: (value) => dataRef.current.onOrthographicChange?.(value),
+        showOctaOrbTooltip,
+        hideOctaOrbTooltip,
       },
     })
 
@@ -233,7 +291,42 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       } else {
         controls.update()
       }
-      renderer.render(scene, camera)
+
+      // Orthographic mode reuses the perspective camera's live position/rotation, only
+      // swapping the projection — see syncOrthoCamera.
+      const useOrtho = dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic
+      if (useOrtho) syncOrthoCamera(camera, orthoCamera, controls.target)
+      activeCameraRef.current = useOrtho ? orthoCamera : camera
+
+      const width = mount.clientWidth
+      const height = mount.clientHeight
+      renderer.setScissorTest(false)
+      renderer.setViewport(0, 0, width, height)
+      renderer.render(scene, activeCameraRef.current)
+
+      if (dataRef.current.cameraMode === 'orbit') {
+        if (dataRef.current.showOctaOrb) {
+          const currentDirection = camera.position.clone().sub(controls.target).normalize()
+          overlays.octaOrb.syncToCamera(currentDirection, camera.up)
+          overlays.octaOrb.setArrowsVisible(matchFaceView(currentDirection) !== null)
+          renderer.clearDepth()
+          renderer.setScissorTest(true)
+          const x = width - OVERLAY_MARGIN - OCTAORB_DIM
+          const y = height - OVERLAY_MARGIN - OCTAORB_DIM
+          renderer.setScissor(x, y, OCTAORB_DIM, OCTAORB_DIM)
+          renderer.setViewport(x, y, OCTAORB_DIM, OCTAORB_DIM)
+          renderer.render(overlays.octaOrb.scene, overlays.octaOrb.camera)
+        }
+        if (dataRef.current.showAxisIndicator) {
+          overlays.axisIndicator.group.quaternion.copy(camera.quaternion).invert()
+          renderer.clearDepth()
+          renderer.setScissorTest(true)
+          renderer.setScissor(OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM, AXIS_INDICATOR_DIM)
+          renderer.setViewport(OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM, AXIS_INDICATOR_DIM)
+          renderer.render(overlays.axisIndicator.group, overlays.axisIndicator.camera)
+        }
+        renderer.setScissorTest(false)
+      }
     }
     resize()
     animate()
@@ -243,6 +336,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       observer.disconnect()
       interactionController.dispose()
       controls.dispose()
+      overlays.dispose()
+      mount.removeChild(octaOrbTooltip)
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       disposeObjectResources(objectsGroup)
@@ -317,6 +412,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
+      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
+      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
+      {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
     </div>
   )
 })

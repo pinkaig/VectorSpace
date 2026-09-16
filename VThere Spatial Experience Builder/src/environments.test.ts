@@ -10,10 +10,10 @@ describe('environment loading', () => {
     })
   })
 
-  it('loads every registered environment and returns a non-empty, disposable group', async () => {
+  it('loads every registered environment as a disposable group, non-empty unless the environment is deliberately blank', async () => {
     for (const definition of environmentLibrary) {
       const loaded = await loadEnvironment(definition.id)
-      expect(loaded.group.children.length).toBeGreaterThan(0)
+      if (definition.proceduralId !== 'empty') expect(loaded.group.children.length).toBeGreaterThan(0)
       expect(() => loaded.dispose()).not.toThrow()
     }
   })
