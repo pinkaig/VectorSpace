@@ -1,7 +1,16 @@
-// ======================================================================
-// math.ts
-// BRIEF: shared geometry math for gizmo dragging. Finds the point along a given axis that sits closest to the cursor's ray, so movement can be constrained to a single axis
-// ======================================================================
+/**
+ * @file        math.ts
+ * @project     Spatial Experience Builder
+ * @author      Chloe Lau Rey En
+ * @brief       shared geometry math for gizmo dragging. Finds the point
+ *              along a given axis that sits closest to the cursor's ray,
+ *              so movement can be constrained to a single axis
+ * 
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+ /******************************************************************************/
 import * as THREE from 'three'
 
 // uses the closest point between two skew lines formula, since a ray and a

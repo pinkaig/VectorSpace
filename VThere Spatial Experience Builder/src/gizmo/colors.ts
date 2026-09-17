@@ -1,7 +1,17 @@
-// ======================================================================
-// colors.ts
-// BRIEF: per axis color constants for the gizmo. Base colors match the app's object palette, and the hover colors are lighter versions shown when the cursor is over an arrow
-// ======================================================================
+/**
+ * @file        colors.ts
+ * @project     Spatial Experience Builder
+ * @author      Chloe Lau Rey En
+ * @brief       per axis color constants for the gizmo.
+ *              Base colors match the app's object palette,
+ *              and the hover colors are lighter versions
+ *              shown when the cursor is over an arrow
+ * 
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+ /******************************************************************************/
 import { AxisName } from './types'
 
 export const AXIS_COLORS: Record<AxisName, number> = {
