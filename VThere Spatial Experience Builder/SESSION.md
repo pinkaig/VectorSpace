@@ -714,3 +714,257 @@ describe `Viewport.tsx`, `App.tsx`, and the authoring-engine boundary as still
 fully inline or unimplemented. Those earlier statements remain as historical
 context; use the current source tree and the latest rendering section when
 continuing work.
+
+## 2026-09-17 Extended Infrastructure Skeleton + Object Manager Integration
+
+### Objective / topic
+
+Extend the full-stack infrastructure skeleton to include three critical subsystems
+(Asset Manager, WHEN→DO dispatch engine, local→cloud sync vehicle), verify the
+custom gizmo + object manager integration, and map out the complete 8-stage
+implementation plan with blockers and dependencies clearly stated.
+
+### Decisions made and why
+
+- The gizmo (move/rotate/scale handles) is production-ready and already integrated
+  with `src/viewport/interactionController.ts`. No gizmo work is needed; only wiring
+  the gizmo's callbacks into the command path (Phase 2) when that merges.
+- Object manager is complete: `SceneObject.id`, optional `parentId`, `visible`,
+  `enabled`, `reparentObject`, subtree-aware `removeObject`/`duplicateObject`.
+  Undo/redo works automatically via CommandTimeline snapshots. Parent-child validation
+  (no cycles, no missing parents) is in the serializer.
+- Three new subsystems are explicitly infrastructure-first ([REAL] not [SKELETON]):
+  - Asset Manager: resolver vehicle, not asset vocabulary. Serves primitives/catalog/remote
+    through one interface.
+  - WHEN→DO Engine: dispatch vehicle, not trigger/action vocabulary. Pure function,
+    pluggable executors, deterministic ordering.
+  - Sync Engine: queue/retry/conflict vehicle, not policy. Offline-first, idempotent,
+    revision-based conflict detection.
+- All three subsystems are [REAL] infrastructure + [SKELETON] domain logic. They are
+  fully testable in isolation before any domain integration.
+- Stages 4a–4c (the three subsystems) run in parallel with backend stages 1–3, so
+  infrastructure and client code don't block each other.
+- Phase 2 command-path slice remains a blocker for Stage 7 (wiring WHEN→DO into
+  runtime), not for stages 1–4.
+
+### Current skeleton / plan state
+
+**Plan documents:**
+- `2026-09-17--PLAN--infrastructure-skeleton-extended.md` — complete 8-stage plan with
+  three subsystems, dependency tree, and verification per stage.
+- `2026-09-17--EXPLORATION--asset-manager-when-do-cloud-sync-guidelines.md` — best-practice
+  guidelines for each subsystem (indirection, purity, offline-first, etc.).
+- `2026-09-17--REASSESSMENT--after-object-manager-merge.md` — how the object manager
+  arrival unblocks Asset Manager and WHEN→DO designs (moving them from Postpone to
+  Approve).
+- `2026-09-17--DESIGN--when-do-runtime-architecture.md` — the plan for the WHEN→DO logic
+  system's runtime architecture: trigger detection (event listeners + edge-triggered
+  frame polling for spatial/zone conditions), a `CoroutineManager`-derived
+  `ActionSequencer` for timed/sequenced DO actions (JS generators), edit-mode vs.
+  play-mode gating, and a shared `resetRuntime()` for both exiting play mode and
+  mid-run restarts. Paper design only, still gated on Phase 2.
+- `2026-09-17--HANDOFF--when-do-runtime-logic-considerations.md` — next-agent build
+  order for the above design (types → dispatch → event sources → ActionSequencer →
+  mode gating → resetRuntime), boundary rules to preserve, and acceptance criteria.
+
+**Gizmo and object manager integration:**
+- Gizmo files live in `src/gizmo/`: `moveGizmo.ts`, `scaleGizmo.ts`, `rotateGizmo.ts`,
+  `rotateGizmo.ts`, `octaOrb.ts`, `colors.ts`, `math.ts`, `types.ts`, `viewSnap.ts`
+- Gizmo is mounted in `src/Viewport.tsx`, managed by `src/viewport/syncGizmo.ts`
+- Gizmo drag sessions are owned by `src/viewport/interactionController.ts`, which
+  calls `commitMove`, `commitScale`, `commitRotate` callbacks
+- Object manager (`SceneObject.id`, `parentId`, lifecycle) is in `packages/project/src/index.ts`
+- Object operations (`createObject`, `duplicateObject`, `removeObject`, `reparentObject`)
+  are in `packages/authoring-engine/src/index.ts`
+- All operations are tested (36 tests passing) and undo/redo works automatically
+
+**Stages ready to start:**
+- Stage 1 (Docker Compose, config, DB): ready, no blocker
+- Stages 4a–4c (Asset Manager, WHEN→DO, Sync): ready, no blocker
+- Stage 2 (data model): ready after Stage 1
+- Stage 3 (backend HTTP): ready after Stage 2
+- Stage 5 (deploy files): ready after Stage 3
+- Stage 6 (wire Asset Manager): ready after 4a, no Phase 2 dependency
+- Stage 7 (wire WHEN→DO): blocked by Phase 2 command-path merge
+- Stage 8 (wire Sync): ready after 4c, independent of Phase 2
+
+### Build / verify command and status
+
+Run from `VThere Spatial Experience Builder/`:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+npm.cmd run test:e2e
+```
+
+**Current pass rate:** 36/36 tests (updated from 22 after parent-child work).
+Typecheck clean, production build succeeds (existing Vite chunk-size warning remains).
+All gizmo tests in viewport/interactionMath pass. No parent-child UI is exposed yet
+(slice 4); only data and operations (slices 1–2) are implemented.
+
+**Uncommitted work:** Parent-child slices 1–2 are on `weian_branch`, merged into
+`Full-Skeleton-ver-2-Industry-Project-5---Spatial-Experience-Builder`. Not yet in
+`Working` or `main`.
+
+### Files touched this planning session
+
+- `docs/07-research-and-history/2026-09-17--PLAN--infrastructure-skeleton-extended.md` (new)
+- `docs/07-research-and-history/2026-09-17--EXPLORATION--asset-manager-when-do-cloud-sync-guidelines.md` (new)
+- `docs/07-research-and-history/2026-09-17--REASSESSMENT--after-object-manager-merge.md` (new)
+- `docs/07-research-and-history/2026-09-17--DESIGN--when-do-runtime-architecture.md` (new)
+- `docs/07-research-and-history/2026-09-17--HANDOFF--when-do-runtime-logic-considerations.md` (new)
+- `Agent Skills/ponytail-skill/SKILL.md` (created, was referenced but never existed)
+
+### Failed approaches already tried
+
+- Waiting for Phase 2 command path before designing Asset Manager / WHEN→DO: unnecessary
+  blocker. Object manager arrival + entity-ID resolution means designs can be concrete
+  (paper) now.
+- Building all packages upfront: avoided. Stages 4a–4c are parallel infrastructure, not
+  blocking stages 1–3.
+- WHEN→DO vocabulary-first: rejected. The dispatch vehicle (stages 4b) is architecture
+  and runs independently of what specific triggers/actions exist; vocabulary is a
+  separate design question.
+
+### Open questions
+
+- Should Stage 4a (Asset Manager) include a dev-time GLB catalog scaffolding, or just
+  the resolver interface (catalog is filled in later)?
+- For Stage 4c (Sync), should conflict resolution strategy be a skeleton body (showing
+  the decision tree) or pure interface (just the return signature)?
+- Once Phase 2 command path merges, how long should Stage 7 (WHEN→DO wiring) take?
+- ~~Where does RuntimeState/dispatch ticking get invoked from?~~ Resolved by
+  `2026-09-17--DESIGN--when-do-runtime-architecture.md`: driven from the existing
+  `Viewport.tsx` RAF loop, gated by an edit/play mode flag — not a new standalone
+  runtime loop.
+- Should the Sync Engine's idempotency key format be UUIDv4, or a simpler client-generated
+  counter per resource?
+- When does the backend's `InteractionRule` schema get designed — Stage 2 (with
+  ProjectVersion) or Stage 7 (when wiring starts)?
+
+### Next recommended step
+
+**Immediate (this session):**
+1. Push parent-child slices 1–2 from `weian_branch` to `Working` as a PR, verify CI passes.
+2. Commit the three extended-plan docs to main branch history (they're architectural
+   decisions, not code).
+3. Start Stage 1 (Docker Compose + config) in parallel with the PR/CI step.
+
+**Next session (after Phase 2 status is known):**
+1. Verify Stage 1 (Compose, health-checks, Alembic init).
+2. Begin Stages 4a–4c in parallel (Asset Manager resolver tests, WHEN→DO dispatcher tests,
+   Sync queue tests).
+3. Start Stage 2 (data model, with schema migration for InteractionRule if Phase 2 is done).
+4. Document each subsystem (asset-manager.md, when-do-dispatch-engine.md, sync-engine.md).
+
+**Blocker watch:**
+- Phase 2 command-path slice must merge before Stage 7. If Phase 2 is delayed, Stages 1–6
+  and 8 proceed without it.
+- New gizmo work should land in Phase 2's PR so gizmo+command-path are reviewed together.
+
+### Verification status
+
+All three planning documents are reviewed and ready. Gizmo is production-ready (no
+changes needed). Object manager is tested and working. No implementation code has been
+written for the three subsystems yet — design is complete, stages 4a–4c are ready to
+start when prioritized.
+
+**CI status:** Frontend tests passing, no backend pytest run (Python pytest not installed
+in prior session). The extended plan includes explicit backend pytest verification for
+each stage.
+
+## 2026-09-17 Phase/Stage reassessment and per-step agent prompt set
+
+### Objective / topic
+
+Reassess actual completion status against the two overlapping numbering schemes in this
+repo (old Phase 0–6 from `TECH_LEAD_INFRASTRUCTURE_PLAN.md`, new Stage 1–8 from
+`2026-09-17--PLAN--infrastructure-skeleton-extended.md`), and produce a self-contained
+prompt per remaining step so future sessions can hand each step to a fresh agent without
+re-deriving context.
+
+### Decisions made and why
+
+- Corrected a conflation: the gizmo (Workstream 1) being production-ready is not the same
+  as "Phase 3" in `TECH_LEAD_INFRASTRUCTURE_PLAN.md`. Phase 3 there means the interaction/
+  WHEN→DO experience system, which is still blocked on Phase 2. The gizmo is a separate,
+  already-complete parallel workstream.
+- Confirmed Phase 2 (command-path service) is the actual current blocker, not done despite
+  gizmo and object-manager both being complete. Gizmo drags still mutate `ProjectData`
+  directly in React handlers instead of going through a `TransformCommand` service.
+- Found a direct contradiction between two same-day planning docs: the extended plan lists
+  Stage 4b (WHEN→DO package) as "ready, no blocker," but
+  `2026-09-17--HANDOFF--when-do-runtime-logic-considerations.md` explicitly says not to
+  scaffold real `packages/interaction` code until Phase 2 merges. Resolved in favor of the
+  newer, more cautious handoff — Stage 4b's types/dispatch design work can proceed, but
+  real code should wait.
+- Assigned a model/effort tier per step for Claude Code sessions: Sonnet 5 direct-mode for
+  mechanical scaffolding (config, packages, tests, docs); Sonnet 5 + Plan Mode for anything
+  touching shared history/undo/transform semantics; Opus 5 + Plan Mode reserved for the two
+  architecturally load-bearing steps (Phase 2's command interface, and Stage 4b/7's
+  WHEN→DO wiring into the RAF loop), since a wrong first draft there is expensive to unwind.
+
+### Current skeleton / plan state
+
+Reassessed order (dependency-driven, not raw phase/stage numbers):
+
+1. Phase 2 — command-path service (`TransformCommand`, move/rotate/scale) — **not started**,
+   critical path, blocks Stage 7 and formal Phase 3.
+2. Hierarchy UI — parent-child slice 4 — not started, no blocker (slices 1–2 already done).
+3. Transform inheritance — parent-child slice 5 — not started, should follow Phase 2 since
+   it touches the same commit path.
+4. Stage 1 — local dev environment (Docker/DB/config) — not started, no blocker.
+5. Stage 4a — Asset Manager package — not started, no blocker.
+6. Stage 4c — Sync Engine package — not started, no blocker.
+7. Stage 2 — data model + migration — not started, needs Stage 1.
+8. Stage 3 — backend HTTP surface — not started, needs Stage 2.
+9. Stage 6 — wire Asset Manager into frontend — not started, needs Stage 4a.
+10. Stage 4b + Stage 7 — WHEN→DO types, pure `dispatch()`, event sources, `ActionSequencer`,
+    mode gating, `resetRuntime()` — not started, needs Phase 2 merged; do not scaffold real
+    code before that per the handoff.
+11. Stage 8 — wire Sync into autosave — not started, needs Stage 4c.
+12. Stage 5 — production deploy — not started, needs Stage 3.
+
+Twelve self-contained prompts (one per step above) were written out in the parent
+conversation, each naming the exact docs/files to read, the acceptance criteria, and
+whether to use Plan Mode. They are not persisted as a separate file yet — see "Next
+recommended step" below if a future session wants them promoted into a tracked doc.
+
+### How to use the Agent tool with these prompts
+
+Reference for running a step as a subagent instead of inline in the main session:
+
+- Use the `Agent` tool with `subagent_type: "claude"` (general) or `"Plan"` (if the prompt
+  says to propose an approach before implementing) and paste the step's prompt verbatim as
+  the `prompt` argument.
+- Steps marked Opus 5 in the parent conversation should have `model: "opus"` passed to the
+  `Agent` call; steps marked Sonnet 5 can omit `model` (session default) or pass `"sonnet"`
+  explicitly.
+- Steps marked "Plan Mode first" expect the agent to propose the interface/data-flow/test
+  contracts and stop for approval before writing code — the prompt text itself says this,
+  so a general-purpose agent will honor it without needing `EnterPlanMode` from the parent
+  session.
+- Independent steps (4, 5, 6, 7 vs. 1–3) can be dispatched as parallel background agents
+  since they don't share files; steps with a listed dependency (e.g. Stage 3 needs Stage 2)
+  must run sequentially.
+- After an agent finishes, verify its actual diff before trusting its summary — this
+  applies especially to the Phase 2 and Stage 7 steps, since both touch undo/history
+  semantics that are easy to get subtly wrong without it showing up as a build failure.
+
+### Open questions
+
+- Should the twelve prompts be promoted into a tracked doc (e.g.
+  `docs/07-research-and-history/2026-09-17--PLAN--phase2-to-stage8-prompts.md`) so they
+  survive context compaction, or kept only in conversation history?
+- Should Stage 4b's type/shape design (RuntimeEvent/RuntimeState/DispatchResult) proceed
+  now as paper-only work, given it's explicitly allowed before Phase 2 merges, separate
+  from the real dispatcher code which is not?
+
+### Next recommended step
+
+Start Phase 2 (command-path service) in its own session with Opus 5 and Plan Mode, since
+it is the single blocker unblocking the largest number of downstream steps (Stage 7,
+transform inheritance slice 5, and formal Phase 3). Steps 4–9 can run in parallel sessions
+without waiting on Phase 2.
