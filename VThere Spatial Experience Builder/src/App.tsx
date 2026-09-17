@@ -25,7 +25,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   createCommandTimeline,
+  executeCommand,
 } from '@vthere/authoring-engine'
+import { createLogger } from '../packages/debugging/src/index'
 import {
   AssetKind,
   ProjectData,
@@ -45,13 +47,17 @@ import {
   createEditorObject,
   createEditorScene,
   duplicateEditorObject,
+  moveEditorObjectCommand,
   removeEditorObject,
   renameEditorObject,
+  rotateEditorObjectCommand,
+  scaleEditorObjectCommand,
   selectEditorScene,
   setEditorObjectEnabled,
   setEditorObjectVisible,
+  transformEditorObjectCommand,
   updateEditorScene,
-  updateEditorTransform,
+  type EditorCommandBuilder,
 } from './editor/editorOperations'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
@@ -59,6 +65,7 @@ import ReferenceViewport from './ReferenceViewport'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
+const logger = createLogger('editor.commands')
 
 export default function App() {
   const [project, setProject] = useState<ProjectData>(initialProject)
@@ -75,6 +82,9 @@ export default function App() {
   const [showOctaOrb, setShowOctaOrb] = useState(true)
   const [showAxisIndicator, setShowAxisIndicator] = useState(true)
   const [resetToken, setResetToken] = useState(0)
+  // Bumped when an edit is rejected, to pull the viewport's preview meshes back
+  // to ProjectData. See runCommand.
+  const [syncToken, setSyncToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
     initialLoad.source === 'default'
       ? 'New local project'
@@ -96,6 +106,24 @@ export default function App() {
     timelineRef.current.commit(label, next)
     setProject(timelineRef.current.current)
   }
+  /**
+   * The single entry point for transform edits. The command service owns whether
+   * an edit reaches history; this only reflects the outcome into React.
+   *
+   * A rejected edit leaves ProjectData untouched, so the viewport's render
+   * signature would not change and the previewed mesh would stay at the invalid
+   * pose. Bumping syncToken forces the viewport to rebuild from ProjectData.
+   * An 'unchanged' result needs no resync: the mesh is already correct.
+   */
+  const runCommand = (build: EditorCommandBuilder) => {
+    const result = executeCommand(timelineRef.current, build)
+    if (result.status === 'committed') setProject(timelineRef.current.current)
+    if (result.status === 'rejected') {
+      logger.warn('Transform rejected; no history entry was created', { error: result.error })
+      setSyncToken((value) => value + 1)
+    }
+    return result
+  }
   const resetTimeline = (next: ProjectData) => {
     timelineRef.current = createCommandTimeline(next, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
     setProject(timelineRef.current.current)
@@ -115,16 +143,17 @@ export default function App() {
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
     if (!selected) return
-    commit('Update transform', updateEditorTransform(project, scene.id, selected.id, changes).project)
+    const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
+    if (builder) runCommand(builder)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
-    commit('Move object', updateEditorTransform(project, scene.id, id, { position }).project)
+    runCommand(moveEditorObjectCommand(scene.id, id, position))
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
-    commit('Scale object', updateEditorTransform(project, scene.id, id, { scale }).project)
+    runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
   const rotateObject = (id: string, rotation: [number, number, number]) => {
-    commit('Rotate object', updateEditorTransform(project, scene.id, id, { rotation }).project)
+    runCommand(rotateEditorObjectCommand(scene.id, id, rotation))
   }
   const renameSelected = (name: string) => {
     if (!selected) return
@@ -309,6 +338,7 @@ export default function App() {
                 startCamera={scene.startCamera}
                 cameraMode={cameraMode}
                 resetToken={resetToken}
+                syncToken={syncToken}
                 showOctaOrb={showOctaOrb}
                 showAxisIndicator={showAxisIndicator}
               />
@@ -333,6 +363,7 @@ export default function App() {
               startCamera={scene.startCamera}
               cameraMode={cameraMode}
               resetToken={resetToken}
+              syncToken={syncToken}
               orthographic={singleViewOrthographic}
               onOrthographicChange={setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}

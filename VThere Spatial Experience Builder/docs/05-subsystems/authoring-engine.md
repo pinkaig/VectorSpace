@@ -25,9 +25,47 @@ shared ProjectDocument + DraftPersistence adapter
 |---|---|
 | Canonical project and object shape | [`packages/project/src/index.ts`](../../packages/project/src/index.ts) |
 | Immutable lifecycle and transform operations | [`packages/authoring-engine/src/index.ts`](../../packages/authoring-engine/src/index.ts) |
+| Scene/object address resolution and failure reporting | [`packages/authoring-engine/src/objectAccess.ts`](../../packages/authoring-engine/src/objectAccess.ts) |
+| Reversible command contract | [`packages/authoring-engine/src/commands/types.ts`](../../packages/authoring-engine/src/commands/types.ts) |
+| Transform validity, application, and reversal | [`packages/authoring-engine/src/commands/transformCommands.ts`](../../packages/authoring-engine/src/commands/transformCommands.ts) |
+| Whether an edit reaches history | [`packages/authoring-engine/src/commands/commandService.ts`](../../packages/authoring-engine/src/commands/commandService.ts) |
 | Editor-specific operation policy and ID generation | [`src/editor/editorOperations.ts`](../../src/editor/editorOperations.ts) |
 | React project/session state and timeline coordination | [`src/App.tsx`](../../src/App.tsx) |
 | Renderer pointer translation and commit callbacks | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) |
+
+### The transform command path
+
+A transform edit takes one route, whether it starts at a gizmo drag or an
+Inspector field:
+
+```text
+gizmo drag release / inspector change
+  -> editorOperations.*Command(sceneId, objectId, value)   // builder, not a command
+  -> executeCommand(timeline, builder)
+       builder(timeline.current)   -> resolve object, validate value, capture before
+       command.isNoop?(current)    -> 'unchanged', no history entry
+       command.execute(current)    -> new ProjectData snapshot
+       timeline.commit(label, next)
+  -> 'committed' | 'unchanged' | 'rejected'
+```
+
+Three properties this path guarantees, each covered by a test:
+
+- **One user action, one history entry.** The viewport's pointer-move handlers
+  write renderer-side preview state only; `interactionController.ts` calls the
+  commit callback once, on pointer release.
+- **An invalid transform creates no history entry.** Non-finite numbers and a
+  zero or negative scale are rejected before a snapshot exists, mirroring the
+  `isTuple` rule in `src/serializer.ts` so the project cannot reach a state that
+  fails to load.
+- **The undo value is captured from live timeline state.** `executeCommand`
+  takes a builder rather than a finished command, so a stale React closure
+  cannot record an entry that restores the wrong snapshot.
+
+`Command.undo()` is implemented and tested as the true inverse of `execute()`,
+but the timeline still restores whole snapshots. That is deliberate: snapshot
+undo already covers create, duplicate, remove, and reparent. `undo()` is the
+seam for a future command-stack timeline, not yet its driver.
 
 ### Why `editorOperations.ts` exists
 

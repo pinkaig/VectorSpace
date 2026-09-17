@@ -55,6 +55,13 @@ interface ViewportProps {
   startCamera?: CameraPose
   cameraMode?: CameraMode
   resetToken?: number
+  /**
+   * Bumped by the editor when an edit is rejected. A rejected edit leaves
+   * ProjectData unchanged, so the object-sync signature below would not change
+   * and a previewed mesh would stay at the invalid pose. Including this token in
+   * that signature forces one rebuild from the authoritative project data.
+   */
+  syncToken?: number
   interactive?: boolean
   orthographic?: boolean
   onOrthographicChange?: (value: boolean) => void
@@ -77,6 +84,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     startCamera = defaultCameraPose(),
     cameraMode = 'orbit',
     resetToken = 0,
+    syncToken = 0,
     interactive = true,
     orthographic = false,
     onOrthographicChange,
@@ -86,8 +94,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -200,7 +208,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.setSize(width, height, false)
     }
     const syncObjects = () => {
-      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
+      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId, dataRef.current.syncToken])
       if (signature === renderedSignature) return
       syncArtefacts({ group: objectsGroup, objects: dataRef.current.objects, selectedId: dataRef.current.selectedId })
       renderedSignature = signature
