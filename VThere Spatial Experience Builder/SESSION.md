@@ -2,7 +2,9 @@
 
 ## Objective / topic
 
-Implement and stabilize the VThere Spatial Experience Builder Stage 4 baseline, with persistence-safe editing history, structured debugging/logging, contributor environment checks, and documentation that lets a fresh session continue implementation safely.
+Two parallel workstreams (Week 3):
+- **Phase 2 command-path slice:** Team owns custom gizmo build; this thread stays open for when the gizmo integration needs the move/rotate/scale command history wired up.
+- **Full-stack infrastructure skeleton:** Tech lead effort to scaffold the complete architecture (frontend → backend → persistence → storage → deployment) with real plumbing and skeleton business logic, so the team can build on top of working infrastructure instead of hitting missing pieces at each phase.
 
 ## Decisions made and why
 
@@ -120,6 +122,43 @@ Earlier implementation/design files remain in the folder as described above.
 - CI/deployment automation provider.
 - Whether to add Playwright and broader API/integration tests in the next baseline slice.
 
-## Next recommended step
+## Week 3 Parallel Efforts
 
-Obtain human approval of the Stage 3 skeleton and resolve the product/brief decisions above. Next, add persistence serialization/recovery round-trip tests and move the verified editor into `apps/editor/` without creating a duplicate project model. Then replace UI snapshot history with the authoring-engine timeline before implementing runtime/API persistence.
+### Workstream 1: Phase 2 command-path slice (Team gizmo owner)
+
+**Current:** Custom gizmo implementation in progress (move/rotate/scale interactions, handles, visual feedback).  
+**Status:** Open and independent until gizmo is ready to wire into the backend command service.  
+**Next:** After infrastructure skeleton Stage 1–2 complete, the gizmo will receive the command service endpoint definition and can wire drag sessions into move/rotate/scale commands.
+
+### Workstream 2: Full-stack infrastructure skeleton (Tech lead)
+
+**Plan:** Committed to `docs/07-research-and-history/2026-09-17--PLAN--full-stack-infrastructure-skeleton.md` (expanded 2026-09-17 to include full content/component/media architecture).
+
+**Decisions made:**
+- Scope expanded after reading project-scope.md to include content attachment requirements (text/image/audio/video components).
+- Content architecture: `SceneObject.components[]`, `MediaAsset` table, `ContentSnapshot` for immutable publishing, signed URLs.
+- Interaction engine includes content actions: `showPanel`, `playAudio`.
+- MediaRepository service enforces access control (two actors cannot see each other's media).
+- Editor UI for content attachment and runtime presentation UI are NOT in skeleton (team-owned work).
+
+**Principle:** Infrastructure (Docker, DB, routes, storage) is real and working. Domain logic (repos, services, dispatch) is skeleton (signature + NotImplementedError).
+
+**Subsystems covered in skeleton:**
+- Backend persistence (ProjectRepository, ProjectVersion, revision safety)
+- Backend API surface (routers, Pydantic models, auth boundary)
+- Content components (text/image/audio/video types, SceneObject.components)
+- Media storage & signing (MediaAsset, presigned URLs, S3/MinIO, versioning)
+- Publishing & access (PublishingService, ContentSnapshot, immutability invariant, isolation)
+- Interaction engine (WHEN→DO dispatch, content actions, zone-entry-once, ordering)
+- Deployment (Docker/Compose/Caddy/Actions, VM provisioning)
+
+**Stages (each verified before next):**
+1. Local infra: Docker Compose, `.env`, config, DB setup, Alembic init, MinIO for media storage
+2. Data model: `models.py` with Organisation, Actor, Project, ProjectVersion, MediaAsset, ContentSnapshot, AnalyticsEvent + migration
+3. Backend HTTP + services: routers (projects, media, publish, analytics) + repositories + services + docs
+4. `packages/interaction` + `packages/components`: types and skeleton dispatch + docs
+5. Production deploy: Dockerfiles, Caddy, Actions, `deployment.md`
+
+**Log:** Progress recorded in `docs/07-research-and-history/2026-09-17--SKELETON--full-stack-infrastructure-log.md` after each stage completes.
+
+**Next:** Tech lead begins Stage 1 (local infrastructure).
