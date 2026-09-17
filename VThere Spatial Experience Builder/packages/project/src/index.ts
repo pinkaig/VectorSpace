@@ -87,10 +87,13 @@ export const environmentLibrary: EnvironmentDefinition[] = [
   },
 ]
 
-export const defaultEnvironmentId = environmentLibrary[0].id
+export const defaultEnvironmentId =
+  environmentLibrary.find((item) => item.proceduralId !== 'empty')?.id ?? environmentLibrary[0].id
 
 export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
-  environmentLibrary.find((item) => item.id === environmentId) ?? environmentLibrary[0]
+  environmentLibrary.find((item) => item.id === environmentId) ??
+  environmentLibrary.find((item) => item.id === defaultEnvironmentId) ??
+  environmentLibrary[0]
 
 export const defaultCameraPose = (): CameraPose => ({ position: [7, 5.5, 8], target: [0, 0.7, 0] })
 
