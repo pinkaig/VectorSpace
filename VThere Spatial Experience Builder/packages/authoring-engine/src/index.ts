@@ -44,12 +44,21 @@ import {
   requireObject,
   requireScene,
 } from './objectAccess'
+import { composeWorldTransform, localTransformForNewParent, type WorldTransform } from './transformMath'
+
+const identityWorldTransform: WorldTransform = {
+  position: { x: 0, y: 0, z: 0 },
+  quaternion: { x: 0, y: 0, z: 0, w: 1 },
+  scale: { x: 1, y: 1, z: 1 },
+}
 
 export { ObjectOperationError, collectSubtreeIds, requireObject, requireScene } from './objectAccess'
 export type { ObjectTargetInput } from './objectAccess'
 export * from './commands/types'
 export * from './commands/transformCommands'
 export * from './commands/commandService'
+export { composeWorldTransform, localTransformForNewParent } from './transformMath'
+export type { Quaternion, Vector3, WorldTransform } from './transformMath'
 
 export interface HistoryEntry<T> {
   label: string
@@ -219,8 +228,12 @@ export const reparentObject = (
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const { scene, object } = requireObject(next, input)
+  // Composed from the hierarchy as it stands before the move, so the object's
+  // world pose is preserved by recomputing its local transform below.
+  const childWorld = composeWorldTransform(scene.objects, object.id)
   if (input.parentId === null) {
     delete object.parentId
+    object.transform = localTransformForNewParent(childWorld, identityWorldTransform)
     return { project: next, objectId: object.id }
   }
   if (input.parentId === object.id) throw new ObjectOperationError(`Object "${object.id}" cannot be its own parent`)
@@ -234,6 +247,8 @@ export const reparentObject = (
     const parentId: string | undefined = ancestor.parentId
     ancestor = parentId === undefined ? undefined : scene.objects.find((item) => item.id === parentId)
   }
+  const newParentWorld = composeWorldTransform(scene.objects, input.parentId)
+  object.transform = localTransformForNewParent(childWorld, newParentWorld)
   object.parentId = input.parentId
   return { project: next, objectId: object.id }
 }

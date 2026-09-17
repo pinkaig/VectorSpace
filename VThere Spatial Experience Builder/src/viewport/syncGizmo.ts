@@ -59,7 +59,10 @@ export const syncGizmo = ({
 
   if (!selected || !selectedMesh || isDragging) return
 
-  gizmoGroup.position.set(...selected.transform.position)
+  // selected.transform is local for a parented object, so the gizmo must be
+  // placed at the mesh's actual on-screen (world) position, not those raw
+  // local numbers.
+  gizmoGroup.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()))
   axisArrows.forEach((arrow) => {
     const offset = extentAlong(selectedMesh, arrow.axis) + GIZMO_GAP
     arrow.group.position.copy(arrow.direction).multiplyScalar(offset)

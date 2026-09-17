@@ -50,6 +50,12 @@ export const syncArtefacts = ({ group, objects, selectedId }: ArtefactSyncInput)
   disposeObjectResources(group)
   group.clear()
 
+  // Two passes: create every mesh first, then attach according to parentId, so
+  // attachment order never depends on the objects array's own order. Nesting
+  // meshes into their parent mesh is what lets Three.js compose world
+  // transforms through the Object3D hierarchy — item.transform is a local
+  // transform for a parented object, world for a top-level one.
+  const meshesById = new Map<string, THREE.Mesh>()
   objects.forEach((item) => {
     const geometry = createGeometry(item.assetKind)
     const material = new THREE.MeshStandardMaterial({
@@ -73,6 +79,12 @@ export const syncArtefacts = ({ group, objects, selectedId }: ArtefactSyncInput)
       ))
     }
 
-    group.add(mesh)
+    meshesById.set(item.id, mesh)
+  })
+
+  objects.forEach((item) => {
+    const mesh = meshesById.get(item.id)!
+    const parentMesh = item.parentId ? meshesById.get(item.parentId) : undefined
+    ;(parentMesh ?? group).add(mesh)
   })
 }

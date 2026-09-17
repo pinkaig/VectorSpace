@@ -412,12 +412,15 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
   // An object cannot become its own or its own descendant's parent, or the tree would cycle.
   const excludedParentIds = collectSubtreeIds(sceneObjects, object.id)
   const parentChoices = sceneObjects.filter((item) => !excludedParentIds.has(item.id))
+  // A parented object's transform is local to its parent; a top-level object's
+  // transform is already world space (there's no parent to be local to).
+  const spaceLabel = object.parentId !== undefined ? 'local' : 'world'
   const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
     const isRotation = key === 'rotation'
     const displayValues = isRotation ? values.map(radToDeg) : values
     return (
       <div className="field-group">
-        <label>{isRotation ? `${label} (°)` : label}</label>
+        <label>{isRotation ? `${label} (°, ${spaceLabel})` : `${label} (${spaceLabel})`}</label>
         <div className="vector-fields">
           {displayValues.map((value, index) => (
             <label className="number-field" key={`${key}-${index}`}>

@@ -31,8 +31,10 @@ shared ProjectDocument + DraftPersistence adapter
 | Whether an edit reaches history | [`packages/authoring-engine/src/commands/commandService.ts`](../../packages/authoring-engine/src/commands/commandService.ts) |
 | Editor-specific operation policy and ID generation | [`src/editor/editorOperations.ts`](../../src/editor/editorOperations.ts) |
 | Scene-tree render order, indent/outdent sibling lookup | [`src/editor/sceneTree.ts`](../../src/editor/sceneTree.ts) |
+| World-transform composition for the parentId hierarchy | [`packages/authoring-engine/src/transformMath.ts`](../../packages/authoring-engine/src/transformMath.ts) |
 | React project/session state and timeline coordination | [`src/App.tsx`](../../src/App.tsx) |
 | Renderer pointer translation and commit callbacks | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) |
+| Mesh nesting per parentId, world-space rendering | [`src/viewport/syncArtefacts.ts`](../../src/viewport/syncArtefacts.ts) |
 
 ### The transform command path
 
@@ -99,6 +101,57 @@ rendering the removed rows with no extra hierarchy-aware logic.
 
 Transforms remain world-space: reparenting does not move a child to compensate
 for its new parent's transform. That is slice 5, deliberately separate.
+
+### Transform inheritance (parent-child slice 5)
+
+Slice 4 rendered the hierarchy in the UI, but the renderer still added every
+mesh flat into one `THREE.Group` and every transform math path (drag/gizmo
+placement) assumed `SceneObject.transform` was a world-space value. This
+slice makes local-space semantics real end to end.
+
+**Decision: re-parenting recomputes the child's local transform to preserve
+its current world position.** This matches the Unity-style behavior already
+assumed for subtree removal/duplication in this codebase (parent-child slices
+1-2), and it's what keeping an object visually in place during a re-parent
+requires — the alternative (leave the local numbers untouched) would make
+every re-parent onto a non-identity-transformed parent an implicit teleport.
+
+- **`packages/authoring-engine/src/transformMath.ts`** is a framework-free
+  (no `three` import) quaternion/vector module — `composeWorldTransform` walks
+  an object's `parentId` chain to produce its world position/quaternion/scale,
+  and `localTransformForNewParent` is its inverse: given a child's current
+  world pose and a *new* parent's world pose, it produces the local
+  `TransformData` that keeps the child's world pose fixed. `reparentObject`
+  calls both around the existing cycle checks. This assumes standard
+  TRS-per-node composition (no shear) — the same model Three.js's own
+  `Object3D` hierarchy uses.
+- **`src/viewport/syncArtefacts.ts`** builds every mesh first, then attaches
+  each one to its parent's mesh (or the root group, if top-level) in a second
+  pass, so Three.js's own scene graph composes world transforms — no manual
+  matrix math in the project model or the renderer.
+- **`src/viewport/interactionController.ts`** does the world-space math it
+  always did (rays and planes are inherently world-space), but now reads a
+  dragged object's world position/quaternion via `mesh.getWorldPosition` /
+  `getWorldQuaternion` instead of trusting `transform.position` to be world
+  space, and converts the result back to the mesh's parent-local space with
+  `Object3D.worldToLocal` / a parent-quaternion inverse before writing
+  `mesh.position`/`mesh.quaternion` or committing — the same Three.js APIs the
+  renderer already relies on for hierarchy composition, applied at the
+  boundary where a drag's result becomes a committed local value. `pick()`
+  also switched from `objectsGroup.children` to a full `traverse`, since a
+  parented mesh is no longer a direct child of the root group. Scale drags are
+  unchanged: they already write the mesh's own local `scale`, which is
+  already correct Unity-style behavior once nested (apparent world scale is
+  `parentScale * localScale` automatically).
+- **The Inspector** shows the same `SceneObject.transform` values as before —
+  no conversion needed, since local and world are the same value for a
+  top-level object — but now labels each field `(local)` or `(world)` based on
+  whether the object has a `parentId`.
+
+**Documented limitation:** non-uniform scale combined with rotation on a
+parent can shear a child, same as it would in Three.js's own hierarchy or in
+any TRS-per-node system; this slice does not attempt full matrix
+decomposition to avoid that, since nothing in this app currently produces it.
 
 ### Why `editorOperations.ts` exists
 

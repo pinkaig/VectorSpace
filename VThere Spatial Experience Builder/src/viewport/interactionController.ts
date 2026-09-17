@@ -126,8 +126,26 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   const pick = (event: PointerEvent) => {
     getPointer(event)
     raycaster.setFromCamera(pointer, activeCamera.current)
-    const pickable = objectsGroup.children.filter((object) => object.visible && object.userData.enabled !== false)
+    // Parented objects are nested inside their parent's mesh (see syncArtefacts),
+    // so picking must traverse the whole group rather than only its direct children.
+    const pickable: THREE.Object3D[] = []
+    objectsGroup.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.userData.entityId && child.visible && child.userData.enabled !== false) pickable.push(child)
+    })
     return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
+  }
+  // A parented mesh's own position/rotation properties are local to its parent.
+  // Drag/gizmo math works in world space (rays and planes are inherently world
+  // space), so results must be converted back to local before writing them onto
+  // the mesh or committing them, using the parent's own up-to-date world matrix.
+  const worldPositionOf = (mesh: THREE.Object3D) => mesh.getWorldPosition(new THREE.Vector3())
+  const worldQuaternionOf = (mesh: THREE.Object3D) => mesh.getWorldQuaternion(new THREE.Quaternion())
+  const toLocalPosition = (mesh: THREE.Object3D, world: THREE.Vector3) =>
+    mesh.parent && mesh.parent !== objectsGroup ? mesh.parent.worldToLocal(world.clone()) : world.clone()
+  const toLocalQuaternion = (mesh: THREE.Object3D, world: THREE.Quaternion) => {
+    if (!mesh.parent || mesh.parent === objectsGroup) return world.clone()
+    const parentWorldQuaternion = mesh.parent.getWorldQuaternion(new THREE.Quaternion())
+    return parentWorldQuaternion.invert().multiply(world)
   }
 
   // Gizmo hits are kept separate from artefact hits because they start a
@@ -268,8 +286,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (!interactive || event.button !== 0) return
     const gizmoHit = pickGizmo(event)
     const selected = data.objects.find((object) => object.id === data.selectedId)
-    if (gizmoHit && selected) {
-      const origin = new THREE.Vector3(...selected.transform.position)
+    const selectedMesh = selected ? objectsGroup.getObjectByName(selected.id) : undefined
+    if (gizmoHit && selected && selectedMesh) {
+      const origin = worldPositionOf(selectedMesh)
       if (gizmoHit.kind === 'arrow') {
         const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
@@ -277,27 +296,24 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         if (grabT !== null) { controls.enabled = false; axisDragging = { id: selected.id, origin, direction: arrow.direction.clone(), grabT } }
       } else if (gizmoHit.kind === 'scale') {
         const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
-        const mesh = objectsGroup.getObjectByName(selected.id)
-        if (mesh) {
-          const direction = data.scaleSpace === 'local' ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation)) : handle.direction.clone()
-          getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
-          const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, direction)
-          if (grabT !== null) { controls.enabled = false; scaleDragging = { id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] } }
-        }
+        const direction = data.scaleSpace === 'local' ? handle.direction.clone().applyQuaternion(worldQuaternionOf(selectedMesh)) : handle.direction.clone()
+        getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
+        const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, direction)
+        if (grabT !== null) { controls.enabled = false; scaleDragging = { id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z] } }
       } else {
         const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
         const local = data.rotateSpace === 'local'
-        const objectEuler = new THREE.Euler(...selected.transform.rotation)
+        const worldQuaternion = worldQuaternionOf(selectedMesh)
         // Resolve the rotation plane once at grab time. Local rotation still
         // uses a fixed world-space axis for the duration of the drag.
-        const normal = local ? handle.normal.clone().applyEuler(objectEuler) : handle.normal.clone()
+        const normal = local ? handle.normal.clone().applyQuaternion(worldQuaternion) : handle.normal.clone()
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const hitPoint = new THREE.Vector3()
         if (raycaster.ray.intersectPlane(plane, hitPoint)) {
           controls.enabled = false
           const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
-          rotateDragging = { id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: new THREE.Quaternion().setFromEuler(objectEuler) }
+          rotateDragging = { id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion }
         }
       }
       element.setPointerCapture(event.pointerId)
@@ -309,7 +325,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     callbacks.select(hit.name)
     const item = data.objects.find((object) => object.id === hit.name)
     if (item) {
-      const objectPosition = new THREE.Vector3(...item.transform.position)
+      const objectPosition = worldPositionOf(hit)
       const cameraForward = camera.getWorldDirection(new THREE.Vector3())
       const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, objectPosition)
       if (raycaster.ray.intersectPlane(plane, dragPoint)) dragging = { id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) }
@@ -341,8 +357,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       // closest-point solution; skip that frame instead of jumping.
       if (hitT === null) return
       const next = axisDragging.origin.clone().addScaledVector(axisDragging.direction, hitT - axisDragging.grabT)
-      lastAxisDragPosition = [next.x, next.y, next.z]
-      const mesh = objectsGroup.getObjectByName(axisDragging.id); mesh?.position.set(...lastAxisDragPosition); gizmoGroup.position.set(...lastAxisDragPosition)
+      const mesh = objectsGroup.getObjectByName(axisDragging.id)
+      if (mesh) {
+        const local = toLocalPosition(mesh, next)
+        lastAxisDragPosition = [local.x, local.y, local.z]
+        mesh.position.copy(local)
+      }
+      gizmoGroup.position.copy(next)
       return
     }
     if (scaleDragging) {
@@ -370,9 +391,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       if (rotateDragging.spaceMode === 'local') {
         // A local-axis rotation must compose quaternions. Incrementing one
         // Euler component would be wrong after rotation on another axis.
+        // currentQuaternion accumulates in world space (seeded from the mesh's
+        // world orientation); convert to the mesh's parent-local space before
+        // writing it back or committing it.
         rotateDragging.currentQuaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step))
-        const euler = new THREE.Euler().setFromQuaternion(rotateDragging.currentQuaternion, 'XYZ'); rotation = [euler.x, euler.y, euler.z]
-        objectsGroup.getObjectByName(rotateDragging.id)?.quaternion.copy(rotateDragging.currentQuaternion)
+        const mesh = objectsGroup.getObjectByName(rotateDragging.id)
+        const localQuaternion = mesh ? toLocalQuaternion(mesh, rotateDragging.currentQuaternion) : rotateDragging.currentQuaternion
+        const euler = new THREE.Euler().setFromQuaternion(localQuaternion, 'XYZ'); rotation = [euler.x, euler.y, euler.z]
+        mesh?.quaternion.copy(localQuaternion)
       } else {
         rotation = [...rotateDragging.currentRotation]; rotation[rotateDragging.axisIndex] += step; rotateDragging.currentRotation = rotation
         objectsGroup.getObjectByName(rotateDragging.id)?.rotation.set(...rotation)
@@ -382,8 +408,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (dragging) {
       getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
       if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
-      dragPoint.add(dragging.offset); lastDragPosition = [dragPoint.x, dragPoint.y, dragPoint.z]
-      objectsGroup.getObjectByName(dragging.id)?.position.set(...lastDragPosition); gizmoGroup.position.set(...lastDragPosition)
+      dragPoint.add(dragging.offset)
+      const mesh = objectsGroup.getObjectByName(dragging.id)
+      if (mesh) {
+        const local = toLocalPosition(mesh, dragPoint)
+        lastDragPosition = [local.x, local.y, local.z]
+        mesh.position.copy(local)
+      }
+      gizmoGroup.position.copy(dragPoint)
     }
   }
   const onPointerUp = (event: PointerEvent) => {
