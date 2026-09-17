@@ -47,6 +47,9 @@ import {
 
 export { ObjectOperationError, collectSubtreeIds, requireObject, requireScene } from './objectAccess'
 export type { ObjectTargetInput } from './objectAccess'
+export * from './commands/types'
+export * from './commands/transformCommands'
+export * from './commands/commandService'
 
 export interface HistoryEntry<T> {
   label: string
