@@ -16,8 +16,9 @@
  * CommandTimeline snapshots with current state and undo/redo capabilities.
  *
  * @members
- * HistoryEntry, CommandTimeline, createCommandTimeline, object operations,
- * commit, undo, and redo.
+ * HistoryEntry, CommandTimeline, createCommandTimeline, object operations
+ * (create, duplicate, remove, reparent, transform, rename, visible, enabled),
+ * scene operations, commit, undo, and redo.
  *
  * @documentation
  * Larger system guide: docs/05-subsystems/authoring-engine.md
@@ -121,6 +122,11 @@ export interface ObjectFlagInput extends ObjectTargetInput {
   value: boolean
 }
 
+export interface ReparentObjectInput extends ObjectTargetInput {
+  /** New parent object ID, or null to make the object top-level. */
+  parentId: string | null
+}
+
 export interface SceneUpdateInput {
   sceneId: string
 }
@@ -145,6 +151,22 @@ const requireObject = (project: ProjectData, input: ObjectTargetInput) => {
   return { scene, object: scene.objects[index], index }
 }
 
+// The root plus every object that transitively parents up to it.
+const collectSubtreeIds = (objects: readonly SceneObject[], rootId: string): Set<string> => {
+  const ids = new Set([rootId])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const object of objects) {
+      if (object.parentId !== undefined && ids.has(object.parentId) && !ids.has(object.id)) {
+        ids.add(object.id)
+        grew = true
+      }
+    }
+  }
+  return ids
+}
+
 export const createObject = (
   project: ProjectData,
   input: CreateObjectInput,
@@ -166,18 +188,34 @@ export const duplicateObject = (
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const { scene, object } = requireObject(next, input)
-  const copy: SceneObject = {
-    ...object,
-    id: idFactory.nextId(next, input.sceneId),
-    name: `${object.name} Copy`,
-    transform: {
-      position: [...object.transform.position],
-      rotation: [...object.transform.rotation],
-      scale: [...object.transform.scale],
-    },
+  const subtreeIds = collectSubtreeIds(scene.objects, object.id)
+  const idMap = new Map<string, string>()
+  for (const item of scene.objects) {
+    if (subtreeIds.has(item.id)) idMap.set(item.id, idFactory.nextId(next, input.sceneId))
   }
-  scene.objects.push(copy)
-  return { project: next, objectId: copy.id }
+  const copies: SceneObject[] = []
+  for (const item of scene.objects) {
+    if (!subtreeIds.has(item.id)) continue
+    const copy: SceneObject = {
+      ...item,
+      id: idMap.get(item.id) as string,
+      transform: {
+        position: [...item.transform.position],
+        rotation: [...item.transform.rotation],
+        scale: [...item.transform.scale],
+      },
+    }
+    if (item.id === object.id) {
+      // the copied root sits beside the original, under the same parent
+      copy.name = `${item.name} Copy`
+    } else if (item.parentId !== undefined) {
+      // descendants follow their copied parent, not the original one
+      copy.parentId = idMap.get(item.parentId) ?? item.parentId
+    }
+    copies.push(copy)
+  }
+  scene.objects.push(...copies)
+  return { project: next, objectId: idMap.get(object.id) }
 }
 
 export const removeObject = (
@@ -186,12 +224,39 @@ export const removeObject = (
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const { scene, object, index } = requireObject(next, input)
-  scene.objects.splice(index, 1)
+  // removing an object removes its whole subtree so no child is left orphaned
+  const subtreeIds = collectSubtreeIds(scene.objects, object.id)
+  scene.objects = scene.objects.filter((item) => !subtreeIds.has(item.id))
   return {
     project: next,
     removedObject: object,
     originalIndex: index,
   }
+}
+
+export const reparentObject = (
+  project: ProjectData,
+  input: ReparentObjectInput,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const { scene, object } = requireObject(next, input)
+  if (input.parentId === null) {
+    delete object.parentId
+    return { project: next, objectId: object.id }
+  }
+  if (input.parentId === object.id) throw new ObjectOperationError(`Object "${object.id}" cannot be its own parent`)
+  const parent = scene.objects.find((item) => item.id === input.parentId)
+  if (!parent) throw new ObjectOperationError(`Parent object "${input.parentId}" was not found`)
+  // walking up from the new parent must never reach the object being moved,
+  // otherwise the hierarchy would contain a cycle
+  let ancestor: SceneObject | undefined = parent
+  while (ancestor) {
+    if (ancestor.id === object.id) throw new ObjectOperationError(`Parenting "${object.id}" under "${input.parentId}" would create a cycle`)
+    const parentId: string | undefined = ancestor.parentId
+    ancestor = parentId === undefined ? undefined : scene.objects.find((item) => item.id === parentId)
+  }
+  object.parentId = input.parentId
+  return { project: next, objectId: object.id }
 }
 
 export const updateObjectTransform = (
