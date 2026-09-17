@@ -968,3 +968,130 @@ Start Phase 2 (command-path service) in its own session with Opus 5 and Plan Mod
 it is the single blocker unblocking the largest number of downstream steps (Stage 7,
 transform inheritance slice 5, and formal Phase 3). Steps 4–9 can run in parallel sessions
 without waiting on Phase 2.
+
+## 2026-09-17 Phase 2 + hierarchy UI + transform inheritance shipped; pivot to frontend business logic; backlog split into per-feature docs
+
+### Objective / topic
+
+Close out steps 1–3 of the reassessed backlog above (Phase 2 command-path service, hierarchy
+UI slice 4, transform inheritance slice 5), then a mid-session redirect: pause the backend
+track (Stage 1 local dev environment) and pivot to frontend business logic, splitting the
+shared multi-feature infrastructure plan into fully self-contained per-feature planning docs.
+
+### Decisions made and why
+
+- Phase 2's command-path service, hierarchy UI, and transform inheritance are now **done** —
+  see "Files touched" below for commits. This resolves the single biggest blocker in the
+  reassessed backlog: Stage 4b/Stage 7 (WHEN→DO engine) was gated on Phase 2 merging, and
+  that gate is now open.
+- Transform inheritance (slice 5) decision, confirmed and implemented: re-parenting recomputes
+  the child's local transform to preserve its world position (Unity-style), via a new
+  framework-free `packages/authoring-engine/src/transformMath.ts` (quaternion/vector TRS
+  composition, no `three` dependency). The renderer now nests meshes per `parentId` through
+  Three.js's own `Object3D` hierarchy instead of adding everything flat into one group; gizmo
+  and drag math convert between world and local space at the interaction boundary via
+  `getWorldPosition`/`getWorldQuaternion`/`worldToLocal`, never by hand-rolling matrix math in
+  the project model.
+- Stage 1 (local dev environment: Docker/Postgres/MinIO/pydantic-settings/Alembic) was started
+  — the plan section was read — then explicitly deprioritized before any file was written, in
+  favor of frontend business logic. Nothing on disk changed for Stage 1; it is genuinely
+  untouched, not partially done.
+- The reassessment's open question ("should the twelve prompts be promoted into a tracked doc
+  so they survive context compaction") is resolved: **yes**, and further split per-feature
+  rather than kept as one shared multi-stage doc. The user's stated preference: smaller,
+  specific markdown files per feature/optimization/implementation, each fully generated (not
+  a one-line summary), with a pointer added to the subsystem summary index
+  (`docs/05-subsystems/`, referenced from `docs/README.md`) even for planned-but-not-yet-built
+  subsystems — so the "summary of systems" surfaces planned work, clearly marked as planned,
+  alongside built subsystems.
+- User preference, for memory: durable planning/context should live in the repo as markdown
+  (this backlog, these per-feature docs, `SESSION.md`), not rely on any out-of-repo memory
+  mechanism.
+
+### Current skeleton / plan state
+
+Backlog status now tracked in
+[`docs/07-research-and-history/2026-09-17--PLAN--frontend-business-logic-backlog.md`](07-research-and-history/2026-09-17--PLAN--frontend-business-logic-backlog.md)
+(the full table, supersedes the numbered list in the "2026-09-17 Phase/Stage reassessment"
+section above for status purposes — that section's decisions/rationale are still current, only
+its status column is stale now):
+
+1. Phase 2 — **done** (`573def4`, `c027666`)
+2. Hierarchy UI slice 4 — **done** (`316c3f8`)
+3. Transform inheritance slice 5 — **done** (`7cbb708`)
+4. Stage 1 (local dev env) — not started, deprioritized (backend track)
+5. Asset Manager — not started, no blocker. Full spec:
+   [`2026-09-17--PLAN--asset-manager-vehicle.md`](07-research-and-history/2026-09-17--PLAN--asset-manager-vehicle.md)
+6. Sync Engine — not started, no blocker. Full spec:
+   [`2026-09-17--PLAN--sync-engine-vehicle.md`](07-research-and-history/2026-09-17--PLAN--sync-engine-vehicle.md)
+7–9, 12. Stage 2/3/5 backend + Stage 6 (needs Asset Manager) — not started, unchanged from prior reassessment
+10. WHEN→DO engine + wiring — not started, **now unblocked** (was: needs Phase 2). Full spec:
+    [`2026-09-17--PLAN--when-do-dispatch-engine.md`](07-research-and-history/2026-09-17--PLAN--when-do-dispatch-engine.md)
+11. Wire Sync into autosave — not started, needs step 6
+
+Each of steps 5, 6, 10 above also has a short stub in `docs/05-subsystems/` (`asset-manager.md`,
+`sync-engine.md`, `when-do-dispatch-engine.md`) marked "planned, not yet implemented," linking
+to its full spec — this is the "added to the summary of systems" piece.
+
+### Build / verify command and status
+
+```powershell
+npm.cmd run typecheck   # clean
+npm.cmd test             # 88/88 passing (was 77 before this session; +9 transformMath, +2 reparent)
+npm.cmd run build        # succeeds, known pre-existing 852 kB chunk-size warning only
+npm.cmd run test:e2e     # 1/1 passing
+```
+
+All four green as of this session, on top of the three feature commits below. No commands run
+for Stage 1 (nothing built) or the new doc-only work (no code changed).
+
+### Files touched this session
+
+Code (Phase 2 was completed in a prior, now-summarized part of this session; hierarchy UI and
+transform inheritance are this session's own commits):
+
+- `316c3f8` — hierarchy UI slice 4: `src/editor/sceneTree.ts` (new), `sceneTree.test.ts` (new),
+  `src/editor/editorOperations.ts`, `src/App.tsx`, `src/styles.css`,
+  `docs/05-subsystems/authoring-engine.md`.
+- `7cbb708` — transform inheritance slice 5: `packages/authoring-engine/src/transformMath.ts`
+  (new), `transformMath.test.ts` (new), `packages/authoring-engine/src/index.ts`,
+  `index.test.ts`, `src/App.tsx`, `src/viewport/interactionController.ts`,
+  `src/viewport/syncArtefacts.ts`, `src/viewport/syncGizmo.ts`,
+  `docs/05-subsystems/authoring-engine.md`.
+
+Docs (uncommitted as of this handoff — see "Next recommended step"):
+
+- `docs/07-research-and-history/2026-09-17--PLAN--frontend-business-logic-backlog.md` (new)
+- `docs/07-research-and-history/2026-09-17--PLAN--asset-manager-vehicle.md` (new)
+- `docs/07-research-and-history/2026-09-17--PLAN--when-do-dispatch-engine.md` (new)
+- `docs/07-research-and-history/2026-09-17--PLAN--sync-engine-vehicle.md` (new)
+- `docs/05-subsystems/asset-manager.md` (new stub)
+- `docs/05-subsystems/when-do-dispatch-engine.md` (new stub)
+- `docs/05-subsystems/sync-engine.md` (new stub)
+- `docs/README.md` (subsystems row updated with the three new stub links)
+- `SESSION.md` (this section)
+
+### Failed approaches already tried
+
+- None new this session beyond what's already recorded in the transform inheritance and
+  hierarchy UI sections above (`ExitPlanMode` twice showed a stale prior plan's content in its
+  tool result rather than the newly-approved plan — a recurring tooling artifact, not a real
+  approval of the wrong plan; proceeded with the actually-approved plan both times).
+
+### Open questions
+
+- Should the backend track (Stage 1/2/3/5) get the same per-feature doc split treatment now,
+  or only if/when backend work actually resumes? Left as shared-doc-only for now per "Per-step
+  scope reference" in the backlog file.
+- `docs/05-subsystems/*.md` stubs for unbuilt subsystems are a new pattern for this repo (prior
+  convention: 05-subsystems only documents built systems, 07-research-and-history holds plans).
+  If this pattern causes confusion (stub churn as specs change pre-implementation), reconsider
+  and fold the stubs back into a single "planned subsystems" row in `docs/README.md` instead.
+
+### Next recommended step
+
+Commit the doc-only changes listed above (they are uncommitted), then start step 10 (WHEN→DO
+engine) in its own session with Opus 5 + Plan Mode per
+`2026-09-17--PLAN--when-do-dispatch-engine.md` — it's the architecturally riskiest remaining
+frontend piece and the one item that just became unblocked. Steps 5 and 6 (Asset Manager, Sync
+Engine) can run as parallel background sessions without waiting on step 10.
