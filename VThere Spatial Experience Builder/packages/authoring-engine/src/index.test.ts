@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject } from './index'
+import { createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, setObjectEnabled, setObjectVisible } from './index'
 import { defaultProject } from '@vthere/project'
 
 describe('command timeline', () => {
@@ -18,6 +18,15 @@ describe('command timeline', () => {
     expect(timeline.current).toEqual({ value: 0 })
 
     timeline.redo()
+    expect(timeline.current).toEqual({ value: 1 })
+  })
+
+  it('records one history entry for one committed user action', () => {
+    const timeline = createCommandTimeline({ value: 0 }, (state) => ({ ...state }))
+
+    timeline.commit('change value', { value: 1 })
+
+    expect(timeline.past).toHaveLength(1)
     expect(timeline.current).toEqual({ value: 1 })
   })
 })
@@ -61,5 +70,15 @@ describe('object operations', () => {
   it('rejects unknown scenes and objects', () => {
     expect(() => createObject(defaultProject(), { sceneId: 'missing', assetKind: 'cube' }, ids)).toThrow(ObjectOperationError)
     expect(() => removeObject(defaultProject(), { sceneId: 'scene-gallery', objectId: 'missing' })).toThrow(ObjectOperationError)
+  })
+
+  it('updates visibility and enabled state immutably', () => {
+    const project = createObject(defaultProject(), { sceneId: 'scene-gallery', assetKind: 'cube' }, ids).project
+    const object = project.scenes[0].objects[0]
+    const hidden = setObjectVisible(project, { sceneId: 'scene-gallery', objectId: object.id, value: false }).project
+    const disabled = setObjectEnabled(hidden, { sceneId: 'scene-gallery', objectId: object.id, value: false }).project
+
+    expect(project.scenes[0].objects[0]).toMatchObject({ visible: true, enabled: true })
+    expect(disabled.scenes[0].objects[0]).toMatchObject({ visible: false, enabled: false })
   })
 })

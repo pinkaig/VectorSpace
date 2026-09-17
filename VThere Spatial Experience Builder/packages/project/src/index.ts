@@ -35,6 +35,8 @@ export interface SceneObject {
   name: string
   assetId: string
   assetKind: AssetKind
+  visible: boolean
+  enabled: boolean
   transform: TransformData
 }
 
@@ -62,12 +64,12 @@ export interface CameraPose {
 }
 
 export const environmentLibrary: EnvironmentDefinition[] = [
-  {
-    id: 'env-gallery-hall',
-    name: 'Gallery Hall',
+    {
+    id: 'env-empty',
+    name: 'Empty',
     kind: 'procedural',
-    proceduralId: 'gallery-hall',
-    description: 'A bright rectangular gallery room with a skylight band. Placeholder environment.',
+    proceduralId: 'empty',
+    description: 'No walls or floor — just the grid, for working against a blank scene.',
   },
   {
     id: 'env-riverside-warehouse',
@@ -76,12 +78,22 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     proceduralId: 'riverside-warehouse',
     description: 'An open warehouse shell facing the water, standing in for the Singapore River trade site. Placeholder environment.',
   },
+  {
+    id: 'env-gallery-hall',
+    name: 'Gallery Hall',
+    kind: 'procedural',
+    proceduralId: 'gallery-hall',
+    description: 'A bright rectangular gallery room with a skylight band. Placeholder environment.',
+  },
 ]
 
-export const defaultEnvironmentId = environmentLibrary[0].id
+export const defaultEnvironmentId =
+  environmentLibrary.find((item) => item.proceduralId !== 'empty')?.id ?? environmentLibrary[0].id
 
 export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
-  environmentLibrary.find((item) => item.id === environmentId) ?? environmentLibrary[0]
+  environmentLibrary.find((item) => item.id === environmentId) ??
+  environmentLibrary.find((item) => item.id === defaultEnvironmentId) ??
+  environmentLibrary[0]
 
 export const defaultCameraPose = (): CameraPose => ({ position: [7, 5.5, 8], target: [0, 0.7, 0] })
 
@@ -128,6 +140,8 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
   name: `${assetKind[0].toUpperCase()}${assetKind.slice(1)} ${index}`,
   assetId: `primitive-${assetKind}`,
   assetKind,
+  visible: true,
+  enabled: true,
   transform: {
     position: [0, restingHeight[assetKind], 0],
     rotation: [0, 0, 0],

@@ -1,3 +1,16 @@
+/**
+ * @file        rotateGizmo.ts
+ * @project     Spatial Experience Builder
+ * @author      Goh Pin Kai
+ * @brief       Defines and creates the rotation gizmo axis handles used to rotate
+ *              selected 3D objects around the X, Y, and Z axes.
+ * 
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+ /******************************************************************************/
+
 import * as THREE from 'three'
 import { AxisName } from './types'
 import { AXIS_COLORS } from './colors'
