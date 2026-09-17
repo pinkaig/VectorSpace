@@ -142,6 +142,10 @@ export interface RenameObjectInput extends ObjectTargetInput {
   name: string
 }
 
+export interface SetObjectAssetIdInput extends ObjectTargetInput {
+  assetId: string
+}
+
 export interface ObjectFlagInput extends ObjectTargetInput {
   value: boolean
 }
@@ -270,6 +274,16 @@ export const renameObject = (
   const next = cloneProject(project)
   const { object } = requireObject(next, input)
   object.name = input.name
+  return { project: next, objectId: object.id }
+}
+
+export const setObjectAssetId = (
+  project: ProjectData,
+  input: SetObjectAssetIdInput,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const { object } = requireObject(next, input)
+  object.assetId = input.assetId
   return { project: next, objectId: object.id }
 }
 

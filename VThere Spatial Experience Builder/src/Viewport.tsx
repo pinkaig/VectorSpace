@@ -36,6 +36,14 @@ import { createGizmoSet } from './viewport/createGizmoSet'
 import { AXIS_INDICATOR_DIM, OCTAORB_DIM, OVERLAY_MARGIN, createViewportOverlays } from './viewport/overlayWidgets'
 import { matchFaceView } from './gizmo/viewSnap'
 import type { EnvStatus } from './viewport/renderTypes'
+import {
+  getAssetDescriptor,
+  resolveAsset,
+  retryAsset,
+  subscribeAssetResolution,
+  type AssetDescriptor,
+} from './viewport/assetResolution'
+import { AssetStatusBadge } from './viewport/AssetStatusBadge'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -108,6 +116,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const pitchRef = useRef(0)
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
+  // Tracks every object currently loading/erroring so the interaction controller
+  // can skip them at pick time; see requirement 2 in the Stage 6 plan section.
+  const unpickableAssetIdsRef = useRef<Set<string>>(new Set())
+  const [selectedAssetDescriptor, setSelectedAssetDescriptor] = useState<AssetDescriptor | undefined>(undefined)
 
   useImperativeHandle(ref, () => ({
     getCameraPose: (): CameraPose => {
@@ -257,6 +269,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
+          unpickableAssetIds: unpickableAssetIdsRef.current,
         }),
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
@@ -402,6 +415,42 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken])
 
+  // Resolving the selected object's asset is what makes loading/ready/error
+  // states observable — selection is the trigger the Stage 6 acceptance
+  // criterion names explicitly. Every object's own status still feeds
+  // unpickableAssetIdsRef below regardless of selection, since raycasting
+  // must skip a loading/error object whether or not it's currently selected.
+  useEffect(() => {
+    const selected = objects.find((object) => object.id === selectedId)
+    setSelectedAssetDescriptor(selected ? getAssetDescriptor(selected.id) : undefined)
+    if (!selected) return
+    const unsubscribe = subscribeAssetResolution(selected.id, setSelectedAssetDescriptor)
+    void resolveAsset(selected)
+    return unsubscribe
+  }, [objects, selectedId])
+
+  useEffect(() => {
+    const unsubscribers = objects.map((object) =>
+      subscribeAssetResolution(object.id, (descriptor) => {
+        const set = unpickableAssetIdsRef.current
+        if (descriptor.status === 'loading' || descriptor.status === 'error') set.add(object.id)
+        else set.delete(object.id)
+      }),
+    )
+    objects.forEach((object) => {
+      const existing = getAssetDescriptor(object.id)
+      if (!existing) void resolveAsset(object)
+      else if (existing.status === 'loading' || existing.status === 'error') unpickableAssetIdsRef.current.add(object.id)
+    })
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objects])
+
+  const retrySelectedAsset = () => {
+    const selected = objects.find((object) => object.id === selectedId)
+    if (selected) void retryAsset(selected)
+  }
+
   const hint = cameraMode === 'walk'
     ? interactive
       ? 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint · Click to select'
@@ -423,6 +472,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
+      <AssetStatusBadge descriptor={selectedAssetDescriptor} onRetry={retrySelectedAsset} />
     </div>
   )
 })

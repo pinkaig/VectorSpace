@@ -32,6 +32,7 @@ import {
   renameObject,
   reparentObject,
   setActiveScene,
+  setObjectAssetId,
   setObjectEnabled,
   setObjectVisible,
   updateObjectTransform,
@@ -105,6 +106,9 @@ export const transformEditorObjectCommand = (
 
 export const renameEditorObject = (project: ProjectData, sceneId: string, objectId: string, name: string): ObjectOperationResult =>
   renameObject(project, { sceneId, objectId, name })
+
+export const setEditorObjectAssetId = (project: ProjectData, sceneId: string, objectId: string, assetId: string): ObjectOperationResult =>
+  setObjectAssetId(project, { sceneId, objectId, assetId })
 
 export const setEditorObjectVisible = (project: ProjectData, sceneId: string, objectId: string, value: boolean): ObjectOperationResult =>
   setObjectVisible(project, { sceneId, objectId, value })

@@ -32,16 +32,18 @@ export class PlaceholderAssetResolver implements AssetResolver {
     try {
       const descriptor = await this.delegate.resolve(ref)
       if (descriptor.status === 'error') {
-        return { ...descriptor, isPlaceholder: true } satisfies PlaceholderAssetDescriptor
+        const placeholder: PlaceholderAssetDescriptor = { ...descriptor, status: 'error', isPlaceholder: true }
+        return placeholder
       }
       return descriptor
     } catch (error) {
-      return {
+      const placeholder: PlaceholderAssetDescriptor = {
         ref,
         status: 'error',
         isPlaceholder: true,
         errorMessage: error instanceof Error ? error.message : String(error),
-      } satisfies PlaceholderAssetDescriptor
+      }
+      return placeholder
     }
   }
 

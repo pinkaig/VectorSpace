@@ -684,6 +684,32 @@ button:disabled {
   white-space: nowrap;
   z-index: 5;
 }
+.asset-status-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 220px;
+  padding: 10px 12px;
+  background: rgba(8, 13, 18, 0.9);
+  border: 1px solid #2a444a;
+  border-radius: 6px;
+  color: #cdddd9;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
+.asset-status-loading {
+  flex-direction: row;
+  align-items: center;
+}
+.asset-status-loading .spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
 .viewport-projection-badge {
   position: absolute;
   top: 16px;

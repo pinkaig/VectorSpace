@@ -53,6 +53,10 @@ export interface ViewportInteractionData {
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
+  // Object ids whose asset is still resolving or failed to resolve. Raycasting
+  // skips these so a click can't select or drag an object with no confirmed
+  // visual representation yet — see docs/05-subsystems/asset-manager.md.
+  unpickableAssetIds: ReadonlySet<string>
 }
 
 export interface ViewportInteractionCallbacks {
@@ -128,9 +132,16 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     raycaster.setFromCamera(pointer, activeCamera.current)
     // Parented objects are nested inside their parent's mesh (see syncArtefacts),
     // so picking must traverse the whole group rather than only its direct children.
+    const unpickableAssetIds = callbacks.getData().unpickableAssetIds
     const pickable: THREE.Object3D[] = []
     objectsGroup.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.userData.entityId && child.visible && child.userData.enabled !== false) pickable.push(child)
+      if (
+        child instanceof THREE.Mesh &&
+        child.userData.entityId &&
+        child.visible &&
+        child.userData.enabled !== false &&
+        !unpickableAssetIds.has(child.userData.entityId)
+      ) pickable.push(child)
     })
     return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
   }
