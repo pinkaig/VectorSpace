@@ -70,6 +70,26 @@ const backfillScenes = (project: ProjectData): ProjectData => {
 
 const isTuple = (value: unknown): value is [number, number, number] => Array.isArray(value) && value.length === 3 && value.every((item) => typeof item === 'number' && Number.isFinite(item))
 
+/**
+ * Every parentId must reference another object in the same scene, and following
+ * parent links must never loop; a cycle would hang any hierarchy traversal.
+ */
+const validateSceneHierarchy = (scene: ProjectData['scenes'][number]): void => {
+  const objectsById = new Map(scene.objects.map((object) => [object.id, object]))
+  for (const object of scene.objects) {
+    if (object.parentId === undefined) continue
+    if (object.parentId === object.id) throw new Error('Project contains an object parented to itself')
+    if (!objectsById.has(object.parentId)) throw new Error('Project contains an object whose parent does not exist in its scene')
+    const seen = new Set([object.id])
+    let parent = objectsById.get(object.parentId)
+    while (parent) {
+      if (seen.has(parent.id)) throw new Error('Project contains a parent-child cycle')
+      seen.add(parent.id)
+      parent = parent.parentId === undefined ? undefined : objectsById.get(parent.parentId)
+    }
+  }
+}
+
 const validateProject = (parsed: unknown): ProjectData => {
   if (!parsed || typeof parsed !== 'object') throw new Error('Project file must contain a JSON object')
   const candidate = parsed as Partial<ProjectData>
@@ -87,10 +107,11 @@ const validateProject = (parsed: unknown): ProjectData => {
     for (const object of scene.objects) {
       objectCount += 1
       if (objectCount > MAX_OBJECTS) throw new Error('Project contains too many scene objects')
-      if (!object || typeof object !== 'object' || typeof object.id !== 'string' || typeof object.name !== 'string' || typeof object.assetId !== 'string' || object.id.length > MAX_LABEL_LENGTH || object.name.length > MAX_LABEL_LENGTH || object.assetId.length > MAX_LABEL_LENGTH || !['cube', 'sphere', 'cylinder'].includes(object.assetKind) || (object.visible !== undefined && typeof object.visible !== 'boolean') || (object.enabled !== undefined && typeof object.enabled !== 'boolean') || !object.transform || !isTuple(object.transform.position) || !isTuple(object.transform.rotation) || !isTuple(object.transform.scale)) throw new Error('Project contains an invalid scene object')
+      if (!object || typeof object !== 'object' || typeof object.id !== 'string' || typeof object.name !== 'string' || typeof object.assetId !== 'string' || object.id.length > MAX_LABEL_LENGTH || object.name.length > MAX_LABEL_LENGTH || object.assetId.length > MAX_LABEL_LENGTH || !['cube', 'sphere', 'cylinder'].includes(object.assetKind) || (object.visible !== undefined && typeof object.visible !== 'boolean') || (object.enabled !== undefined && typeof object.enabled !== 'boolean') || (object.parentId !== undefined && (typeof object.parentId !== 'string' || object.parentId.length > MAX_LABEL_LENGTH)) || !object.transform || !isTuple(object.transform.position) || !isTuple(object.transform.rotation) || !isTuple(object.transform.scale)) throw new Error('Project contains an invalid scene object')
       if (objectIds.has(object.id)) throw new Error('Project contains duplicate object IDs')
       objectIds.add(object.id)
     }
+    validateSceneHierarchy(scene)
   }
   if (!sceneIds.has(candidate.activeSceneId)) throw new Error('Project active scene does not exist')
   return backfillScenes(parsed as ProjectData)
