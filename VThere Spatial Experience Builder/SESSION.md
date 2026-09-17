@@ -605,6 +605,107 @@ After it passes, extract only the pure transform/session logic that the tests
 demonstrate is framework-independent. Do not begin the full app migration or
 package expansion until that slice is integrated and verified.
 
+## 2026-09-17 Lifecycle verification, parent-child slices 1-2, inspector styling, tests
+
+### Objective / topic
+
+Verify the object-lifecycle handoff
+(`docs/07-research-and-history/Week3/2026-09-15--HANDOFF--object-lifecycle-scaffolding-and-next-agent-guide.md`)
+against the current branch, then implement the first two parent-child hierarchy
+slices (schema + engine operations), style the existing Inspector
+duplicate/delete/visibility controls, and add permanent tests.
+
+### Decisions made and why
+
+- The handoff's lifecycle task (createObject/duplicateObject/removeObject/
+  ObjectOperationError) was already complete on this branch via merges from
+  `Working` (PR #4); it was verified rather than reimplemented.
+- Parent-child hierarchy added in slices. Slices 1-2 only (data + operations);
+  no UI exposes parenting yet because the editor layout/CSS may still change.
+- `parentId` is optional on `SceneObject`; absent means top-level, so old saved
+  drafts need no backfill and remain valid.
+- Removing a parent removes its whole subtree (Unity-style) so no orphaned
+  `parentId` can be saved. Duplicating a parent copies the subtree; the copied
+  root keeps the original's parent, copied children point at the copied root.
+- Transforms remain world-space: re-parenting does not yet move children with
+  the parent. Transform inheritance is deliberately deferred (slice 5) and
+  needs its own design review before implementation.
+- Undo/redo needed zero changes: the CommandTimeline stores whole ProjectData
+  snapshots, so `parentId` participates in undo automatically.
+
+### Current skeleton / plan state
+
+- Implemented: `parentId?: string` on `SceneObject` (packages/project);
+  serializer validation rejecting unknown parents, self-parenting, and cycles;
+  `reparentObject` (with `ReparentObjectInput`, null = detach to top level)
+  plus subtree-aware `removeObject`/`duplicateObject` in the authoring engine;
+  CSS for the Inspector `.toggle-row` and `.inspector-actions` controls that
+  already existed in App.tsx but had no styling.
+- Deferred (planned slices): hierarchy UI in the scene tree (slice 4) and
+  transform inheritance / local-space semantics (slice 5). `status` field and
+  groups remain future schema work.
+
+### Build / verify command and status
+
+Run from `VThere Spatial Experience Builder/` (Node 24.21.0, npm 11.19.0):
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+```
+
+All passing as of 2026-09-17: typecheck clean, 36/36 tests across 7 files
+(was 26 before this session), build succeeds with the known pre-existing Vite
+large-chunk warning (845 kB bundle). `npm run test:e2e` was not run this
+session.
+
+### Files touched this session
+
+- `packages/project/src/index.ts` (added `parentId`, updated pseudocode notes)
+- `packages/authoring-engine/src/index.ts` (reparentObject, subtree
+  remove/duplicate, collectSubtreeIds)
+- `packages/authoring-engine/src/index.test.ts` (+6 tests: delete/undo/redo
+  timeline integration, reparent/detach, cycle/self/missing-parent rejection,
+  subtree duplicate, subtree remove, subtree undo restore)
+- `src/serializer.ts` (parentId field validation + per-scene hierarchy checks)
+- `src/serializer.test.ts` (+4 tests: valid parent kept; missing parent,
+  self-parent, and cycle rejected)
+- `src/styles.css` (`.toggle-row`, `.inspector-actions`)
+- `SESSION.md`
+
+All changes are uncommitted on `weian_branch`.
+
+### Failed approaches already tried
+
+- Verifying the new operations with a plain Node type-stripping script failed
+  (`node` cannot elide type-only imports from `@vthere/project`); a temporary
+  vitest file was used instead, then promoted into the permanent test suites.
+- `tsc -b` (build) caught a TS7022 inference cycle in the reparent ancestor
+  walk that `tsc --noEmit` (typecheck) missed; fixed with an explicit
+  `string | undefined` annotation. Note: typecheck alone is not sufficient
+  verification; always run the build too.
+- Earlier this session, stale OneDrive file contents misrepresented the branch
+  state (files appeared pre-implementation while git showed a clean tree).
+  If file contents and `git status` disagree, re-read before editing.
+
+### Open questions
+
+- When parent-child reaches the UI: strict tree list with indentation, or
+  drag-to-reparent? (slice 4)
+- Transform inheritance semantics for slice 5: what does the inspector show
+  for a child (local or world), and should re-parenting preserve the child's
+  world position by recomputing its local transform?
+- Should the duplicate/delete actions also get keyboard shortcuts
+  (Del / Ctrl+D) in the viewport?
+
+### Next recommended step
+
+Commit this work in logical steps ([agent]-prefixed subjects per
+GIT_AND_HANDOFF_CONVENTIONS.md), push to `weian_branch`, and open a PR into
+`Working` so CI (`build-and-test`) validates it. Then decide slice 4 (hierarchy
+UI) scope with the team before touching the scene-tree markup.
+
 ## Handoff precedence note
 
 The `Rendering factorisation and separation handoff` section above is the

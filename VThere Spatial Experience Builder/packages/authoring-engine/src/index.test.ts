@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, setObjectEnabled, setObjectVisible } from './index'
-import { defaultProject } from '@vthere/project'
+import { createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, reparentObject, setObjectEnabled, setObjectVisible } from './index'
+import { defaultProject, ProjectData } from '@vthere/project'
 
 describe('command timeline', () => {
   it('restores committed snapshots without sharing mutable state', () => {
@@ -80,5 +80,84 @@ describe('object operations', () => {
 
     expect(project.scenes[0].objects[0]).toMatchObject({ visible: true, enabled: true })
     expect(disabled.scenes[0].objects[0]).toMatchObject({ visible: false, enabled: false })
+  })
+
+  it('restores a deleted object through timeline undo and removes it again on redo', () => {
+    const created = createObject(defaultProject(), { sceneId: 'scene-gallery', assetKind: 'cube' }, ids)
+    const object = created.project.scenes[0].objects[0]
+    const timeline = createCommandTimeline(created.project, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
+
+    const removed = removeObject(timeline.current, { sceneId: 'scene-gallery', objectId: object.id })
+    timeline.commit('Delete object', removed.project)
+    expect(timeline.current.scenes[0].objects).toHaveLength(0)
+
+    timeline.undo()
+    expect(timeline.current.scenes[0].objects[0]).toMatchObject({ id: object.id, name: object.name })
+
+    timeline.redo()
+    expect(timeline.current.scenes[0].objects).toHaveLength(0)
+  })
+})
+
+describe('parent-child hierarchy', () => {
+  // a table (obj-0) with two children: a vase (obj-1) and a lamp (obj-2)
+  const buildFamily = () => {
+    let n = 0
+    const ids = { nextId: () => `obj-${n++}` }
+    let project = createObject(defaultProject(), { sceneId: 'scene-gallery', assetKind: 'cube' }, ids).project
+    project = createObject(project, { sceneId: 'scene-gallery', assetKind: 'sphere' }, ids).project
+    project = createObject(project, { sceneId: 'scene-gallery', assetKind: 'cylinder' }, ids).project
+    project = reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-1', parentId: 'obj-0' }).project
+    project = reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-2', parentId: 'obj-0' }).project
+    return { project, ids }
+  }
+  const objects = (project: ProjectData) => project.scenes[0].objects
+
+  it('sets a parent and clears it again with null', () => {
+    const { project } = buildFamily()
+    expect(objects(project).find((item) => item.id === 'obj-1')?.parentId).toBe('obj-0')
+
+    const detached = reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-1', parentId: null }).project
+    expect(objects(detached).find((item) => item.id === 'obj-1')?.parentId).toBeUndefined()
+    expect(objects(project).find((item) => item.id === 'obj-1')?.parentId).toBe('obj-0')
+  })
+
+  it('rejects self-parenting, cycles, and missing parents', () => {
+    const { project } = buildFamily()
+    expect(() => reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-0', parentId: 'obj-0' })).toThrow(ObjectOperationError)
+    expect(() => reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-0', parentId: 'obj-1' })).toThrow(ObjectOperationError)
+    expect(() => reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-1', parentId: 'missing' })).toThrow(ObjectOperationError)
+  })
+
+  it('duplicates a parent together with its subtree and remaps child links', () => {
+    const { project, ids } = buildFamily()
+    const result = duplicateObject(project, { sceneId: 'scene-gallery', objectId: 'obj-0' }, ids)
+
+    expect(objects(result.project)).toHaveLength(6)
+    const rootCopy = objects(result.project).find((item) => item.id === result.objectId)
+    expect(rootCopy?.name).toBe('Cube 0 Copy')
+    expect(rootCopy?.parentId).toBeUndefined()
+    expect(objects(result.project).filter((item) => item.parentId === result.objectId)).toHaveLength(2)
+    expect(objects(project)).toHaveLength(3)
+  })
+
+  it('removes a parent together with its whole subtree', () => {
+    const { project } = buildFamily()
+    const result = removeObject(project, { sceneId: 'scene-gallery', objectId: 'obj-0' })
+
+    expect(objects(result.project)).toHaveLength(0)
+    expect(result.removedObject?.id).toBe('obj-0')
+    expect(objects(project)).toHaveLength(3)
+  })
+
+  it('restores a removed subtree with parent links intact through timeline undo', () => {
+    const { project } = buildFamily()
+    const timeline = createCommandTimeline(project, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
+    timeline.commit('Delete subtree', removeObject(timeline.current, { sceneId: 'scene-gallery', objectId: 'obj-0' }).project)
+    expect(objects(timeline.current)).toHaveLength(0)
+
+    timeline.undo()
+    expect(objects(timeline.current)).toHaveLength(3)
+    expect(objects(timeline.current).find((item) => item.id === 'obj-2')?.parentId).toBe('obj-0')
   })
 })
