@@ -27,9 +27,14 @@ packages/assets
   AssetDescriptor { status: idle|loading|ready|error, contentType?, url?, blob?, errorMessage? }
 ```
 
-Stage 4a (current) builds the resolver vehicle only. Nothing in the viewport or runtime
-consumes an `AssetDescriptor` yet — that wiring is Stage 6 in
-[`2026-09-17--PLAN--infrastructure-skeleton-extended.md`](../07-research-and-history/2026-09-17--PLAN--infrastructure-skeleton-extended.md).
+Stage 4a built the resolver vehicle in `packages/assets`. Stage 6 wired it into the live
+editor: [`src/viewport/assetResolution.ts`](../../src/viewport/assetResolution.ts) composes
+the resolver chain the app actually uses and is the only place that consumes an
+`AssetDescriptor` today. See
+[`2026-09-17--PLAN--infrastructure-skeleton-extended.md`](../07-research-and-history/2026-09-17--PLAN--infrastructure-skeleton-extended.md)
+for the staged plan and
+[`2026-09-17--NOTE--stage6-primitive-resolver-always-succeeds.md`](../07-research-and-history/2026-09-17--NOTE--stage6-primitive-resolver-always-succeeds.md)
+for a design gap this wiring surfaced and fixed.
 
 ## Where to find things
 
@@ -45,6 +50,10 @@ consumes an `AssetDescriptor` yet — that wiring is Stage 6 in
 | Cache-then-resolve wrapper (composable `AssetResolver`) | [`packages/assets/src/CachingAssetResolver.ts`](../../packages/assets/src/CachingAssetResolver.ts) |
 | Failure-to-visible-placeholder wrapper, with retry | [`packages/assets/src/PlaceholderAssetResolver.ts`](../../packages/assets/src/PlaceholderAssetResolver.ts) |
 | The canonical `AssetKind` union `SceneObject` uses | [`packages/project/src/index.ts`](../../packages/project/src/index.ts) |
+| App-level resolver composition + resolution status store | [`src/viewport/assetResolution.ts`](../../src/viewport/assetResolution.ts) |
+| Selection-triggered resolution, per-frame unpickable-id tracking | [`src/Viewport.tsx`](../../src/Viewport.tsx) |
+| Raycasting skip for loading/error objects | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) |
+| Loading/error viewport badge with retry | [`src/viewport/AssetStatusBadge.tsx`](../../src/viewport/AssetStatusBadge.tsx) |
 
 ### Resolver contract
 
@@ -74,6 +83,19 @@ of getting stuck. A cached descriptor with `expiresAt` set is evicted once that 
 and is itself an `AssetResolver`, so a caller can drop it in front of any origin without
 changing call sites.
 
+### App-level routing policy (Stage 6)
+
+`PrimitiveResolver` matches on `ref.kind` alone, and every `AssetKind` value is currently a
+primitive kind — so handing it straight to `CachingAssetResolver` would resolve every legal
+`SceneObject` as `ready` regardless of `assetId`, making a broken assetId unobservable.
+`src/viewport/assetResolution.ts` adds a small `FallbackResolver` in front of the shared
+package resolvers: only an `assetId` matching the canonical `primitive-${kind}` shape (the id
+`makeObject` assigns on creation) routes to `PrimitiveResolver`; anything else — including a
+user-edited or deliberately broken id — falls through to `LocalCatalogResolver`. This routing
+decision lives at the call site, not inside either resolver, since neither resolver alone knows
+which ids are supposed to look like primitives. Full trace:
+[`2026-09-17--NOTE--stage6-primitive-resolver-always-succeeds.md`](../07-research-and-history/2026-09-17--NOTE--stage6-primitive-resolver-always-succeeds.md).
+
 ### Placeholder / retry
 
 `PlaceholderAssetResolver` wraps a resolver so that both a rejected promise and an
@@ -92,8 +114,10 @@ an asset should be. `retry()` re-resolves through the same wrapper.
 ## Does not own
 
 - Asset *import* or *upload* — there is no ingestion path in this package yet (see Limits)
-- Rendering a resolved descriptor (mesh creation, `<img>`/`<audio>`/`<video>` elements,
-  texture loading) — that is Stage 6, wiring the Asset Manager into the viewport/runtime
+- Rendering a resolved descriptor as an actual visual change (mesh swap, `<img>`/`<audio>`/
+  `<video>` elements, texture loading) — Stage 6 wired resolution and status *observability*
+  (badges, pickability) into the editor, but `syncArtefacts.ts` still renders geometry purely
+  from `assetKind`; a `ready` descriptor with a real GLB `url` does not yet change what's drawn
 - The backend media API, presigned URLs, or object storage — that is Stage 3
   (`apps/api/app/storage.py`, `/projects/{id}/media`); `RemoteMediaResolver` only reserves the
   call shape
@@ -121,11 +145,18 @@ Real "importing" media happens once Stage 3's backend media endpoints exist and
 containing "not implemented". `LocalCatalogResolver` is dev-only: its catalog is a map the
 caller constructs by hand (or from a fixed dev-assets folder), not a runtime import flow.
 
-**No renderer integration.** Resolving a descriptor to `status: 'ready'` with a `url` or
-`blob` is as far as this package goes. Turning that into a Three.js mesh, an `<img>`, an
-`<audio>`/`<video>` element, or a text render is unbuilt and belongs to Stage 6 per the plan
-doc. Different content types will likely need different renderer-side handling even though
-they share one resolver contract.
+**Resolution status is observable, but a `ready` descriptor still doesn't change what renders.**
+Stage 6 made loading/ready/error visible (viewport badge) and load-state-aware (raycasting
+skips loading/error objects), but `syncArtefacts.ts` builds geometry purely from
+`SceneObject.assetKind`, never from a resolved `AssetDescriptor.url`/`blob`. Turning a `ready`
+non-primitive descriptor into an actual Three.js mesh, an `<img>`, an `<audio>`/`<video>`
+element, or a text render is still unbuilt. Different content types will likely need different
+renderer-side handling even though they share one resolver contract.
+
+**Every `AssetKind` is currently a primitive kind.** `PrimitiveResolver` only checks `kind`,
+so without the app-level routing policy above, no assetId could ever fail. If `AssetKind` grows
+a non-primitive case, whoever wires its resolver needs to extend that routing policy
+deliberately — matching on `kind` alone is not the same as validating `assetId`.
 
 **Cache is in-memory only, per process.** `AssetCache` has no persistence layer — a page
 reload starts cold, and multiple tabs/windows do not share a cache. This is deliberate for
@@ -160,18 +191,30 @@ responsibility, not something this package guards against.
   three sources; swapping origin requires no caller changes — verified directly by
   `resolverContract.test.ts`.
 
-### Stage 6 (planned): wire into frontend
+### Stage 6 (done): wired into the frontend
 
-- `SceneObject.assetId` / `assetKind` resolved through this package in the viewport.
-- Viewport raycasting filters by asset status (skip loading/failed).
-- Gizmo picking accounts for asset load state.
-- Not yet scoped: renderer-side handling per content type, and whether/how `AssetKind` grows
-  beyond the three current primitives.
+- `SceneObject.assetId` / `assetKind` resolved through this package on selection, via
+  `src/viewport/assetResolution.ts`.
+- Viewport raycasting skips objects whose asset is loading or errored
+  (`interactionController.ts::pick`).
+- Gizmo picking confirmed unaffected — gizmo handles are separate Three.js objects, not
+  asset-resolved `SceneObject`s.
+- A loading/error status is visible via `AssetStatusBadge.tsx`, with a manual retry.
+- The Inspector's Asset ID field is editable, so a broken assetId can be exercised on a real
+  object end-to-end.
+- Acceptance verified: `npm run test`, `npm run typecheck`, `npm run build` pass; a
+  deliberately broken assetId shows the placeholder/retry state and becomes unpickable.
+- Not yet scoped: renderer-side handling per content type (see Limits), and whether/how
+  `AssetKind` grows beyond the three current primitives.
 
-### Stage 3 (planned, backend): real remote media
+### Stage 3 (backend infra done; media integration still pending): real remote media
 
-- `apps/api/app/storage.py` (boto3 presigned URLs) and `/projects/{id}/media` routes land.
-- `RemoteMediaResolver.resolve()` gets a real body; its `expiresAt` should come from the
+- `apps/api/app/storage.py` (boto3 presigned URLs against MinIO) and the `/projects/{id}/media`
+  routes exist and are real, but per the Stage 3 skeleton boundary the media routes'
+  handler bodies raise 501 and are not called by anything in this package yet — see
+  [`2026-09-17--NOTE--stage3-auth-dependency-ordering.md`](../07-research-and-history/2026-09-17--NOTE--stage3-auth-dependency-ordering.md).
+- `RemoteMediaResolver.resolve()` still always returns an `error` descriptor; it needs a real
+  body once the media routes are implemented, and its `expiresAt` should come from the
   presigned URL's actual TTL.
 - Acceptance carries over from the plan doc: swapping `RemoteMediaResolver` in for
   `LocalCatalogResolver` requires no change to any calling code, per the same contract test

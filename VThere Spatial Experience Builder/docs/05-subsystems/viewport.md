@@ -43,6 +43,8 @@ Use this table as the first stop when changing viewport or rendering behaviour.
 | Three.js compatibility wrappers for gizmo math | [`src/gizmo/math.ts`](../../src/gizmo/math.ts) | Three.js vectors need adapting to the pure math contract |
 | Gizmo geometry and colours | [`src/gizmo/`](../../src/gizmo/) | Handle meshes, dimensions, colours, or material behaviour change |
 | Keyboard movement constants and input helpers | [`src/viewport/viewportTypes.ts`](../../src/viewport/viewportTypes.ts) | Walk controls, speeds, key mappings, or asset colours change |
+| Asset Manager resolver composition and resolution status store | [`src/viewport/assetResolution.ts`](../../src/viewport/assetResolution.ts) | Which resolver an assetId routes through, or how status is cached/observed, changes — see [`asset-manager.md`](asset-manager.md) |
+| Asset resolution status UI (loading/error badge, retry) | [`src/viewport/AssetStatusBadge.tsx`](../../src/viewport/AssetStatusBadge.tsx) | Loading/error presentation for the selected object's asset changes |
 | Authoritative project objects and transforms | [`packages/project/src/index.ts`](../../packages/project/src/index.ts) | Persisted object shape or defaults change |
 | Authoring commands and history | [`packages/authoring-engine/src/index.ts`](../../packages/authoring-engine/src/index.ts) | An edit must be immutable, undoable, or shared by editor controls |
 | Editor composition | [`src/App.tsx`](../../src/App.tsx) | UI state dispatches commands or selects a scene |
@@ -240,7 +242,11 @@ Important risks include:
 - WebGL availability on older devices
 - Resize handling for narrow screens
 - Raycast cost as the object count grows
-- Rendering a scene while its assets are still loading in a future implementation
+- Selecting/interacting with an object whose asset is still loading or failed to resolve —
+  handled since Stage 6: `interactionController.ts::pick` excludes objects tracked as
+  loading/error in `Viewport.tsx`'s `unpickableAssetIdsRef`, so a click can't select or drag
+  a mesh with no confirmed asset. Gizmo picking is unaffected, since gizmo handles are
+  separate Three.js objects, not asset-resolved `SceneObject`s.
 
 The current renderer caps pixel ratio at `2` to limit excessive GPU work on high-density displays.
 
@@ -278,3 +284,4 @@ A canvas visibility check is useful, but it should also have a non-zero bounding
 | Date | Change |
 |---|---|
 | 2026-09-13 | Expanded documentation with component structure, data flow, pointer flow, lifecycle, and performance notes. |
+| 2026-09-17 | Stage 6: wired the Asset Manager into selection and raycasting; documented `assetResolution.ts`, `AssetStatusBadge.tsx`, and the loading/error picking exclusion. |
