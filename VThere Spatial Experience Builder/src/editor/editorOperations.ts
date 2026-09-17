@@ -30,6 +30,7 @@ import {
   duplicateObject,
   removeObject,
   renameObject,
+  reparentObject,
   setActiveScene,
   setObjectEnabled,
   setObjectVisible,
@@ -60,6 +61,14 @@ export const duplicateEditorObject = (project: ProjectData, sceneId: string, obj
 
 export const removeEditorObject = (project: ProjectData, sceneId: string, objectId: string): ObjectOperationResult =>
   removeObject(project, { sceneId, objectId })
+
+/** `parentId: null` detaches the object to top-level. Cycle/self-parent checks live in reparentObject. */
+export const reparentEditorObject = (
+  project: ProjectData,
+  sceneId: string,
+  objectId: string,
+  parentId: string | null,
+): ObjectOperationResult => reparentObject(project, { sceneId, objectId, parentId })
 
 export const updateEditorTransform = (
   project: ProjectData,

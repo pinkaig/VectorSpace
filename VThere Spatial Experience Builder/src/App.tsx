@@ -24,6 +24,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import {
+  collectSubtreeIds,
   createCommandTimeline,
   executeCommand,
 } from '@vthere/authoring-engine'
@@ -50,6 +51,7 @@ import {
   moveEditorObjectCommand,
   removeEditorObject,
   renameEditorObject,
+  reparentEditorObject,
   rotateEditorObjectCommand,
   scaleEditorObjectCommand,
   selectEditorScene,
@@ -59,6 +61,7 @@ import {
   updateEditorScene,
   type EditorCommandBuilder,
 } from './editor/editorOperations'
+import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTree'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
@@ -170,6 +173,18 @@ export default function App() {
     commit('Duplicate object', result.project)
     setSelectedId(result.objectId ?? null)
   }
+  const reparentObjectTo = (objectId: string, parentId: string | null) => {
+    commit('Reparent object', reparentEditorObject(project, scene.id, objectId, parentId).project)
+  }
+  const indentObject = (objectId: string) => {
+    const target = previousSibling(scene.objects, objectId)
+    if (target) reparentObjectTo(objectId, target.id)
+  }
+  const outdentObject = (objectId: string) => {
+    const object = scene.objects.find((item) => item.id === objectId)
+    if (object?.parentId === undefined) return
+    reparentObjectTo(objectId, grandparentId(scene.objects, objectId))
+  }
   const setSelectedVisible = (value: boolean) => {
     if (!selected) return
     commit('Set object visibility', setEditorObjectVisible(project, scene.id, selected.id, value).project)
@@ -267,7 +282,17 @@ export default function App() {
         <aside className="left-rail">
           <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
           <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { commit('Select scene', selectEditorScene(project, item.id).project); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
-          <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
+          <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
+            <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
+              <div className="tree-indent-controls">
+                <button className="tree-indent-btn" title="Outdent" disabled={row.object.parentId === undefined} onClick={() => outdentObject(row.object.id)}>⇤</button>
+                <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
+              </div>
+              <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
+                <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+              </button>
+            </div>
+          ))}</div>
           <section className="panel">
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
             <div className="asset-tools">
@@ -373,7 +398,7 @@ export default function App() {
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
-          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
+          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
     </main>
@@ -383,7 +408,10 @@ export default function App() {
 const radToDeg = (radians: number) => radians * (180 / Math.PI)
 const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 
-function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange }: { object: SceneObject; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void }) {
+function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange, onReparent }: { object: SceneObject; sceneObjects: SceneObject[]; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void; onReparent: (parentId: string | null) => void }) {
+  // An object cannot become its own or its own descendant's parent, or the tree would cycle.
+  const excludedParentIds = collectSubtreeIds(sceneObjects, object.id)
+  const parentChoices = sceneObjects.filter((item) => !excludedParentIds.has(item.id))
   const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
     const isRotation = key === 'rotation'
     const displayValues = isRotation ? values.map(radToDeg) : values
@@ -413,5 +441,5 @@ function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVis
       </div>
     )
   }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }

@@ -204,17 +204,52 @@ button:disabled {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 9px;
-  border: 0;
-  padding: 9px 8px;
+  gap: 2px;
   background: transparent;
   color: #91a5a5;
-  text-align: left;
   font-size: 11px;
 }
 .tree-item.selected {
   background: #1b3032;
   color: #f0f5f1;
+}
+.tree-indent-controls {
+  display: flex;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+.tree-indent-btn {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  color: #557278;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tree-indent-btn:hover:not(:disabled) {
+  background: #1c2b32;
+  color: #a4b9b7;
+}
+.tree-indent-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.tree-item-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  padding: 9px 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 11px;
 }
 .object-dot {
   width: 8px;
@@ -479,6 +514,19 @@ button:disabled {
   font-size: 11px;
 }
 .field-group input:focus {
+  border-color: #71b7aa;
+}
+.field-group select {
+  width: 100%;
+  border: 1px solid #2a444a;
+  border-radius: 2px;
+  background: #0d181e;
+  color: #e1edeb;
+  padding: 9px 10px;
+  outline: none;
+  font-size: 11px;
+}
+.field-group select:focus {
   border-color: #71b7aa;
 }
 .asset-id {

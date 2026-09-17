@@ -30,6 +30,7 @@ shared ProjectDocument + DraftPersistence adapter
 | Transform validity, application, and reversal | [`packages/authoring-engine/src/commands/transformCommands.ts`](../../packages/authoring-engine/src/commands/transformCommands.ts) |
 | Whether an edit reaches history | [`packages/authoring-engine/src/commands/commandService.ts`](../../packages/authoring-engine/src/commands/commandService.ts) |
 | Editor-specific operation policy and ID generation | [`src/editor/editorOperations.ts`](../../src/editor/editorOperations.ts) |
+| Scene-tree render order, indent/outdent sibling lookup | [`src/editor/sceneTree.ts`](../../src/editor/sceneTree.ts) |
 | React project/session state and timeline coordination | [`src/App.tsx`](../../src/App.tsx) |
 | Renderer pointer translation and commit callbacks | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) |
 
@@ -66,6 +67,38 @@ Three properties this path guarantees, each covered by a test:
 but the timeline still restores whole snapshots. That is deliberate: snapshot
 undo already covers create, duplicate, remove, and reparent. `undo()` is the
 seam for a future command-stack timeline, not yet its driver.
+
+### The scene-tree hierarchy panel (parent-child slice 4)
+
+`parentId?: string` on `SceneObject` and `reparentObject`/subtree-aware
+`removeObject`/`duplicateObject` (parent-child slices 1-2) had no UI until this
+slice. The scene tree in the left rail now renders the hierarchy directly,
+using `buildSceneTree` in `src/editor/sceneTree.ts` to turn the flat
+`SceneObject[]` into a depth-first, depth-annotated row order — the same order
+drives both the indentation shown and the sibling lookups the tree controls
+need.
+
+Reparenting has no drag-to-reparent (that was one of the two options the prior
+session's handoff left open; the other, an indented tree list, is what this
+slice implements) and instead goes through explicit controls:
+
+- **Indent/outdent buttons** on each tree row move an object to the previous
+  sibling (indent) or to its grandparent (outdent), via `previousSibling` and
+  `grandparentId` in `sceneTree.ts`.
+- **A Parent dropdown in the Inspector** picks an arbitrary parent. Its
+  options exclude the selected object's own subtree
+  (`collectSubtreeIds`, already exported for `removeObject`/`duplicateObject`)
+  so the UI cannot offer a choice `reparentObject` would reject as a cycle.
+
+Both paths call the same `reparentEditorObject` wrapper and commit through the
+plain snapshot `commit()` used by delete/duplicate/rename — not the transform
+`executeCommand` path above, since reparenting is a single discrete edit, not
+a per-pointer-move drag. Deleting a parent removes its whole subtree from
+`scene.objects` (already true since slices 1-2), so the tree simply stops
+rendering the removed rows with no extra hierarchy-aware logic.
+
+Transforms remain world-space: reparenting does not move a child to compensate
+for its new parent's transform. That is slice 5, deliberately separate.
 
 ### Why `editorOperations.ts` exists
 
