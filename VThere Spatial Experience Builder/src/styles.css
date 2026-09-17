@@ -302,6 +302,13 @@ button:disabled {
   border-radius: 50%;
   display: inline-block;
 }
+.status-dot.pending {
+  background: #e8c547;
+}
+.status-dot.conflict,
+.status-dot.failed {
+  background: #e2685b;
+}
 .text-button {
   margin-left: auto;
   border: 0;

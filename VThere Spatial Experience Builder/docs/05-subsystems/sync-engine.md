@@ -11,7 +11,11 @@ left for a later stage.
 ## Boundary
 
 ```text
-Caller (e.g. App.tsx save callback)
+App.tsx persist()  -- Tier 1: serializer.ts saveProject() (synchronous, localStorage)
+          |
+          | stageProjectSync(project)  -- Tier 2, only after Tier 1 succeeds
+          v
+src/sync/projectSync.ts (ProjectSync)
           |
           | stage(QueuedChange)
           v
@@ -24,15 +28,24 @@ packages/sync
                        retryable      -> incrementRetries, state 'pending' or 'failed'
           |
           v
-  SyncService.drain()  -- repeatedly calls syncNext() until idle/conflict/failed
-  SyncService.resolveConflict()  -- NOT IMPLEMENTED (product decision, not sync mechanics)
+  ProjectSync's own drive loop -- steps syncNext() directly (not SyncService.drain(),
+  which collapses the intermediate 'pending' state a UI needs to observe), scheduling a
+  backoff retry via SyncClient.backoffFor() on transient failure and re-driving on
+  the browser's 'online' event
+  SyncService.resolveConflict()  -- still NOT IMPLEMENTED (product decision, not sync mechanics)
 ```
 
-Stage 4c (current) builds the queue/client/service vehicle only. Nothing calls `stage()` from
-the real editor yet, there is no real `SyncTransport` (HTTP client), and no persistence
-adapter beyond the injectable `QueueStorage`/`LocalStore` interfaces. Wiring `App.tsx`'s save
-path and a real localStorage/IndexedDB adapter is future work per
-[`2026-09-17--PLAN--infrastructure-skeleton-extended.md`](../07-research-and-history/2026-09-17--PLAN--infrastructure-skeleton-extended.md).
+Stage 4c built the queue/client/service vehicle. Stage 8 wired it into the editor:
+`src/sync/projectSync.ts` (`createProjectSync`) adapts `SyncClient` with a
+`localStorage`-backed `QueueStorage` (so the queue survives a reload) and a stub
+`SyncTransport` that always succeeds (no backend write endpoint exists yet — Stage 3's routes
+are still 501). `App.tsx`'s `persist()` dual-writes: Tier 1 (`serializer.ts`'s synchronous
+`saveProject`) happens first and is authoritative for reads, then Tier 2
+(`stageProjectSync`) enqueues the same project for background sync. The rail-footer sync
+status line (`Synced` / `Syncing to server…` / `Sync conflict; local edits kept` / `Sync
+failed, will retry`) subscribes to `ProjectSync.subscribe()`. Swapping the stub transport for
+a real HTTP client requires no change to `App.tsx` or `projectSync.ts`'s public surface — only
+`ProjectSyncOptions.transport`.
 
 ## Where to find things
 
@@ -77,10 +90,13 @@ button) decide when to call `syncNext()` again.
 ### SyncService: orchestration, not policy
 
 `SyncService.drain()` repeatedly calls `SyncClient.syncNext()` until the queue is empty or a
-conflict/failure stops it — that's the only orchestration this stage builds. Deciding *what to
-do* about a conflict (merge, overwrite, ask the user) is explicitly out of scope: `SyncService
-.resolveConflict()` always throws, naming the resource kind, so the seam exists without a
-policy decision baked into it prematurely.
+conflict/failure stops it. `src/sync/projectSync.ts` does not use `drain()` — it steps
+`syncNext()` directly so it can observe the transient `'pending'` state `drain()` discards (see
+Considerations below) — but `SyncService` remains the package's per-resource orchestration
+seam for a caller that doesn't need that. Deciding *what to do* about a conflict (merge,
+overwrite, ask the user) is explicitly out of scope: `SyncService.resolveConflict()` always
+throws, naming the resource kind, so the seam exists without a policy decision baked into it
+prematurely.
 
 ## Owns
 
@@ -97,24 +113,26 @@ policy decision baked into it prematurely.
 - Conflict *resolution* policy (merge/overwrite/ask-user) — reserved for `SyncService
   .resolveConflict()`, not yet implemented; a separate product decision per resource type
 - The real HTTP transport, server-side deduplication, or which side wins on conflict — that's
-  backend work (`apps/api`), not yet built
-- A real browser persistence adapter (localStorage/IndexedDB) — only the `QueueStorage` /
-  `LocalStore` interfaces and in-memory test doubles exist today
-- Scheduling/looping retries with real backoff delays (`setTimeout`, reconnect listeners) — a
-  caller (background loop, UI) decides when to call `syncNext()` again
-- Wiring into `App.tsx`'s save callback or `serializer.ts` — not yet integrated
+  backend work (`apps/api`), not yet built. `src/sync/projectSync.ts`'s `StubSyncTransport`
+  always succeeds so the client-side path can be exercised end-to-end
+- IndexedDB persistence — `src/sync/projectSync.ts`'s `LocalStorageQueueStorage` uses
+  `localStorage`, matching Tier 1's storage; swapping to IndexedDB needs no change to
+  `packages/sync`
 
 ## Considerations and limits
 
-**No real transport exists.** `SyncTransport` is an interface; every test drives it with a
-scripted in-memory stub. There is no HTTP implementation yet and no corresponding backend
-endpoint — both depend on backend work not yet built (project/asset/rule persistence APIs).
+**No real transport exists.** `SyncTransport` is an interface; `packages/sync`'s own tests
+drive it with a scripted in-memory stub, and `src/sync/projectSync.ts`'s `StubSyncTransport`
+always reports success — there is no HTTP implementation yet and no corresponding backend
+endpoint (Stage 3's routes are still 501). Swapping in a real transport is a matter of passing
+a different `ProjectSyncOptions.transport`; no other code changes.
 
-**No real persistence adapter.** `QueueStorage` and `LocalStore` are interfaces with only
-`InMemoryQueueStorage`/`InMemoryLocalStore` test doubles. Nothing in this package touches
-`window.localStorage` or IndexedDB yet — "queue persists across simulated restarts" is
-verified by constructing a fresh `SyncQueue`/`SyncClient` against the *same storage instance*,
-not an actual browser reload.
+**Queue persistence now uses real `localStorage`.** `src/sync/projectSync.ts`'s
+`LocalStorageQueueStorage` writes the serialized queue to
+`localStorage['vthere-sync-queue-v1']`, so an offline edit staged before a reload is still
+queued after one. `packages/sync`'s own tests still use `InMemoryQueueStorage`/
+`InMemoryLocalStore`, which remains the right choice there — that package has no browser
+dependency and shouldn't gain one just for its own tests.
 
 **Conflict resolution is unimplemented on purpose.** `SyncService.resolveConflict()` always
 throws. A conflicted change sits in `'conflict'` state indefinitely until something calls
@@ -122,23 +140,27 @@ throws. A conflicted change sits in `'conflict'` state indefinitely until someth
 change. There is no default "last write wins" or auto-merge behavior; building one without a
 product decision would bake in a policy nobody signed off on.
 
-**Retry/backoff timing is computed, not scheduled.** `backoffFor()` returns a number of
-milliseconds; nothing in this package calls `setTimeout` or listens for a network-reconnect
-event. A caller must build the actual retry loop (or a reconnect-triggered one) on top of
-`syncNext()`, `backoffFor()`, and `isExhausted()`.
+**Retry/backoff timing is computed by `packages/sync`, scheduled by `projectSync.ts`.**
+`backoffFor()` returns a number of milliseconds; `packages/sync` itself calls no `setTimeout`
+and listens for no reconnect event. `src/sync/projectSync.ts` is the caller that does: on a
+retryable failure it calls `scheduleTimeout(retryCallback, client.backoffFor(retries))`
+(default `setTimeout`, injectable for tests), and re-drives the queue immediately on the
+browser's `online` event.
 
-**`SyncService.drain()` is a straight-line loop, not a scheduler.** It calls `syncNext()`
-back-to-back with no delay between attempts, which is correct for tests (everything resolves
-synchronously against a stub) but not what should run against a real network — a caller
-driving real syncs should insert `backoffFor()`-based delays between `syncNext()` calls
-instead of using `drain()` directly, or `drain()` should grow that behavior once real timing
-is decided.
+**`ProjectSync`'s drive loop calls `SyncClient.syncNext()` directly, not
+`SyncService.drain()`.** `SyncService.drain()` only reports the *final* state after its
+internal loop finishes, which collapses the transient `'pending'` state the sync-status UI
+needs to show while a change is in flight. `projectSync.ts` steps `syncNext()` itself in a
+loop, reading `client.status` immediately after each call (before awaiting it) to catch that
+transient state — see the code comment on `drain()` in `src/sync/projectSync.ts` for why the
+status must be read before, not after, awaiting `syncNext()`.
 
-**No de-duplication of identical concurrent stages.** Calling `stage()` twice for the same
-`id` enqueues two entries rather than merging them; `SyncQueue` treats `id` as an entry
-identifier, not a dedupe key. `idempotencyKey` protects against a *retried* send being applied
-twice server-side, but two independent `stage()` calls for the same logical resource both
-queue and both send.
+**`stage()` needs a per-change queue id distinct from the resource id.** `SyncQueue` treats
+`QueuedChange.id` as the entry identifier that `remove()`/`incrementRetries()` key off, not a
+resource identifier — two changes to the same project sharing that id would collide (a second
+edit would silently vanish instead of queuing behind the first). `projectSync.ts`'s `stage()`
+uses `` `${project.id}-${revision}` `` per call; `idempotencyKey` is a separate concept that
+still protects a *retried* send of the same change from being applied twice server-side.
 
 **Payload/serialization is caller's responsibility.** `SyncQueue` persists via
 `JSON.stringify`/`JSON.parse`, so a `payload` that isn't JSON-safe (e.g. containing a `Blob`
@@ -148,7 +170,7 @@ documented payload contract.
 
 ## Build sequence
 
-### Stage 4c: sync vehicle (this stage)
+### Stage 4c: sync vehicle
 
 - Define `QueuedChange`, `SyncResult`, `SyncTransport`, `LocalStore`, `QueueStorage`.
 - Implement `SyncQueue` (FIFO, persisted via injectable storage) and `SyncClient` (dual-write,
@@ -160,13 +182,27 @@ documented payload contract.
   (`SyncClient.test.ts`); conflict is detected via revision mismatch in a test
   (`SyncClient.test.ts`, `SyncService.test.ts`).
 
-### Planned (not yet scoped to a stage): real transport + persistence
+### Stage 8: wire sync into autosave (done)
 
-- A real `SyncTransport` backed by backend project/asset/rule write endpoints.
-- A real `QueueStorage`/`LocalStore` backed by `localStorage` or IndexedDB.
-- Wiring `App.tsx`'s save callback and `serializer.ts` (current Tier 1 autosave) to call
-  `SyncClient.stage()` as Tier 2.
-- A real retry loop with actual backoff timing and network-reconnect triggering.
+- `src/sync/projectSync.ts`: `createProjectSync()` adapts `SyncClient` with a
+  `localStorage`-backed `QueueStorage` and a stub `SyncTransport`; drives `syncNext()` directly
+  in a loop (not `SyncService.drain()`) so the transient `'pending'` state is observable;
+  schedules backoff retries via an injectable `scheduleTimeout` and re-drives on the browser's
+  `online` event.
+- `App.tsx`'s `persist()` dual-writes: Tier 1 (`serializer.ts`'s synchronous `saveProject`)
+  first, then Tier 2 (`stageProjectSync`) only if Tier 1 didn't fail.
+- Sync status surfaced via the existing rail-footer status-dot pattern, subscribed through
+  `subscribeProjectSync`.
+- Acceptance: `npm run test`, `npm run typecheck`, `npm run build` all pass;
+  `src/sync/projectSync.test.ts` covers staging, status transitions, retry-on-failure, queue
+  persistence across a simulated reload (same storage instance), and in-order delivery of
+  multiple queued offline edits.
+
+### Planned (not yet scoped to a stage): real transport
+
+- A real `SyncTransport` backed by backend project/asset/rule write endpoints, swapped in via
+  `ProjectSyncOptions.transport` — no change needed to `App.tsx` or the rest of
+  `projectSync.ts`.
 
 ### Planned (not yet scoped to a stage): conflict resolution policy
 

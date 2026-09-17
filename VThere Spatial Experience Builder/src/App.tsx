@@ -43,6 +43,12 @@ import {
   loadProjectWithSource,
   saveProject,
 } from './serializer'
+import {
+  getProjectSyncStatus,
+  stageProjectSync,
+  subscribeProjectSync,
+  type ProjectSyncStatus,
+} from './sync/projectSync'
 import { assetCatalog, filterAssets } from './assets'
 import {
   createEditorObject,
@@ -99,6 +105,7 @@ export default function App() {
       ? 'No local draft found; using clean project'
       : `Loaded from browser localStorage ${initialLoad.source}`,
   )
+  const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -212,16 +219,30 @@ export default function App() {
     timelineRef.current.redo()
     setProject(timelineRef.current.current)
   }
+  /**
+   * Dual write: Tier 1 (serializer.ts's localStorage save) happens synchronously
+   * first so a reload never loses an edit even if sync never completes; Tier 2
+   * (packages/sync's queue) is then staged for background delivery. Save status
+   * text reflects Tier 1; sync status is tracked separately via syncStatus.
+   */
   const persist = (nextProject: ProjectData, label: string) => {
     const result = saveProject(nextProject)
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
     setPersistenceState(result === 'saved' ? 'Primary + backup ready' : result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
+    if (result !== 'failed') stageProjectSync(nextProject)
   }
   useEffect(() => {
     const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
     return () => window.clearTimeout(timer)
   }, [project])
+  useEffect(() => subscribeProjectSync(setSyncStatus), [])
+  const syncStatusLabel: Record<ProjectSyncStatus, string> = {
+    idle: 'Synced',
+    pending: 'Syncing to server…',
+    conflict: 'Sync conflict; local edits kept',
+    failed: 'Sync failed, will retry',
+  }
   const save = () => persist(project, 'Saved')
   const loadDraft = () => {
     const loaded = loadProjectWithSource()
@@ -313,6 +334,10 @@ export default function App() {
             {persistenceState}
             <small className="storage-note">Save location: browser localStorage</small>
             <button className="text-button" onClick={reset}>Reset draft</button>
+          </div>
+          <div className="rail-footer">
+            <span className={`status-dot ${syncStatus}`} />
+            {syncStatusLabel[syncStatus]}
           </div>
         </aside>
         <section className="center-stage">
