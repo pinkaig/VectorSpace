@@ -21,7 +21,8 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/viewport.md
  */
-import Viewport from './Viewport'
+import { useRef } from 'react'
+import Viewport, { type ViewportHandle } from './Viewport'
 import { ProjectData } from './model'
 
 interface RuntimeViewProps {
@@ -33,6 +34,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
   const scene =
     project.scenes.find((item) => item.id === project.activeSceneId) ??
     project.scenes[0];
+  const viewportRef = useRef<ViewportHandle>(null);
 
   return (
     <main className="runtime-shell">
@@ -49,9 +51,17 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           <strong>{project.name}</strong>
           <span>{scene.name}</span>
         </div>
-        <button className="button ghost" onClick={onExit}>
-          Exit simulation
-        </button>
+        <div className="runtime-actions">
+          {/* Both controls run the same resetRuntime() teardown: restart arms a
+              fresh run in place, exit unmounts the viewport, which tears down
+              through the same path. */}
+          <button className="button ghost" onClick={() => viewportRef.current?.restartRuntime()}>
+            Restart scene
+          </button>
+          <button className="button ghost" onClick={onExit}>
+            Exit simulation
+          </button>
+        </div>
       </header>
       <section className="runtime-stage">
         <div className="runtime-meta">
@@ -59,6 +69,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           Visitor view <span className="divider" /> {scene.name}
         </div>
         <Viewport
+          ref={viewportRef}
           objects={scene.objects}
           selectedId={null}
           onSelect={() => undefined}
@@ -68,6 +79,9 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           startCamera={scene.startCamera}
           cameraMode="walk"
           interactive={false}
+          runtimeMode="play"
+          rules={project.rules ?? []}
+          zones={scene.zones ?? []}
         />
       </section>
     </main>

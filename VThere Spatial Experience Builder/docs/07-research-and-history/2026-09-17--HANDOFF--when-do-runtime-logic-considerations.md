@@ -1,9 +1,12 @@
 # Handoff: WHEN→DO Runtime Logic System Considerations
 
 **Date:** 2026-09-17
-**Status:** Handoff and implementation guide
+**Status:** **Implemented 2026-09-18.** This document is now historical; the subsystem contract
+lives in [`docs/05-subsystems/when-do-dispatch-engine.md`](../05-subsystems/when-do-dispatch-engine.md).
+See "Implementation outcome" at the foot of this file for what was actually built and where it
+diverged from the plan.
 **Scope:** How the WHEN→DO logic system detects triggers, sequences timed DO actions, and
-resets/restarts at runtime. Paper design only — no `packages/interaction` code exists yet.
+resets/restarts at runtime.
 
 ## Purpose
 
@@ -131,3 +134,90 @@ This slice is complete when:
   `RuntimeState` and the sequencer, and disposes registered non-scene side effects.
 - No `packages/interaction` code assumes Phase 2 has merged if it hasn't — check before claiming
   this done.
+
+---
+
+## Implementation outcome (2026-09-18)
+
+**Gate check first:** Phase 2's merge was verified by reading `packages/authoring-engine/src/index.ts`
+directly (lines 57-59 re-export `commands/types`, `commands/transformCommands`,
+`commands/commandService`; `executeCommand` is real) and confirming `573def4` and `c027666` on the
+branch — not inferred from elapsed time, per Step 1's instruction.
+
+### Exported API
+
+From `@vthere/interaction` (single entry point; subpath imports do not resolve):
+
+```ts
+dispatch(event, rules, project, state) → { rulesMatched, actions, nextState }
+createZoneTracker(zones) → { tick(occupants) → RuntimeEvent[], reset() }
+createActionSequencer() → { start, stop, isRunning, stopAll, tick(delta), runningCount }
+waitSeconds(seconds)                       // yieldable inside an action generator
+createActionRegistry() → { register, has, execute }
+createEffectRegistry() → { add, dispose, disposeAll, size }
+resetRuntime(session, { restart, sceneId? }) → RuntimeState | null
+createRuntimeState(sceneId) / cloneRuntimeState(state)
+```
+
+### How mode gating was wired
+
+An explicit `runtimeMode?: 'edit' | 'play'` prop on `Viewport`, carried through the existing
+`dataRef` (both the initialiser and the assignment), read inside `animate()`, and deliberately kept
+out of the setup effect's dependency array so a mode flip never rebuilds the WebGL context.
+`RuntimeView` passes `"play"` plus `rules`/`zones`; the editor passes nothing and defaults to
+`'edit'`. `ViewportInteractionData` gained a `runtimeActive` flag so the input listeners skip their
+extra picking entirely while authoring.
+
+`resetRuntime()` is reached two ways: `ViewportHandle.restartRuntime()` (the new "Restart scene"
+button) and the setup effect's cleanup, which covers "Exit simulation" via unmount.
+
+### Divergences from the plan, and why
+
+1. **`InteractionRule.objectId` is optional**, not required as
+   `2026-09-17--PLAN--when-do-dispatch-engine.md` specified. A `sceneStart` rule names no object,
+   and the backend column is already nullable (`object_id: Mapped[str | None]`). Requiring it
+   frontend-side would have contradicted the persisted schema.
+2. **`actions` is `ActionSpec[]`, not `string[]`.** A bare string cannot carry
+   `showPanel(componentId)` or `playAudio(assetId)` arguments, which the same doc also requires.
+   `ActionSpec` is `{ kind, params? }` — still vocabulary-free.
+3. **`DispatchResult` fields renamed** from `eventsMatched`/`actionsExecuted` to
+   `rulesMatched`/`actions`. The originals named a lie: dispatch takes one event and returns rules,
+   and it executes nothing.
+4. **Ordering honours `priority` first, then authoring order** as a stable tiebreak. The plan named
+   authoring order as the guarantee, but `priority` exists in both the plan and the DB column, so
+   both are honoured with authoring order breaking ties.
+5. **`InteractionRule`/`ActionSpec` live in `@vthere/project`**, re-exported by
+   `@vthere/interaction`, because rules are persisted data and two declarations would drift.
+6. **A frame-budget guard was added to `ActionSequencer`** (1000 steps/frame). Satisfied waits chain
+   within one frame so `waitSeconds(0)` resumes immediately; without a ceiling,
+   `while (true) yield waitSeconds(0)` would hang the tab. Hitting it parks the sequence until the
+   next frame rather than killing it.
+
+### Bug found and fixed during the build
+
+The first `tick()` implementation charged a yielded wait against the *next* frame's delta, so every
+`waitSeconds` silently cost one extra frame and `waitSeconds(0)` never resolved in-frame. Three
+tests caught it. Waits are now charged at the moment they are yielded.
+
+### Tests and commands
+
+60 new tests in `packages/interaction` (dispatcher 15, ActionSequencer 16, zoneTracker 10,
+registry 10, resetRuntime 9), plus 11 new serializer cases for the rules/zones migration.
+
+```
+npm.cmd run typecheck   # clean
+npm.cmd test            # 201 passed (27 files)
+npm.cmd run build       # succeeds
+```
+
+### Schema change
+
+`ProjectData.rules?: InteractionRule[]` and `SceneData.zones?: ZoneDefinition[]`, both optional and
+backfilled to `[]`, so `schemaVersion` stays `1` — the same additive pattern as `parentId`.
+`serializer.ts` validates rule/zone id uniqueness, action shape, and rejects orphaned object/zone
+references.
+
+### Still deferred
+
+Rule/zone authoring UI, action executor implementations (the registry is empty — an unregistered
+kind is a deliberate no-op), the in-editor Preview toggle, and zone spatial partitioning.

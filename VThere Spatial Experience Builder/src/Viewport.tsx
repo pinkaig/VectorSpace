@@ -25,7 +25,25 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { CameraPose, SceneObject, defaultCameraPose, defaultEnvironmentId } from './model'
+import {
+  CameraPose,
+  InteractionRule,
+  SceneObject,
+  ZoneDefinition,
+  defaultCameraPose,
+  defaultEnvironmentId,
+} from './model'
+import {
+  createActionRegistry,
+  createActionSequencer,
+  createEffectRegistry,
+  createRuntimeState,
+  createZoneTracker,
+  dispatch,
+  resetRuntime,
+  type RuntimeEvent,
+  type RuntimeState,
+} from '../packages/interaction/src/index'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
@@ -71,6 +89,18 @@ interface ViewportProps {
    */
   syncToken?: number
   interactive?: boolean
+  /**
+   * Whether the WHEN→DO runtime is live. Deliberately separate from
+   * `interactive`, which only toggles gizmo/selection interactivity: authoring
+   * with gizmos off must still never fire rules, and a future in-editor Preview
+   * needs to run rules with the editor chrome still present. Edit mode does no
+   * Tier 1/2/3 work at all.
+   */
+  runtimeMode?: 'edit' | 'play'
+  /** Authored rules; only read in play mode. */
+  rules?: readonly InteractionRule[]
+  /** Zones for the active scene; only read in play mode. */
+  zones?: readonly ZoneDefinition[]
   orthographic?: boolean
   onOrthographicChange?: (value: boolean) => void
   showOctaOrb?: boolean
@@ -79,6 +109,11 @@ interface ViewportProps {
 
 export interface ViewportHandle {
   getCameraPose: () => CameraPose
+  /**
+   * Tears down the live run and starts a fresh one. Wired to "Restart scene";
+   * "Exit simulation" gets the same teardown via unmount.
+   */
+  restartRuntime: () => void
 }
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
@@ -94,6 +129,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     resetToken = 0,
     syncToken = 0,
     interactive = true,
+    runtimeMode = 'edit',
+    rules = [],
+    zones = [],
     orthographic = false,
     onOrthographicChange,
     showOctaOrb = true,
@@ -102,8 +140,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken }
+  // runtimeMode/rules/zones travel through this same ref rather than a second
+  // mechanism, so flipping into play mode never re-runs the setup effect and
+  // never tears down the WebGL context.
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, sceneId }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -114,6 +155,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // effect below can re-seed it from the camera's current orientation on every transition.
   const yawRef = useRef(0)
   const pitchRef = useRef(0)
+  // Set by the setup effect; lets the imperative handle reach the live run.
+  const restartRuntimeRef = useRef<() => void>(() => {})
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
   // Tracks every object currently loading/erroring so the interaction controller
@@ -127,6 +170,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       if (!camera) return dataRef.current.startCamera
       return getCameraPose(camera)
     },
+    restartRuntime: () => restartRuntimeRef.current(),
   }), [])
 
   // Scene/renderer/camera setup — created once. All per-render values are read from refs so
@@ -226,6 +270,73 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderedSignature = signature
     }
 
+    // ---- WHEN→DO runtime (Tiers 1-3) -------------------------------------
+    // All of it lives inside this effect so it shares the renderer's lifecycle:
+    // the cleanup below tears the run down with the scene it was running in.
+    const sequencer = createActionSequencer()
+    const effects = createEffectRegistry()
+    const actions = createActionRegistry()
+    let zoneTracker = createZoneTracker(dataRef.current.zones)
+    let zonesSignature = JSON.stringify(dataRef.current.zones)
+    let runtimeState: RuntimeState | null = null
+
+    /**
+     * The single path from any event source into the pure dispatcher. Tier 1
+     * sources call this; it never runs on the frame loop itself.
+     */
+    const emitRuntimeEvent = (event: RuntimeEvent) => {
+      if (dataRef.current.runtimeMode !== 'play' || !runtimeState) return
+      const result = dispatch(event, dataRef.current.rules, projectForDispatch(), runtimeState)
+      runtimeState = result.nextState
+      for (const action of result.actions) {
+        // Executors are registered by whoever owns the action vocabulary; an
+        // unregistered kind is a no-op, so an empty registry is harmless.
+        void actions.execute(action, { state: runtimeState, effects }).then((next) => {
+          runtimeState = next
+        })
+      }
+    }
+
+    /**
+     * dispatch() takes a ProjectData for rule context but must never mutate it.
+     * The viewport only holds the active scene's objects, so this assembles the
+     * minimum shape the signature needs without copying the whole project.
+     */
+    const projectForDispatch = () => ({
+      schemaVersion: 1 as const,
+      id: 'runtime',
+      name: 'runtime',
+      activeSceneId: dataRef.current.sceneId,
+      scenes: [{
+        id: dataRef.current.sceneId,
+        name: 'runtime',
+        objects: dataRef.current.objects as SceneObject[],
+        environmentId: '',
+        startCamera: dataRef.current.startCamera,
+        zones: dataRef.current.zones as ZoneDefinition[],
+      }],
+      rules: dataRef.current.rules as InteractionRule[],
+    })
+
+    const startRun = () => {
+      runtimeState = createRuntimeState(dataRef.current.sceneId)
+      zoneTracker.reset()
+      emitRuntimeEvent({ kind: 'sceneStart' })
+    }
+
+    /** Shared by "exit play mode" and "restart scene", per the design doc. */
+    const stopRun = (restart: boolean) => {
+      runtimeState = resetRuntime(
+        { sequencer, effects, zones: zoneTracker },
+        { restart, sceneId: dataRef.current.sceneId },
+      )
+      // ProjectData was never mutated during the run, so forcing one rebuild
+      // from it is the whole visual reset.
+      renderedSignature = ''
+      if (restart) emitRuntimeEvent({ kind: 'sceneStart' })
+    }
+    restartRuntimeRef.current = () => { if (dataRef.current.runtimeMode === 'play') stopRun(true) }
+
     let interactionController: ReturnType<typeof createViewportInteractionController>
     const syncGizmoFrame = () => {
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
@@ -270,6 +381,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
           unpickableAssetIds: unpickableAssetIdsRef.current,
+          runtimeActive: dataRef.current.runtimeMode === 'play',
         }),
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
@@ -289,6 +401,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         setOrthographic: (value) => dataRef.current.onOrthographicChange?.(value),
         showOctaOrbTooltip,
         hideOctaOrbTooltip,
+        // Always supplied so a mode flip needs no listener rebinding; the
+        // controller checks runtimeActive above before doing any picking for it.
+        onRuntimeEvent: emitRuntimeEvent,
       },
     })
 
@@ -307,6 +422,35 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       lastTime = now
       syncObjects()
       syncGizmoFrame()
+
+      // ---- WHEN→DO tiers, play mode only ---------------------------------
+      // Edit mode falls straight past this block, so authoring runs exactly the
+      // frame loop it ran before this subsystem existed.
+      const playing = dataRef.current.runtimeMode === 'play'
+      if (playing && !runtimeState) {
+        startRun()
+      } else if (!playing && runtimeState) {
+        stopRun(false)
+      }
+      if (playing && runtimeState) {
+        // Rebuilt only when the authored zones actually change, so the tracker
+        // keeps its occupancy — and therefore its edges — across normal frames.
+        const signature = JSON.stringify(dataRef.current.zones)
+        if (signature !== zonesSignature) {
+          zonesSignature = signature
+          zoneTracker = createZoneTracker(dataRef.current.zones)
+        }
+        // Tier 1 spatial: the visitor's camera is the occupant, diffed against
+        // live world transforms. Edge-triggered inside the tracker, so this
+        // emits only on a transition.
+        const viewer = activeCameraRef.current.getWorldPosition(new THREE.Vector3())
+        for (const event of zoneTracker.tick([{ id: 'viewer', position: [viewer.x, viewer.y, viewer.z] }])) {
+          emitRuntimeEvent(event)
+        }
+        // Tier 3: one tick per frame, reusing the delta computed above.
+        sequencer.tick(delta)
+      }
+
       if (dataRef.current.cameraMode === 'walk') {
         updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current)
       } else {
@@ -354,6 +498,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     return () => {
       cancelAnimationFrame(frame)
+      // Unmounting is an exit from play mode: stop sequencing and dispose every
+      // registered side effect, or a panel/audio element outlives its scene.
+      stopRun(false)
+      restartRuntimeRef.current = () => {}
       observer.disconnect()
       interactionController.dispose()
       controls.dispose()

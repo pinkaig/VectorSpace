@@ -810,6 +810,11 @@ button:disabled {
   border-bottom: 1px solid #203039;
   background: rgba(8, 13, 18, 0.92);
 }
+.runtime-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .runtime-title {
   display: flex;
   align-items: center;

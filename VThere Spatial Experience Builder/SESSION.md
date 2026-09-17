@@ -785,7 +785,10 @@ implementation plan with blockers and dependencies clearly stated.
 - Stage 3 (backend HTTP): ready after Stage 2
 - Stage 5 (deploy files): ready after Stage 3
 - Stage 6 (wire Asset Manager): ready after 4a, no Phase 2 dependency
-- Stage 7 (wire WHEN→DO): blocked by Phase 2 command-path merge
+- Stage 4b (WHEN→DO engine): **done** — `packages/interaction` built and tested (60 tests)
+- Stage 7 (wire WHEN→DO): **done** — Phase 2 merge confirmed (`573def4`, `c027666`), all three
+  tiers wired into `Viewport.tsx`'s existing RAF loop behind a `runtimeMode` flag. See
+  `docs/05-subsystems/when-do-dispatch-engine.md`
 - Stage 8 (wire Sync): ready after 4c, independent of Phase 2
 
 ### Build / verify command and status
