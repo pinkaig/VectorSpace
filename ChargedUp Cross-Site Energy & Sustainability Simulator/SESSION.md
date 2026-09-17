@@ -1,4 +1,4 @@
-# ChargedUp Cross-Site Energy & Sustainability Simulator Baseline Implementation Handoff
+﻿# ChargedUp Cross-Site Energy & Sustainability Simulator Baseline Implementation Handoff
 
 ## Objective / topic
 
@@ -20,19 +20,19 @@ Baseline implementation is complete and verified for local source builds and Doc
 
 ### Approved and documented
 
-- `projectscope.md`
-- `techstack.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/architecture.md`
-- `docs/repository.md`
+- `UNDATED--FOUNDATION--project-scope.md`
+- `UNDATED--FOUNDATION--tech-stack.md`
+- `docs/UNDATED--CURRENT--project-context.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md`
 - `docs/integration.md`
-- `docs/contracts.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md`
 - `docs/dependency-graph.md`
-- `docs/build-system.md`
-- `docs/testing-strategy.md`
-- `docs/implementation-plan.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md`
 - `docs/subsystems/simulation-domain.md`
-- `docs/pre-baseline-validation.md` with status `READY`
+- `docs/UNDATED--CURRENT--UNDATED--CURRENT--pre-baseline-validation.md` with status `READY`
 - `docs/security-and-stress-testing.md` with vulnerability register and stress-test plan
 
 ### Implementation status
@@ -79,19 +79,19 @@ Current verification status: Node.js 22.23.2, Python 3.12.10, and Docker Desktop
 
 ### Project planning files
 
-- `projectscope.md`
-- `techstack.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/architecture.md`
-- `docs/repository.md`
+- `UNDATED--FOUNDATION--project-scope.md`
+- `UNDATED--FOUNDATION--tech-stack.md`
+- `docs/UNDATED--CURRENT--project-context.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md`
 - `docs/integration.md`
-- `docs/contracts.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md`
 - `docs/dependency-graph.md`
-- `docs/build-system.md`
-- `docs/testing-strategy.md`
-- `docs/implementation-plan.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md`
+- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md`
 - `docs/subsystems/simulation-domain.md`
-- `docs/pre-baseline-validation.md`
+- `docs/UNDATED--CURRENT--UNDATED--CURRENT--pre-baseline-validation.md`
 - `docs/security-and-stress-testing.md`
 
 ### Workflow files
@@ -101,7 +101,7 @@ Current verification status: Node.js 22.23.2, Python 3.12.10, and Docker Desktop
 
 ## Failed approaches already tried
 
-- An incremental patch to `docs/build-system.md` temporarily inserted sections inside code fences and was replaced with a clean document. The current build-system document was structurally checked afterward.
+- An incremental patch to `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md` temporarily inserted sections inside code fences and was replaced with a clean document. The current build-system document was structurally checked afterward.
 - Docker Compose initially found a duplicate database container on port 5432; the duplicate container created during baseline setup was removed without resetting volumes.
 
 ## Open questions / deferred work
@@ -119,7 +119,7 @@ Current verification status: Node.js 22.23.2, Python 3.12.10, and Docker Desktop
 
 Recommended next phase:
 
-1. Begin Phase 2/3 work from `docs/implementation-plan.md` by expanding contracts and canonical data access.
+1. Begin Phase 2/3 work from `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md` by expanding contracts and canonical data access.
 2. Resolve the npm and Python audit findings through an approved dependency decision.
 3. Keep the current source/build/security evidence as the regression baseline.
 
@@ -127,4 +127,4 @@ Recommended next phase:
 
 BASELINE IMPLEMENTATION: READY
 
-SAFE TO `/clear` or `/compact`. The next session should read this file, `docs/PROJECT_CONTEXT.md`, and `docs/dependency-installation-log.md` before continuing.
+SAFE TO `/clear` or `/compact`. The next session should read this file, `docs/UNDATED--CURRENT--project-context.md`, and `docs/dependency-installation-log.md` before continuing.

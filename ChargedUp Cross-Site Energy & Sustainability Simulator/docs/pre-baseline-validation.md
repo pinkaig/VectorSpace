@@ -1,4 +1,4 @@
-# Pre-Baseline Validation
+﻿# Pre-Baseline Validation
 
 ## Status
 
@@ -52,7 +52,7 @@ Allowed and forbidden dependency directions are documented. No circular dependen
 
 PASS
 
-The baseline package manager, runtime families, database access/migration tooling, and command shapes are documented in `build-system.md`. Patch versions are locked during repository generation.
+The baseline package manager, runtime families, database access/migration tooling, and command shapes are documented in `UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md`. Patch versions are locked during repository generation.
 
 ## Testing
 
@@ -84,4 +84,4 @@ These do not block the local baseline because the application uses local no-auth
 
 ## Required Next Step
 
-Proceed to baseline generation. Before implementation, create the lockfiles and container configuration using the selected runtime families, then run the commands in `build-system.md` and record the actual patch versions.
+Proceed to baseline generation. Before implementation, create the lockfiles and container configuration using the selected runtime families, then run the commands in `UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md` and record the actual patch versions.

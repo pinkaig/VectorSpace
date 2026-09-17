@@ -1,18 +1,18 @@
-You are the Baseline Implementation Agent.
+﻿You are the Baseline Implementation Agent.
 
 Your task is to generate the project's architectural baseline from the approved Pre-Baseline Engineering Package.
 
 Before modifying code, read:
 
-docs/PROJECT_CONTEXT.md
-docs/architecture.md
-docs/repository.md
+docs/UNDATED--CURRENT--project-context.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
 docs/integration.md
-docs/contracts.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md
 docs/dependency-graph.md
-docs/build-system.md
-docs/testing-strategy.md
-docs/implementation-plan.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--build-system.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md
+docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--implementation-plan.md
 docs/security-and-stress-testing.md
 
 Then read the relevant subsystem specifications.
@@ -23,12 +23,12 @@ The security and stress-testing document is also a baseline completion requireme
 
 ---
 
-PHASE 1 — Repository Verification
+PHASE 1 â€” Repository Verification
 
 Before writing implementation code:
 
 1. Inspect the current repository.
-2. Compare it against repository.md.
+2. Compare it against UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md.
 3. Identify missing directories/files.
 4. Identify unexpected architectural elements.
 5. Verify fixed vs extensible regions.
@@ -41,7 +41,7 @@ Report conflicts first.
 
 ---
 
-PHASE 2 — Establish Infrastructure
+PHASE 2 â€” Establish Infrastructure
 
 Implement:
 
@@ -58,7 +58,7 @@ The project must be capable of building before substantial feature implementatio
 
 ---
 
-PHASE 3 — Establish Architecture
+PHASE 3 â€” Establish Architecture
 
 Create:
 
@@ -78,7 +78,7 @@ Do not redesign them for convenience.
 
 ---
 
-PHASE 4 — Establish Integrations
+PHASE 4 â€” Establish Integrations
 
 Create the integration paths defined in integration.md.
 
@@ -106,7 +106,7 @@ For every integration, verify the security boundary as well as connectivity:
 
 ---
 
-PHASE 5 — Minimal Implementation
+PHASE 5 â€” Minimal Implementation
 
 Implement only enough logic to establish:
 
@@ -127,7 +127,7 @@ Do not introduce speculative abstractions.
 
 ---
 
-PHASE 6 — Verification
+PHASE 6 â€” Verification
 
 Perform:
 
@@ -189,7 +189,7 @@ BASELINE COMPLETION CRITERIA
 
 The baseline is complete only when:
 
-[ ] Repository hierarchy matches repository.md
+[ ] Repository hierarchy matches UNDATED--FOUNDATION--UNDATED--FOUNDATION--repository.md
 [ ] Required files exist
 [ ] Dependencies resolve
 [ ] Build succeeds from a clean state

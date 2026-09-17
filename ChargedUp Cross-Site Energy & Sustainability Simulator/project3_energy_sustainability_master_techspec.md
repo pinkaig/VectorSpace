@@ -1,4 +1,4 @@
-# GAM300 Project 3 — Energy & Sustainability Simulator
+﻿# GAM300 Project 3 â€” Energy & Sustainability Simulator
 ## Master Project Context, Technical Scope, Repository Baseline & Development Phases
 
 > **Purpose:** This document defines the initial technical baseline for Project 3 so future agents can implement functionality without repeatedly redesigning the architecture or retrofitting integrations.
@@ -11,7 +11,7 @@
 
 ## 1.1 Project
 
-**GAM300 — Project 3: Cross-Site Energy & Sustainability Simulator**
+**GAM300 â€” Project 3: Cross-Site Energy & Sustainability Simulator**
 
 Industry context:
 
@@ -35,17 +35,17 @@ The central scenario is:
 
 ```text
 Fleet
-  ↓
+  â†“
 Charging decisions
-  ↓
+  â†“
 Multiple sites
-  ↓
+  â†“
 Time-dependent demand
-  ↓
+  â†“
 Energy / capacity / cost / emissions
-  ↓
+  â†“
 Visualise consequences
-  ↓
+  â†“
 Compare scenarios
 ```
 
@@ -56,19 +56,19 @@ Example:
 ```text
 Scenario A
 20 EVs charge around 18:00
-        ↓
+        â†“
 Depot peak rises
-        ↓
+        â†“
 Capacity constraint
-        ↓
+        â†“
 Higher peak exposure / possible violation
 
 Scenario B
 Same vehicles
 Charging shifted overnight
-        ↓
+        â†“
 Lower peak
-        ↓
+        â†“
 No capacity violation
 ```
 
@@ -97,13 +97,13 @@ It is **not** primarily:
 
 ```text
 Static / prepared data
-        ↓
+        â†“
 Scenario configuration
-        ↓
+        â†“
 Runtime simulation
-        ↓
+        â†“
 24-hour time-series results
-        ↓
+        â†“
 Interactive visualization
 ```
 
@@ -179,26 +179,26 @@ Each site should support:
 
 ```text
 Site
-├── id
-├── name
-├── type
-│   ├── depot
-│   └── external / CPO
-├── geographic position
-├── operating hours
-├── power limit
-├── electricity / charging price
-└── chargers[]
+â”œâ”€â”€ id
+â”œâ”€â”€ name
+â”œâ”€â”€ type
+â”‚   â”œâ”€â”€ depot
+â”‚   â””â”€â”€ external / CPO
+â”œâ”€â”€ geographic position
+â”œâ”€â”€ operating hours
+â”œâ”€â”€ power limit
+â”œâ”€â”€ electricity / charging price
+â””â”€â”€ chargers[]
 ```
 
 Each charger should support at minimum:
 
 ```text
 Charger
-├── id
-├── power_kW
-├── availability
-└── site_id
+â”œâ”€â”€ id
+â”œâ”€â”€ power_kW
+â”œâ”€â”€ availability
+â””â”€â”€ site_id
 ```
 
 ---
@@ -210,7 +210,7 @@ The model should represent demand over a day.
 Baseline time model:
 
 ```text
-00:00 → 24:00
+00:00 â†’ 24:00
 ```
 
 Recommended initial timestep:
@@ -222,7 +222,7 @@ Recommended initial timestep:
 This creates:
 
 ```text
-24 hours × 4
+24 hours Ã— 4
 = 96 timesteps
 ```
 
@@ -251,35 +251,35 @@ This is the core technical contribution of the project.
 
 ```text
 SimulationScenario
-        ↓
+        â†“
 Validate inputs
-        ↓
+        â†“
 Initialize fleet
-        ↓
+        â†“
 Initialize sites
-        ↓
+        â†“
 Initialize chargers
-        ↓
+        â†“
 Initialize energy resources
-        ↓
+        â†“
 Generate / assign charging demand
-        ↓
+        â†“
 Iterate simulation timesteps
-        ↓
+        â†“
 Calculate site load
-        ↓
+        â†“
 Calculate capacity utilization
-        ↓
+        â†“
 Calculate constraint violations
-        ↓
+        â†“
 Calculate energy cost
-        ↓
+        â†“
 Apply BESS / solar if enabled
-        ↓
+        â†“
 Calculate emissions
-        ↓
+        â†“
 Aggregate network results
-        ↓
+        â†“
 Produce SimulationResult
 ```
 
@@ -293,29 +293,29 @@ Conceptually:
 
 ```text
 Time
- │
- ├── 00:00
- ├── 00:15
- ├── 00:30
- ├── ...
- ├── 18:00
- ├── ...
- └── 23:45
+ â”‚
+ â”œâ”€â”€ 00:00
+ â”œâ”€â”€ 00:15
+ â”œâ”€â”€ 00:30
+ â”œâ”€â”€ ...
+ â”œâ”€â”€ 18:00
+ â”œâ”€â”€ ...
+ â””â”€â”€ 23:45
 ```
 
 For each site:
 
 ```text
 SiteState[t]
-├── demand_kW
-├── energy_kWh
-├── utilization
-├── cost
-├── capacity_limit_kW
-├── capacity_exceeded
-├── grid_import_kW
-├── solar_generation_kW
-└── bess_power_kW
+â”œâ”€â”€ demand_kW
+â”œâ”€â”€ energy_kWh
+â”œâ”€â”€ utilization
+â”œâ”€â”€ cost
+â”œâ”€â”€ capacity_limit_kW
+â”œâ”€â”€ capacity_exceeded
+â”œâ”€â”€ grid_import_kW
+â”œâ”€â”€ solar_generation_kW
+â””â”€â”€ bess_power_kW
 ```
 
 The model should preserve enough information to reconstruct the visual state at any time index.
@@ -328,34 +328,34 @@ Recommended conceptual contract:
 
 ```text
 SimulationResult
-├── scenario_id
-├── timestep
-├── start_time
-├── end_time
-├── timestamps[]
-├── sites[]
-│   ├── site_id
-│   ├── load_kW[]
-│   ├── energy_kWh[]
-│   ├── utilization[]
-│   ├── cost[]
-│   ├── capacity_limit_kW
-│   ├── capacity_exceeded[]
-│   ├── grid_import_kW[]
-│   ├── solar_generation_kW[]
-│   └── bess_power_kW[]
-├── network
-│   ├── total_energy_kWh
-│   ├── peak_demand_kW
-│   ├── peak_time
-│   ├── total_cost
-│   ├── total_emissions
-│   └── fuel_displaced
-└── sustainability
-    ├── electricity_consumption
-    ├── emissions
-    ├── ICE_baseline_emissions
-    └── emissions_reduction
+â”œâ”€â”€ scenario_id
+â”œâ”€â”€ timestep
+â”œâ”€â”€ start_time
+â”œâ”€â”€ end_time
+â”œâ”€â”€ timestamps[]
+â”œâ”€â”€ sites[]
+â”‚   â”œâ”€â”€ site_id
+â”‚   â”œâ”€â”€ load_kW[]
+â”‚   â”œâ”€â”€ energy_kWh[]
+â”‚   â”œâ”€â”€ utilization[]
+â”‚   â”œâ”€â”€ cost[]
+â”‚   â”œâ”€â”€ capacity_limit_kW
+â”‚   â”œâ”€â”€ capacity_exceeded[]
+â”‚   â”œâ”€â”€ grid_import_kW[]
+â”‚   â”œâ”€â”€ solar_generation_kW[]
+â”‚   â””â”€â”€ bess_power_kW[]
+â”œâ”€â”€ network
+â”‚   â”œâ”€â”€ total_energy_kWh
+â”‚   â”œâ”€â”€ peak_demand_kW
+â”‚   â”œâ”€â”€ peak_time
+â”‚   â”œâ”€â”€ total_cost
+â”‚   â”œâ”€â”€ total_emissions
+â”‚   â””â”€â”€ fuel_displaced
+â””â”€â”€ sustainability
+    â”œâ”€â”€ electricity_consumption
+    â”œâ”€â”€ emissions
+    â”œâ”€â”€ ICE_baseline_emissions
+    â””â”€â”€ emissions_reduction
 ```
 
 The exact serialized API representation can evolve, but the separation between **scenario input** and **simulation result** should remain.
@@ -391,13 +391,13 @@ Each site has a physical power limit.
 
 ```text
 site_load_kW
-        │
-        ▼
+        â”‚
+        â–¼
 site_capacity_kW
-        │
-        ├── load < capacity → normal
-        │
-        └── load > capacity → constraint / violation
+        â”‚
+        â”œâ”€â”€ load < capacity â†’ normal
+        â”‚
+        â””â”€â”€ load > capacity â†’ constraint / violation
 ```
 
 Useful derived values:
@@ -439,9 +439,9 @@ Important:
 
 ```text
 Emissions result
-        ↓
+        â†“
 Estimate
-        ↓
+        â†“
 Based on explicit assumptions
 ```
 
@@ -457,11 +457,11 @@ BESS should be implemented behind an isolated simulation component:
 
 ```text
 BESSModel
-├── capacity_kWh
-├── max_charge_kW
-├── max_discharge_kW
-├── efficiency
-└── state_of_charge
+â”œâ”€â”€ capacity_kWh
+â”œâ”€â”€ max_charge_kW
+â”œâ”€â”€ max_discharge_kW
+â”œâ”€â”€ efficiency
+â””â”€â”€ state_of_charge
 ```
 
 Its purpose is to demonstrate:
@@ -492,13 +492,13 @@ Scenario configuration should be a first-class object.
 
 ```text
 Scenario
-├── fleet
-├── sites
-├── charging_strategy
-├── pricing
-├── energy_resources
-├── sustainability
-└── simulation_config
+â”œâ”€â”€ fleet
+â”œâ”€â”€ sites
+â”œâ”€â”€ charging_strategy
+â”œâ”€â”€ pricing
+â”œâ”€â”€ energy_resources
+â”œâ”€â”€ sustainability
+â””â”€â”€ simulation_config
 ```
 
 Example:
@@ -531,14 +531,14 @@ The architecture must support:
 
 ```text
 Scenario A
-    ↓
+    â†“
 SimulationResult A
 
 Scenario B
-    ↓
+    â†“
 SimulationResult B
 
-        ↓
+        â†“
 
 ComparisonResult
 ```
@@ -569,31 +569,31 @@ Preferred architecture:
 
 ```text
 RUN SCENARIO
-      ↓
-Simulation executes 00:00 → 24:00
-      ↓
+      â†“
+Simulation executes 00:00 â†’ 24:00
+      â†“
 SimulationResult
-      ↓
+      â†“
 Frontend stores result
-      ↓
+      â†“
 TIME SLIDER
-      ↓
+      â†“
 Select result[t]
-      ↓
+      â†“
 Update:
-    ├── Cesium site state
-    ├── charts
-    ├── KPI cards
-    └── alerts
+    â”œâ”€â”€ Cesium site state
+    â”œâ”€â”€ charts
+    â”œâ”€â”€ KPI cards
+    â””â”€â”€ alerts
 ```
 
 Avoid:
 
 ```text
 time slider
-   ↓
+   â†“
 rerun backend simulation
-   ↓
+   â†“
 return one timestep
 ```
 
@@ -656,19 +656,19 @@ Responsibilities:
 
 ```text
 FastAPI
-├── API routing
-├── request validation
-├── scenario execution
-├── result serialization
-└── API errors
+â”œâ”€â”€ API routing
+â”œâ”€â”€ request validation
+â”œâ”€â”€ scenario execution
+â”œâ”€â”€ result serialization
+â””â”€â”€ API errors
 
 Pydantic
-├── ScenarioRequest
-├── ScenarioResponse
-├── SimulationResult
-├── Site
-├── Charger
-└── API contracts
+â”œâ”€â”€ ScenarioRequest
+â”œâ”€â”€ ScenarioResponse
+â”œâ”€â”€ SimulationResult
+â”œâ”€â”€ Site
+â”œâ”€â”€ Charger
+â””â”€â”€ API contracts
 ```
 
 The simulation engine should remain separate from FastAPI.
@@ -677,9 +677,9 @@ Preferred dependency direction:
 
 ```text
 FastAPI
-   ↓
+   â†“
 Application / Services
-   ↓
+   â†“
 Simulation Domain
 ```
 
@@ -687,7 +687,7 @@ not:
 
 ```text
 Simulation
-   ↓
+   â†“
 FastAPI
 ```
 
@@ -791,24 +791,24 @@ The integration architecture must exist before feature implementation.
 
 ```text
 React
-  │
-  │ HTTP / JSON
-  ▼
+  â”‚
+  â”‚ HTTP / JSON
+  â–¼
 FastAPI
-  │
-  ▼
+  â”‚
+  â–¼
 Application Service
-  │
-  ▼
+  â”‚
+  â–¼
 Simulation Engine
-  │
-  ├── Domain Models
-  ├── Charging Model
-  ├── Site Model
-  ├── Cost Model
-  ├── Capacity Model
-  ├── BESS Model
-  └── Emissions Model
+  â”‚
+  â”œâ”€â”€ Domain Models
+  â”œâ”€â”€ Charging Model
+  â”œâ”€â”€ Site Model
+  â”œâ”€â”€ Cost Model
+  â”œâ”€â”€ Capacity Model
+  â”œâ”€â”€ BESS Model
+  â””â”€â”€ Emissions Model
 ```
 
 ---
@@ -847,12 +847,12 @@ Create:
 
 ```text
 frontend/src/api/
-├── client.ts
-├── healthApi.ts
-├── sitesApi.ts
-├── scenariosApi.ts
-├── simulationsApi.ts
-└── comparisonApi.ts
+â”œâ”€â”€ client.ts
+â”œâ”€â”€ healthApi.ts
+â”œâ”€â”€ sitesApi.ts
+â”œâ”€â”€ scenariosApi.ts
+â”œâ”€â”€ simulationsApi.ts
+â””â”€â”€ comparisonApi.ts
 ```
 
 All backend communication passes through this layer.
@@ -866,9 +866,9 @@ Where practical, maintain a clear correspondence between backend Pydantic models
 ```text
 Backend
 Pydantic
-    │
-    │ JSON
-    ▼
+    â”‚
+    â”‚ JSON
+    â–¼
 Frontend
 TypeScript interfaces
 ```
@@ -893,200 +893,200 @@ Recommended baseline:
 
 ```text
 project-root/
-│
-├── README.md
-├── LICENSE
-├── .gitignore
-├── .env.example
-├── docker-compose.yml
-├── Makefile
-│
-├── docs/
-│   ├── project-context.md
-│   ├── architecture.md
-│   ├── simulation-model.md
-│   ├── api-contract.md
-│   ├── data-model.md
-│   ├── gis-data.md
-│   ├── deployment.md
-│   └── decisions/
-│       ├── ADR-001-stack.md
-│       ├── ADR-002-simulation-boundary.md
-│       ├── ADR-003-api-boundary.md
-│       └── ADR-004-time-series-model.md
-│
-├── frontend/
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   ├── public/
-│   └── src/
-│       ├── main.tsx
-│       ├── App.tsx
-│       │
-│       ├── api/
-│       │   ├── client.ts
-│       │   ├── healthApi.ts
-│       │   ├── sitesApi.ts
-│       │   ├── scenariosApi.ts
-│       │   ├── simulationsApi.ts
-│       │   └── comparisonApi.ts
-│       │
-│       ├── types/
-│       │   ├── scenario.ts
-│       │   ├── simulation.ts
-│       │   ├── site.ts
-│       │   ├── charger.ts
-│       │   └── comparison.ts
-│       │
-│       ├── state/
-│       │   ├── scenarioStore.ts
-│       │   ├── simulationStore.ts
-│       │   └── viewStore.ts
-│       │
-│       ├── components/
-│       │   ├── scenario/
-│       │   │   ├── FleetControls.tsx
-│       │   │   ├── ChargingControls.tsx
-│       │   │   ├── SiteControls.tsx
-│       │   │   ├── EnergyControls.tsx
-│       │   │   └── SustainabilityControls.tsx
-│       │   │
-│       │   ├── dashboard/
-│       │   │   ├── KPIGrid.tsx
-│       │   │   ├── CostPanel.tsx
-│       │   │   ├── CapacityPanel.tsx
-│       │   │   └── EmissionsPanel.tsx
-│       │   │
-│       │   ├── timeline/
-│       │   │   ├── TimeSlider.tsx
-│       │   │   └── TimelineControls.tsx
-│       │   │
-│       │   ├── comparison/
-│       │   │   ├── ScenarioComparison.tsx
-│       │   │   └── ComparisonCharts.tsx
-│       │   │
-│       │   └── common/
-│       │
-│       ├── cesium/
-│       │   ├── CesiumViewer.ts
-│       │   ├── SiteLayer.ts
-│       │   ├── NetworkLayer.ts
-│       │   ├── SiteStateRenderer.ts
-│       │   └── CesiumTimeController.ts
-│       │
-│       ├── charts/
-│       │   ├── LoadChart.tsx
-│       │   ├── CostChart.tsx
-│       │   ├── UtilizationChart.tsx
-│       │   └── EmissionsChart.tsx
-│       │
-│       └── utils/
-│
-├── backend/
-│   ├── pyproject.toml
-│   ├── requirements.txt
-│   └── app/
-│       ├── main.py
-│       │
-│       ├── api/
-│       │   ├── health.py
-│       │   ├── sites.py
-│       │   ├── scenarios.py
-│       │   ├── simulations.py
-│       │   └── comparisons.py
-│       │
-│       ├── schemas/
-│       │   ├── scenario.py
-│       │   ├── simulation.py
-│       │   ├── site.py
-│       │   ├── charger.py
-│       │   └── comparison.py
-│       │
-│       ├── services/
-│       │   ├── scenario_service.py
-│       │   ├── simulation_service.py
-│       │   └── comparison_service.py
-│       │
-│       ├── simulation/
-│       │   ├── engine.py
-│       │   ├── clock.py
-│       │   ├── state.py
-│       │   │
-│       │   ├── fleet/
-│       │   │   ├── fleet_model.py
-│       │   │   └── charging_demand.py
-│       │   │
-│       │   ├── sites/
-│       │   │   ├── site_model.py
-│       │   │   ├── capacity.py
-│       │   │   └── charger_model.py
-│       │   │
-│       │   ├── energy/
-│       │   │   ├── energy_model.py
-│       │   │   ├── bess.py
-│       │   │   └── solar.py
-│       │   │
-│       │   ├── economics/
-│       │   │   └── cost_model.py
-│       │   │
-│       │   └── sustainability/
-│       │       └── emissions.py
-│       │
-│       ├── data/
-│       │   ├── repositories/
-│       │   │   ├── site_repository.py
-│       │   │   └── fleet_repository.py
-│       │   └── seed/
-│       │
-│       ├── db/
-│       │   ├── connection.py
-│       │   ├── models.py
-│       │   └── migrations/
-│       │
-│       └── config/
-│           └── settings.py
-│
-├── shared/
-│   ├── schemas/
-│   │   ├── scenario.schema.json
-│   │   ├── simulation-result.schema.json
-│   │   └── site.schema.json
-│   └── examples/
-│       ├── baseline-scenario.json
-│       └── baseline-result.json
-│
-├── data/
-│   ├── raw/
-│   ├── processed/
-│   ├── synthetic/
-│   └── README.md
-│
-├── scripts/
-│   ├── seed_database.py
-│   ├── generate_synthetic_data.py
-│   ├── validate_gis_data.py
-│   └── run_simulation.py
-│
-├── tests/
-│   ├── backend/
-│   │   ├── simulation/
-│   │   ├── api/
-│   │   └── data/
-│   ├── frontend/
-│   └── integration/
-│
-├── infra/
-│   ├── docker/
-│   │   ├── frontend.Dockerfile
-│   │   └── backend.Dockerfile
-│   ├── nginx/
-│   └── cloud/
-│
-└── .github/
-    └── workflows/
-        ├── ci.yml
-        └── build.yml
+â”‚
+â”œâ”€â”€ README.md
+â”œâ”€â”€ LICENSE
+â”œâ”€â”€ .gitignore
+â”œâ”€â”€ .env.example
+â”œâ”€â”€ docker-compose.yml
+â”œâ”€â”€ Makefile
+â”‚
+â”œâ”€â”€ docs/
+â”‚   â”œâ”€â”€ project-context.md
+â”‚   â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+â”‚   â”œâ”€â”€ simulation-model.md
+â”‚   â”œâ”€â”€ api-contract.md
+â”‚   â”œâ”€â”€ data-model.md
+â”‚   â”œâ”€â”€ gis-data.md
+â”‚   â”œâ”€â”€ deployment.md
+â”‚   â””â”€â”€ decisions/
+â”‚       â”œâ”€â”€ ADR-001-stack.md
+â”‚       â”œâ”€â”€ ADR-002-simulation-boundary.md
+â”‚       â”œâ”€â”€ ADR-003-api-boundary.md
+â”‚       â””â”€â”€ ADR-004-time-series-model.md
+â”‚
+â”œâ”€â”€ frontend/
+â”‚   â”œâ”€â”€ package.json
+â”‚   â”œâ”€â”€ tsconfig.json
+â”‚   â”œâ”€â”€ vite.config.ts
+â”‚   â”œâ”€â”€ public/
+â”‚   â””â”€â”€ src/
+â”‚       â”œâ”€â”€ main.tsx
+â”‚       â”œâ”€â”€ App.tsx
+â”‚       â”‚
+â”‚       â”œâ”€â”€ api/
+â”‚       â”‚   â”œâ”€â”€ client.ts
+â”‚       â”‚   â”œâ”€â”€ healthApi.ts
+â”‚       â”‚   â”œâ”€â”€ sitesApi.ts
+â”‚       â”‚   â”œâ”€â”€ scenariosApi.ts
+â”‚       â”‚   â”œâ”€â”€ simulationsApi.ts
+â”‚       â”‚   â””â”€â”€ comparisonApi.ts
+â”‚       â”‚
+â”‚       â”œâ”€â”€ types/
+â”‚       â”‚   â”œâ”€â”€ scenario.ts
+â”‚       â”‚   â”œâ”€â”€ simulation.ts
+â”‚       â”‚   â”œâ”€â”€ site.ts
+â”‚       â”‚   â”œâ”€â”€ charger.ts
+â”‚       â”‚   â””â”€â”€ comparison.ts
+â”‚       â”‚
+â”‚       â”œâ”€â”€ state/
+â”‚       â”‚   â”œâ”€â”€ scenarioStore.ts
+â”‚       â”‚   â”œâ”€â”€ simulationStore.ts
+â”‚       â”‚   â””â”€â”€ viewStore.ts
+â”‚       â”‚
+â”‚       â”œâ”€â”€ components/
+â”‚       â”‚   â”œâ”€â”€ scenario/
+â”‚       â”‚   â”‚   â”œâ”€â”€ FleetControls.tsx
+â”‚       â”‚   â”‚   â”œâ”€â”€ ChargingControls.tsx
+â”‚       â”‚   â”‚   â”œâ”€â”€ SiteControls.tsx
+â”‚       â”‚   â”‚   â”œâ”€â”€ EnergyControls.tsx
+â”‚       â”‚   â”‚   â””â”€â”€ SustainabilityControls.tsx
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ dashboard/
+â”‚       â”‚   â”‚   â”œâ”€â”€ KPIGrid.tsx
+â”‚       â”‚   â”‚   â”œâ”€â”€ CostPanel.tsx
+â”‚       â”‚   â”‚   â”œâ”€â”€ CapacityPanel.tsx
+â”‚       â”‚   â”‚   â””â”€â”€ EmissionsPanel.tsx
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ timeline/
+â”‚       â”‚   â”‚   â”œâ”€â”€ TimeSlider.tsx
+â”‚       â”‚   â”‚   â””â”€â”€ TimelineControls.tsx
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ comparison/
+â”‚       â”‚   â”‚   â”œâ”€â”€ ScenarioComparison.tsx
+â”‚       â”‚   â”‚   â””â”€â”€ ComparisonCharts.tsx
+â”‚       â”‚   â”‚
+â”‚       â”‚   â””â”€â”€ common/
+â”‚       â”‚
+â”‚       â”œâ”€â”€ cesium/
+â”‚       â”‚   â”œâ”€â”€ CesiumViewer.ts
+â”‚       â”‚   â”œâ”€â”€ SiteLayer.ts
+â”‚       â”‚   â”œâ”€â”€ NetworkLayer.ts
+â”‚       â”‚   â”œâ”€â”€ SiteStateRenderer.ts
+â”‚       â”‚   â””â”€â”€ CesiumTimeController.ts
+â”‚       â”‚
+â”‚       â”œâ”€â”€ charts/
+â”‚       â”‚   â”œâ”€â”€ LoadChart.tsx
+â”‚       â”‚   â”œâ”€â”€ CostChart.tsx
+â”‚       â”‚   â”œâ”€â”€ UtilizationChart.tsx
+â”‚       â”‚   â””â”€â”€ EmissionsChart.tsx
+â”‚       â”‚
+â”‚       â””â”€â”€ utils/
+â”‚
+â”œâ”€â”€ backend/
+â”‚   â”œâ”€â”€ pyproject.toml
+â”‚   â”œâ”€â”€ requirements.txt
+â”‚   â””â”€â”€ app/
+â”‚       â”œâ”€â”€ main.py
+â”‚       â”‚
+â”‚       â”œâ”€â”€ api/
+â”‚       â”‚   â”œâ”€â”€ health.py
+â”‚       â”‚   â”œâ”€â”€ sites.py
+â”‚       â”‚   â”œâ”€â”€ scenarios.py
+â”‚       â”‚   â”œâ”€â”€ simulations.py
+â”‚       â”‚   â””â”€â”€ comparisons.py
+â”‚       â”‚
+â”‚       â”œâ”€â”€ schemas/
+â”‚       â”‚   â”œâ”€â”€ scenario.py
+â”‚       â”‚   â”œâ”€â”€ simulation.py
+â”‚       â”‚   â”œâ”€â”€ site.py
+â”‚       â”‚   â”œâ”€â”€ charger.py
+â”‚       â”‚   â””â”€â”€ comparison.py
+â”‚       â”‚
+â”‚       â”œâ”€â”€ services/
+â”‚       â”‚   â”œâ”€â”€ scenario_service.py
+â”‚       â”‚   â”œâ”€â”€ simulation_service.py
+â”‚       â”‚   â””â”€â”€ comparison_service.py
+â”‚       â”‚
+â”‚       â”œâ”€â”€ simulation/
+â”‚       â”‚   â”œâ”€â”€ engine.py
+â”‚       â”‚   â”œâ”€â”€ clock.py
+â”‚       â”‚   â”œâ”€â”€ state.py
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ fleet/
+â”‚       â”‚   â”‚   â”œâ”€â”€ fleet_model.py
+â”‚       â”‚   â”‚   â””â”€â”€ charging_demand.py
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ sites/
+â”‚       â”‚   â”‚   â”œâ”€â”€ site_model.py
+â”‚       â”‚   â”‚   â”œâ”€â”€ capacity.py
+â”‚       â”‚   â”‚   â””â”€â”€ charger_model.py
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ energy/
+â”‚       â”‚   â”‚   â”œâ”€â”€ energy_model.py
+â”‚       â”‚   â”‚   â”œâ”€â”€ bess.py
+â”‚       â”‚   â”‚   â””â”€â”€ solar.py
+â”‚       â”‚   â”‚
+â”‚       â”‚   â”œâ”€â”€ economics/
+â”‚       â”‚   â”‚   â””â”€â”€ cost_model.py
+â”‚       â”‚   â”‚
+â”‚       â”‚   â””â”€â”€ sustainability/
+â”‚       â”‚       â””â”€â”€ emissions.py
+â”‚       â”‚
+â”‚       â”œâ”€â”€ data/
+â”‚       â”‚   â”œâ”€â”€ repositories/
+â”‚       â”‚   â”‚   â”œâ”€â”€ site_repository.py
+â”‚       â”‚   â”‚   â””â”€â”€ fleet_repository.py
+â”‚       â”‚   â””â”€â”€ seed/
+â”‚       â”‚
+â”‚       â”œâ”€â”€ db/
+â”‚       â”‚   â”œâ”€â”€ connection.py
+â”‚       â”‚   â”œâ”€â”€ models.py
+â”‚       â”‚   â””â”€â”€ migrations/
+â”‚       â”‚
+â”‚       â””â”€â”€ config/
+â”‚           â””â”€â”€ settings.py
+â”‚
+â”œâ”€â”€ shared/
+â”‚   â”œâ”€â”€ schemas/
+â”‚   â”‚   â”œâ”€â”€ scenario.schema.json
+â”‚   â”‚   â”œâ”€â”€ simulation-result.schema.json
+â”‚   â”‚   â””â”€â”€ site.schema.json
+â”‚   â””â”€â”€ examples/
+â”‚       â”œâ”€â”€ baseline-scenario.json
+â”‚       â””â”€â”€ baseline-result.json
+â”‚
+â”œâ”€â”€ data/
+â”‚   â”œâ”€â”€ raw/
+â”‚   â”œâ”€â”€ processed/
+â”‚   â”œâ”€â”€ synthetic/
+â”‚   â””â”€â”€ README.md
+â”‚
+â”œâ”€â”€ scripts/
+â”‚   â”œâ”€â”€ seed_database.py
+â”‚   â”œâ”€â”€ generate_synthetic_data.py
+â”‚   â”œâ”€â”€ validate_gis_data.py
+â”‚   â””â”€â”€ run_simulation.py
+â”‚
+â”œâ”€â”€ tests/
+â”‚   â”œâ”€â”€ backend/
+â”‚   â”‚   â”œâ”€â”€ simulation/
+â”‚   â”‚   â”œâ”€â”€ api/
+â”‚   â”‚   â””â”€â”€ data/
+â”‚   â”œâ”€â”€ frontend/
+â”‚   â””â”€â”€ integration/
+â”‚
+â”œâ”€â”€ infra/
+â”‚   â”œâ”€â”€ docker/
+â”‚   â”‚   â”œâ”€â”€ frontend.Dockerfile
+â”‚   â”‚   â””â”€â”€ backend.Dockerfile
+â”‚   â”œâ”€â”€ nginx/
+â”‚   â””â”€â”€ cloud/
+â”‚
+â””â”€â”€ .github/
+    â””â”€â”€ workflows/
+        â”œâ”€â”€ ci.yml
+        â””â”€â”€ build.yml
 ```
 
 ---
@@ -1095,7 +1095,7 @@ project-root/
 
 The repository should be treated as four major regions.
 
-## REGION A — Frontend
+## REGION A â€” Frontend
 
 ```text
 frontend/
@@ -1120,7 +1120,7 @@ Does **not** own:
 
 ---
 
-## REGION B — Backend / Application
+## REGION B â€” Backend / Application
 
 ```text
 backend/app/api/
@@ -1139,7 +1139,7 @@ Does **not** own the actual visualization.
 
 ---
 
-## REGION C — Simulation Domain
+## REGION C â€” Simulation Domain
 
 ```text
 backend/app/simulation/
@@ -1164,7 +1164,7 @@ It should be executable independently of the web server.
 
 ---
 
-## REGION D — Data / Infrastructure
+## REGION D â€” Data / Infrastructure
 
 ```text
 data/
@@ -1191,22 +1191,22 @@ Maintain this direction:
 
 ```text
                     FRONTEND
-                       │
+                       â”‚
                     HTTP/JSON
-                       │
-                       ▼
+                       â”‚
+                       â–¼
                      API
-                       │
-                       ▼
+                       â”‚
+                       â–¼
                  APPLICATION
                    SERVICES
-                       │
-                       ▼
+                       â”‚
+                       â–¼
                  SIMULATION
                     DOMAIN
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
+                       â”‚
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â–¼                 â–¼
              DATA              CONFIG
 ```
 
@@ -1228,47 +1228,47 @@ The following interfaces should be established during the initial foundation pha
 
 ```text
 [Frontend]
-    │
-    ├── API client
-    │
-    ▼
+    â”‚
+    â”œâ”€â”€ API client
+    â”‚
+    â–¼
 [FastAPI]
-    │
-    ├── Pydantic contracts
-    │
-    ▼
+    â”‚
+    â”œâ”€â”€ Pydantic contracts
+    â”‚
+    â–¼
 [Application Service]
-    │
-    ▼
+    â”‚
+    â–¼
 [Simulation Engine]
-    │
-    ├── Domain models
-    ├── Cost model
-    ├── Capacity model
-    ├── Emissions model
-    ├── BESS interface
-    └── Solar interface
-    │
-    ▼
+    â”‚
+    â”œâ”€â”€ Domain models
+    â”œâ”€â”€ Cost model
+    â”œâ”€â”€ Capacity model
+    â”œâ”€â”€ Emissions model
+    â”œâ”€â”€ BESS interface
+    â””â”€â”€ Solar interface
+    â”‚
+    â–¼
 [Result Contract]
-    │
-    ▼
+    â”‚
+    â–¼
 [Frontend]
-    │
-    ├── Dashboard
-    ├── Charts
-    └── Cesium
+    â”‚
+    â”œâ”€â”€ Dashboard
+    â”œâ”€â”€ Charts
+    â””â”€â”€ Cesium
 ```
 
 Database:
 
 ```text
 FastAPI / Services
-        │
-        ▼
+        â”‚
+        â–¼
 Repository interface
-        │
-        ▼
+        â”‚
+        â–¼
 PostgreSQL/PostGIS
 ```
 
@@ -1276,15 +1276,15 @@ GIS:
 
 ```text
 GIS source
-    ↓
+    â†“
 GeoPandas / Shapely / PyProj
-    ↓
+    â†“
 Processed GeoJSON / spatial records
-    ↓
+    â†“
 PostGIS
-    ↓
+    â†“
 FastAPI
-    ↓
+    â†“
 CesiumJS
 ```
 
@@ -1298,9 +1298,9 @@ Before implementing feature work, the repository should be capable of:
 1. Start frontend
 2. Start backend
 3. Start PostgreSQL/PostGIS
-4. Establish frontend → backend connectivity
-5. Establish backend → database connectivity
-6. Establish backend → simulation connectivity
+4. Establish frontend â†’ backend connectivity
+5. Establish backend â†’ database connectivity
+6. Establish backend â†’ simulation connectivity
 7. Return a baseline simulation result
 8. Render baseline sites in Cesium
 9. Display baseline KPIs
@@ -1372,25 +1372,25 @@ The first working product should prove:
 
 ```text
 User
- ↓
+ â†“
 React
- ↓
+ â†“
 POST /api/scenarios/simulate
- ↓
+ â†“
 Pydantic validation
- ↓
+ â†“
 SimulationService
- ↓
+ â†“
 SimulationEngine
- ↓
+ â†“
 24-hour simulation
- ↓
+ â†“
 SimulationResult
- ↓
+ â†“
 JSON
- ↓
+ â†“
 React
- ↓
+ â†“
 Cesium + charts + KPIs
 ```
 
@@ -1400,7 +1400,7 @@ This should exist before advanced simulation behaviour.
 
 # 32. Development Phases
 
-# Phase 0 — Project Definition
+# Phase 0 â€” Project Definition
 
 ### Objectives
 
@@ -1425,7 +1425,7 @@ Initial backlog
 
 ---
 
-# Phase 1 — Foundation & Integration
+# Phase 1 â€” Foundation & Integration
 
 **Most important architecture phase.**
 
@@ -1441,8 +1441,8 @@ Implement:
 - Docker Compose.
 - Environment configuration.
 - CI.
-- Frontend ↔ backend API client.
-- Backend ↔ database connection.
+- Frontend â†” backend API client.
+- Backend â†” database connection.
 - Pydantic contracts.
 - Simulation engine interface.
 - Result schema.
@@ -1455,15 +1455,15 @@ Implement:
 
 ```text
 Browser
-  ↓
+  â†“
 React
-  ↓
+  â†“
 FastAPI
-  ↓
+  â†“
 Simulation stub
-  ↓
+  â†“
 JSON result
-  ↓
+  â†“
 Cesium
 ```
 
@@ -1471,7 +1471,7 @@ and:
 
 ```text
 FastAPI
-  ↓
+  â†“
 PostgreSQL/PostGIS
 ```
 
@@ -1481,7 +1481,7 @@ No later feature should need to introduce a fundamental communication path.
 
 ---
 
-# Phase 2 — Data Foundation
+# Phase 2 â€” Data Foundation
 
 Implement:
 
@@ -1499,13 +1499,13 @@ GIS preparation:
 
 ```text
 Raw GIS
- ↓
+ â†“
 GeoPandas
- ↓
+ â†“
 Shapely / PyProj
- ↓
+ â†“
 Processed data
- ↓
+ â†“
 PostGIS / GeoJSON
 ```
 
@@ -1515,25 +1515,25 @@ A complete baseline dataset that the simulation can consume.
 
 ---
 
-# Phase 3 — Core Simulation MVP
+# Phase 3 â€” Core Simulation MVP
 
 Implement only the essential simulation:
 
 ```text
 Fleet
- ↓
+ â†“
 Charging demand
- ↓
+ â†“
 Site allocation
- ↓
+ â†“
 Site load
- ↓
+ â†“
 Capacity
- ↓
+ â†“
 Cost
- ↓
+ â†“
 Emissions
- ↓
+ â†“
 24-hour result
 ```
 
@@ -1552,7 +1552,7 @@ Do not start with BESS or solar.
 
 ---
 
-# Phase 4 — End-to-End MVP
+# Phase 4 â€” End-to-End MVP
 
 Connect the actual simulation to the application.
 
@@ -1573,7 +1573,7 @@ This is the primary **Milestone 3 MVP target**.
 
 ---
 
-# Phase 5 — Visualization & Explanation
+# Phase 5 â€” Visualization & Explanation
 
 Improve:
 
@@ -1593,16 +1593,16 @@ The user should be able to understand the result without inspecting raw data.
 
 ---
 
-# Phase 6 — Scenario Comparison
+# Phase 6 â€” Scenario Comparison
 
 Formalize:
 
 ```text
 Scenario A
 Scenario B
-     ↓
+     â†“
 Comparison Engine
-     ↓
+     â†“
 Difference
 ```
 
@@ -1618,7 +1618,7 @@ Implement:
 
 ---
 
-# Phase 7 — Progressive Sophistication
+# Phase 7 â€” Progressive Sophistication
 
 Only after the MVP is stable:
 
@@ -1626,11 +1626,11 @@ Only after the MVP is stable:
 
 ```text
 BESS
- ↓
+ â†“
 Peak shaving
- ↓
+ â†“
 Capacity effect
- ↓
+ â†“
 Cost effect
 ```
 
@@ -1638,11 +1638,11 @@ Cost effect
 
 ```text
 Solar
- ↓
+ â†“
 Generation profile
- ↓
+ â†“
 Reduced grid import
- ↓
+ â†“
 Cost / emissions effect
 ```
 
@@ -1650,9 +1650,9 @@ Cost / emissions effect
 
 ```text
 Unmanaged
-      ↓
+      â†“
 Peak-aware scheduling
-      ↓
+      â†“
 Managed scenario
 ```
 
@@ -1660,7 +1660,7 @@ These should plug into existing simulation interfaces rather than restructure th
 
 ---
 
-# Phase 8 — Polish & Commercial Presentation
+# Phase 8 â€” Polish & Commercial Presentation
 
 Implement:
 
@@ -1680,19 +1680,19 @@ The application should communicate:
 
 ```text
 Input
- ↓
+ â†“
 Assumption
- ↓
+ â†“
 Simulation
- ↓
+ â†“
 Result
- ↓
+ â†“
 Business consequence
 ```
 
 ---
 
-# Phase 9 — Validation & Handoff
+# Phase 9 â€” Validation & Handoff
 
 Validate:
 
@@ -1737,7 +1737,7 @@ Validate:
 
 # 33. Feature Priority
 
-## Tier 0 — Architecture
+## Tier 0 â€” Architecture
 
 ```text
 Repository
@@ -1753,7 +1753,7 @@ Charts
 CI
 ```
 
-## Tier 1 — MVP
+## Tier 1 â€” MVP
 
 ```text
 Fleet
@@ -1770,7 +1770,7 @@ Time slider
 Comparison
 ```
 
-## Tier 2 — Strong Product
+## Tier 2 â€” Strong Product
 
 ```text
 Better visual encoding
@@ -1780,7 +1780,7 @@ Improved explanation
 Advanced comparisons
 ```
 
-## Tier 3 — Stretch
+## Tier 3 â€” Stretch
 
 ```text
 BESS
@@ -1822,7 +1822,7 @@ These may be future product directions, but they are outside the initial project
 
 Future agents must follow these rules.
 
-## Rule 1 — Extend existing boundaries
+## Rule 1 â€” Extend existing boundaries
 
 If adding BESS:
 
@@ -1832,25 +1832,25 @@ simulation/energy/bess.py
 
 not a new backend subsystem.
 
-## Rule 2 — Preserve API contracts
+## Rule 2 â€” Preserve API contracts
 
 New functionality should extend existing schemas rather than create parallel APIs.
 
-## Rule 3 — Preserve simulation independence
+## Rule 3 â€” Preserve simulation independence
 
 Simulation code must remain runnable without FastAPI.
 
-## Rule 4 — Preserve visualization independence
+## Rule 4 â€” Preserve visualization independence
 
 Cesium should consume simulation results rather than implement simulation rules.
 
-## Rule 5 — No feature-driven stack additions
+## Rule 5 â€” No feature-driven stack additions
 
 Do not introduce a new framework/library simply because a feature is being implemented.
 
 First determine whether the existing architecture already supports the feature.
 
-## Rule 6 — Integration before functionality
+## Rule 6 â€” Integration before functionality
 
 If a future feature requires a new subsystem, its interface must be established first, even if the initial implementation is a stub.
 
@@ -1858,7 +1858,7 @@ Example:
 
 ```text
 BESS interface
-    ↓
+    â†“
 NullBESS / DisabledBESS
 ```
 
@@ -1880,32 +1880,32 @@ Example conceptual interfaces:
 
 ```text
 EnergyResource
-├── GridResource
-├── BESSResource
-└── SolarResource
+â”œâ”€â”€ GridResource
+â”œâ”€â”€ BESSResource
+â””â”€â”€ SolarResource
 ```
 
 ```text
 ChargingStrategy
-├── UnmanagedCharging
-└── ManagedCharging
+â”œâ”€â”€ UnmanagedCharging
+â””â”€â”€ ManagedCharging
 ```
 
 ```text
 CostModel
-├── FlatRateCost
-└── TimeOfUseCost
+â”œâ”€â”€ FlatRateCost
+â””â”€â”€ TimeOfUseCost
 ```
 
 ```text
 EmissionsModel
-└── GridAndICEBaselineModel
+â””â”€â”€ GridAndICEBaselineModel
 ```
 
 ```text
 DataProvider
-├── SyntheticDataProvider
-└── HistoricalDataProvider
+â”œâ”€â”€ SyntheticDataProvider
+â””â”€â”€ HistoricalDataProvider
 ```
 
 The first implementation can be simple.
@@ -1935,11 +1935,11 @@ test_simulation_engine
 
 ```text
 Frontend
-   ↓
+   â†“
 API
-   ↓
+   â†“
 Simulation
-   ↓
+   â†“
 Database
 ```
 
@@ -1964,15 +1964,15 @@ The simulation should be deterministic for the same scenario.
 
 ```text
 Scenario A
-    ↓
+    â†“
 Simulation
-    ↓
+    â†“
 Result A
 
 Scenario A
-    ↓
+    â†“
 Simulation
-    ↓
+    â†“
 Result A
 ```
 
@@ -1982,7 +1982,7 @@ If randomness is introduced later:
 Scenario
 +
 Seed
- ↓
+ â†“
 Deterministic simulation
 ```
 
@@ -2004,19 +2004,19 @@ Errors should remain localized.
 
 ```text
 Frontend validation
-        ↓
+        â†“
 API validation
-        ↓
+        â†“
 Domain validation
-        ↓
+        â†“
 Simulation
-        ↓
+        â†“
 Result
 ```
 
 Invalid examples:
 
-- EV percentage outside 0–100%.
+- EV percentage outside 0â€“100%.
 - Negative charger power.
 - Negative site capacity.
 - Charging split not summing correctly.
@@ -2064,14 +2064,14 @@ Preferred local topology:
 
 ```text
 Browser
-   │
-   ▼
+   â”‚
+   â–¼
 Frontend container / dev server
-   │
-   ▼
+   â”‚
+   â–¼
 Backend container / dev server
-   │
-   ▼
+   â”‚
+   â–¼
 PostgreSQL + PostGIS
 ```
 
@@ -2089,24 +2089,24 @@ Minimum:
 
 ```text
 Push
- ↓
+ â†“
 Install dependencies
- ↓
+ â†“
 Frontend build
- ↓
+ â†“
 Backend tests
- ↓
+ â†“
 Simulation tests
- ↓
+ â†“
 Integration checks
 ```
 
 Later:
 
 ```text
- ↓
+ â†“
 Docker build
- ↓
+ â†“
 Deployment artifact
 ```
 
@@ -2118,14 +2118,14 @@ Maintain:
 
 ```text
 docs/
-├── project-context.md
-├── architecture.md
-├── simulation-model.md
-├── api-contract.md
-├── data-model.md
-├── gis-data.md
-├── deployment.md
-└── decisions/
+â”œâ”€â”€ project-context.md
+â”œâ”€â”€ UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md
+â”œâ”€â”€ simulation-model.md
+â”œâ”€â”€ api-contract.md
+â”œâ”€â”€ data-model.md
+â”œâ”€â”€ gis-data.md
+â”œâ”€â”€ deployment.md
+â””â”€â”€ decisions/
 ```
 
 Every major architectural decision should have a short ADR.
@@ -2134,7 +2134,7 @@ Every major architectural decision should have a short ADR.
 
 # 44. Architecture Decision Summary
 
-## Decision A — Browser application
+## Decision A â€” Browser application
 
 ```text
 React + TypeScript
@@ -2144,7 +2144,7 @@ Reason:
 
 The project is explicitly a browser-based application.
 
-## Decision B — 3D/GIS
+## Decision B â€” 3D/GIS
 
 ```text
 CesiumJS
@@ -2154,7 +2154,7 @@ Reason:
 
 The project requires a city-scale spatial view with real-position sites and 3D visualization.
 
-## Decision C — Backend
+## Decision C â€” Backend
 
 ```text
 Python + FastAPI + Pydantic
@@ -2164,7 +2164,7 @@ Reason:
 
 Provides a clean API boundary around the simulation and data model.
 
-## Decision D — Database
+## Decision D â€” Database
 
 ```text
 PostgreSQL + PostGIS
@@ -2174,7 +2174,7 @@ Reason:
 
 Persistent relational + spatial data.
 
-## Decision E — Simulation
+## Decision E â€” Simulation
 
 ```text
 Python simulation domain
@@ -2184,7 +2184,7 @@ Reason:
 
 The custom cross-site energy simulation is the principal RTIS-owned component.
 
-## Decision F — Integration
+## Decision F â€” Integration
 
 ```text
 HTTP
@@ -2197,7 +2197,7 @@ Reason:
 
 Simple explicit interfaces between browser, backend and spatial data.
 
-## Decision G — No live telemetry baseline
+## Decision G â€” No live telemetry baseline
 
 ```text
 Synthetic / historical data
@@ -2231,11 +2231,11 @@ Do not:
 
 ```text
 Feature request
-    ↓
+    â†“
 Invent new framework
-    ↓
+    â†“
 Add new communication path
-    ↓
+    â†“
 Retrofit existing code
 ```
 
@@ -2243,11 +2243,11 @@ Instead:
 
 ```text
 Existing architecture
-       ↓
+       â†“
 Existing boundary
-       ↓
+       â†“
 Existing interface
-       ↓
+       â†“
 New implementation
 ```
 
@@ -2343,73 +2343,73 @@ The intended final architecture is:
 
 ```text
                               USER
-                                │
-                                ▼
-                    ┌─────────────────────┐
-                    │       React         │
-                    │                     │
-                    │ Scenario Controls   │
-                    │ Dashboard           │
-                    │ Comparison           │
-                    │ Time Control         │
-                    └──────────┬──────────┘
-                               │
+                                â”‚
+                                â–¼
+                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                    â”‚       React         â”‚
+                    â”‚                     â”‚
+                    â”‚ Scenario Controls   â”‚
+                    â”‚ Dashboard           â”‚
+                    â”‚ Comparison           â”‚
+                    â”‚ Time Control         â”‚
+                    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
                           HTTP / JSON
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      FastAPI        │
-                    │                     │
-                    │ API + Validation    │
-                    │ Application Service │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                 ┌────────────────────────────┐
-                 │     SIMULATION DOMAIN      │
-                 │                            │
-                 │ Simulation Engine           │
-                 │ ├── Fleet                  │
-                 │ ├── Charging               │
-                 │ ├── Sites                  │
-                 │ ├── Capacity               │
-                 │ ├── Energy                 │
-                 │ ├── Cost                   │
-                 │ ├── Emissions              │
-                 │ ├── BESS                   │
-                 │ └── Solar                  │
-                 └─────────────┬──────────────┘
-                               │
+                               â”‚
+                               â–¼
+                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                    â”‚      FastAPI        â”‚
+                    â”‚                     â”‚
+                    â”‚ API + Validation    â”‚
+                    â”‚ Application Service â”‚
+                    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
+                               â–¼
+                 â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                 â”‚     SIMULATION DOMAIN      â”‚
+                 â”‚                            â”‚
+                 â”‚ Simulation Engine           â”‚
+                 â”‚ â”œâ”€â”€ Fleet                  â”‚
+                 â”‚ â”œâ”€â”€ Charging               â”‚
+                 â”‚ â”œâ”€â”€ Sites                  â”‚
+                 â”‚ â”œâ”€â”€ Capacity               â”‚
+                 â”‚ â”œâ”€â”€ Energy                 â”‚
+                 â”‚ â”œâ”€â”€ Cost                   â”‚
+                 â”‚ â”œâ”€â”€ Emissions              â”‚
+                 â”‚ â”œâ”€â”€ BESS                   â”‚
+                 â”‚ â””â”€â”€ Solar                  â”‚
+                 â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
                          SimulationResult
-                               │
-                ┌──────────────┴──────────────┐
-                │                             │
-                ▼                             ▼
-        ┌───────────────┐             ┌──────────────┐
-        │   CesiumJS    │             │   Charts /   │
-        │               │             │     KPIs     │
-        │ 3D Network    │             │              │
-        │ Site State    │             │ Time Series  │
-        └───────────────┘             └──────────────┘
+                               â”‚
+                â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                â”‚                             â”‚
+                â–¼                             â–¼
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”             â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â”‚   CesiumJS    â”‚             â”‚   Charts /   â”‚
+        â”‚               â”‚             â”‚     KPIs     â”‚
+        â”‚ 3D Network    â”‚             â”‚              â”‚
+        â”‚ Site State    â”‚             â”‚ Time Series  â”‚
+        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜             â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 
-              ┌─────────────────────────────────┐
-              │       DATA / PERSISTENCE        │
-              │                                 │
-              │ PostgreSQL + PostGIS             │
-              │ Synthetic / Historical Data     │
-              │ GIS Processing                   │
-              └─────────────────────────────────┘
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚       DATA / PERSISTENCE        â”‚
+              â”‚                                 â”‚
+              â”‚ PostgreSQL + PostGIS             â”‚
+              â”‚ Synthetic / Historical Data     â”‚
+              â”‚ GIS Processing                   â”‚
+              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 
-              ┌─────────────────────────────────┐
-              │       INFRASTRUCTURE            │
-              │                                 │
-              │ Docker / Compose                │
-              │ Git / GitHub                    │
-              │ CI/CD                           │
-              │ Cloud                           │
-              └─────────────────────────────────┘
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚       INFRASTRUCTURE            â”‚
+              â”‚                                 â”‚
+              â”‚ Docker / Compose                â”‚
+              â”‚ Git / GitHub                    â”‚
+              â”‚ CI/CD                           â”‚
+              â”‚ Cloud                           â”‚
+              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -2419,28 +2419,28 @@ The intended final architecture is:
 The project foundation is considered architecturally established when:
 
 ```text
-✓ Frontend exists
-✓ Backend exists
-✓ Database exists
-✓ PostGIS exists
-✓ Docker environment exists
-✓ CI exists
-✓ Frontend ↔ backend connection exists
-✓ Backend ↔ database connection exists
-✓ API contracts exist
-✓ Simulation interface exists
-✓ Simulation stub exists
-✓ Cesium is initialized
-✓ Charting layer exists
-✓ Scenario state exists
-✓ Time-control interface exists
-✓ Baseline synthetic data exists
-✓ Baseline scenario exists
-✓ Baseline simulation can run
-✓ Baseline result can reach the browser
-✓ Baseline result can be visualized
-✓ Scenario A/B comparison path exists
-✓ Extension points exist for BESS / solar / managed charging
+âœ“ Frontend exists
+âœ“ Backend exists
+âœ“ Database exists
+âœ“ PostGIS exists
+âœ“ Docker environment exists
+âœ“ CI exists
+âœ“ Frontend â†” backend connection exists
+âœ“ Backend â†” database connection exists
+âœ“ API contracts exist
+âœ“ Simulation interface exists
+âœ“ Simulation stub exists
+âœ“ Cesium is initialized
+âœ“ Charting layer exists
+âœ“ Scenario state exists
+âœ“ Time-control interface exists
+âœ“ Baseline synthetic data exists
+âœ“ Baseline scenario exists
+âœ“ Baseline simulation can run
+âœ“ Baseline result can reach the browser
+âœ“ Baseline result can be visualized
+âœ“ Scenario A/B comparison path exists
+âœ“ Extension points exist for BESS / solar / managed charging
 ```
 
 Only after this point should the team proceed into substantial feature implementation.
@@ -2453,17 +2453,17 @@ The technical architecture should embody the brief's central philosophy:
 
 ```text
 Simple first
-     ↓
+     â†“
 Make assumptions explicit
-     ↓
+     â†“
 Build a working simulation
-     ↓
+     â†“
 Expose scenario controls
-     ↓
+     â†“
 Visualize consequences
-     ↓
+     â†“
 Compare decisions
-     ↓
+     â†“
 Add sophistication without restructuring
 ```
 

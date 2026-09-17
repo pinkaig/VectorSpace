@@ -1,126 +1,147 @@
-# VThere Spatial Experience Builder — Session Handoff
+﻿# VThere Spatial Experience Builder - Session Handoff
 
 ## Objective / topic
 
 Two parallel workstreams (Week 3):
 - **Phase 2 command-path slice:** Team owns custom gizmo build; this thread stays open for when the gizmo integration needs the move/rotate/scale command history wired up.
 - **Full-stack infrastructure skeleton:** Tech lead effort to scaffold the complete architecture (frontend → backend → persistence → storage → deployment) with real plumbing and skeleton business logic, so the team can build on top of working infrastructure instead of hitting missing pieces at each phase.
+Document the VThere implementation and establish the team workflow for documentation, CI, CD, and smoke testing. The current implementation slice also includes the Wk2 persistence/import/runtime work described below.
 
 ## Decisions made and why
 
-- Browser editor/runtime: React + TypeScript + Vite + Three.js, because the brief requires a browser-based 3D authoring tool and visitor runtime.
-- Backend: Python 3.12 + FastAPI + Pydantic v2, reusing the repository family's Python direction and providing typed HTTP/OpenAPI contracts.
-- Persistence: PostgreSQL 16 with SQLAlchemy 2/Alembic for structured project/version metadata; Google Cloud Storage for production media/project assets; MinIO locally.
-- Delivery: Google Cloud Run, Firebase Hosting, and Google Cloud CDN as the reference deployment; exact CI provider remains open.
-- Access: Auth0 OIDC Authorization Code + PKCE for browser login; API-side JWT validation and server-side organisation/project authorization.
-- Testing: Vitest, Playwright, pytest, and HTTPX.
-- Custom technical component: standalone framework-agnostic `packages/authoring-engine/` owning gizmo hit testing, transform constraints, selection sessions, command grouping, undo/redo, and persistence checkpoints. It must not own React, rendering, HTTP, storage, or runtime behavior.
-- Persistence is release-blocking: canonical versioned serialization, undo/redo continuity, debounced autosave, last-known-good backup recovery, truthful failure states, revision conflict protection, and immutable published snapshots.
-- Debugging uses a framework-agnostic TypeScript logger with levels, redaction, child namespaces, and injectable test sinks; the FastAPI API logs request IDs, duration, status, and exception traces.
-- Environment setup uses PowerShell, Bash, and Node preflight checks instead of CMake because the stack is Vite/React/TypeScript plus Python/FastAPI, not native C/C++.
+- Browser `localStorage` remains a local draft mechanism only; it is not durable multi-user persistence.
+- The editor exposes both `Load draft` for browser storage and `Import JSON` for a user-selected `.json` file.
+- Imported files are validated before replacing the current project. Invalid imports leave the current project unchanged.
+- Validation rejects malformed JSON, unsupported schema versions, wrong file types, files over 2 MB, invalid project/scene/object structure, non-finite transforms, duplicate IDs, overlong labels, more than 100 scenes, or more than 5,000 objects.
+- Automatic corruption repair is intentionally not implemented. Silent guessing could destroy valid data; future recovery should produce a report or preview instead.
+- The first save writes both the primary local draft and backup. Existing draft recovery tries primary, then backup, then a clean project.
+- The runtime work is a local read-only simulation using the same current `ProjectData` and Three.js viewport. It is not a published URL or separate `apps/runtime` application yet.
+- Asset management starts with a data-driven approved catalog and search. Arbitrary upload, conversion, remote storage, thumbnails, and missing-asset recovery remain deferred until their contracts are approved.
+- File-level documentation is the implementation reference: source headers describe each file's current responsibility, inputs, outputs, members, and larger guide link.
+- Markdown subsystem pages describe the larger cross-file systems, architecture, data flow, examples, error handling, testing, and history.
+- The normal branch workflow is feature branch -> `working` pull request -> CI/review -> `working`; `main` is reserved for milestone/submission pull requests from `working`.
+- The required CI status check is named `build-and-test`, covering `npm ci`, typecheck, unit tests, production build, and the initial browser smoke test.
+- CD is intentionally deferred until CI and smoke tests are reliable. Deployment should run from protected `main` through a protected GitHub Environment.
 
 ## Current skeleton / plan state
 
-- Stage 1 scope document exists at `projectscope.md`.
-- Stage 2 stack document exists at `techstack.md` with pinned frontend dependency versions and resolved backend/storage/auth/testing direction.
-- Stage 3 architecture package exists:
-  - `docs/PROJECT_CONTEXT.md`
-  - `docs/architecture.md`
-  - `docs/repository.md`
-  - `docs/contracts.md`
-  - `docs/build-system.md`
-  - `docs/testing-strategy.md`
-  - `docs/implementation-plan.md`
-  - `docs/pre-baseline-validation.md`
-  - `docs/subsystems/authoring-engine.md`
-  - `docs/asset-library-contract.md`
-  - `docs/roles-and-delivery.md`
-  - `docs/pilot-and-conduct.md`
-  - `docs/source-brief-audit.md`
-- Existing prototype has a React/Three.js editor with scene tree, primitive asset placement, viewport selection/dragging, inspector, undo/redo, JSON export, local draft persistence, debounced autosave, backup recovery, and truthful storage failure status.
-- Architecture is aligned with the DOCX core plan. Stage 4 Phase 0 has started: the canonical project package, standalone authoring-engine command timeline, API health route, and first isolated tests now exist. The current `src/` editor remains the temporary UI surface until a verified package-aware build allows the app move.
-- Engineering guidance exists in `docs/DEVELOPMENT_GUIDE.md`, `docs/ENGINEERING_PRACTICES.md`, `docs/DEBUGGING.md`, and `docs/ENVIRONMENT_SETUP.md`.
-- The root `package.json` has Node/npm engine requirements, `check:environment`, `predev`, and `prebuild` scripts. The root `package-lock.json` exists after dependency installation.
+- Phase plan: `docs/07-research-and-history/2026-09-07--HISTORY--week2-runtime-persistence-plan.md`.
+- Implemented runtime preview controls: `Run simulation`, visitor-style simulation screen, `Exit simulation`, and non-interactive viewport mode.
+- Implemented persistence clarity: `Load draft`, visible localStorage status, save/autosave status, backup status, and JSON export.
+- Implemented JSON import: browser file picker, import status/error reporting, strict validation, and no state replacement on rejection.
+- Implemented asset foundation: `src/assets.ts` owns asset metadata and filtering; the asset panel has searchable approved assets and match counts.
+- Implemented viewport resource cleanup so scene objects are not recreated and GPU resources are not leaked every animation frame.
+- Implemented file-level headers in the core application and package boundaries: `src/main.tsx`, `src/App.tsx`, `src/RuntimeView.tsx`, `src/Viewport.tsx`, `src/model.ts`, `src/serializer.ts`, `packages/project/src/index.ts`, `packages/debugging/src/index.ts`, and `packages/authoring-engine/src/index.ts`.
+- Implemented verbose subsystem guides: `docs/05-subsystems/project-serialization.md` and `docs/05-subsystems/viewport.md`.
+- Implemented documentation standard: `docs/04-engineering/source-file-header-standard.md`.
+- Implemented AI declaration: `docs/ai-declaration.md`; verification is deliberately marked ongoing and must be updated only with completed checks.
+- Updated `docs/README.md` to link the new documentation pages.
+- Repository-level `.github/workflows/ci.yml` now runs the VThere checks on pull requests and pushes to the existing case-sensitive `Working` integration branch and `main`.
+- Architecture remains intentionally unchanged. The root `src/` editor is still the current implementation surface; `apps/runtime` remains a placeholder and backend/API publishing is not wired.
+
+## Architecture mapping update
+
+- A VThere architecture map was generated in `CODEBASE_GUIDE.md` from commit `5a36a13355956f7339229af655d205ede6b4e1eb` on 2026-09-09.
+- The map records the current root `src/` prototype, existing workspace packages, API health scaffold, missing planned boundaries, plan-versus-reality drift, dependency order, ownership guidance, and ECS-oriented pattern translations.
+- AI assistance was used for repository analysis and documentation drafting. Human approval of the generated guide and confirmation of prompt data handling remain pending.
 
 ## Build / verify command and status
 
-From `VThere Spatial Experience Builder/`:
+Run from `VThere Spatial Experience Builder/`:
 
 ```text
-npm.cmd install
-npm.cmd run check:environment
-npm.cmd test
-npm.cmd run build
-python -m pytest apps/api/tests -q
+npm install
+npm run build
+npm run dev
+python -m pytest apps/api/tests
 python -m uvicorn apps.api.app.main:app --reload --port 8000
 ```
 
-Current status: **partially implemented, verified locally**. Node.js 24.19.0, npm 11.17.0, and Python 3.12.10 are available. The environment check, frontend tests, production build, and API health test pass. The build still reports a Vite chunk-size warning and the API test reports a Starlette deprecation warning. Browser tests, full backend integration tests, and the planned app move remain outstanding.
+Current status: **CI implemented and verified locally for the VThere frontend**. `npm.cmd ci`, `npm.cmd run typecheck`, `npm.cmd test` (4 files, 8 tests), `npm.cmd run build`, and `npm.cmd run test:e2e` (1 browser test) passed. The build still reports the existing Vite large-chunk warning. `python -m pytest apps/api/tests` could not run because `pytest` is not installed in the selected Python 3.12 environment; full backend integration tests and the planned app move remain outstanding.
 
-## Files touched in the DOCX audit session
+The API pytest result in this handoff is therefore not a passing result for this session; the earlier documented passing result should be re-established after installing the API test dependencies.
 
-- `docs/source-brief-audit.md`
-- `docs/asset-library-contract.md`
-- `docs/roles-and-delivery.md`
-- `docs/pilot-and-conduct.md`
-- `docs/contracts.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/pre-baseline-validation.md`
-- `SESSION.md`
+1. Add an asset and save the project.
+2. Reload the page and use `Load draft`.
+3. Export JSON.
+4. Import the exported JSON through the browser file picker.
+5. Try a malformed, oversized, wrong-extension, or structurally invalid JSON file and confirm the current project remains unchanged.
+6. Search the asset catalog.
+7. Run simulation, confirm editor controls are absent, then exit simulation.
 
-## Files touched for baseline, debugging, and setup
+Current verification status: VS Code diagnostics report no errors in the CI and Playwright files. The frontend CI target commands pass locally on Node.js 24/npm 11; the project requires Node.js 22+/npm 10+. The GitHub-hosted workflow still needs to be exercised by pushing this workflow to GitHub and opening a pull request into `Working`.
 
-- `package.json`
-- `package-lock.json`
-- `scripts/check-environment.mjs`
-- `scripts/check-environment.ps1`
-- `scripts/check-environment.sh`
-- `packages/project/package.json`
-- `packages/project/src/index.ts`
-- `packages/authoring-engine/package.json`
-- `packages/authoring-engine/src/index.ts`
-- `packages/authoring-engine/src/index.test.ts`
-- `packages/debugging/package.json`
-- `packages/debugging/src/index.ts`
-- `packages/debugging/src/index.test.ts`
+CI/CD target verification:
+
+```powershell
+cd "VThere Spatial Experience Builder"
+npm.cmd ci
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+npm.cmd run test:e2e
+```
+
+The current `package.json` includes `typecheck` and `test:e2e`; Playwright is locked in `package-lock.json`, and the smoke test is under `tests/e2e/smoke.spec.ts`.
+
+## Files touched for this topic
+
+- `src/App.tsx`
+- `src/serializer.ts`
+- `src/assets.ts`
+- `src/Viewport.tsx`
+- `src/RuntimeView.tsx`
+- `src/styles.css`
+- `docs/07-research-and-history/2026-09-07--HISTORY--week2-runtime-persistence-plan.md`
+- `docs/04-engineering/source-file-header-standard.md`
+- `docs/05-subsystems/project-serialization.md`
+- `docs/05-subsystems/viewport.md`
+- `docs/ai-declaration.md`
+- `docs/README.md`
+- `src/main.tsx`
+- `src/App.tsx`
+- `src/RuntimeView.tsx`
+- `src/Viewport.tsx`
 - `src/model.ts`
 - `src/serializer.ts`
-- `apps/api/app/main.py`
-- `apps/api/requirements.txt`
-- `apps/api/tests/test_health.py`
-- `apps/runtime/README.md`
-- `docs/DEVELOPMENT_GUIDE.md`
-- `docs/DEBUGGING.md`
-- `docs/ENGINEERING_PRACTICES.md`
-- `docs/ENVIRONMENT_SETUP.md`
-- `docs/architecture.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/pre-baseline-validation.md`
-- `README.md`
-
-Earlier implementation/design files remain in the folder as described above.
+- `packages/project/src/index.ts`
+- `packages/debugging/src/index.ts`
+- `packages/authoring-engine/src/index.ts`
+- `SESSION.md`
 
 ## Failed approaches already tried
 
+- Treating `localStorage` as the only project-loading mechanism was insufficient because it cannot load a JSON file from another browser or machine.
+- Accepting any parsed object with `schemaVersion === 1` was insufficient because malformed structure, duplicate IDs, invalid transforms, and excessive resource counts could pass through.
+- Automatic corruption repair was rejected as unsafe. The current behavior rejects and preserves the active project instead.
+- A full build/test/browser run was attempted but blocked because Node/npm was unavailable in the current PowerShell PATH.
+- A Git diff check was attempted but Git was unavailable in the current PowerShell PATH.
+- A combined documentation/header patch initially failed because `src/model.ts` had changed into a re-export boundary; the header was then written to describe its actual role and the shared canonical model was documented separately.
+Earlier implementation/design files remain in the folder as described above.
+
+Architecture mapping session:
+
+- `CODEBASE_GUIDE.md`
+- `SESSION.md`
+
 - Attempted `npm install` and build verification; failed because `npm`/Node.js was not installed or discoverable on Windows.
-- Installing Node.js through winget initially required an administrator prompt; the first installation attempt was cancelled, then the runtime was installed successfully.
-- PowerShell's `npm.ps1` execution policy blocked plain `npm`; project commands should use `npm.cmd` on Windows.
-- The first Node preflight implementation attempted to execute `npm`/`npm.cmd` as a child process and failed on Windows path/shim behavior. It now invokes npm's CLI JavaScript through the active Node executable and passes.
 - Initial broad Stage 3 review omitted the formal validation block, per-phase verification commands, and testing-strategy document; these were added before this handoff.
 - Temporary DOCX extraction was used for audit search and then removed; no extracted review artifact remains in the topic folder.
+- API verification could not be rerun because the selected Python environment does not have `pytest` installed.
 
 ## Open questions
 
-- Human approval of the Stage 3 skeleton and scope/stack documents.
-- Exact approved MVP six-trigger/six-action vocabulary.
-- Visitor movement model: free first-person, camera-point navigation, or both.
-- Approved two-to-four environments and approximately 20–30 GLB asset inventory, licensing, scale, pivots, and budgets.
-- Exact browser/device performance targets, including iPad/tablet editing feasibility.
-- Official DigiPen Milestone 3 date and complete calendar.
-- Final team roster, Jira ownership, mentor slot, and 80% team / 20% individual evidence process.
-- Pilot consent/safeguarding requirements, NDA, IP/reuse/publication terms, analytics privacy, and final handoff terms.
-- CI/deployment automation provider.
-- Whether to add Playwright and broader API/integration tests in the next baseline slice.
+- Should imported JSON be autosaved immediately, or require an explicit confirmation before replacing the local draft?
+- Should import support a preview/diff screen before commit?
+- What exact asset metadata is required: thumbnail URL, GLB URL, license, scale, pivot, category, and performance budget?
+- Should missing assets block loading, show placeholders, or produce a repair report?
+- When should persistence move from browser storage to the FastAPI/PostgreSQL/object-storage path?
+- When should the local simulation become the separate `apps/runtime` application boundary?
+- What visitor interactions, navigation model, and analytics events must the runtime support?
+- Should the documentation headers be added to every remaining source and test file, or only files with a public boundary and non-trivial implementation?
+- Confirm whether the repository should rename the existing `Working` branch to lowercase `working`; the workflow currently follows the branch name that exists.
+- Which approved deployment provider will own the protected production environment?
+- Which instructor/team accounts should receive review and Actions visibility?
 
 ## Week 3 Parallel Efforts
 
@@ -162,3 +183,433 @@ Earlier implementation/design files remain in the folder as described above.
 **Log:** Progress recorded in `docs/07-research-and-history/2026-09-17--SKELETON--full-stack-infrastructure-log.md` after each stage completes.
 
 **Next:** Tech lead begins Stage 1 (local infrastructure).
+Push these changes to the existing `Working` branch, open a pull request targeting `Working`, and confirm that the `build-and-test` check appears and passes in GitHub Actions. Then configure the `Working` and `main` rulesets to require that status check. Keep CD deferred until deployment ownership and the protected production environment are agreed. Continue with focused serializer tests for malformed JSON, wrong schema, duplicate IDs, invalid transforms, size limits, and preservation of the current project after rejection.
+Review and approve `CODEBASE_GUIDE.md`, confirm the AI-use and prompt data-handling statements, and resolve the product/brief decisions above. Install the API test dependencies and rerun `python -m pytest apps/api/tests`. Next, move the verified editor into `apps/editor/`, preserve the shared project and authoring-engine imports, then add persistence round-trip tests before implementing further runtime/API phases.
+
+## ECS-style object management and hierarchy handoff
+
+### Objective / topic
+
+Define a safe, durable object architecture for VThere that supports stable IDs, visibility and enabled state, object creation/duplication/removal, and a future hierarchy model without destabilizing the current project snapshot or rendering pipeline.
+
+### Decisions made and why
+
+- Keep the current project snapshot as the canonical source of truth in `packages/project/src/index.ts`.
+- Treat render objects, UI selection, and runtime caches as derived data rather than additional authorities.
+- Separate `visible` from `enabled` so a hidden object can still be logically active, and an object can be visible but temporarily inactive.
+- Avoid a global singleton `ObjectManager` as the primary state owner because it creates a second source of truth and increases cross-layer drift.
+- Prefer domain commands or services such as `createObject`, `duplicateObject`, `setVisible`, `setEnabled`, and `removeObject` over direct mutation inside React event handlers.
+- Keep this phase intentionally focused on lifecycle semantics; hierarchy and full ECS componentization remain future work, not a forced rewrite.
+- Use a hybrid approach: canonical project state plus a future query/index layer and rendering sync, rather than trying to turn the current browser app into a full ECS implementation immediately.
+
+### Current skeleton / plan state
+
+- Current project model remains flat: `SceneData.objects: SceneObject[]`.
+- `SceneObject` has an ID, transform, and asset identity; it does not yet encode the full runtime lifecycle state.
+- The authoring model is a good fit for a command-based layer, because undo/redo, persistence, validation, and rendering all work from the same project snapshot.
+- The render layer is allowed to reconstruct a disposable scene graph from the snapshot; it should not own or mutate the, authoritative object model.
+- The hierarchy, grouping, and parent-child semantics are still a planned extension and should be added after lifecycle semantics are stable.
+- Object lifecycle research and proposal notes are recorded in the Week 3 design docs, especially the object state lifecycle and hybrid ECS proposals.
+
+### Architecture analysis
+
+The current codebase is structurally healthy for a prototype because the canonical model is centralized and the editor state is not yet duplicated across unrelated subsystems. The risk appears when object behavior grows beyond editing and rendering: creation, duplication, hiding, disabling, deletion, history, persistence, and runtime interactions all become separate decision points if object logic is scattered across React and Three.js.
+
+This means the most important architectural boundary is not whether the app uses ECS terminology, but where the authoritative state lives. If the app uses a mutable singleton or renderer-owned object list as a second source of truth, the system will accumulate bugs around undo, persistence, selection, and re-rendering. The safer model keeps one snapshot and derives behavior from it.
+
+### Open questions
+
+- Should the object model add `visible`, `enabled`, `parentId`, and `groupId` directly to the persisted schema, or should they be introduced behind a versioned migration boundary?
+- Should parent-child hierarchy be implemented as a strict tree or a looser scene graph with explicit validation rules?
+- Should the render layer filter hidden objects in raycasting and picking, or should visibility be enforced earlier in the object query layer?
+- What semantics should a disabled object have in the editor: editable but visually marked, or non-editable while still serialized?
+- How should duplicate operations handle references to assets, other objects, or runtime interactions?
+
+### Next recommended step
+
+1. Add the lifecycle fields to the project schema in a migration-safe way.
+2. Add pure command functions for create, duplicate, visibility, enabled-state, and delete operations.
+3. Validate those operations against the existing project snapshot and maintain one history entry per user-visible action.
+4. Add a hierarchy/index layer only after lifecycle semantics are stable.
+5. Keep the current renderer synchronization logic derived from the snapshot instead of independent mutation.
+6. Revisit ECS alignment only after these commands and contracts are proven stable under undo, save, load, and selection flows.
+
+### Relevant files
+
+- [VThere Spatial Experience Builder/packages/project/src/index.ts](VThere%20Spatial%20Experience%20Builder/packages/project/src/index.ts)
+- [VThere Spatial Experience Builder/src/App.tsx](VThere%20Spatial%20Experience%20Builder/src/App.tsx)
+- [VThere Spatial Experience Builder/src/Viewport.tsx](VThere%20Spatial%20Experience%20Builder/src/Viewport.tsx)
+- [VThere Spatial Experience Builder/src/serializer.ts](VThere%20Spatial%20Experience%20Builder/src/serializer.ts)
+- [VThere Spatial Experience Builder/docs/07-research-and-history/Week3/2026-09-15--PROPOSAL--object-entity-and-ecs-architecture.md](VThere%20Spatial%20Experience%20Builder/docs/07-research-and-history/Week3/2026-09-15--PROPOSAL--object-entity-and-ecs-architecture.md)
+- [VThere Spatial Experience Builder/docs/07-research-and-history/Week3/2026-09-15--PROPOSAL--object-state-lifecycle-and-web-architecture.md](VThere%20Spatial%20Experience%20Builder/docs/07-research-and-history/Week3/2026-09-15--PROPOSAL--object-state-lifecycle-and-web-architecture.md)
+
+## Wk3 sustainability and current-codebase handoff
+
+### Objective / topic
+
+Assess whether the current Week 2 React/Three.js implementation can support
+the remaining development cycle, and identify the smallest Week 3 step that
+protects the project's required authoring, preview, persistence, and runtime
+direction.
+
+### Decisions made and why
+
+- Treat the current root `src/` editor as a working prototype, not the final
+	application boundary.
+- Do not refactor `Viewport.tsx` purely to reduce its line count. Extract only
+	responsibilities that have a clear owner, test value, or second consumer.
+- Prioritize one shared command path for move, rotate, scale, delete, and
+	inspector edits before broad file or package restructuring.
+- Keep the canonical project snapshot as the only authoritative project state.
+	Three.js objects, React selection state, and persistence records remain
+	derived or adapter state.
+- Keep Three.js for both editor and runtime during the MVP to protect parity
+	and avoid maintaining two rendering pipelines.
+- Delay full `apps/editor` migration, a new presentation package, ECS expansion,
+	and alternate renderers until a vertical slice demonstrates the need.
+- Use packages when a contract is framework-free, stable, or has a second
+	consumer; use local modules for one-consumer extraction.
+
+### Current skeleton / plan state
+
+Implemented and usable from the current prototype:
+
+- React/Vite editor with primitive scene objects and Three.js viewport.
+- Selection, free movement, axis movement, rotation, scaling, orbit mode, and
+	walk mode.
+- Local save/load, autosave, backup recovery, JSON export, and validated JSON
+	import.
+- Snapshot undo/redo timeline in `packages/authoring-engine`.
+- Local read-only runtime simulation using the current project model and
+	viewport.
+- Approved asset catalog and search.
+
+Architecturally incomplete or high-risk for future scope:
+
+- `Viewport.tsx` still owns renderer lifecycle, scene synchronization, camera
+	behavior, raycasting, gizmos, drag sessions, keyboard navigation, and
+	environment loading.
+- `App.tsx` still owns direct project mutation callbacks and local snapshot
+	history instead of routing all edits through a domain command service.
+- The viewport currently rebuilds the object group on relevant changes rather
+	than maintaining an entity-ID render cache.
+- The runtime is a simulation mode and `apps/runtime` remains a placeholder.
+- Shared packages for spatial math, commands, serialization, validation,
+	interaction, assets, and presentation are not all implemented.
+- API persistence, authentication, publishing, object storage, analytics, and
+	full editor/runtime parity tests remain incomplete.
+
+### Sustainability analysis
+
+The current approach is sustainable for the primitive editing spike but not as
+the final architecture. File size is not the primary issue. The material risks
+are renderer-specific mutation, duplicated edit paths, weak separation between
+authoring and rendering, and future drift between preview and published runtime.
+
+The controlling boundary for Wk3 is:
+
+```text
+input -> command/domain operation -> new project snapshot
+			 -> renderer projection and persistence checkpoint
+```
+
+The current code is closer to:
+
+```text
+input -> Three.js mutation -> React callback -> cloned project -> autosave
+```
+
+The second path can continue only while the feature set is small. Extending it
+with content, zones, interactions, navigation, or publishing would increase
+history, validation, and parity risk.
+
+### Recommended Wk3 increment
+
+Implement one narrow, tested command-path slice:
+
+1. Define a small command/service contract for move, rotate, and scale.
+2. Make viewport transform commits call that service rather than direct
+	 project mutation callbacks.
+3. Preserve one history entry per completed drag.
+4. Add framework-free tests for command results and transform-session behavior.
+5. Keep the existing viewport renderer and UI intact unless the slice requires
+	 a small adapter change.
+
+Acceptance evidence:
+
+- viewport, inspector, and future scene-tree edits can use the same command
+	entry point;
+- undo and redo restore the same canonical project snapshots;
+- invalid or cancelled transforms do not create history entries;
+- existing serializer and browser smoke tests remain passing;
+- the implementation does not require React, Three.js, HTTP, or database code
+	inside the command logic.
+
+### Build / verify command and status
+
+Run from `VThere Spatial Experience Builder/`:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+npm.cmd run test:e2e
+```
+
+The latest recorded frontend verification passed these checks on Node.js 24
+and npm 11. The build still reports the existing Vite large-chunk warning.
+The project requires Node.js 22+ and npm 10+. API pytest verification remains
+blocked in the recorded environment because `pytest` is not installed.
+This Wk3 handoff itself is documentation-only and does not claim a new build
+or test run.
+
+### Files touched for this handoff
+
+- `SESSION.md`
+
+Relevant prior analysis, not modified in this handoff:
+
+- `docs/07-research-and-history/2026-09-15--EXPLORATION--web-file-size-and-factorisation.md`
+
+No application source files were changed as part of this handoff.
+
+### Failed or rejected approaches
+
+- Splitting `Viewport.tsx` solely to reduce line count was rejected because it
+	can relocate coupling without improving ownership.
+- Creating all planned packages immediately was rejected because most do not
+	yet have stable contracts or second consumers.
+
+## Rendering factorisation and separation handoff
+
+### Objective / topic
+
+Factor the viewport into owned rendering modules and define a future-proof
+rendering architecture for the editor and visitor simulation. The rendering
+system should support separate exhibition environments, authored artefacts,
+editor tools, runtime attachments, future parent-child relationships, and
+custom lighting or post-processing without making renderer state authoritative.
+
+### Current decisions
+
+- Treat rendering as a coordinated presentation architecture, not as a
+	replacement for React, the project model, the authoring engine, or
+	persistence.
+- Keep React responsible for DOM UI: editor panels, inspector controls,
+	popups, tooltips, menus, status messages, and runtime overlays.
+- Keep Three.js responsible for the simulation viewport: environment,
+	artefacts/models, spatial tools, camera, lighting, attachments, and
+	post-processing when introduced.
+- Keep the canonical `ProjectData` snapshot renderer-independent.
+- Treat Three.js objects, gizmos, raycasters, render caches, and GPU resources
+	as disposable projections.
+- Keep environment rendering separate from authored artefact rendering.
+- Keep editor gizmos and selection outlines outside the authored artefact
+	hierarchy.
+- Keep Three.js for editor and runtime during the MVP to protect preview/runtime
+	parity; consider another renderer only after measurable requirements justify
+	it.
+- Use local modules before creating a shared `packages/presentation` package.
+- Do not create empty `RendererManager`, `StageManager`, or `ObjectManager`
+	abstractions without a real ownership boundary.
+
+### Completed factorisation
+
+The following boundaries are implemented and documented:
+
+| Concern | Current owner |
+|---|---|
+| React viewport boundary and remaining Three.js host | `src/Viewport.tsx` |
+| Environment construction and asset loading | `src/environments.ts` |
+| Environment loading lifecycle, cancellation, status, and replacement | `src/viewport/environmentController.ts` |
+| Artefact geometry, materials, visibility, metadata, and disposal | `src/viewport/syncArtefacts.ts` |
+| Gizmo handle assembly and disposal | `src/viewport/createGizmoSet.ts` |
+| Gizmo placement, sizing, and local/world presentation | `src/viewport/syncGizmo.ts` |
+| Pointer, picking, drag sessions, keyboard listeners, and commit callbacks | `src/viewport/interactionController.ts` |
+| Camera pose and walk movement | `src/viewport/cameraController.ts` |
+| Framework-free ray/axis/rotation calculations | `src/viewport/interactionMath.ts` |
+| Loading/error/hint presentation | `src/viewport/ViewportOverlay.tsx` |
+| Editor operation adapters and browser ID generation | `src/editor/editorOperations.ts` |
+| Editor application boundary | `apps/editor/src/EditorApplication.tsx` |
+| Runtime application boundary | `apps/runtime/src/RuntimeApplication.tsx` |
+
+The previous inline pointer and keyboard implementation was removed from
+`Viewport.tsx`. The interaction controller is now the active event owner.
+
+### Current rendering-system shape
+
+```text
+ProjectData
+		-> current viewport props / future render description
+		-> Viewport.tsx render host
+				+--> environmentController.ts
+				+--> syncArtefacts.ts
+				+--> cameraController.ts
+				+--> interactionController.ts
+				+--> createGizmoSet.ts + syncGizmo.ts
+				+--> ViewportOverlay.tsx
+		-> Three.js scene and WebGL canvas
+```
+
+This is a working local rendering system, not yet a general-purpose plugin
+framework. The next planned host extraction is `RenderHost` or
+`createViewportRuntime`, owning scene creation, renderer setup, lighting/grid,
+resize handling, animation timing, stage coordination, and final disposal.
+
+### Future rendering-stage model
+
+After the host extraction, existing modules may be adapted to a small stage
+contract:
+
+```ts
+interface RenderStage<Context> {
+	setup?(context: Context): void
+	update(context: Context): void
+	dispose(): void
+}
+```
+
+Candidate stages are:
+
+```text
+EnvironmentStage  -> environmentController.ts
+ArtefactStage     -> syncArtefacts.ts
+CameraStage       -> cameraController.ts
+InteractionStage  -> interactionController.ts
+GizmoStage        -> createGizmoSet.ts + syncGizmo.ts
+OverlayStage      -> ViewportOverlay.tsx
+```
+
+The stage contract should not be introduced as empty wrappers before a host
+exists. Students should be able to replace or extend stage behaviour while the
+framework owns lifecycle, ordering, shared context, error reporting, and
+resource cleanup.
+
+### Parent-child rendering considerations
+
+- Add `parentId` through an explicit project schema migration.
+- Validate missing parents and cycles before rendering.
+- Use local transforms in the project model; let the renderer compose world
+	transforms through the Three.js hierarchy.
+- Do not serialize both `parentId` and a child array.
+- Maintain separate environment and artefact roots.
+- Introduce explicit authored anchors if artefacts must attach to walls,
+	stands, rooms, or other exhibition structures.
+- Add an `EntityId -> THREE.Object3D` cache before complex hierarchy or large
+	scenes; the cache must be rebuildable and disposable.
+
+### Optimisation and risk controls
+
+- Keep full artefact rebuilds until profiling justifies incremental sync.
+- Measure frame time, draw calls, object count, asset load time, memory after
+	runtime transitions, hierarchy update cost, and raycast cost.
+- Reuse geometries, materials, textures, and loaded assets where ownership is
+	explicit.
+- Dispose geometries, materials, textures, controls, listeners, animation
+	frames, and environment resources deterministically.
+- Use stable entity IDs rather than array indexes.
+- Add asset, texture, project-size, object-count, and draw-call budgets.
+- Use lazy loading, frustum culling, level of detail, and instancing only when
+	the target scenes require them.
+- Cap device pixel ratio and provide graceful WebGL/asset-loading failure
+	states.
+- Keep editor and runtime reconstruction shared to prevent preview drift.
+- Keep render stages from mutating `ProjectData`; authoring commands remain the
+	only edit path.
+- Test repeated editor/runtime entry and exit for duplicate canvases, active
+	listeners, and GPU memory leaks.
+
+### Expectations and limits
+
+The rendering system is expected to provide:
+
+- customisable environment and artefact rendering;
+- editor tools and runtime presentation;
+- image/video or other attachment support through explicit asset adapters;
+- parent-child-ready scene composition;
+- configurable lighting and future post-processing;
+- inspectable resource ownership and cleanup;
+- shared editor/runtime reconstruction contracts.
+
+The rendering system is not expected to own:
+
+- canonical project data;
+- schema migration or hierarchy validation policy;
+- undo/redo or command semantics;
+- persistence, API calls, authentication, or publishing;
+- React application state;
+- a complete ECS registry before profiling demonstrates a need;
+- an alternate rendering engine during the MVP.
+
+### Verification status
+
+The latest recorded frontend verification passed:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+```
+
+The suite reports 22 passing tests. The production build succeeds with the
+existing Vite large-chunk warning. Browser interaction tests, hierarchy tests,
+render-host tests, and API verification remain future work.
+
+### Files and documents for the next agent
+
+- `src/Viewport.tsx`
+- `src/viewport/interactionController.ts`
+- `src/viewport/cameraController.ts`
+- `src/viewport/environmentController.ts`
+- `src/viewport/syncArtefacts.ts`
+- `src/viewport/createGizmoSet.ts`
+- `src/viewport/syncGizmo.ts`
+- `src/viewport/interactionMath.ts`
+- `src/editor/editorOperations.ts`
+- `docs/05-subsystems/viewport.md`
+- `docs/05-subsystems/authoring-engine.md`
+- `docs/07-research-and-history/Week3/Wk2_3--PLAN--future-proof-rendering-system.md`
+
+### Next recommended step
+
+Extract `RenderHost` or `createViewportRuntime` from `Viewport.tsx`. Preserve
+the current stage modules and behaviour. The host should own only Three.js
+scene lifecycle, renderer, lighting/grid, resize, animation timing, stage
+registration, and disposal. Add a narrow render-description contract only
+when it removes direct interpretation of project data from the renderer.
+- Building a second runtime renderer was deferred because it would increase
+	parity and maintenance risk during the MVP.
+- Full ECS expansion was deferred; stable lifecycle commands and canonical
+	snapshot semantics must come first.
+- Moving the prototype into `apps/editor` before extracting boundaries was
+	rejected because it would relocate, rather than remove, current coupling.
+
+### Open questions
+
+- What is the smallest complete author-preview-publish slice the team can
+	demonstrate by Week 5?
+- Which edits must be routed through the command service before new features
+	are added?
+- Does the current project document need lifecycle fields such as `visible`,
+	`enabled`, and `parentId` in Wk3, or can they wait until the first hierarchy
+	requirement is implemented?
+- Which planned package has a real second consumer now?
+- When does the runtime need shared scene reconstruction strongly enough to
+	justify a `packages/presentation` boundary?
+- Which acceptance tests prove editor and preview behavior remain equivalent?
+
+### Next recommended step
+
+Build and test the smallest command-path slice for move, rotate, and scale.
+After it passes, extract only the pure transform/session logic that the tests
+demonstrate is framework-independent. Do not begin the full app migration or
+package expansion until that slice is integrated and verified.
+
+## Handoff precedence note
+
+The `Rendering factorisation and separation handoff` section above is the
+latest status for the rendering work. It supersedes earlier Wk3 notes that
+describe `Viewport.tsx`, `App.tsx`, and the authoring-engine boundary as still
+fully inline or unimplemented. Those earlier statements remain as historical
+context; use the current source tree and the latest rendering section when
+continuing work.
