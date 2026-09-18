@@ -1098,3 +1098,172 @@ engine) in its own session with Opus 5 + Plan Mode per
 `2026-09-17--PLAN--when-do-dispatch-engine.md` — it's the architecturally riskiest remaining
 frontend piece and the one item that just became unblocked. Steps 5 and 6 (Asset Manager, Sync
 Engine) can run as parallel background sessions without waiting on step 10.
+
+## 2026-09-18 Stage 5 — Production deploy infrastructure (Sonnet 5, direct)
+
+### Objective / topic
+
+Implement Stage 5 of `docs/07-research-and-history/2026-09-17--PLAN--infrastructure-skeleton-extended.md`
+("Production deploy"): API and frontend Dockerfiles, a production Docker Compose stack fronted
+by Caddy, a GitHub Actions deploy workflow, and a concrete VM provisioning README. Infrastructure
+only, explicitly not wired to run against a real target yet.
+
+### Decisions made and why
+
+- The deploy workflow (`.github/workflows/deploy.yml`, at the **repo root**, not under
+  `VThere Spatial Experience Builder/`, matching where `ci.yml` already lives) is
+  `workflow_dispatch`-only with no `push` trigger, and requires a GitHub Environment named
+  `production` with required reviewers. This is a deliberate gate, not an oversight: the open
+  question "Which approved deployment provider will own the protected production environment?"
+  (see Open questions below) is still unresolved, so nothing should be able to run automatically
+  against a real VM. No secrets exist yet; the workflow will fail immediately if triggered until
+  someone configures `DEPLOY_HOST`/`DEPLOY_USER`/`DEPLOY_SSH_KEY`/`DEPLOY_PATH` on that
+  environment.
+- MinIO is intentionally **not** included in `docker-compose.prod.yml` (unlike the dev
+  `docker-compose.yml`, which does run it). A single-container MinIO is a dev-only convenience;
+  production should point `MINIO_ENDPOINT_URL` at a managed S3-compatible bucket. Documented this
+  explicitly in `deploy/README.md` so a future agent doesn't "complete" the stack by adding MinIO
+  back in.
+- Postgres does run as a container in `docker-compose.prod.yml` for now (simplest path for a
+  single small VM), with an explicit README note to swap it for managed Postgres if the VM needs
+  to scale.
+- Caddy was chosen as instructed by the plan (automatic TLS via Let's Encrypt, no manual cert
+  management); it proxies `/api/*` to the API container and everything else to the frontend
+  container (`deploy/Caddyfile`).
+- The frontend Dockerfile lives at the **repo root** of the VThere app
+  (`VThere Spatial Experience Builder/Dockerfile`), not under `apps/`, because the actual Vite
+  project root is the top-level `src/`/`package.json`, not a separate `apps/editor` build target
+  — `apps/editor` and `apps/runtime` have no `package.json` and are not real npm workspaces yet
+  (only `packages/*` are). The build stage installs from `package.json` + `packages/*` first, then
+  copies `apps/editor`/`apps/runtime` source in afterward, so an `npm ci` failure surfaces before
+  wasting time copying app source.
+- Found and fixed a **pre-existing, unrelated repo bug** while validating the frontend Docker
+  build: `package-lock.json` was missing the `@vthere/interaction` entries from commit `8416364`
+  (WHEN→DO engine package), so `npm ci` was already broken at the repo root on this branch —
+  independent of anything in this session. Confirmed via `npm ci` on the host, which failed with
+  the same `EUSAGE`/"Missing: @vthere/interaction@0.1.0" error before any Docker work touched it.
+  Ran `npm install --package-lock-only`, which produced an 11-line lockfile diff (just the missing
+  package entries, no dependency version changes) and fixed both the host `npm ci` and the Docker
+  build. This means `build-and-test` CI on this branch was very likely broken before this session
+  too — worth confirming once pushed.
+
+### Current skeleton / plan state
+
+Implemented and verified this session:
+
+- `apps/api/Dockerfile` + `apps/api/.dockerignore` — Python 3.12-slim, installs
+  `requirements.txt`, copies `app/`/`alembic/`/`alembic.ini`, healthcheck against `/health`,
+  runs `uvicorn app.main:app`.
+- `Dockerfile` (repo root of the VThere app) + `.dockerignore` — multi-stage: Node 22-slim build
+  (`npm ci` against `package.json` + `packages/*`, then `npm run build`) → `nginx:1.27-alpine`
+  serving `dist/` with `deploy/nginx.conf` (SPA fallback to `index.html`, plus a `/health` stub
+  route).
+- `docker-compose.prod.yml` — `caddy` (ports 80/443, reads `deploy/Caddyfile`), `frontend`,
+  `api`, `postgres`, all on one default network; required env vars (`DOMAIN`,
+  `POSTGRES_PASSWORD`, `MINIO_ENDPOINT_URL`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`) use
+  Compose's `:?` required-variable syntax so `compose config` fails loudly if any are unset,
+  rather than silently deploying with dev defaults.
+- `deploy/Caddyfile` — `{$DOMAIN}` site block, `/api/*` → `api:8000`, everything else →
+  `frontend:80`.
+- `.github/workflows/deploy.yml` (repo root) — `workflow_dispatch` only, `environment: production`,
+  SSH key setup, `rsync` the repo to the VM, remote `docker compose build && up -d`, then a
+  `curl` health check over SSH. Heavily commented with exactly what repo/environment
+  configuration is required before it can run at all.
+- `deploy/README.md` — concrete VM provisioning steps for a fresh Ubuntu VM: Docker Engine +
+  Compose plugin install, dedicated `deploy` user, SSH keypair generation and installation,
+  clone location, firewall rules, DNS pointer, production `.env.prod` file contents, first manual
+  `docker compose up -d --build` bring-up and health check, GitHub Environment/secrets setup
+  steps, and a rollback procedure.
+
+Not implemented (out of scope per this stage / explicitly deferred):
+
+- No secrets configured anywhere (GitHub Environment does not exist yet in the actual repo
+  settings — only documented as a prerequisite).
+- No automatic deploy trigger on push to `main`/`Working` — intentional per the open question.
+- No managed Postgres or S3 migration — documented as a future step in `deploy/README.md`, not
+  implemented.
+
+### Build / verify command and status
+
+Run from `VThere Spatial Experience Builder/`:
+
+```bash
+docker build -t vthere-api -f apps/api/Dockerfile apps/api
+docker build -t vthere-frontend -f Dockerfile .
+DOMAIN=example.com POSTGRES_PASSWORD=x MINIO_ENDPOINT_URL=http://minio:9000 \
+  MINIO_ROOT_USER=x MINIO_ROOT_PASSWORD=x \
+  docker compose -f docker-compose.prod.yml config
+```
+
+**Status: all three pass**, verified this session (Docker Desktop 29.7.2 on Windows). Both
+`docker build`s complete successfully (API installs all `requirements.txt` deps; frontend runs
+`npm ci` + `tsc -b && vite build` inside the build stage, producing the same 867 kB/238 kB gzip
+bundle as the existing local build, then copies `dist/` into an nginx image). `docker compose
+config` validates cleanly with the required env vars supplied and fails loudly (as designed) if
+any of `DOMAIN`/`POSTGRES_PASSWORD`/`MINIO_ENDPOINT_URL`/`MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`
+are missing. Test images were removed after verification (`docker rmi`).
+
+The frontend/root-level typecheck/test/build/e2e suite (`npm run typecheck` / `test` / `build` /
+`test:e2e`) was not re-run this session beyond what the Docker build stage itself exercises
+(`tsc -b && vite build`, which passed inside the image). The lockfile fix
+(`npm install --package-lock-only`) was verified by re-running `npm ci` on the host successfully
+afterward.
+
+### Files touched this session
+
+- `apps/api/Dockerfile` (new)
+- `apps/api/.dockerignore` (new)
+- `Dockerfile` (new, VThere app root)
+- `.dockerignore` (new, VThere app root)
+- `docker-compose.prod.yml` (new)
+- `deploy/Caddyfile` (new)
+- `deploy/nginx.conf` (new)
+- `deploy/README.md` (new)
+- `.github/workflows/deploy.yml` (new — **at the repository root**, i.e.
+  `Project5_DoReMi-yaki/.github/workflows/deploy.yml`, not inside
+  `VThere Spatial Experience Builder/`)
+- `package-lock.json` (modified — lockfile drift fix, see Decisions above)
+- `SESSION.md` (this section)
+
+All of the above are uncommitted as of this handoff.
+
+### Failed approaches already tried
+
+- First attempt at the frontend Dockerfile copied `apps/editor` and `apps/runtime` into the
+  build context before running `npm ci`, on the assumption they were npm workspaces like
+  `packages/*`. Rejected after checking: neither directory has a `package.json`, so they aren't
+  workspace members; reordered the Dockerfile to `npm ci` right after `package.json` +
+  `packages/*` are copied, then copy `apps/editor`/`apps/runtime` source afterward.
+- First `docker build` of the frontend failed with `npm ci`'s `EUSAGE` /
+  "Missing: @vthere/interaction@0.1.0 from lock file" — this was not a Dockerfile bug, it was the
+  pre-existing lockfile drift described above. Confirmed by reproducing the identical failure with
+  a plain host-side `npm ci` before touching Docker again.
+- `npm ci` (full reinstall, not `--package-lock-only`) failed on the host with `EPERM` on
+  `node_modules/@rollup/rollup-win32-x64-msvc/rollup.win32-x64-msvc.node` (Windows file lock, e.g.
+  antivirus or another process holding the file). Worked around by using
+  `npm install --package-lock-only` instead, which only rewrites the lockfile and doesn't touch
+  `node_modules`; re-verified with a subsequent plain `npm ci` that this then succeeded, confirming
+  the lockfile fix itself was correct and the `EPERM` was unrelated host-environment noise.
+
+### Open questions
+
+- Which approved deployment provider will own the protected production environment? (Carried over
+  from earlier sessions, still unresolved — this is the gate on filling in `deploy.yml` secrets
+  and creating the `production` GitHub Environment.)
+- Should Postgres stay containerized in `docker-compose.prod.yml` long-term, or move to a managed
+  instance before first real deploy? Left as a documented future step, not decided.
+- Is a single VM (as `deploy/README.md` assumes) the target topology, or should this become
+  multi-host/managed-container (e.g. ECS, Cloud Run) once the provider is chosen? The current
+  Dockerfiles/compose file work either way, but `deploy.yml`'s rsync+SSH approach is VM-specific
+  and would need to change for a managed-container target.
+- Is the pre-existing `build-and-test` CI check currently green on this branch, given the lockfile
+  was broken? Not verified this session (no push was made) — should be checked on next push.
+
+### Next recommended step
+
+Push this branch (including the lockfile fix) and confirm `build-and-test` CI is green — this
+should be done regardless of deploy-provider decisions, since the lockfile bug likely predates
+this session and may already be failing CI. Separately, once the deployment-provider open question
+is resolved: provision a VM per `deploy/README.md`, create the `production` GitHub Environment
+with the four required secrets, then trigger `deploy.yml` manually via `workflow_dispatch` and
+verify the health check step passes before considering any automatic trigger.
