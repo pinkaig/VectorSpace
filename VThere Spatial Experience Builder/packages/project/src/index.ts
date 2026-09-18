@@ -35,6 +35,8 @@ export interface SceneObject {
   name: string
   assetId: string
   assetKind: AssetKind
+  visible: boolean
+  enabled: boolean
   transform: TransformData
 }
 
@@ -85,10 +87,13 @@ export const environmentLibrary: EnvironmentDefinition[] = [
   },
 ]
 
-export const defaultEnvironmentId = environmentLibrary[0].id
+export const defaultEnvironmentId =
+  environmentLibrary.find((item) => item.proceduralId !== 'empty')?.id ?? environmentLibrary[0].id
 
 export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
-  environmentLibrary.find((item) => item.id === environmentId) ?? environmentLibrary[0]
+  environmentLibrary.find((item) => item.id === environmentId) ??
+  environmentLibrary.find((item) => item.id === defaultEnvironmentId) ??
+  environmentLibrary[0]
 
 export const defaultCameraPose = (): CameraPose => ({ position: [7, 5.5, 8], target: [0, 0.7, 0] })
 
@@ -135,9 +140,66 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
   name: `${assetKind[0].toUpperCase()}${assetKind.slice(1)} ${index}`,
   assetId: `primitive-${assetKind}`,
   assetKind,
+  visible: true,
+  enabled: true,
   transform: {
     position: [0, restingHeight[assetKind], 0],
     rotation: [0, 0, 0],
     scale: [1, 1, 1],
   },
 })
+
+/**
+ * PSEUDO-CODE: responsibilities retained by this project package.
+ *
+ * This is documentation only. The executable lifecycle operations live in
+ * `packages/authoring-engine`. This package remains the canonical, serializable
+ * project contract and must not become a mutable object registry.
+ *
+ * ProjectData:
+ *   owns project identity, schemaVersion, scene ordering, and active scene ID
+ *   contains every authored SceneObject exactly once
+ *   is safe to clone, serialize, migrate, validate, and restore
+ *
+ * SceneObject:
+ *   owns persistent object identity, display name, asset identity, asset kind,
+ *   and transform data
+ *   may gain visible, enabled, or parentId only through an approved schema
+ *   migration; these fields are not added by this pseudocode
+ *
+ * Project package pure helpers:
+ *   makeScene(sceneId, name)
+ *     -> create a valid empty scene with default environment and camera
+ *
+ *   makeObject(assetKind, displayIndex)
+ *     -> create default primitive data for an authoring command to insert
+ *
+ *   cloneProject(project)
+ *     -> return a defensive snapshot copy for history or editing
+ *
+ *   findScene(project, sceneId)
+ *     -> read-only lookup; return a scene or an explicit missing-scene result
+ *
+ *   findObject(project, sceneId, objectId)
+ *     -> read-only lookup; return an object or an explicit missing-object result
+ *
+ * Authoring-engine boundary:
+ *   input = { projectSnapshot, operation, dependencies }
+ *   result = authoringEngine.apply(input)
+ *   result.projectSnapshot = a new validated ProjectData value
+ *   result.historyData = undo/redo information for the command timeline
+ *
+ *   create / duplicate / remove / transform / rename operations
+ *     -> belong to `packages/authoring-engine`
+ *     -> never mutate this package's global state because none exists
+ *
+ * Persistence and renderer boundaries:
+ *   serializer.save(projectSnapshot)
+ *   viewport.observe(projectSnapshot)
+ *   runtime.load(validatedProjectSnapshot)
+ *
+ * None of those adapters may become the authority for object meaning. They
+ * observe or restore ProjectData; the authoring engine creates the next
+ * snapshot, and the project package defines its shape.
+ */
+

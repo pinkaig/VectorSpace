@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { SceneObject } from './model'
-import { colorFor } from './Viewport'
+import { colorFor } from './viewport/viewportTypes'
 import { loadEnvironment } from './environments'
 
 export type ReferenceAxis = 'top' | 'front' | 'right'
