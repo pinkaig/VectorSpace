@@ -249,7 +249,7 @@ export default function App() {
                   <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div> 
                   : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
                     <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(object.id)}><span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
-                    : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit"><span className={`object-dot ${object.assetKind}`} />{object.name}</div>)}</div>}
+                    : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}</div>}
             </div>
             )})}</div>
 
