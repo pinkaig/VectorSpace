@@ -13,7 +13,7 @@ This folder is organized by the question an agent or contributor is trying to an
 | A subsystem's technical contract or teaching guide | [`05-subsystems/`](05-subsystems/) | [`authoring engine`](05-subsystems/authoring-engine.md), [`project serialization`](05-subsystems/project-serialization.md), [`3D viewport`](05-subsystems/viewport.md), [`asset library`](05-subsystems/UNDATED--CURRENT--asset-library-contract.md) |
 | AI use and verification record | Project documentation root | [`AI declaration`](ai-declaration.md) |
 | Product design, UX flows, wireframes, or mockups | [`06-design/`](06-design/) | Add approved design artifacts here. |
-| Historical plans, research, lessons, or superseded notes | [`07-research-and-history/`](07-research-and-history/) | Treat these as context, not current authority. |
+| Historical plans, research, lessons, or superseded notes | [`07-research-and-history/`](07-research-and-history/) | Treat these as context, not current authority. The [Week 3 object/entity and hybrid ECS proposal](07-research-and-history/Week3/2026-09-15--PROPOSAL--object-entity-and-ecs-architecture.md) and the focused [Week 3 object state and lifecycle proposal](07-research-and-history/Week3/2026-09-15--PROPOSAL--object-state-lifecycle-and-web-architecture.md) are the current planning starting points for this topic. |
 
 ## Authority order
 

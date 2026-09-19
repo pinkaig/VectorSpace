@@ -36,11 +36,11 @@ const proceduralBuilders: Record<string, () => THREE.Group> = {
     const walls = wallMaterial(0x1c2a30)
     group.add(box(16, 0.2, 12, floorMaterial(0x121b20), [0, -0.1, 0]))
     group.add(box(16, 4, 0.2, walls, [0, 2, -6]))
-    group.add(box(16, 4, 0.2, walls, [0, 2, 6]))
     group.add(box(0.2, 4, 12, walls, [-8, 2, 0]))
     group.add(box(0.2, 4, 12, walls, [8, 2, 0]))
-    const skylight = new THREE.Mesh(new THREE.BoxGeometry(6, 0.15, 10), new THREE.MeshStandardMaterial({ color: 0xdfe9e2, emissive: 0x223a34, emissiveIntensity: 0.6 }))
-    skylight.position.set(0, 3.9, 0)
+    //group.add(box(16, 4, 0.2, walls, [0, 2, 6]))
+    const skylight = new THREE.Mesh(new THREE.BoxGeometry(14, 0.15, 14), new THREE.MeshStandardMaterial({ color: 0xdfe9e2, emissive: 0x223a34, emissiveIntensity: 0.6 }))
+    skylight.position.set(0, 7, 0)
     group.add(skylight)
     return group
   },
@@ -60,6 +60,11 @@ const proceduralBuilders: Record<string, () => THREE.Group> = {
     water.position.set(0, -0.05, 9)
     group.add(water)
     return group
+  },
+  empty: () => {
+    const group = new THREE.Group()
+    group.name = 'env-empty'
+    return group // no floor/walls — the viewport's own grid is the only reference
   },
 }
 

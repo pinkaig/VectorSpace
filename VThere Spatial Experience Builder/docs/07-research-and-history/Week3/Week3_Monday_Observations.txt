@@ -1,0 +1,9 @@
+Move/Transform Arrow tip should wonky when looking towards you
+Rotate rings are getting bigger everytime you rotate.
+Should the icons look at you / the faces that are towards you.
+
+how is it handle when you are straight up ( pull down is up, pull up is down)
+** the mouse input is updated to the camera position, so it would snap /change direction if it passes the camera body,
+((how to recreate)) drag the object towards you.
+
+QoL: snap to plane feature?

@@ -19,6 +19,75 @@ packages/authoring-engine
 shared ProjectDocument + DraftPersistence adapter
 ```
 
+## Where to Find Things
+
+| Concern | Current owner |
+|---|---|
+| Canonical project and object shape | [`packages/project/src/index.ts`](../../packages/project/src/index.ts) |
+| Immutable lifecycle and transform operations | [`packages/authoring-engine/src/index.ts`](../../packages/authoring-engine/src/index.ts) |
+| Editor-specific operation policy and ID generation | [`src/editor/editorOperations.ts`](../../src/editor/editorOperations.ts) |
+| React project/session state and timeline coordination | [`src/App.tsx`](../../src/App.tsx) |
+| Renderer pointer translation and commit callbacks | [`src/viewport/interactionController.ts`](../../src/viewport/interactionController.ts) |
+
+### Why `editorOperations.ts` exists
+
+At its current size, this file is intentionally close to the minimum useful
+boundary. Most of its functions delegate directly to the authoring engine. The
+delegation is not valuable because it shortens `App.tsx`; it is valuable only
+if the editor needs policies that should not be placed in React components or
+in the framework-free engine.
+
+The current policy boundary has two concrete reasons:
+
+1. **Browser identity:** object IDs are allocated with `crypto.randomUUID()` at
+  the browser/application edge. The authoring engine accepts an injected ID
+  factory and remains deterministic and testable without browser APIs.
+2. **Editor vocabulary:** the editor can use names such as
+  `createEditorObject` and `setEditorObjectVisible` without making the core
+  operation API depend on React controls, inspector wording, or editor
+  workflows.
+
+The file should not be kept merely as a second copy of the engine API. If the
+editor adds no policy beyond direct forwarding, it is reasonable to remove the
+thin wrappers and import the engine operations directly. The ID factory could
+then remain in a small application utility.
+
+### Responsibilities that may move here later
+
+Add a responsibility only when it is editor-specific and has tests. Suitable
+future responsibilities include:
+
+- translating an inspector draft into one compound authoring operation;
+- applying editor defaults such as placement offsets or readable duplicate
+  names;
+- coordinating multi-step editor actions such as duplicate-and-select;
+- choosing the editor's re-parenting policy, such as keep-world-transform;
+- converting authoring failures into structured UI-facing outcomes;
+- providing editor-only command labels and checkpoint metadata;
+- supplying browser/application dependencies such as ID generators and clocks.
+
+These are orchestration and policy concerns. The immutable state transition,
+validation, hierarchy rules, transform math, and undo semantics must remain in
+`packages/authoring-engine` or another framework-free package.
+
+### Responsibilities that must not move here
+
+Do not turn this file into an `ObjectManager` or a second command engine. It
+must not own:
+
+- a mutable project or object collection;
+- undo/redo state;
+- Three.js objects or renderer caches;
+- persistence or autosave;
+- hierarchy validation duplicated from the domain layer;
+- transform mathematics duplicated from the authoring engine;
+- runtime-only behaviour.
+
+The decision rule is:
+
+> Keep `editorOperations.ts` only while it removes editor policy from React or
+> isolates an application dependency. Otherwise, prefer direct engine calls.
+
 ### Owns
 
 - Selection state and selection hit results
