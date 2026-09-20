@@ -1,5 +1,7 @@
 ﻿# VThere Spatial Experience Builder - Session Handoff
 
+**Baseline phase:** All 8 stages complete. See [8-stage baseline overview](docs/code/baseline-phases.md).
+
 ## Objective / topic
 
 Two parallel workstreams (Week 3):

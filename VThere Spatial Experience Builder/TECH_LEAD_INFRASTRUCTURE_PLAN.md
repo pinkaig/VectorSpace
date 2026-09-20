@@ -6,6 +6,8 @@
 **Responsibility:** Tech Lead  
 **Target:** Complete before team expands Phase 3 work.
 
+**Baseline phase:** All 8 stages complete. See [8-stage baseline overview](docs/code/baseline-phases.md).
+
 ---
 
 ## Executive Summary

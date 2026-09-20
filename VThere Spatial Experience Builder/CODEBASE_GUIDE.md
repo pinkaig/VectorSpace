@@ -1,5 +1,7 @@
 # VThere Spatial Experience Builder - Codebase Guide
 
+**Baseline phase:** All 8 stages complete. See [8-stage baseline overview](docs/code/baseline-phases.md).
+
 ## 1. Analysis Boundary
 
 - Project root: `VThere Spatial Experience Builder/`
@@ -60,7 +62,7 @@ surface:
   recovery, autosave, and export.
 - `src/styles.css` owns the prototype presentation.
 
-For viewport work, start with [`docs/05-subsystems/viewport.md`](docs/05-subsystems/viewport.md).
+For viewport work, start with [`docs/code/subsystems/viewport.md`](docs/code/subsystems/viewport.md).
 Its “Where to Find Things” table maps rendering ownership to the current files.
 The most important local rendering modules are:
 
