@@ -246,34 +246,31 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside className="left-rail">
- <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>          
-          <div className="scene-dropdown">{project.scenes.map((item)=>{const isExpanded=expandedSceneIds.has(item.id); const isActive = item.id === scene.id; return (
-            <div className="scene-group" key={item.id}>
-              
-              <button className="icon-button" title={isExpanded? 'Collapse object list': 'Expand object list'} onClick={()=>toggleSceneExpanded(item.id)}>
-                {isExpanded? 'v':'>'}
-              </button>
-              
-              <button className="scene-tab" title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} onClick={() => { if (!isActive) { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) } }}>
-                {item.name}<span>{item.objects.length}</span>
-              </button>
-              
-              {isExpanded && <div className="tree-list"> 
-                {item.objects.length === 0 ? /*check for any objects */
-                  <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div> 
-                  : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
-                    <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(object.id)}><span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
-                    : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}</div>}
-            </div>
+          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>          
+            <div className="scene-dropdown">{project.scenes.map((item)=>{const isExpanded=expandedSceneIds.has(item.id); const isActive = item.id === scene.id; return (
+              <div className="scene-group" key={item.id}>
+                
+                <button className="icon-button" title={isExpanded? 'Collapse object list': 'Expand object list'} onClick={()=>toggleSceneExpanded(item.id)}>
+                  {isExpanded? 'v':'>'}
+                </button>
+                
+                <button className="scene-tab" title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} onClick={() => { if (!isActive) { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) } }}>
+                  {item.name}<span>{item.objects.length}</span>
+                </button>
+                
+                {isExpanded && <div className="tree-list"> 
+                  {item.objects.length === 0 ? /*check for any objects */
+                    <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div> 
+                    : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
+                      <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(object.id)}><span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
+                      : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}</div>}
+              </div>
             )})}</div>
-
-
-          
           <section className="panel">
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
-            <div className="asset-tools">
-              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-            </div>
+              <div className="asset-tools">
+                <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+              </div>
             <div className="asset-list">
               {filterAssets(assetQuery).map((asset) => <button className="asset-card" key={asset.kind} onClick={() => addObject(asset.kind)}><span className={`asset-preview ${asset.kind}`}><span /></span><span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span><span className="add-symbol">+</span></button>)}
               {filterAssets(assetQuery).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
