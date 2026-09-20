@@ -1267,3 +1267,118 @@ this session and may already be failing CI. Separately, once the deployment-prov
 is resolved: provision a VM per `deploy/README.md`, create the `production` GitHub Environment
 with the four required secrets, then trigger `deploy.yml` manually via `workflow_dispatch` and
 verify the health check step passes before considering any automatic trigger.
+
+## 2026-09-20 Media upload gap analysis (Sonnet 5, direct, read-only)
+
+### Objective / topic
+
+User asked for a done/not-done breakdown across all subsystems, whether the subsystems must be
+worked on in sequence, and — concretely — whether a user can upload an attachment (audio/image/
+text) today and have it usable in the web frontend. No code was written this session; this was a
+source-inspection pass to answer that question accurately instead of from memory/assumption.
+
+### Findings
+
+- `apps/api/app/routers/media.py`: all four endpoints (`list_media`, `request_media_upload`,
+  `get_media`, `delete_media`) call `not_implemented(...)` from `_skeleton.py` and raise
+  `NotImplementedError`/501. There is **no working backend upload endpoint today** — confirmed by
+  reading the router body directly, not inferred from the plan docs.
+- `packages/assets/src/`: the resolver architecture is fully built and tested — `AssetRef`,
+  `AssetDescriptor`, `AssetResolver`, `AssetCache`, `CachingAssetResolver`,
+  `PlaceholderAssetResolver`, plus three resolver backends (`PrimitiveResolver`,
+  `LocalCatalogResolver`, `RemoteMediaResolver`), each with a matching test file. This confirms the
+  render/resolution side of the asset pipeline is ready to consume real asset data once it exists.
+- Net conclusion given to the user: today, "loading an attachment" only works through
+  `LocalCatalogResolver` (a static local catalog/manifest, not a file picker) — adding a file means
+  adding it to that catalog path, not dragging a file into the browser. The full upload →
+  cloud-storage → resolve → render path is **not** functional end-to-end: `RemoteMediaResolver` is
+  coded to fetch from a real media URL, but nothing on the backend can produce one yet
+  (`request_media_upload` is the missing link; `storage.py`'s boto3/MinIO boundary exists but isn't
+  wired to a route). This is a narrow, specific gap — not a sign that the asset system is
+  unfinished architecturally.
+- Sequencing guidance given: the packages are decoupled by design (resolver interface, pure
+  dispatch engine), so most subsystems can be worked in any order. The one real dependency: cloud
+  attachment upload needs `media.py`'s handlers implemented before `RemoteMediaResolver` has
+  anything to call. Deploy infra (Stage 5, previous session) is an independent track gated on the
+  provider decision, unrelated to media upload.
+
+### Next recommended step
+
+If the user wants attachments working end-to-end, implement `media.py`'s `request_media_upload`
+(presigned PUT URL via the existing `storage.py` boto3/MinIO boundary) and `get_media`, then add a
+minimal upload widget in the editor that calls it and hands the resulting asset ref to
+`RemoteMediaResolver`. This was offered to the user at the end of this session but not yet
+started — no implementation code exists yet for this.
+
+## 2026-09-20 Member ownership vs. AI-assist boundaries per subsystem
+
+### Objective / topic
+
+Following the Wk3-4 skill/allocation analysis
+(`docs/07-research-and-history/Week3/Wk3-4_ANALYSIS_Industry-Skill-and-AI-Work-Allocation.md`),
+capture the specific "who must own this decision, where can AI safely write the first draft"
+boundary per open subsystem, so a future session or teammate can check a piece of work against
+this list before deciding how much to delegate to AI on it.
+
+### Decisions made and why
+
+The classification below is not about which language or file a piece of work touches — it is about
+how expensive a wrong first draft is to detect and unwind. A skeleton router returning the wrong
+shape fails a test immediately; a wrong tie-break rule in a dispatch engine can look correct for
+weeks. That is the actual dividing line, not "backend vs frontend" or "hard vs easy."
+
+**Member must own the decision (AI may draft, human must verify against a specific invariant):**
+
+- `packages/authoring-engine/src/commands/` (command-path service) — a wrong first draft silently
+  corrupts undo/redo rather than failing loudly. Verify: history entries only created for
+  successful commits, redo-branch invalidation on new commits after undo, cancelled transforms
+  produce no history entry.
+- `packages/interaction/src/dispatcher.ts` and rule-ordering semantics — priority/authoring-order
+  tie-breaks are a specific promise (`dispatcher.test.ts` documents it) that an AI-plausible
+  rewrite can quietly break without failing existing tests if the new tests are written by the
+  same pass. Verify: stable-sort behavior under equal priority, state-immutability across dispatch
+  calls, zone-visited history recorded independent of whether a rule matched.
+- `packages/authoring-engine/src/transformMath.ts` (reparent local-space recompute) — quaternion/
+  vector composition where a subtly wrong formula still looks plausible in a manual smoke test.
+  Verify against a fixture: reparenting an object preserves its world position exactly (not
+  approximately) across at least one non-trivial rotation.
+- Database schema and migration decisions in `apps/api/app/models.py` — nullability, cascade
+  rules, and unique constraints are cheap to write and expensive to migrate away from later once
+  real data exists. AI can draft a migration; a member decides the constraint.
+- Auth/authorization boundaries (`apps/api/app/auth.py` usage once wired into routes, and the
+  planned organisation/actor isolation rules) — a wrong default here is a vulnerability, not a
+  style preference. A member must decide which routes require the JWT dependency and what an
+  actor may see across organisations before any route is un-skeletoned.
+- GPU/resource lifecycle correctness in `src/viewport/` — leaks and dangling listeners only surface
+  after repeated editor/runtime transitions, not in the commit that introduced them.
+
+**AI can safely own the first draft, member reviews the diff, not the theory:**
+
+- Repository/service layer for the five skeleton routers once the pattern is set once by a human
+  for the first router (e.g. `projects.py`) — the remaining four follow the same shape against the
+  same `models.py`.
+- DTO/response-model mirrors — every `*Response` Pydantic model is already a near-1:1 shadow of a
+  table; keeping them in sync is translation work.
+- New resolver backends in `packages/assets/src/resolvers/` once the interface contract
+  (`resolverContract.test.ts`) is satisfied — the contract test itself is the verification, so a
+  human does not need to re-derive correctness by hand.
+- Repetitive validation test cases (serializer rejection reasons, additional malformed-input
+  fixtures) that follow an existing template with the input swapped.
+- Config, Dockerfile, and CI wiring for a new service once a member has decided the target shape.
+- Subsystem doc drafts under `docs/05-subsystems/` — already the project's existing convention per
+  `docs/ai-declaration.md`, with human review before merge.
+
+### Open questions
+
+- Should this list live only in `SESSION.md`, or get promoted into a standalone
+  `docs/04-engineering/` policy doc so it survives independent of session history the way the
+  source-file header standard did?
+- Who signs off on "member has verified the invariant" for the AI-may-draft-with-review items —
+  the person who wrote it, or a second reviewer? Not yet decided.
+
+### Next recommended step
+
+When a teammate picks up a piece of work from the Wk3-4 allocation table, check it against this
+list first: if it's in the "member must own" column, budget time to understand the specific
+invariant named above before accepting an AI-drafted implementation, rather than reviewing only
+for style or compilation.
