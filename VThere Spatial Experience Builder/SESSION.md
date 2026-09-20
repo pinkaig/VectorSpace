@@ -1384,3 +1384,131 @@ When a teammate picks up a piece of work from the Wk3-4 allocation table, check 
 list first: if it's in the "member must own" column, budget time to understand the specific
 invariant named above before accepting an AI-drafted implementation, rather than reviewing only
 for style or compilation.
+
+## 2026-09-20 Documentation reorg: code/ vs archive/, content refreshed against baseline (Sonnet 5, direct + 4 parallel subagents)
+
+### Objective / topic
+
+Two requests in sequence: (1) reorganize `docs/` so it reads as code documentation (reference
+material tied to real files/modules) rather than an undifferentiated information wiki, and
+(2) update the content of the reference docs to accurately describe what the completed 8-stage
+baseline actually contains, plus developer-facing usage (real import paths, real function
+signatures) — not just move files around.
+
+### Decisions made and why
+
+- Split flat `docs/01-product` .. `docs/07-research-and-history` into two top-level trees:
+  `docs/code/` (architecture, engineering, subsystems — reference docs tied to real code, kept in
+  sync going forward) and `docs/archive/` (product, delivery, research-and-history — frozen
+  historical snapshots, explicitly non-authoritative). Reason: user wants "code documentation" as
+  the default posture, with history preserved but clearly demoted, not deleted.
+  `docs/06-design/` was empty and dropped.
+  `docs/README.md` rewritten to lead with `code/` and mark `archive/` as background only.
+- Added a single canonical `docs/code/baseline-phases.md` (the 8-stage table: 1 local dev env,
+  2 data model, 3 backend HTTP surface, 4a Asset Manager, 4b WHEN→DO engine, 4c Sync Engine,
+  5 production deploy, 6 wire Asset Manager, 7 wire WHEN→DO, 8 wire Sync — all confirmed complete
+  via commits `0ad9c20 5bdfc29 d0237ae cc6f443 8416364 c137100 b216993 abde184 8831960`). Every
+  markdown file in the project (71 files) got a one-line `**Baseline phase:** ...` status note
+  linking back to this table, instead of repeating the table in each file — avoids N copies
+  drifting independently.
+- Content-update scope was deliberately narrowed after a direct ask: full-rewrite treatment went
+  to `docs/code/**` (17 files) plus only the 3 archive files literally tagged `CURRENT`
+  (`archive/delivery/2026-09-10--CURRENT--deliverables.md`,
+  `archive/delivery/UNDATED--CURRENT--pre-baseline-validation.md`,
+  `archive/product/UNDATED--CURRENT--project-context.md`). Everything else in `archive/` stays
+  frozen — rewriting FOUNDATION/HISTORY/GOVERNANCE/RESEARCH material would destroy the historical
+  record the archive split was meant to preserve.
+- Each of the 4 content-update passes (architecture, engineering, subsystems, the 3 CURRENT
+  archive docs) was run as a separate parallel subagent instructed to verify every claim against
+  actual source (Glob/Grep/Read, not memory) before writing, and to explicitly mark
+  unverifiable/absent things as such rather than invent plausible-sounding APIs.
+
+### Current skeleton / plan state
+
+Committed as `ac945b1` on `Full-Skeleton-ver-2-Industry-Project-5---Spatial-Experience-Builder`
+(not pushed). 98 files changed, 2162 insertions / 1240 deletions.
+
+Corrections that landed (previously stale, now accurate):
+- `packages/assets`, `packages/interaction`, `packages/sync` were documented as "planned, not yet
+  implemented" in three subsystem docs; all three are built, tested, and wired in. Fixed.
+- `docs/code/subsystems/authoring-engine.md` documented an invented public API
+  (`AuthoringEngine`, `TransformManipulator`, `GizmoHitTest`, `ConstraintSolver`,
+  `CommandHistory` interfaces) that does not exist anywhere in source. Replaced with the real API:
+  `createCommandTimeline`, `executeCommand`, `createMoveCommand`/`createRotateCommand`/
+  `createScaleCommand`, `objectAccess.ts`'s `requireObject`/`requireScene`/`collectSubtreeIds`.
+- `docs/code/subsystems/viewport.md` described an old technical-spike (hardcoded box geometry,
+  simple floor-plane drag) that no longer matches `Viewport.tsx`'s real gizmo-based transform
+  system (`createGizmoSet`/`syncGizmo`/`interactionController.ts`). Rewritten.
+- `docs/code/architecture/UNDATED--FOUNDATION--repository.md` and `...architecture.md` listed
+  `packages/spatial`, `packages/serialization`, `packages/commands`, `packages/validation`,
+  `infrastructure/` as fixed module boundaries; none exist on disk. Marked absent, responsibilities
+  remapped to where the code actually lives (`src/viewport/`, `src/gizmo/`, `src/serializer.ts`,
+  `packages/authoring-engine`).
+- The most load-bearing correction, called out consistently across architecture/engineering/
+  subsystem/archive passes: **the backend is routing-complete but business-logic-empty.**
+  `apps/api/app/routers/{projects,rules,media,publish,analytics}.py` are real, typed, and wired
+  into `main.py`, but all 27 handlers raise `HTTPException(501)` via `not_implemented()` in
+  `_skeleton.py` — only `GET /health` actually works. Auth0 JWT validation
+  (`apps/api/app/auth.py`) is real infrastructure but is not enforced on any route yet.
+  `src/sync/projectSync.ts` talks to a `StubSyncTransport`, not a live backend, because Stage 3's
+  routes are still 501. `apps/editor/` and `apps/runtime/` are 18-line re-export shells; the real
+  editor/runtime logic is still in root `src/`. This was previously undocumented or implied to be
+  further along than it is — now stated explicitly in `contracts.md`, `tech-stack.md`,
+  `project-context.md`, and `deliverables.md`.
+- Build/test claims were verified live, not just cited: architecture-doc subagent ran
+  `npm install && npm run build && npm test` directly — 29 test files, 210 tests, all passing.
+  Correct pytest invocation confirmed as `python -m pytest apps/api/tests` run from the VThere
+  root (not from inside `apps/api/`), since `test_health.py` does an absolute
+  `from apps.api.app.main import app` import.
+- Top-level `README.md` and `CODEBASE_GUIDE.md` doc links fixed to point at `docs/code/...`
+  instead of the old flat paths. All relative links inside the 20 rewritten docs verified to
+  resolve after the folder move (old `docs/0N-...` paths → `docs/code/...` or `docs/archive/...`).
+
+### Build/verify command for this topic
+
+`npm run build && npm test` from the VThere root — confirmed passing (29 files / 210 tests) as of
+this session. Doc changes themselves have no build step; correctness was verified by the subagents
+reading real source, not by a doc linter (none exists yet).
+
+### Files touched this session
+
+98 files under `VThere Spatial Experience Builder/` — see commit `ac945b1` for the full list.
+Highlights: `docs/README.md`, `docs/code/baseline-phases.md` (new), all 5 files under
+`docs/code/architecture/`, all 7 under `docs/code/engineering/`, all 7 under
+`docs/code/subsystems/`, the 3 CURRENT-tagged archive docs, plus every other `.md` in the project
+(one-line baseline-phase status note only). Top-level `README.md`, `CODEBASE_GUIDE.md`.
+
+### Failed approaches already tried
+
+- Attempted `git mv` on the whole `07-research-and-history/` directory in one shot; failed with
+  "Permission denied" on Windows (likely a transient file lock, possibly an editor/watcher holding
+  a handle). Worked around by moving `.md` files individually via a shell loop, then retrying the
+  subdirectories (`Week2/`, `Week3/`, the `Scripting_Logic...` folder) separately — the retry
+  succeeded once the lock cleared. If this recurs, retry per-subdirectory rather than the whole
+  tree at once.
+
+### Open questions
+
+- Should `docs/code/` be pushed to an actual GitHub Wiki (`<repo>.wiki.git`)? Discussed but not
+  built: would need the Wiki feature enabled, a flatten/link-rewrite script (Wiki pages have no
+  real subfolders), a hand-authored `_Sidebar.md`/`Home.md`, and ideally a GitHub Action to keep it
+  synced on merge so it doesn't drift back into a second copy. Not started.
+- The repo-wide `@documentation` source-file headers (per `source-file-header-standard.md`) still
+  point at the old pre-reorg `docs/01-product/`, `docs/02-architecture/`, `docs/05-subsystems/`
+  paths across ~30+ source files (`src/Viewport.tsx`, `src/App.tsx`, `src/model.ts`,
+  `packages/*/src/*.ts`, etc.). Flagged by the engineering-docs subagent as out of this task's
+  scope but real drift. Not fixed.
+- `docs/code/subsystems/UNDATED--CURRENT--asset-library-contract.md` was confirmed to describe a
+  contract with zero implementation behind it (no curated inventory, no thumbnails/licensing
+  registry, no import/upload path) — this is accurately documented now, but the underlying gap
+  itself is still open product work, not just a doc problem.
+
+### Next recommended step
+
+If the GitHub Wiki is wanted, build the flatten/link-rewrite script plus a sync GitHub Action next
+(half-day estimate) rather than a one-time manual push, so `docs/code/` stays the single source of
+truth. Otherwise, the repo-wide stale `@documentation` header paths are the next highest-value
+cleanup, since they're the same "docs describe a different reality than the code" problem this
+session just fixed for the markdown tree, but scattered across source files instead.
+
+Safe to `/clear`.
