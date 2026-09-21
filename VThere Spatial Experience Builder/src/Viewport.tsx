@@ -26,10 +26,13 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import {
+  AudioAssetMeta,
+  AudioSettings,
   CameraPose,
   InteractionRule,
   SceneObject,
   ZoneDefinition,
+  defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
 } from './model'
@@ -44,6 +47,8 @@ import {
   type RuntimeEvent,
   type RuntimeState,
 } from '../packages/interaction/src/index'
+import { AudioSystem, WebAudioBackend, registerAudioActions } from '../packages/audio/src/index'
+import { audioResolver } from './viewport/audioResolution'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
@@ -101,6 +106,10 @@ interface ViewportProps {
   rules?: readonly InteractionRule[]
   /** Zones for the active scene; only read in play mode. */
   zones?: readonly ZoneDefinition[]
+  /** Authored audio presettings; only read in play mode. */
+  audioAssets?: readonly AudioAssetMeta[]
+  /** Authored master/channel mix defaults; only read in play mode. */
+  audioSettings?: AudioSettings
   orthographic?: boolean
   onOrthographicChange?: (value: boolean) => void
   showOctaOrb?: boolean
@@ -132,6 +141,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     runtimeMode = 'edit',
     rules = [],
     zones = [],
+    audioAssets = [],
+    audioSettings,
     orthographic = false,
     onOrthographicChange,
     showOctaOrb = true,
@@ -143,8 +154,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -276,6 +287,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const sequencer = createActionSequencer()
     const effects = createEffectRegistry()
     const actions = createActionRegistry()
+    // One AudioSystem for the whole mounted viewport lifetime, not per-run: unlocking
+    // the browser's AudioContext needs a real user gesture, and restarting the scene
+    // should not force a visitor to click again. stopRun() below releases voices, not
+    // the system itself; only unmount (this effect's cleanup) disposes it.
+    const audio = new AudioSystem({
+      backend: new WebAudioBackend(),
+      resolver: audioResolver,
+      settings: dataRef.current.audioSettings,
+    })
+    audio.setProjectAudioAssets(dataRef.current.audioAssets as AudioAssetMeta[])
+    registerAudioActions(actions, audio)
     let zoneTracker = createZoneTracker(dataRef.current.zones)
     let zonesSignature = JSON.stringify(dataRef.current.zones)
     let runtimeState: RuntimeState | null = null
@@ -330,6 +352,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         { sequencer, effects, zones: zoneTracker },
         { restart, sceneId: dataRef.current.sceneId },
       )
+      // effects.disposeAll() above already stops every voice started via playAudio
+      // (each executor registers a disposer), but stopAll() also catches anything
+      // that never made it out of the pre-unlock queue.
+      audio.stopAll()
       // ProjectData was never mutated during the run, so forcing one rebuild
       // from it is the whole visual reset.
       renderedSignature = ''
@@ -412,6 +438,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Walk-mode look and movement remain available in runtime mode. The
     // interaction controller gates editor selection and transforms with
     // `interactive` and owns all pointer/keyboard listener cleanup.
+
+    // Browsers keep the AudioContext suspended until a user gesture. This
+    // listens independently of the interaction controller's own pointerdown/
+    // keydown handling, so it fires in both edit and play mode and needs no
+    // change to that controller's picking logic.
+    const onGestureUnlock = () => { void audio.unlock() }
+    renderer.domElement.addEventListener('pointerdown', onGestureUnlock)
+    window.addEventListener('keydown', onGestureUnlock)
 
     let frame = 0
     let lastTime = performance.now()
@@ -502,6 +536,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
       restartRuntimeRef.current = () => {}
+      renderer.domElement.removeEventListener('pointerdown', onGestureUnlock)
+      window.removeEventListener('keydown', onGestureUnlock)
+      audio.dispose()
       observer.disconnect()
       interactionController.dispose()
       controls.dispose()
