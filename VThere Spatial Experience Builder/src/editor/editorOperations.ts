@@ -22,19 +22,33 @@
  * Authoring boundary: docs/05-subsystems/authoring-engine.md
  */
 import {
+  createMoveCommand,
   createObject,
+  createRotateCommand,
+  createScaleCommand,
   createScene,
   duplicateObject,
   removeObject,
   renameObject,
+  reparentObject,
   setActiveScene,
+  setObjectAssetId,
   setObjectEnabled,
   setObjectVisible,
   updateObjectTransform,
   updateScene,
   type ObjectOperationResult,
+  type ProjectCommand,
+  type Vector3Tuple,
 } from '@vthere/authoring-engine'
 import type { AssetKind, ProjectData, SceneObject } from '../model'
+
+/**
+ * A builder rather than a finished command: the command service calls it with
+ * live timeline state, so the captured undo value can never come from a stale
+ * React closure. See commandService.executeCommand.
+ */
+export type EditorCommandBuilder = (project: ProjectData) => ProjectCommand
 
 export const createObjectIdFactory = () => ({
   nextId: (_project: ProjectData, sceneId: string) => `${sceneId}-object-${crypto.randomUUID()}`,
@@ -49,6 +63,14 @@ export const duplicateEditorObject = (project: ProjectData, sceneId: string, obj
 export const removeEditorObject = (project: ProjectData, sceneId: string, objectId: string): ObjectOperationResult =>
   removeObject(project, { sceneId, objectId })
 
+/** `parentId: null` detaches the object to top-level. Cycle/self-parent checks live in reparentObject. */
+export const reparentEditorObject = (
+  project: ProjectData,
+  sceneId: string,
+  objectId: string,
+  parentId: string | null,
+): ObjectOperationResult => reparentObject(project, { sceneId, objectId, parentId })
+
 export const updateEditorTransform = (
   project: ProjectData,
   sceneId: string,
@@ -56,8 +78,37 @@ export const updateEditorTransform = (
   changes: Partial<SceneObject['transform']>,
 ): ObjectOperationResult => updateObjectTransform(project, { sceneId, objectId, changes })
 
+export const moveEditorObjectCommand = (sceneId: string, objectId: string, position: Vector3Tuple): EditorCommandBuilder =>
+  (project) => createMoveCommand(project, { sceneId, objectId }, position)
+
+export const rotateEditorObjectCommand = (sceneId: string, objectId: string, rotation: Vector3Tuple): EditorCommandBuilder =>
+  (project) => createRotateCommand(project, { sceneId, objectId }, rotation)
+
+export const scaleEditorObjectCommand = (sceneId: string, objectId: string, scale: Vector3Tuple): EditorCommandBuilder =>
+  (project) => createScaleCommand(project, { sceneId, objectId }, scale)
+
+/**
+ * The Inspector edits one transform channel at a time, so an inspector change is
+ * routed to the matching transform command rather than to a generic partial
+ * update. This is what makes a cleared numeric field a rejected edit instead of
+ * a NaN written into the project.
+ */
+export const transformEditorObjectCommand = (
+  sceneId: string,
+  objectId: string,
+  changes: Partial<SceneObject['transform']>,
+): EditorCommandBuilder | null => {
+  if (changes.position) return moveEditorObjectCommand(sceneId, objectId, changes.position)
+  if (changes.rotation) return rotateEditorObjectCommand(sceneId, objectId, changes.rotation)
+  if (changes.scale) return scaleEditorObjectCommand(sceneId, objectId, changes.scale)
+  return null
+}
+
 export const renameEditorObject = (project: ProjectData, sceneId: string, objectId: string, name: string): ObjectOperationResult =>
   renameObject(project, { sceneId, objectId, name })
+
+export const setEditorObjectAssetId = (project: ProjectData, sceneId: string, objectId: string, assetId: string): ObjectOperationResult =>
+  setObjectAssetId(project, { sceneId, objectId, assetId })
 
 export const setEditorObjectVisible = (project: ProjectData, sceneId: string, objectId: string, value: boolean): ObjectOperationResult =>
   setObjectVisible(project, { sceneId, objectId, value })
