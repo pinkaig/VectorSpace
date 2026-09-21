@@ -153,7 +153,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     // visual representation yet, so it must not be selectable or draggable.
     // NOTE: still a flat `children` filter — parentId is in the schema but the
     // scene graph is not nested yet, so there is nothing to traverse into.
-    // See docs/05-subsystems/DEFERRED--parent-child-rendering.md.
+    // See docs/code/subsystems/DEFERRED--parent-child-rendering.md.
     const unpickableAssetIds = callbacks.getData().unpickableAssetIds
     const pickable = objectsGroup.children.filter((object) =>
       object.visible &&
