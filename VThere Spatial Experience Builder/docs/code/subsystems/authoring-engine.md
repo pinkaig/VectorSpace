@@ -106,19 +106,16 @@ for its new parent's transform. That is slice 5, deliberately separate.
 
 ### Transform inheritance (parent-child slice 5)
 
-**Status on this branch: partially deferred.** The `transformMath.ts` module
-and `reparentObject`'s use of it (this section's first bullet) are migrated
-and live. The renderer half — mesh nesting in `syncArtefacts.ts`, world-space
-gizmo placement in `syncGizmo.ts`, and the `pick()`/drag conversion in
-`interactionController.ts` (the remaining bullets below) — was deliberately
-left out so gizmo, rendering, and camera code stayed byte-identical to the
-`Working` baseline during migration. The renderer still adds every mesh flat
-into one `THREE.Group`, and `SceneObject.transform` is world-space for every
-object regardless of `parentId`. See
+**Status on this branch: implemented.** The `transformMath.ts` module,
+`reparentObject`'s use of it, and the renderer half (mesh nesting in
+`syncArtefacts.ts`, world-space gizmo placement in `syncGizmo.ts`, and the
+`pick()`/drag conversion in `interactionController.ts`) were ported from
+the baseline in full — see
 [`DEFERRED--parent-child-rendering.md`](DEFERRED--parent-child-rendering.md)
-for the exact remaining work and how to verify it doesn't regress gizmo drags.
-The rest of this section describes the target end state, ported here from the
-branch where it is implemented.
+for the completed work log and the verification checklist. The renderer nests
+meshes under their parent mesh via `Object3D`, and `SceneObject.transform` is
+local-space for any object with a `parentId`, world-space for a top-level
+object.
 
 Slice 4 rendered the hierarchy in the UI, but the renderer still added every
 mesh flat into one `THREE.Group` and every transform math path (drag/gizmo

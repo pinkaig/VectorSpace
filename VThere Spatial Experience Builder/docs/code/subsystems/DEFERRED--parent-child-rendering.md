@@ -1,14 +1,13 @@
-# Deferred: parent-child rendering in the viewport
+# Parent-child rendering in the viewport
 
-**Status:** schema landed, renderer deferred
-**Owner:** unassigned
+**Status:** implemented — schema and renderer both landed
 **Source of the finished code:** branch `Full-Skeleton-ver-2-Industry-Project-5---Spatial-Experience-Builder` ("FS")
 
 ## What this document is
 
-When the baseline skeleton (FS) was migrated onto the `Working` line, one feature was deliberately left half-applied: **parent-child object hierarchy**. The data model went in; the renderer did not.
+When the baseline skeleton (FS) was migrated onto the `Working` line, one feature was initially left half-applied: **parent-child object hierarchy**. The data model went in first; the renderer half (steps 1-3 below) was ported afterward, completing the feature.
 
-This file records exactly what was skipped, why it was safe to skip, and what to do to finish it. The code already exists and is already reviewed on FS — this is a port, not a design task.
+This file records what was skipped, why it was safe to skip for a time, and the four steps that closed the gap. Kept as a reference for the shape of the work and its verification checklist.
 
 ## Current state
 
@@ -26,11 +25,9 @@ This file records exactly what was skipped, why it was safe to skip, and what to
 
 Setting a parent writes correct data, persists across save/reload, and round-trips through undo/redo.
 
-### What does not work
+### What now also works
 
-**The viewport renders flat.** Every mesh is added directly to `objectsGroup`, so a child does not move, rotate or scale with its parent on screen.
-
-One consequence is user-visible and worth knowing about: the Inspector labels transform fields `(local)` when an object has a parent — but because nothing nests, those numbers are still effectively world values. **The label is currently lying.** It stops lying the moment step 1 below lands.
+**The viewport renders nested.** Meshes attach to their parent mesh (see step 1 below), so a child moves, rotates and scales with its parent on screen, the gizmo and drag math resolve correctly for a parented object (steps 2-3), and the Inspector's `(local)` label is accurate.
 
 ## Why it was safe to defer
 
@@ -135,11 +132,9 @@ Local rotation follows the same shape: `currentQuaternion` accumulates in world 
 
 World-space rotation (the `else` branch) is unchanged.
 
-### 4. Remove the deferral note and re-verify
+### 4. Re-verify
 
-Delete the `NOTE:` comment in `pick()` that points at this document, and mark this file resolved.
-
-**No schema migration is required** — the persisted data is already correct and already validated. Existing projects with `parentId` set will simply start rendering nested.
+**No schema migration was required** — the persisted data was already correct and already validated. Existing projects with `parentId` set simply started rendering nested.
 
 ## Retrieving the finished code
 

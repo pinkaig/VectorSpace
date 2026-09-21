@@ -50,6 +50,8 @@ export const syncArtefacts = ({ group, objects, selectedId }: ArtefactSyncInput)
   disposeObjectResources(group)
   group.clear()
 
+  const meshesById = new Map<string, THREE.Mesh>()
+
   objects.forEach((item) => {
     const geometry = createGeometry(item.assetKind)
     const material = new THREE.MeshStandardMaterial({
@@ -73,6 +75,12 @@ export const syncArtefacts = ({ group, objects, selectedId }: ArtefactSyncInput)
       ))
     }
 
-    group.add(mesh)
+    meshesById.set(item.id, mesh)
+  })
+
+  objects.forEach((item) => {
+    const mesh = meshesById.get(item.id)!
+    const parentMesh = item.parentId ? meshesById.get(item.parentId) : undefined
+    ;(parentMesh ?? group).add(mesh)
   })
 }

@@ -185,13 +185,12 @@ if (item.id === selectedId) {
 }
 ```
 
-**Status on this branch: parent-child mesh nesting is deferred.** Every mesh is
-still added flat into `objectsGroup` regardless of `parentId`, so `transform`
-is world-space for every object. The paragraph below describes the target
-end state (two-pass build, nested meshes, local-space transform for a
-parented object), ported here from the branch where it is implemented. See
+**Status on this branch: implemented.** Meshes nest under their parent mesh
+following `parentId`, and `transform` is local-space for any parented object,
+world-space for a top-level one — the two-pass build described below is the
+live code. See
 [`DEFERRED--parent-child-rendering.md`](DEFERRED--parent-child-rendering.md)
-for what's left and why deferring it was safe.
+for the completed work log and verification checklist.
 
 Meshes are built in two passes: every mesh is created first, then attached to its parent mesh (or
 the root `objectsGroup`) in a second pass, keyed by `SceneObject.parentId` — this is what lets
@@ -240,8 +239,8 @@ pointerdown
   -> calculate canvas-relative coordinates
   -> convert to normalized device coordinates
   -> raycaster.setFromCamera(pointer, camera)
-  -> pick() filters objectsGroup.children (flat — see the parent-child status
-     note above), skipping loading/error assets (unpickableAssetIds — see
+  -> pick() traverses objectsGroup (meshes may be nested under a parent mesh),
+     skipping loading/error assets (unpickableAssetIds — see
      asset-manager.md) and gizmo handles separately
   -> call onSelect(object.id) / callbacks.select(id)
 ```
@@ -263,12 +262,11 @@ into `executeCommand` against the authoring engine's transform commands (see
 [`authoring-engine.md`](authoring-engine.md)'s "The transform command path"), so one pointer
 gesture produces exactly one undo entry, never one per `pointermove` event.
 
-For a parented object, a drag's result would need to be world-space math (rays and planes are
-inherently world-space) converted back to parent-local space via `Object3D.worldToLocal` / a
-parent-quaternion inverse before it is committed — this conversion is not yet implemented on this
-branch (see the parent-child status note above and the slice 5 notes in
-[`authoring-engine.md`](authoring-engine.md)). Today every drag commits directly in world space,
-which is correct only because no mesh is currently nested.
+For a parented object, a drag's result is world-space math (rays and planes are inherently
+world-space) converted back to parent-local space via `Object3D.worldToLocal` / a
+parent-quaternion inverse (`toLocalPosition` / `toLocalQuaternion` in `interactionController.ts`)
+before it is committed — see the slice 5 notes in [`authoring-engine.md`](authoring-engine.md).
+For a top-level object this conversion is the identity, so drag behavior there is unchanged.
 
 ## Runtime mode
 
