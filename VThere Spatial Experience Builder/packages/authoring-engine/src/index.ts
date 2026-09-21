@@ -18,7 +18,14 @@
  * @members
  * HistoryEntry, CommandTimeline, createCommandTimeline, object operations
  * (create, duplicate, remove, reparent, transform, rename, visible, enabled),
- * scene operations, commit, undo, and redo.
+ * scene operations, commit, undo, and redo, plus the re-exported command path
+ * (executeCommand, transform commands, and the shared object access helpers).
+ *
+ * @boundary
+ * This file is the package's only entry point: package.json declares
+ * `"exports": "./src/index.ts"` as a single string, so subpath imports such as
+ * `@vthere/authoring-engine/commands` do not resolve. Anything consumers need
+ * must be re-exported here.
  *
  * @documentation
  * Larger system guide: docs/05-subsystems/authoring-engine.md
@@ -30,6 +37,28 @@ import {
   cloneProject,
   makeObject,
 } from '@vthere/project'
+import {
+  ObjectOperationError,
+  ObjectTargetInput,
+  collectSubtreeIds,
+  requireObject,
+  requireScene,
+} from './objectAccess'
+import { composeWorldTransform, localTransformForNewParent, type WorldTransform } from './transformMath'
+
+const identityWorldTransform: WorldTransform = {
+  position: { x: 0, y: 0, z: 0 },
+  quaternion: { x: 0, y: 0, z: 0, w: 1 },
+  scale: { x: 1, y: 1, z: 1 },
+}
+
+export { ObjectOperationError, collectSubtreeIds, requireObject, requireScene } from './objectAccess'
+export type { ObjectTargetInput } from './objectAccess'
+export * from './commands/types'
+export * from './commands/transformCommands'
+export * from './commands/commandService'
+export { composeWorldTransform, localTransformForNewParent } from './transformMath'
+export type { Quaternion, Vector3, WorldTransform } from './transformMath'
 
 export interface HistoryEntry<T> {
   label: string
@@ -98,11 +127,6 @@ export interface CreateObjectInput {
   name?: string
 }
 
-export interface ObjectTargetInput {
-  sceneId: string
-  objectId: string
-}
-
 export interface ObjectOperationResult {
   project: ProjectData
   objectId?: string
@@ -118,6 +142,10 @@ export interface RenameObjectInput extends ObjectTargetInput {
   name: string
 }
 
+export interface SetObjectAssetIdInput extends ObjectTargetInput {
+  assetId: string
+}
+
 export interface ObjectFlagInput extends ObjectTargetInput {
   value: boolean
 }
@@ -129,42 +157,6 @@ export interface ReparentObjectInput extends ObjectTargetInput {
 
 export interface SceneUpdateInput {
   sceneId: string
-}
-
-export class ObjectOperationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ObjectOperationError'
-  }
-}
-
-const requireScene = (project: ProjectData, sceneId: string) => {
-  const scene = project.scenes.find((item) => item.id === sceneId)
-  if (!scene) throw new ObjectOperationError(`Scene "${sceneId}" was not found`)
-  return scene
-}
-
-const requireObject = (project: ProjectData, input: ObjectTargetInput) => {
-  const scene = requireScene(project, input.sceneId)
-  const index = scene.objects.findIndex((item) => item.id === input.objectId)
-  if (index < 0) throw new ObjectOperationError(`Object "${input.objectId}" was not found`)
-  return { scene, object: scene.objects[index], index }
-}
-
-// The root plus every object that transitively parents up to it.
-const collectSubtreeIds = (objects: readonly SceneObject[], rootId: string): Set<string> => {
-  const ids = new Set([rootId])
-  let grew = true
-  while (grew) {
-    grew = false
-    for (const object of objects) {
-      if (object.parentId !== undefined && ids.has(object.parentId) && !ids.has(object.id)) {
-        ids.add(object.id)
-        grew = true
-      }
-    }
-  }
-  return ids
 }
 
 export const createObject = (
@@ -240,8 +232,12 @@ export const reparentObject = (
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const { scene, object } = requireObject(next, input)
+  // Composed from the hierarchy as it stands before the move, so the object's
+  // world pose is preserved by recomputing its local transform below.
+  const childWorld = composeWorldTransform(scene.objects, object.id)
   if (input.parentId === null) {
     delete object.parentId
+    object.transform = localTransformForNewParent(childWorld, identityWorldTransform)
     return { project: next, objectId: object.id }
   }
   if (input.parentId === object.id) throw new ObjectOperationError(`Object "${object.id}" cannot be its own parent`)
@@ -255,6 +251,8 @@ export const reparentObject = (
     const parentId: string | undefined = ancestor.parentId
     ancestor = parentId === undefined ? undefined : scene.objects.find((item) => item.id === parentId)
   }
+  const newParentWorld = composeWorldTransform(scene.objects, input.parentId)
+  object.transform = localTransformForNewParent(childWorld, newParentWorld)
   object.parentId = input.parentId
   return { project: next, objectId: object.id }
 }
@@ -276,6 +274,16 @@ export const renameObject = (
   const next = cloneProject(project)
   const { object } = requireObject(next, input)
   object.name = input.name
+  return { project: next, objectId: object.id }
+}
+
+export const setObjectAssetId = (
+  project: ProjectData,
+  input: SetObjectAssetIdInput,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const { object } = requireObject(next, input)
+  object.assetId = input.assetId
   return { project: next, objectId: object.id }
 }
 
