@@ -26,6 +26,7 @@
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneObject } from '../model'
+import type { RuntimeEvent } from '../../packages/interaction/src/index'
 import type { AxisName, AxisArrow } from '../gizmo/types'
 import { AXIS_COLORS, AXIS_HOVER_COLORS } from '../gizmo/colors'
 import { closestPointOnAxis, angleAroundAxis } from '../gizmo/math'
@@ -53,6 +54,13 @@ export interface ViewportInteractionData {
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
+  // Object ids whose asset is still resolving or failed to resolve. Raycasting
+  // skips these so a click can't select or drag an object with no confirmed
+  // visual representation yet — see docs/05-subsystems/asset-manager.md.
+  unpickableAssetIds: ReadonlySet<string>
+  // True only while the WHEN→DO runtime is live. Gates the extra picking these
+  // listeners do for Tier 1 events, so authoring pays nothing for them.
+  runtimeActive: boolean
 }
 
 export interface ViewportInteractionCallbacks {
@@ -69,6 +77,14 @@ export interface ViewportInteractionCallbacks {
   setOrthographic: (value: boolean) => void
   showOctaOrbTooltip: (label: string, clientX: number, clientY: number) => void
   hideOctaOrbTooltip: () => void
+  /**
+   * WHEN→DO Tier 1 input events (click/hover/key), emitted from the same real
+   * browser listeners below rather than polled. This is an independent path from
+   * the gizmo/drag commit callbacks above: a runtime click never edits the
+   * project, and an editor drag never fires a rule. Absent in edit mode, so the
+   * listeners do no runtime work at all while authoring.
+   */
+  onRuntimeEvent?: (event: RuntimeEvent) => void
 }
 
 export interface ViewportInteractionInput {
@@ -114,6 +130,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   let lastRotateValue: [number, number, number] | null = null
   let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
   const pressedKeys = new Set<string>()
+  // Where the pointer went down, so a runtime click can be distinguished from a
+  // drag or a look-around by the same distance rule selection already uses.
+  let pointerDownAt: { x: number; y: number } | null = null
+  // Last object reported hovered, so hover fires once on entering an object and
+  // once on leaving — the same edge-triggered discipline the zone tracker uses,
+  // rather than one event per pointermove.
+  let hoveredRuntimeId: string | null = null
   const dragPoint = new THREE.Vector3()
   const overlayRaycaster = new THREE.Raycaster()
   const overlayPointer = new THREE.Vector2()
@@ -126,7 +149,17 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   const pick = (event: PointerEvent) => {
     getPointer(event)
     raycaster.setFromCamera(pointer, activeCamera.current)
-    const pickable = objectsGroup.children.filter((object) => object.visible && object.userData.enabled !== false)
+    // An object whose asset is still resolving or has failed has no confirmed
+    // visual representation yet, so it must not be selectable or draggable.
+    // NOTE: still a flat `children` filter — parentId is in the schema but the
+    // scene graph is not nested yet, so there is nothing to traverse into.
+    // See docs/05-subsystems/DEFERRED--parent-child-rendering.md.
+    const unpickableAssetIds = callbacks.getData().unpickableAssetIds
+    const pickable = objectsGroup.children.filter((object) =>
+      object.visible &&
+      object.userData.enabled !== false &&
+      !unpickableAssetIds.has(object.userData.entityId),
+    )
     return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
   }
 
@@ -254,6 +287,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
 
   const onPointerDown = (event: PointerEvent) => {
     const data = callbacks.getData()
+    if (event.button === 0) pointerDownAt = { x: event.clientX, y: event.clientY }
     // OctaOrb / axis indicator hits are consumed before anything else — both widgets
     // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
     if (data.cameraMode === 'orbit' && event.button === 0 && tryOverlayPointerDown(event)) return
@@ -325,6 +359,18 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       return
     }
     const noActiveDrag = !axisDragging && !scaleDragging && !rotateDragging && !dragging
+    // Tier 1 hover, edge-triggered: one event when the pointer enters an object
+    // and one when it leaves, never one per move. Skipped during a drag, where
+    // the pointer is manipulating rather than pointing, and skipped entirely
+    // outside play mode so authoring never pays for this extra raycast.
+    if (callbacks.onRuntimeEvent && noActiveDrag && callbacks.getData().runtimeActive) {
+      const hitId = pick(event)?.name ?? null
+      if (hitId !== hoveredRuntimeId) {
+        if (hoveredRuntimeId) callbacks.onRuntimeEvent({ kind: 'hoverExit', objectId: hoveredRuntimeId })
+        if (hitId) callbacks.onRuntimeEvent({ kind: 'hover', objectId: hitId })
+        hoveredRuntimeId = hitId
+      }
+    }
     if (noActiveDrag && callbacks.getData().cameraMode === 'orbit' && tryOverlayPointerMove(event)) return
     if (noActiveDrag) {
       const hovering = pickGizmo(event)
@@ -387,6 +433,18 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     }
   }
   const onPointerUp = (event: PointerEvent) => {
+    // Tier 1 click, emitted before any editor handling below so it fires in both
+    // orbit and walk mode. A pointer that travelled is a drag or a look-around,
+    // not a click — same 4px rule selection already uses.
+    if (callbacks.onRuntimeEvent && pointerDownAt && event.button === 0 && callbacks.getData().runtimeActive) {
+      const travelled = Math.hypot(event.clientX - pointerDownAt.x, event.clientY - pointerDownAt.y)
+      if (travelled < 4) {
+        const hit = pick(event)
+        if (hit) callbacks.onRuntimeEvent({ kind: 'click', objectId: hit.name })
+      }
+    }
+    if (event.button === 0) pointerDownAt = null
+
     if (looking) {
       const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY); looking = null
       if (moved < 4) callbacks.select(pick(event)?.name ?? null)
@@ -401,7 +459,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     dragging = null; lastDragPosition = null; axisDragging = null; lastAxisDragPosition = null; scaleDragging = null; lastScaleValue = null; rotateDragging = null; lastRotateValue = null
     controls.enabled = callbacks.getData().cameraMode === 'orbit'
   }
-  const onKeyDown = (event: KeyboardEvent) => { if (!isTypingTarget(event.target) && ((event.code in MOVE_KEYS) || (event.code in VERTICAL_KEYS) || SPRINT_KEYS.has(event.code))) { if (callbacks.getData().cameraMode === 'walk') event.preventDefault(); pressedKeys.add(event.code) } }
+  const onKeyDown = (event: KeyboardEvent) => {
+    // Tier 1 key, emitted before the movement-key filter below: a rule may bind
+    // any key, not only the ones that drive the camera. Typing in a field is
+    // never a runtime trigger. `repeat` is dropped so holding a key fires once.
+    if (callbacks.onRuntimeEvent && !isTypingTarget(event.target) && !event.repeat && callbacks.getData().runtimeActive) {
+      callbacks.onRuntimeEvent({ kind: 'key', payload: { code: event.code, key: event.key } })
+    }
+    if (!isTypingTarget(event.target) && ((event.code in MOVE_KEYS) || (event.code in VERTICAL_KEYS) || SPRINT_KEYS.has(event.code))) { if (callbacks.getData().cameraMode === 'walk') event.preventDefault(); pressedKeys.add(event.code) } }
   const onKeyUp = (event: KeyboardEvent) => { pressedKeys.delete(event.code) }
   const onContextMenu = (event: MouseEvent) => { event.preventDefault() }
   const onBlur = () => { pressedKeys.clear() }
