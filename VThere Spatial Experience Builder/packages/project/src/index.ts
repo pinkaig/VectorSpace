@@ -99,12 +99,53 @@ export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
 
 export const defaultCameraPose = (): CameraPose => ({ position: [7, 5.5, 8], target: [0, 0.7, 0] })
 
+/**
+ * A volume the WHEN→DO runtime tests occupancy against, to turn "someone walked
+ * in here" into an event. Zones are spatial, so they belong to a scene; rules,
+ * which reference them, belong to the project.
+ */
+export type ZoneShape =
+  | { kind: 'box'; size: [number, number, number] }
+  | { kind: 'sphere'; radius: number }
+
+export interface ZoneDefinition {
+  id: string
+  name: string
+  shape: ZoneShape
+  position: [number, number, number]
+}
+
+/**
+ * One DO action a rule asks for. `params` carries arguments a bare kind string
+ * could not — a componentId for showPanel, an assetId for playAudio.
+ */
+export interface ActionSpec {
+  kind: string
+  params?: Record<string, unknown>
+}
+
+/**
+ * An authored WHEN→DO rule. Field names mirror the backend's interaction_rules
+ * columns so the record round-trips without translation; objectId is optional
+ * for the same reason its column is nullable — a sceneStart rule names no object.
+ */
+export interface InteractionRule {
+  id: string
+  objectId?: string
+  zoneId?: string
+  triggers: string[]
+  actions: ActionSpec[]
+  priority?: number
+}
+
 export interface SceneData {
   id: string
   name: string
   objects: SceneObject[]
   environmentId: string
   startCamera: CameraPose
+  // absent in files written before zones existed; the serializer backfills to []
+  zones?: ZoneDefinition[]
 }
 
 export interface ProjectData {
@@ -113,6 +154,8 @@ export interface ProjectData {
   name: string
   scenes: SceneData[]
   activeSceneId: string
+  // absent in files written before rules existed; the serializer backfills to []
+  rules?: InteractionRule[]
 }
 
 export const makeScene = (id: string, name: string): SceneData => ({
@@ -162,6 +205,12 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
  *   owns project identity, schemaVersion, scene ordering, and active scene ID
  *   contains every authored SceneObject exactly once
  *   is safe to clone, serialize, migrate, validate, and restore
+ *   owns InteractionRule[] (WHEN→DO rules); zones live on SceneData because
+ *   they are spatial. Both were added by additive migration — optional and
+ *   backfilled to [], so schemaVersion stayed 1, as with parentId. Because they
+ *   are ProjectData fields, undo/redo covers them with no extra work.
+ *   Runtime state is deliberately NOT here: see
+ *   docs/05-subsystems/when-do-dispatch-engine.md
  *
  * SceneObject:
  *   owns persistent object identity, display name, asset identity, asset kind,
