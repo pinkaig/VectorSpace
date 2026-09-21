@@ -62,6 +62,7 @@ import {
   type AssetDescriptor,
 } from './viewport/assetResolution'
 import { AssetStatusBadge } from './viewport/AssetStatusBadge'
+import { createChangeColorExecutor} from './viewport/actions/changeColorAction'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -276,6 +277,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const sequencer = createActionSequencer()
     const effects = createEffectRegistry()
     const actions = createActionRegistry()
+    actions.register('changeColor', createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
+    
     let zoneTracker = createZoneTracker(dataRef.current.zones)
     let zonesSignature = JSON.stringify(dataRef.current.zones)
     let runtimeState: RuntimeState | null = null
