@@ -45,8 +45,9 @@ class FallbackResolver implements AssetResolver {
   }
 }
 
-// Empty for now: no dev GLB catalog exists yet, so every non-primitive assetId
-// deliberately fails, surfacing the placeholder/retry state described above.
+// The dev/local GLB catalog: built-in models (assets.ts) and models imported through
+// the UI (userAssets.ts) register here via registerLocalAsset. An assetId that was
+// never registered still fails as a genuine, visible error.
 const localCatalog = new Map<string, { url: string; contentType?: string }>()
 
 const cachingResolver = new CachingAssetResolver(
@@ -85,12 +86,36 @@ export const subscribeAssetResolution = (objectId: string, listener: AssetResolu
   }
 }
 
-export const resolveAsset = async (object: SceneObject): Promise<AssetDescriptor> => {
-  const ref = assetRefFor(object)
-  notify(object.id, { ref, status: 'loading' })
+const resolveRef = async (objectId: string, ref: AssetRef): Promise<AssetDescriptor> => {
+  notify(objectId, { ref, status: 'loading' })
   const descriptor = await resolver.resolve(ref)
-  notify(object.id, descriptor)
+  notify(objectId, descriptor)
   return descriptor
+}
+
+export const resolveAsset = (object: SceneObject): Promise<AssetDescriptor> => resolveRef(object.id, assetRefFor(object))
+
+/**
+ * Adds (or replaces) a catalog entry. Imported assets load asynchronously, so an
+ * object placed from one can already have failed to resolve by the time it is
+ * registered (e.g. right after a page reload) — those are re-resolved here rather
+ * than left stuck on "error" until the user notices and presses Retry.
+ */
+export const registerLocalAsset = (assetId: string, entry: { url: string; contentType?: string }): void => {
+  localCatalog.set(assetId, entry)
+  descriptors.forEach((descriptor, objectId) => {
+    if (descriptor.status === 'error' && descriptor.ref.assetId === assetId) {
+      cachingResolver.invalidate(descriptor.ref)
+      void resolveRef(objectId, descriptor.ref)
+    }
+  })
+}
+
+export const resolveLocalAssetUrl = (assetId: string): string | undefined => localCatalog.get(assetId)?.url
+
+export const unregisterLocalAsset = (assetId: string): void => {
+  localCatalog.delete(assetId)
+  cachingResolver.invalidate({ assetId, kind: 'model' })
 }
 
 export const retryAsset = (object: SceneObject): Promise<AssetDescriptor> => {

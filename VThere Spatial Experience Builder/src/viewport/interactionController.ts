@@ -165,22 +165,20 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     raycaster.setFromCamera(pointer, activeCamera.current)
     // An object whose asset is still resolving or has failed has no confirmed
     // visual representation yet, so it must not be selectable or draggable.
-    // Nested meshes are no longer direct children of objectsGroup, so picking
-    // must walk the whole subtree rather than filter one level of children.
     const unpickableAssetIds = callbacks.getData().unpickableAssetIds
-    const pickable: THREE.Object3D[] = []
-    objectsGroup.traverse((child) => {
-      if (
-        child instanceof THREE.Mesh &&
-        child.userData.entityId &&
-        child.visible &&
-        child.userData.enabled !== false &&
-        !unpickableAssetIds.has(child.userData.entityId)
-      ) {
-        pickable.push(child)
-      }
-    })
-    return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
+    // Recursive because objects nest (parentId) and a `model` artefact is a Group of
+    // sub-meshes; each hit is walked up to the nearest ancestor stamped with
+    // userData.entityId, then checked for pickability. Non-pickable hits are skipped
+    // so an object behind a disabled/unresolved one can still be selected.
+    for (const hit of raycaster.intersectObjects(objectsGroup.children, true)) {
+      let node: THREE.Object3D | null = hit.object
+      while (node && node.userData.entityId === undefined) node = node.parent
+      if (!node || !hit.object.visible) continue
+      if (!node.visible || node.userData.enabled === false) continue
+      if (unpickableAssetIds.has(node.userData.entityId as string)) continue
+      return node
+    }
+    return null
   }
 
   // Gizmo hits are kept separate from artefact hits because they start a

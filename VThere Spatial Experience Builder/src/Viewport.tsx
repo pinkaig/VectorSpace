@@ -266,7 +266,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const syncObjects = () => {
       const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId, dataRef.current.syncToken])
       if (signature === renderedSignature) return
-      syncArtefacts({ group: objectsGroup, objects: dataRef.current.objects, selectedId: dataRef.current.selectedId })
+      syncArtefacts({
+        group: objectsGroup,
+        objects: dataRef.current.objects,
+        selectedId: dataRef.current.selectedId,
+        // A `model` asset's GLB may not be cached yet — retry once it resolves instead of
+        // waiting for some unrelated prop change to naturally invalidate the memo.
+        onModelLoaded: () => { renderedSignature = '' },
+      })
       renderedSignature = signature
     }
 
