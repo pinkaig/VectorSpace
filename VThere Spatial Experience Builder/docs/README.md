@@ -14,6 +14,8 @@ This folder is code documentation first: reference material tied to real files, 
 
 **Known stale content:** [`asset-manager.md`](code/subsystems/asset-manager.md), [`sync-engine.md`](code/subsystems/sync-engine.md), and [`when-do-dispatch-engine.md`](code/subsystems/when-do-dispatch-engine.md) describe themselves as "planned, not yet implemented." That's no longer true — `packages/assets`, `packages/sync`, and `packages/interaction` (dispatcher) all have real source now. Treat these three docs as needing a rewrite against the current code before trusting them; don't take their status claims at face value.
 
+**Deferred on this branch:** parent-child hierarchy is schema-only here — the renderer does not yet nest meshes. `authoring-engine.md` and `viewport.md` carry inline status notes at the relevant sections; [`DEFERRED--parent-child-rendering.md`](code/subsystems/DEFERRED--parent-child-rendering.md) is the full writeup of what's deferred, why, and how to finish it.
+
 ## Authority order (within code/)
 
 1. Architecture and contracts in `code/architecture/`.
