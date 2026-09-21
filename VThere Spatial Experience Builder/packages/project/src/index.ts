@@ -37,6 +37,8 @@ export interface SceneObject {
   assetKind: AssetKind
   visible: boolean
   enabled: boolean
+  // absent = top-level object; must reference an object in the same scene, no cycles
+  parentId?: string
   transform: TransformData
 }
 
@@ -163,9 +165,10 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
  *
  * SceneObject:
  *   owns persistent object identity, display name, asset identity, asset kind,
- *   and transform data
- *   may gain visible, enabled, or parentId only through an approved schema
- *   migration; these fields are not added by this pseudocode
+ *   visibility/enabled flags, optional parentId, and transform data
+ *   visible, enabled, and parentId were added through schema migration; the
+ *   serializer backfills or validates them on load. `status` remains future
+ *   work behind another migration.
  *
  * Project package pure helpers:
  *   makeScene(sceneId, name)

@@ -496,6 +496,33 @@ button:disabled {
   margin-left: auto;
   color: #5d777c;
 }
+.toggle-row {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 20px;
+  color: #a4b9b7;
+  font-size: 11px;
+}
+.toggle-row label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.toggle-row input {
+  accent-color: #71b7aa;
+}
+.inspector-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #2a444a;
+}
+.inspector-actions .button {
+  text-align: center;
+}
 .vector-fields {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
