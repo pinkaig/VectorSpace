@@ -24,8 +24,11 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import {
+  collectSubtreeIds,
   createCommandTimeline,
+  executeCommand,
 } from '@vthere/authoring-engine'
+import { createLogger } from '../packages/debugging/src/index'
 import {
   AssetKind,
   ProjectData,
@@ -40,25 +43,39 @@ import {
   loadProjectWithSource,
   saveProject,
 } from './serializer'
+import {
+  getProjectSyncStatus,
+  stageProjectSync,
+  subscribeProjectSync,
+  type ProjectSyncStatus,
+} from './sync/projectSync'
 import { assetCatalog, filterAssets } from './assets'
 import {
   createEditorObject,
   createEditorScene,
   duplicateEditorObject,
+  moveEditorObjectCommand,
   removeEditorObject,
   renameEditorObject,
+  reparentEditorObject,
+  rotateEditorObjectCommand,
+  scaleEditorObjectCommand,
   selectEditorScene,
+  setEditorObjectAssetId,
   setEditorObjectEnabled,
   setEditorObjectVisible,
+  transformEditorObjectCommand,
   updateEditorScene,
-  updateEditorTransform,
+  type EditorCommandBuilder,
 } from './editor/editorOperations'
+import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTree'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
+const logger = createLogger('editor.commands')
 
 export default function App() {
   const [project, setProject] = useState<ProjectData>(initialProject)
@@ -75,6 +92,9 @@ export default function App() {
   const [showOctaOrb, setShowOctaOrb] = useState(true)
   const [showAxisIndicator, setShowAxisIndicator] = useState(true)
   const [resetToken, setResetToken] = useState(0)
+  // Bumped when an edit is rejected, to pull the viewport's preview meshes back
+  // to ProjectData. See runCommand.
+  const [syncToken, setSyncToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
     initialLoad.source === 'default'
       ? 'New local project'
@@ -85,6 +105,7 @@ export default function App() {
       ? 'No local draft found; using clean project'
       : `Loaded from browser localStorage ${initialLoad.source}`,
   )
+  const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -95,6 +116,24 @@ export default function App() {
   const commit = (label: string, next: ProjectData) => {
     timelineRef.current.commit(label, next)
     setProject(timelineRef.current.current)
+  }
+  /**
+   * The single entry point for transform edits. The command service owns whether
+   * an edit reaches history; this only reflects the outcome into React.
+   *
+   * A rejected edit leaves ProjectData untouched, so the viewport's render
+   * signature would not change and the previewed mesh would stay at the invalid
+   * pose. Bumping syncToken forces the viewport to rebuild from ProjectData.
+   * An 'unchanged' result needs no resync: the mesh is already correct.
+   */
+  const runCommand = (build: EditorCommandBuilder) => {
+    const result = executeCommand(timelineRef.current, build)
+    if (result.status === 'committed') setProject(timelineRef.current.current)
+    if (result.status === 'rejected') {
+      logger.warn('Transform rejected; no history entry was created', { error: result.error })
+      setSyncToken((value) => value + 1)
+    }
+    return result
   }
   const resetTimeline = (next: ProjectData) => {
     timelineRef.current = createCommandTimeline(next, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
@@ -115,20 +154,25 @@ export default function App() {
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
     if (!selected) return
-    commit('Update transform', updateEditorTransform(project, scene.id, selected.id, changes).project)
+    const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
+    if (builder) runCommand(builder)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
-    commit('Move object', updateEditorTransform(project, scene.id, id, { position }).project)
+    runCommand(moveEditorObjectCommand(scene.id, id, position))
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
-    commit('Scale object', updateEditorTransform(project, scene.id, id, { scale }).project)
+    runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
   const rotateObject = (id: string, rotation: [number, number, number]) => {
-    commit('Rotate object', updateEditorTransform(project, scene.id, id, { rotation }).project)
+    runCommand(rotateEditorObjectCommand(scene.id, id, rotation))
   }
   const renameSelected = (name: string) => {
     if (!selected) return
     commit('Rename object', renameEditorObject(project, scene.id, selected.id, name).project)
+  }
+  const setSelectedAssetId = (assetId: string) => {
+    if (!selected) return
+    commit('Change asset ID', setEditorObjectAssetId(project, scene.id, selected.id, assetId).project)
   }
   const deleteSelected = () => {
     if (!selected) return
@@ -140,6 +184,18 @@ export default function App() {
     const result = duplicateEditorObject(project, scene.id, selected.id)
     commit('Duplicate object', result.project)
     setSelectedId(result.objectId ?? null)
+  }
+  const reparentObjectTo = (objectId: string, parentId: string | null) => {
+    commit('Reparent object', reparentEditorObject(project, scene.id, objectId, parentId).project)
+  }
+  const indentObject = (objectId: string) => {
+    const target = previousSibling(scene.objects, objectId)
+    if (target) reparentObjectTo(objectId, target.id)
+  }
+  const outdentObject = (objectId: string) => {
+    const object = scene.objects.find((item) => item.id === objectId)
+    if (object?.parentId === undefined) return
+    reparentObjectTo(objectId, grandparentId(scene.objects, objectId))
   }
   const setSelectedVisible = (value: boolean) => {
     if (!selected) return
@@ -163,16 +219,30 @@ export default function App() {
     timelineRef.current.redo()
     setProject(timelineRef.current.current)
   }
+  /**
+   * Dual write: Tier 1 (serializer.ts's localStorage save) happens synchronously
+   * first so a reload never loses an edit even if sync never completes; Tier 2
+   * (packages/sync's queue) is then staged for background delivery. Save status
+   * text reflects Tier 1; sync status is tracked separately via syncStatus.
+   */
   const persist = (nextProject: ProjectData, label: string) => {
     const result = saveProject(nextProject)
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
     setPersistenceState(result === 'saved' ? 'Primary + backup ready' : result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
+    if (result !== 'failed') stageProjectSync(nextProject)
   }
   useEffect(() => {
     const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
     return () => window.clearTimeout(timer)
   }, [project])
+  useEffect(() => subscribeProjectSync(setSyncStatus), [])
+  const syncStatusLabel: Record<ProjectSyncStatus, string> = {
+    idle: 'Synced',
+    pending: 'Syncing to server…',
+    conflict: 'Sync conflict; local edits kept',
+    failed: 'Sync failed, will retry',
+  }
   const save = () => persist(project, 'Saved')
   const loadDraft = () => {
     const loaded = loadProjectWithSource()
@@ -238,7 +308,17 @@ export default function App() {
         <aside className="left-rail">
           <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
           <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { commit('Select scene', selectEditorScene(project, item.id).project); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
-          <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : scene.objects.map((item) => <button key={item.id} className={item.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(item.id)}><span className={`object-dot ${item.assetKind}`} />{item.name}<span className="tree-chevron">›</span></button>)}</div>
+          <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
+            <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
+              <div className="tree-indent-controls">
+                <button className="tree-indent-btn" title="Outdent" disabled={row.object.parentId === undefined} onClick={() => outdentObject(row.object.id)}>⇤</button>
+                <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
+              </div>
+              <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
+                <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+              </button>
+            </div>
+          ))}</div>
           <section className="panel">
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
             <div className="asset-tools">
@@ -254,6 +334,10 @@ export default function App() {
             {persistenceState}
             <small className="storage-note">Save location: browser localStorage</small>
             <button className="text-button" onClick={reset}>Reset draft</button>
+          </div>
+          <div className="rail-footer">
+            <span className={`status-dot ${syncStatus}`} />
+            {syncStatusLabel[syncStatus]}
           </div>
         </aside>
         <section className="center-stage">
@@ -309,6 +393,7 @@ export default function App() {
                 startCamera={scene.startCamera}
                 cameraMode={cameraMode}
                 resetToken={resetToken}
+                syncToken={syncToken}
                 showOctaOrb={showOctaOrb}
                 showAxisIndicator={showAxisIndicator}
               />
@@ -333,6 +418,7 @@ export default function App() {
               startCamera={scene.startCamera}
               cameraMode={cameraMode}
               resetToken={resetToken}
+              syncToken={syncToken}
               orthographic={singleViewOrthographic}
               onOrthographicChange={setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
@@ -342,7 +428,7 @@ export default function App() {
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
-          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
+          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} onAssetIdChange={setSelectedAssetId} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
     </main>
@@ -352,13 +438,19 @@ export default function App() {
 const radToDeg = (radians: number) => radians * (180 / Math.PI)
 const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 
-function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange }: { object: SceneObject; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void }) {
+function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange, onReparent, onAssetIdChange }: { object: SceneObject; sceneObjects: SceneObject[]; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void; onReparent: (parentId: string | null) => void; onAssetIdChange: (assetId: string) => void }) {
+  // An object cannot become its own or its own descendant's parent, or the tree would cycle.
+  const excludedParentIds = collectSubtreeIds(sceneObjects, object.id)
+  const parentChoices = sceneObjects.filter((item) => !excludedParentIds.has(item.id))
+  // A parented object's transform is local to its parent; a top-level object's
+  // transform is already world space (there's no parent to be local to).
+  const spaceLabel = object.parentId !== undefined ? 'local' : 'world'
   const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
     const isRotation = key === 'rotation'
     const displayValues = isRotation ? values.map(radToDeg) : values
     return (
       <div className="field-group">
-        <label>{isRotation ? `${label} (°)` : label}</label>
+        <label>{isRotation ? `${label} (°, ${spaceLabel})` : `${label} (${spaceLabel})`}</label>
         <div className="vector-fields">
           {displayValues.map((value, index) => (
             <label className="number-field" key={`${key}-${index}`}>
@@ -382,5 +474,5 @@ function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVis
       </div>
     )
   }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input aria-label="Asset ID" value={object.assetId} onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }

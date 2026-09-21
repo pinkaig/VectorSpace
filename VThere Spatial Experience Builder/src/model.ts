@@ -33,12 +33,16 @@ export {
   makeScene,
 } from '../packages/project/src/index'
 export type {
+  ActionSpec,
   AssetKind,
   CameraPose,
   EnvironmentDefinition,
   EnvironmentKind,
+  InteractionRule,
   ProjectData,
   SceneData,
   SceneObject,
   TransformData,
+  ZoneDefinition,
+  ZoneShape,
 } from '../packages/project/src/index'

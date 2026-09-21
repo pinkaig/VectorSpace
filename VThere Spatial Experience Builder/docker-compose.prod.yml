@@ -1,0 +1,65 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - vthere_caddy_data:/data
+      - vthere_caddy_config:/config
+    depends_on:
+      - frontend
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN to the public hostname, e.g. app.example.com}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+
+  api:
+    build:
+      context: apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vthere_app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vthere}
+      CORS_ORIGINS: https://${DOMAIN:?set DOMAIN}
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:?set MINIO_ENDPOINT_URL}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-vthere-media}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:-}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vthere}
+      POSTGRES_USER: ${POSTGRES_USER:-vthere_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - vthere_postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vthere_app} -d ${POSTGRES_DB:-vthere}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  vthere_postgres_prod_data:
+  vthere_caddy_data:
+  vthere_caddy_config:

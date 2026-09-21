@@ -26,6 +26,7 @@
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneObject } from '../model'
+import type { RuntimeEvent } from '../../packages/interaction/src/index'
 import type { AxisName, AxisArrow } from '../gizmo/types'
 import { AXIS_COLORS, AXIS_HOVER_COLORS } from '../gizmo/colors'
 import { closestPointOnAxis, angleAroundAxis } from '../gizmo/math'
@@ -53,6 +54,13 @@ export interface ViewportInteractionData {
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
+  // Object ids whose asset is still resolving or failed to resolve. Raycasting
+  // skips these so a click can't select or drag an object with no confirmed
+  // visual representation yet — see docs/05-subsystems/asset-manager.md.
+  unpickableAssetIds: ReadonlySet<string>
+  // True only while the WHEN→DO runtime is live. Gates the extra picking these
+  // listeners do for Tier 1 events, so authoring pays nothing for them.
+  runtimeActive: boolean
 }
 
 export interface ViewportInteractionCallbacks {
@@ -69,6 +77,14 @@ export interface ViewportInteractionCallbacks {
   setOrthographic: (value: boolean) => void
   showOctaOrbTooltip: (label: string, clientX: number, clientY: number) => void
   hideOctaOrbTooltip: () => void
+  /**
+   * WHEN→DO Tier 1 input events (click/hover/key), emitted from the same real
+   * browser listeners below rather than polled. This is an independent path from
+   * the gizmo/drag commit callbacks above: a runtime click never edits the
+   * project, and an editor drag never fires a rule. Absent in edit mode, so the
+   * listeners do no runtime work at all while authoring.
+   */
+  onRuntimeEvent?: (event: RuntimeEvent) => void
 }
 
 export interface ViewportInteractionInput {
@@ -114,9 +130,30 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   let lastRotateValue: [number, number, number] | null = null
   let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
   const pressedKeys = new Set<string>()
+  // Where the pointer went down, so a runtime click can be distinguished from a
+  // drag or a look-around by the same distance rule selection already uses.
+  let pointerDownAt: { x: number; y: number } | null = null
+  // Last object reported hovered, so hover fires once on entering an object and
+  // once on leaving — the same edge-triggered discipline the zone tracker uses,
+  // rather than one event per pointermove.
+  let hoveredRuntimeId: string | null = null
   const dragPoint = new THREE.Vector3()
   const overlayRaycaster = new THREE.Raycaster()
   const overlayPointer = new THREE.Vector2()
+
+  // Rays and drag planes are inherently world-space, so drag math runs in world
+  // space and is converted back to the mesh's local space only when writing to
+  // it or committing to the project. Identity when the mesh's parent is
+  // objectsGroup (i.e. the object is top-level), so top-level drag behaviour is
+  // unchanged by these conversions.
+  const worldPositionOf = (mesh: THREE.Object3D) => mesh.getWorldPosition(new THREE.Vector3())
+  const worldQuaternionOf = (mesh: THREE.Object3D) => mesh.getWorldQuaternion(new THREE.Quaternion())
+  const toLocalPosition = (mesh: THREE.Object3D, world: THREE.Vector3) =>
+    mesh.parent && mesh.parent !== objectsGroup ? mesh.parent.worldToLocal(world.clone()) : world.clone()
+  const toLocalQuaternion = (mesh: THREE.Object3D, world: THREE.Quaternion) => {
+    if (!mesh.parent || mesh.parent === objectsGroup) return world.clone()
+    return mesh.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world)
+  }
 
   const getPointer = (event: PointerEvent) => {
     const rect = element.getBoundingClientRect()
@@ -126,7 +163,23 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   const pick = (event: PointerEvent) => {
     getPointer(event)
     raycaster.setFromCamera(pointer, activeCamera.current)
-    const pickable = objectsGroup.children.filter((object) => object.visible && object.userData.enabled !== false)
+    // An object whose asset is still resolving or has failed has no confirmed
+    // visual representation yet, so it must not be selectable or draggable.
+    // Nested meshes are no longer direct children of objectsGroup, so picking
+    // must walk the whole subtree rather than filter one level of children.
+    const unpickableAssetIds = callbacks.getData().unpickableAssetIds
+    const pickable: THREE.Object3D[] = []
+    objectsGroup.traverse((child) => {
+      if (
+        child instanceof THREE.Mesh &&
+        child.userData.entityId &&
+        child.visible &&
+        child.userData.enabled !== false &&
+        !unpickableAssetIds.has(child.userData.entityId)
+      ) {
+        pickable.push(child)
+      }
+    })
     return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
   }
 
@@ -254,6 +307,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
 
   const onPointerDown = (event: PointerEvent) => {
     const data = callbacks.getData()
+    if (event.button === 0) pointerDownAt = { x: event.clientX, y: event.clientY }
     // OctaOrb / axis indicator hits are consumed before anything else — both widgets
     // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
     if (data.cameraMode === 'orbit' && event.button === 0 && tryOverlayPointerDown(event)) return
@@ -268,8 +322,10 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (!interactive || event.button !== 0) return
     const gizmoHit = pickGizmo(event)
     const selected = data.objects.find((object) => object.id === data.selectedId)
-    if (gizmoHit && selected) {
-      const origin = new THREE.Vector3(...selected.transform.position)
+    const selectedMesh = selected ? objectsGroup.getObjectByName(selected.id) : undefined
+    if (gizmoHit && selected && selectedMesh) {
+      const origin = worldPositionOf(selectedMesh)
+      const worldQuaternion = worldQuaternionOf(selectedMesh)
       if (gizmoHit.kind === 'arrow') {
         const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
@@ -277,27 +333,23 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         if (grabT !== null) { controls.enabled = false; axisDragging = { id: selected.id, origin, direction: arrow.direction.clone(), grabT } }
       } else if (gizmoHit.kind === 'scale') {
         const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
-        const mesh = objectsGroup.getObjectByName(selected.id)
-        if (mesh) {
-          const direction = data.scaleSpace === 'local' ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation)) : handle.direction.clone()
-          getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
-          const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, direction)
-          if (grabT !== null) { controls.enabled = false; scaleDragging = { id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] } }
-        }
+        const direction = data.scaleSpace === 'local' ? handle.direction.clone().applyQuaternion(worldQuaternion) : handle.direction.clone()
+        getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
+        const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, direction)
+        if (grabT !== null) { controls.enabled = false; scaleDragging = { id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z] } }
       } else {
         const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
         const local = data.rotateSpace === 'local'
-        const objectEuler = new THREE.Euler(...selected.transform.rotation)
         // Resolve the rotation plane once at grab time. Local rotation still
         // uses a fixed world-space axis for the duration of the drag.
-        const normal = local ? handle.normal.clone().applyEuler(objectEuler) : handle.normal.clone()
+        const normal = local ? handle.normal.clone().applyQuaternion(worldQuaternion) : handle.normal.clone()
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const hitPoint = new THREE.Vector3()
         if (raycaster.ray.intersectPlane(plane, hitPoint)) {
           controls.enabled = false
           const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
-          rotateDragging = { id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: new THREE.Quaternion().setFromEuler(objectEuler) }
+          rotateDragging = { id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() }
         }
       }
       element.setPointerCapture(event.pointerId)
@@ -309,7 +361,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     callbacks.select(hit.name)
     const item = data.objects.find((object) => object.id === hit.name)
     if (item) {
-      const objectPosition = new THREE.Vector3(...item.transform.position)
+      const objectPosition = worldPositionOf(hit)
       const cameraForward = camera.getWorldDirection(new THREE.Vector3())
       const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, objectPosition)
       if (raycaster.ray.intersectPlane(plane, dragPoint)) dragging = { id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) }
@@ -325,6 +377,18 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       return
     }
     const noActiveDrag = !axisDragging && !scaleDragging && !rotateDragging && !dragging
+    // Tier 1 hover, edge-triggered: one event when the pointer enters an object
+    // and one when it leaves, never one per move. Skipped during a drag, where
+    // the pointer is manipulating rather than pointing, and skipped entirely
+    // outside play mode so authoring never pays for this extra raycast.
+    if (callbacks.onRuntimeEvent && noActiveDrag && callbacks.getData().runtimeActive) {
+      const hitId = pick(event)?.name ?? null
+      if (hitId !== hoveredRuntimeId) {
+        if (hoveredRuntimeId) callbacks.onRuntimeEvent({ kind: 'hoverExit', objectId: hoveredRuntimeId })
+        if (hitId) callbacks.onRuntimeEvent({ kind: 'hover', objectId: hitId })
+        hoveredRuntimeId = hitId
+      }
+    }
     if (noActiveDrag && callbacks.getData().cameraMode === 'orbit' && tryOverlayPointerMove(event)) return
     if (noActiveDrag) {
       const hovering = pickGizmo(event)
@@ -341,8 +405,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       // closest-point solution; skip that frame instead of jumping.
       if (hitT === null) return
       const next = axisDragging.origin.clone().addScaledVector(axisDragging.direction, hitT - axisDragging.grabT)
-      lastAxisDragPosition = [next.x, next.y, next.z]
-      const mesh = objectsGroup.getObjectByName(axisDragging.id); mesh?.position.set(...lastAxisDragPosition); gizmoGroup.position.set(...lastAxisDragPosition)
+      const mesh = objectsGroup.getObjectByName(axisDragging.id)
+      if (mesh) {
+        const local = toLocalPosition(mesh, next)
+        lastAxisDragPosition = [local.x, local.y, local.z]
+        mesh.position.copy(local)
+      }
+      gizmoGroup.position.copy(next)
       return
     }
     if (scaleDragging) {
@@ -370,9 +439,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       if (rotateDragging.spaceMode === 'local') {
         // A local-axis rotation must compose quaternions. Incrementing one
         // Euler component would be wrong after rotation on another axis.
+        // currentQuaternion accumulates in world space; convert to local only
+        // when writing to the mesh and when deriving the committed Euler.
         rotateDragging.currentQuaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step))
-        const euler = new THREE.Euler().setFromQuaternion(rotateDragging.currentQuaternion, 'XYZ'); rotation = [euler.x, euler.y, euler.z]
-        objectsGroup.getObjectByName(rotateDragging.id)?.quaternion.copy(rotateDragging.currentQuaternion)
+        const mesh = objectsGroup.getObjectByName(rotateDragging.id)
+        const localQuaternion = mesh ? toLocalQuaternion(mesh, rotateDragging.currentQuaternion) : rotateDragging.currentQuaternion
+        const euler = new THREE.Euler().setFromQuaternion(localQuaternion, 'XYZ'); rotation = [euler.x, euler.y, euler.z]
+        mesh?.quaternion.copy(localQuaternion)
       } else {
         rotation = [...rotateDragging.currentRotation]; rotation[rotateDragging.axisIndex] += step; rotateDragging.currentRotation = rotation
         objectsGroup.getObjectByName(rotateDragging.id)?.rotation.set(...rotation)
@@ -382,11 +455,29 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (dragging) {
       getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
       if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
-      dragPoint.add(dragging.offset); lastDragPosition = [dragPoint.x, dragPoint.y, dragPoint.z]
-      objectsGroup.getObjectByName(dragging.id)?.position.set(...lastDragPosition); gizmoGroup.position.set(...lastDragPosition)
+      dragPoint.add(dragging.offset)
+      const mesh = objectsGroup.getObjectByName(dragging.id)
+      if (mesh) {
+        const local = toLocalPosition(mesh, dragPoint)
+        lastDragPosition = [local.x, local.y, local.z]
+        mesh.position.copy(local)
+      }
+      gizmoGroup.position.copy(dragPoint)
     }
   }
   const onPointerUp = (event: PointerEvent) => {
+    // Tier 1 click, emitted before any editor handling below so it fires in both
+    // orbit and walk mode. A pointer that travelled is a drag or a look-around,
+    // not a click — same 4px rule selection already uses.
+    if (callbacks.onRuntimeEvent && pointerDownAt && event.button === 0 && callbacks.getData().runtimeActive) {
+      const travelled = Math.hypot(event.clientX - pointerDownAt.x, event.clientY - pointerDownAt.y)
+      if (travelled < 4) {
+        const hit = pick(event)
+        if (hit) callbacks.onRuntimeEvent({ kind: 'click', objectId: hit.name })
+      }
+    }
+    if (event.button === 0) pointerDownAt = null
+
     if (looking) {
       const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY); looking = null
       if (moved < 4) callbacks.select(pick(event)?.name ?? null)
@@ -401,7 +492,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     dragging = null; lastDragPosition = null; axisDragging = null; lastAxisDragPosition = null; scaleDragging = null; lastScaleValue = null; rotateDragging = null; lastRotateValue = null
     controls.enabled = callbacks.getData().cameraMode === 'orbit'
   }
-  const onKeyDown = (event: KeyboardEvent) => { if (!isTypingTarget(event.target) && ((event.code in MOVE_KEYS) || (event.code in VERTICAL_KEYS) || SPRINT_KEYS.has(event.code))) { if (callbacks.getData().cameraMode === 'walk') event.preventDefault(); pressedKeys.add(event.code) } }
+  const onKeyDown = (event: KeyboardEvent) => {
+    // Tier 1 key, emitted before the movement-key filter below: a rule may bind
+    // any key, not only the ones that drive the camera. Typing in a field is
+    // never a runtime trigger. `repeat` is dropped so holding a key fires once.
+    if (callbacks.onRuntimeEvent && !isTypingTarget(event.target) && !event.repeat && callbacks.getData().runtimeActive) {
+      callbacks.onRuntimeEvent({ kind: 'key', payload: { code: event.code, key: event.key } })
+    }
+    if (!isTypingTarget(event.target) && ((event.code in MOVE_KEYS) || (event.code in VERTICAL_KEYS) || SPRINT_KEYS.has(event.code))) { if (callbacks.getData().cameraMode === 'walk') event.preventDefault(); pressedKeys.add(event.code) } }
   const onKeyUp = (event: KeyboardEvent) => { pressedKeys.delete(event.code) }
   const onContextMenu = (event: MouseEvent) => { event.preventDefault() }
   const onBlur = () => { pressedKeys.clear() }
