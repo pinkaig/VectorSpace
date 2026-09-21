@@ -665,7 +665,111 @@ GIT_AND_HANDOFF_CONVENTIONS.md), push to `weian_branch`, and open a PR into
 `Working` so CI (`build-and-test`) validates it. Then decide slice 4 (hierarchy
 UI) scope with the team before touching the scene-tree markup.
 
+## 2026-09-21 Attachment model and audio/image/text/video system designs (docs only)
+
+### Objective / topic
+
+Plan the Audio System for the Spatial Experience Builder and the shared attachment model it depends on. Audit which
+attachment types (image, text, video, audio, 3D) the Asset Manager can load and with what libraries. Design audio
+(master volume, per-audio meta, simultaneous channels, spatial and 360 audio, scrubbing, captions, transport, a
+queryable state store, lazy loading and memory management), then design the image, text and video systems and how
+attachments bind to scene objects, project data, asset kinds and resolvers. Deliverable: design documents first,
+then a full implementation (implementation not started).
+
+### Decisions made and why
+
+- **Docs first, then full implementation** (user choice). The docs are proposals; no code exists for any of it.
+- **Per-audio meta lives on the project** as `ProjectData.audioAssets`, not in sidecar files, so it saves, syncs and undoes with the project JSON.
+- **Spatial and 360 audio use raw Web Audio inside `packages/audio`** (`PannerNode`, first-order ambisonic decode). No Three.js import, because `tech-stack.md` L155-158 forbids it. Positions come in as `[x,y,z]` tuples.
+- **`AssetKind` stays the placeable-primitive set.** A new `MediaKind = 'audio'|'image'|'video'|'text'` and `AssetRefKind = AssetKind | MediaKind` avoid breaking `restingHeight`, `ASSET_COLORS`, `createGeometry`, `ReferenceViewport.tsx:124` and the serializer allowlist.
+- **Audio is behind an `AudioBackend` interface** (`WebAudioBackend`, `FakeAudioBackend`) because jsdom has no `AudioContext`; the same pattern for image, text and video.
+- **Attachments live on the host** (proposed, unconfirmed): `SceneObject.attachments[]` and `ZoneDefinition.attachments[]`. An attachment carries no trigger; rules start it (`playAudio { attachmentId }`). Reason: the viewport receives only the active scene's objects and zones, and a host-bound list cannot orphan on delete or duplicate. Rejected: project-level table (orphan problem), rule-only (no emitter position, nothing in the inspector), media as objects (ripples through `AssetKind`).
+- **Shared code:** `DecodedCache` and `MediaBudget` in `packages/assets`; captions start in `packages/audio` and are extracted to `packages/captions` when video is the second consumer.
+- **Video soundtrack goes through the audio system** (`AudioSystem.attachMediaElement`, a `video` channel), so master mute and ducking apply. Needs CORS on media. Unconfirmed.
+- **Tiers:** T1 built in the main implementation, T2 after if time allows, T3 roadmap only.
+- Libraries: browser-native APIs by default. Third-party names in `attachment-integration.md` section 7 are marked **verify** (from general knowledge, not checked).
+
+### Current skeleton / plan state
+
+Design docs written (in `docs/code/subsystems/`), all marked "Design specification (2026-09-21)":
+
+- `attachment-integration.md` (shared model: architecture placement, project data, scene-object binding, asset kinds, resolver chain, libraries, shared runtime pieces)
+- `attachment-types-and-asset-manager.md` (status map of every attachment type)
+- `audio-system.md` (23 functionality sections, tiers, data model, class design, actions, integration points, build sequence)
+- `image-system.md`, `text-system.md`, `video-system.md`
+
+Approved: nothing. Pending: user review of all six docs and the open questions at the end of each. Implemented: none. Per
+`Agent Skills/CLAUDE.md`, no implementation code before the skeleton is approved; these docs are the skeleton proposal.
+The `packages/audio`, `image`, `text` and `video` packages also await the architecture decision required by
+`repository.md` L67-69.
+
+### Build / verify command and status
+
+No code changed, so no build or test was run for this work. The last recorded frontend verification (2026-09-17 section
+above, 36 tests) is not re-established by this session. From `VThere Spatial Experience Builder/`:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+```
+
+Run `npm install` when a new workspace package is added and commit `package-lock.json` (missed once, commit `afc27cf`).
+`tsconfig.app.json` includes only `src`, so a new package is type-checked only once `src/` imports it.
+
+### Files touched this session
+
+New:
+- `docs/code/subsystems/attachment-integration.md`
+- `docs/code/subsystems/attachment-types-and-asset-manager.md`
+- `docs/code/subsystems/audio-system.md`
+- `docs/code/subsystems/image-system.md`
+- `docs/code/subsystems/text-system.md`
+- `docs/code/subsystems/video-system.md`
+
+Edited:
+- `docs/README.md` (rows for the new docs)
+- `docs/code/subsystems/asset-manager.md` ("See also" line)
+- `SESSION.md`
+
+Nothing is committed; branch `sherman-branch`. The plan file `C:\Users\pc\.claude\plans\prompt-to-continue-the-woolly-adleman.md` is outside the repo and superseded by the docs.
+
+### Failed approaches already tried
+
+- `ExitPlanMode` was rejected twice. The user wanted the markdown written into the repo as two separate documents, with audio features fleshed out, not a plan for approval. Write the docs directly.
+- An `Edit` failed because the target sentence was wrapped across two lines; grep for the exact wrapped text first.
+- Line-number citations to `Viewport.tsx` in the first docs were stale (cited L219 and L226-237). Current: `createActionRegistry()` L278, `emitRuntimeEvent` L287, `zoneTracker.tick` L447, `stopRun(false)` L503. Re-check citations against the file before relying on them.
+- Doc-relative code links follow the house style (`../../packages/...`), which does not resolve from `docs/code/subsystems/`. Pre-existing; not fixed.
+
+### Open questions
+
+- Attachments on the host, or a project table? Decides `duplicateObject`, the serializer and the inspector.
+- Add the `panel` primitive (touches seven places, two renderers)? Should `ReferenceViewport.tsx` show media surfaces?
+- `visible` and `enabled` semantics for attachments.
+- Shared media budget ceiling; default audio budget (64 MB is a placeholder); image working size (2048) and video slot limits.
+- Caption source of truth (inline cues or caption assets); `showPanel` argument (`attachmentId` vs `componentId`); trigger names `audioStarted`, `audioEnded`, `audioMarker:<name>`.
+- Route video soundtrack through the audio system?
+- No real media storage exists (Stage 3 routes return 501, project JSON capped at 2 MB): first builds use a bundled `public/` catalog or session-only object URLs. Confirm that is acceptable.
+
+### Known existing bug (not caused by this design)
+
+`removeObject` (`packages/authoring-engine/src/index.ts`, around L213-227) removes the subtree but not `project.rules`
+that reference it. `validateRules` (`src/serializer.ts`, around L131-151) then rejects the saved project on reload, and
+the loader silently falls back to the backup or a clean project. No rule-authoring UI exists yet, so it has not surfaced.
+Fix before rule authoring ships.
+
+### Next recommended step
+
+1. User reviews the six docs and answers the open questions above. Record each decision as a dated "Decision" line in the doc it belongs to.
+2. Fix the `removeObject` orphan-rule bug with tests (drop rules referencing the removed subtree; check zones and scene removal too; confirm a `serializeProject` then `deserializeProject` round trip).
+3. Sync `architecture.md`, `repository.md`, `development-guide.md` and `contracts.md` for built code only; mark the new designs as proposals there.
+4. On approval, implement in this order: types and serializer, authoring operations (`duplicateObject`, `createScene`), `packages/assets` work (kind specs, content guard, in-flight de-duplication, `DecodedCache`), then `packages/audio` with `FakeAudioBackend` and tests first, then `WebAudioBackend` and wiring, then image, text, video.
+5. Commit in logical steps. `GIT_AND_HANDOFF_CONVENTIONS.md` asks for an `[agent]` subject prefix and no `Co-authored-by` trailer unless the team agreed. The session attribution setting says to add one; resolve that before the first commit.
+
 ## Handoff precedence note
+
+The `2026-09-21 Attachment model and audio/image/text/video system designs` section above is the latest status for the
+attachment and audio design work; it is docs-only and supersedes nothing about the rendering or lifecycle sections.
 
 The `Rendering factorisation and separation handoff` section above is the
 latest status for the rendering work. It supersedes earlier Wk3 notes that
