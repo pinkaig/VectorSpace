@@ -91,7 +91,7 @@ it starts inside `packages/audio` and is extracted to `packages/captions` when v
 | Layer | What it is | Where it lives | Example |
 |---|---|---|---|
 | **Media asset** | The bytes: an audio, image or video file, or a text file | Media storage or local catalog; referenced by `assetId` | `door-creak.ogg` |
-| **Media meta** | Authored, reusable settings for that asset | `ProjectData.<kind>Assets[]`, keyed by `assetId` | Default volume, channel, alt text, poster, captions |
+| **Media meta** | Authored, reusable settings for that asset | `ProjectData.<kind>Assets[]`, keyed by `assetId` | Default volume, channel, alt text, poster, a reference to a caption asset |
 | **Attachment** | A binding of one asset to one host, with settings that apply to that binding | `SceneObject.attachments[]`, `ZoneDefinition.attachments[]` | "The door object plays `door-creak` positionally" |
 
 Behaviour is not in any of these. **An attachment declares that content belongs to a host; a rule says when it
@@ -146,13 +146,13 @@ The per-kind types (`AudioAssetMeta`, `ImagePresentation`, `TextAssetMeta`, and 
 | Rule references | An action's `params.attachmentId` is **not** validated at load; see below. |
 
 **Why rule references to attachments are not rejected at load.** `validateRules` rejects a rule that points at a missing
-object or zone (`serializer.ts:148-149`). But `removeObject` does not remove that object's rules
-(`packages/authoring-engine/src/index.ts:213-227` touches only `scene.objects`), and the editor has no rule-authoring
-code yet (only `Viewport.tsx` reads `rules`). Once rule authoring lands, deleting a referenced object saves a project
-that the loader then rejects and replaces with a backup or a clean project. That is a latent bug in the existing model;
-this design does not extend it to attachments. An unknown `attachmentId` at runtime is a logged no-op (consistent with
-"unknown params are ignored"), and the editor should lint dangling references. Cascading rule cleanup on
-`removeObject` is a separate fix and is listed under considerations.
+object or zone (`serializer.ts:148-149`). `removeObject` (`packages/authoring-engine/src/index.ts:215-241`) now drops
+every rule whose `objectId` falls inside the removed subtree and returns them as `removedRules` on the result, so a
+saved project always round-trips through `deserializeProject(serializeProject(project))`; see "Latent orphan-rule bug"
+under Considerations and limits for the fix. There is no zone-removal operation yet, so the equivalent `zoneId` cascade
+has nothing to attach to until one is added. This design does not need to extend that cascade to attachments: an
+unknown `attachmentId` at runtime is a logged no-op (consistent with "unknown params are ignored"), and the editor
+should lint dangling references rather than have the serializer reject them.
 
 ## 4. Scene objects and attachments
 
@@ -175,9 +175,9 @@ orphan state that B does.
 |---|---|---|
 | `duplicateObject` (`authoring-engine/src/index.ts:176-211`) | Copies with `{ ...item, id, transform }`. Any array on the object, such as `attachments`, would be shared by reference between the original and the copy inside the cloned project, and ids would collide. | Deep-copy `attachments` and give each copy a new id from the id factory. Add `nextAttachmentId` beside `nextId`. |
 | `createScene` (`index.ts:315-336`) | Copies objects with a transform deep copy only. | Same deep copy of `attachments`. |
-| `removeObject` (`index.ts:213-227`) | Filters the subtree. | No change for attachments (they vanish with the object). Stop any live voice, video or panel on a removed host at runtime via effect disposal, not in the engine. |
+| `removeObject` (`index.ts:215-241`) | Filters the subtree and drops rules referencing it (`removedRules` on the result; see Considerations). | No change for attachments (they vanish with the object). Stop any live voice, video or panel on a removed host at runtime via effect disposal, not in the engine. |
 | `reparentObject`, `updateObjectTransform`, `renameObject` | Touch other fields. | No change. |
-| `setObjectAssetId` (`index.ts:280-288`) | Sets `assetId` with no kind check. | No change. It changes the object's own visual asset, not its attachments. |
+| `setObjectAssetId` (`index.ts:294-302`) | Sets `assetId` with no kind check. | No change. It changes the object's own visual asset, not its attachments. |
 | `SceneObject` type and `makeObject` | No attachments. | Field is optional; `makeObject` leaves it undefined. |
 | Serializer | No attachments. | Validation above. `backfillScenes` sets `attachments = []` only when the array is absent and the host is being edited; leave `undefined` otherwise to keep files small. |
 | Scene tree and inspector | Show objects. | Show an "Attachments" list for the selected object (authoring slice). |
@@ -412,9 +412,13 @@ Two naming points to settle:
   images, video elements and audio voices must live in caches owned outside the group and be referenced from it.
 - **Two renderers.** `ReferenceViewport.tsx` builds meshes separately from `syncArtefacts.ts`. Decide whether it shows
   media surfaces or deliberately does not, and document which.
-- **Latent orphan-rule bug.** `removeObject` leaves rules that reference the removed object, and `validateRules` then
-  rejects the saved project on reload. Fix (cascade or drop dangling rules on remove) before rule authoring ships.
-  Independent of this design, but attachments make it more visible.
+- **Orphan-rule bug: fixed.** `removeObject` (`packages/authoring-engine/src/index.ts:215-241`) now drops every rule
+  whose `objectId` is in the removed subtree and returns them as `removedRules: InteractionRule[]` on the
+  `ObjectOperationResult`, so a saved project no longer fails `validateRules` on the next load. Undo restores dropped
+  rules for free because it replays the whole `ProjectData` snapshot through `createCommandTimeline`, not `removedRules`
+  itself. Tests: `packages/authoring-engine/src/index.test.ts` and the round-trip test in `src/serializer.test.ts`.
+  There is no zone-removal operation in the codebase yet, so the same `zoneId` cascade has nothing to attach to; add it
+  alongside whichever operation first removes a zone.
 - **Project size.** Only meta and inline text are in the project JSON. Media bytes never are. Inline text has its own
   512 KB ceiling so a text-heavy scene cannot push the file past 2 MB.
 - **Storage is not real yet.** Until Stage 3, media come from a bundled `public/` catalog or session-only object URLs.
@@ -432,13 +436,34 @@ Two naming points to settle:
 
 ## Open questions
 
-1. **Attachment on host vs project table.** This doc recommends the host. Confirm before the serializer work starts, since it decides `duplicateObject` and the inspector.
-2. **`visible` and `enabled` semantics** for attachments (section 4.2).
-3. **The `panel` primitive.** Whether to add it, and whether the two renderers both show it.
-4. **Meta on the attachment or on the asset.** Section 2 has both: reusable defaults on the asset, per-binding overrides on the attachment. Confirm that two layers is not more than authors need.
-5. **Where captions live** (inline in the project, or as caption assets). Carried over from the audio doc.
-6. **Shared media budget default.** Whether the ceiling is per device class or one fixed number.
-7. **`componentId` vs `attachmentId`** for `showPanel`, and whether existing examples need migrating.
+**Decision (2026-09-22): Attachment on host, not a project-level table.** Option A (section 4) is confirmed:
+`SceneObject.attachments[]` and `ZoneDefinition.attachments[]`. Delete, duplicate, undo and scene copy carry
+attachments with the host automatically. `duplicateObject` and `createScene` deep-copy `attachments` per section 4.1.
+
+**Decision (2026-09-22): Add the `panel` primitive, scheduled as T2.** Section 4.3's `panel` `AssetKind` is confirmed
+for world-placed media. It ships after the T1 attachment model (host binding, resolvers, first type system), not with
+it — see the `panel` line in each type doc's T2 list. Both renderers (`syncArtefacts.ts` and `ReferenceViewport.tsx`)
+must show it once built.
+
+**Decision (2026-09-22): Captions are separate caption assets, not inline.** Reverses the inline-first lean this doc
+and `audio-system.md` previously carried. A caption is its own asset kind, referenced by id from `AudioAssetMeta`/
+`VideoAssetMeta`, resolved through the same Asset Manager path as other media rather than embedded in project JSON.
+This needs a `caption` (or similarly named) entry in `MediaKindSpec`/`MEDIA_KIND_SPECS` (section 5) and a resolver
+route (section 6.1) before audio or video captions can ship; update those sections when this is implemented.
+
+**Decision (2026-09-22): `showPanel` takes `attachmentId`, with `componentId` accepted as an alias.** Matches every
+other proposed action kind (`playAudio`, `showImage`, ... all take `attachmentId`). Existing example rules that use
+`componentId` (per the doc comment at `packages/project/src/index.ts:119-121`) keep working through the alias.
+`contracts.md` should be updated to match when the `showPanel` executor is built.
+
+The following are lower-impact and take the stated default; flag if any should change:
+
+- **`visible` and `enabled` semantics** for attachments (section 4.2) — default: as specified there (visual kinds hidden
+  when `visible: false`; disabled hosts block new starts but do not stop already-playing content).
+- **Meta on the attachment vs. the asset** (section 2, two layers) — default: keep both; revisit only if authors find it
+  confusing in practice.
+- **Shared media budget default** (section 8, `MediaBudget`) — default: one fixed number to start, tuned from device
+  testing rather than per device class, since no device-tier detection exists yet.
 
 ## Build sequence
 

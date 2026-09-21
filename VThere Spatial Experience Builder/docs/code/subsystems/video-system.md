@@ -439,13 +439,30 @@ should be aligned when the first executor lands ([`attachment-integration.md`](a
 
 ## Open questions
 
-1. **Route the soundtrack through the audio system in the first version?** Recommendation: yes, so master volume, mute and ducking apply. It requires the audio addition above.
-2. **Slot limits per device tier.** How the tier is detected (user agent, `deviceMemory`, or a measured probe) and what the numbers are.
-3. **Adaptive streaming.** Progressive MP4 is enough for short clips; is HLS needed for long ones?
-4. **Poster source.** Author-supplied image asset (this doc) or auto-generated frame (T2)?
-5. **Cutscene behaviour.** Does an overlay video pause the runtime (rules, zone tracker) or only block input?
-6. **Native vs custom captions.** Custom overlay captions are proposed; confirm the team does not want the browser's `<track>` rendering.
-7. **Where captions are extracted to.** `packages/captions` when video starts, per the shared-code rule.
+**Decision (2026-09-22): Route the soundtrack through the audio system.** Confirmed; see `audio-system.md`'s "Open
+questions" decision log. The audio port (`attachMediaElement`) is a required dependency for video's soundtrack, not
+optional — video's build sequence should not schedule ahead of the audio package landing.
+
+**Decision (2026-09-22): An overlay/cutscene video pauses the runtime** (rules, zone tracker), not just input. See
+`attachment-integration.md`'s "Open questions" decision log. This needs a pause hook exposed from `resetRuntime`/the
+dispatcher (section on runtime wiring) before a cutscene executor can be built correctly; the dispatch engine doc
+should record that hook when it exists.
+
+**Decision (2026-09-22): Captions are separate caption assets, not inline.** Follows `audio-system.md`'s caption
+decision, since video captions reuse `packages/captions`' cue types once extracted.
+
+The following are lower-impact and take the stated default; flag if any should change:
+
+1. **Slot limits per device tier** — default: no tier detection at first; one fixed `maxPlaying` number, tuned from
+   testing, until a real need for tiering appears.
+2. **Adaptive streaming** — default: progressive MP4/WebM is enough for the MVP, per this doc's recommendation; add
+   `hls.js` only if a concrete long-clip case needs it.
+3. **Poster source** — default: author-supplied image asset (this doc), with auto-generated frame deferred to T2.
+4. **Native vs. custom captions** — default: custom overlay captions, as proposed, so overlay and in-world captions
+   render identically; revisit only if the custom renderer proves harder to maintain than `<track>`.
+5. **Where captions are extracted to** — not actually open: `packages/captions`, split from `packages/audio`'s
+   `CaptionTrack`/`parseWebVTT` when video becomes the second consumer, per the shared-code rule in
+   `attachment-integration.md` section 1. No decision needed; this is already the design.
 
 ## Build sequence
 

@@ -366,11 +366,20 @@ ignored with a logged warning, not thrown.
 
 ## Open questions
 
-1. **Panel primitive.** Add it (T2), or keep pictures as attachments on ordinary objects only?
-2. **Working max dimension.** 2048 is proposed. Confirm against the target device and typical author assets.
-3. **Overlay for images in edit mode.** Should the editor viewport show surfaces, or only play mode? Editing without seeing the picture is awkward; showing them costs memory during authoring.
-4. **Thumbnails.** Generated client-side on import (session only) or by the backend at upload (Stage 3)?
-5. **Attribution.** Whether `credit` is shown to visitors automatically.
+**Decision (2026-09-22): Add the `panel` primitive, scheduled as T2.** See `attachment-integration.md`'s "Open
+questions" decision log and section 4.3. Until it ships, pictures attach to ordinary objects (cube/sphere/cylinder).
+
+The following are lower-impact and take the stated default; flag if any should change:
+
+1. **Working max dimension** — default: 2048, as proposed, until checked against a real target device and typical
+   author assets.
+2. **Overlay for images in edit mode** — default: the editor viewport shows surfaces in edit mode too (not only play
+   mode), since editing without seeing the picture is awkward; revisit if authoring-time memory cost becomes a
+   problem.
+3. **Thumbnails** — default: generated client-side on import (session only) for T1; backend generation at upload
+   waits for Stage 3 storage.
+4. **Attribution** — default: `credit` is shown to visitors automatically when present, rather than requiring an
+   author toggle.
 
 ## Build sequence
 

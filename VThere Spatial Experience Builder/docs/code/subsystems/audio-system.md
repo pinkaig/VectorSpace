@@ -234,9 +234,10 @@ such meta is played as an ordinary multichannel file, because channel count alon
 
 ### 7. Captions
 
-- A caption track is a list of cues `{ start, end, text, speaker? }` for a language `lang`. Sources: WebVTT text
-  parsed by `parseWebVTT`, JSON cues inline in meta, or a caption asset (a `text/vtt` or `application/json` asset
-  resolved through the Asset Manager).
+- A caption track is a list of cues `{ start, end, text, speaker? }` for a language `lang`, loaded from a caption
+  asset (a `text/vtt` or `application/json` asset resolved through the Asset Manager and parsed by `parseWebVTT` or
+  as JSON cues) — see the caption-source decision under Open questions. `CaptionTrackRef.cues` stays available for a
+  caller that already has parsed cues in hand; it is not the authoring path.
 - The **active cue is derived from the voice clock**, not from a timer. Seeking, pausing, resetting and looping
   therefore keep captions correct with no extra logic. Overlapping cues are supported (all active cues returned).
 - The audio system emits `captionChanged { voiceId, cues }`. It does **not** render. The UI subscribes and draws
@@ -657,16 +658,26 @@ Note `contracts.md` lists `playAudioOrVideo` as the example name while code and 
 
 ## Open questions
 
-1. **Trigger names and event shape.** Confirm `audioStarted`, `audioEnded` and `audioMarker:<name>` and how the dispatcher
-   receives an event with an optional object id.
-2. **Attachment binding.** Proposed: on the host (`SceneObject.attachments`, `ZoneDefinition.attachments`), started by
-   rules, never by a trigger of its own. Still to confirm; see `attachment-integration.md` section 4.
-3. **Default budget.** 64 MB of decoded audio is a starting number. Set it from a target device once one is chosen.
-4. **Caption source of truth.** Inline cues in the project file, or caption assets in media storage. Both are supported by the
-   types. Which one authoring uses first is undecided.
-5. **Global media memory budget.** Proposed as opt-in: `MediaBudget` in `packages/assets` with a share per cache
-   (`attachment-integration.md` section 8). Confirm the ceiling.
-6. **Video soundtrack routing** through `attachMediaElement` (see considerations and `video-system.md`).
+**Decision (2026-09-22): Attachment binding is on the host** — `SceneObject.attachments`, `ZoneDefinition.attachments`,
+started by rules, never by a trigger of its own. See `attachment-integration.md` section 4 and its "Open questions"
+decision log.
+
+**Decision (2026-09-22): Captions are separate caption assets, not inline cues.** See
+`attachment-integration.md`'s "Open questions" decision log. `AudioAssetMeta`'s caption field becomes a reference to a
+caption asset id, not an inline cue array.
+
+**Decision (2026-09-22): Video soundtrack routes through this audio system**, via `attachMediaElement` (see
+Considerations below and `video-system.md`). Master volume, mute and ducking apply to video the same as any other
+channel; `video-system.md`'s audio port is a required dependency on `packages/audio`, not optional.
+
+The following are lower-impact and take the stated default; flag if any should change:
+
+1. **Trigger names and event shape** — default: `audioStarted`, `audioEnded` and `audioMarker:<name>` as proposed,
+   with an event carrying an optional object id.
+2. **Default budget.** 64 MB of decoded audio — default: keep as the starting number until measured against a real
+   target device.
+3. **Global media memory budget** (`MediaBudget` in `packages/assets`, `attachment-integration.md` section 8) —
+   default: one fixed ceiling to start, per `attachment-integration.md`'s decision, not per device class.
 
 ## Build sequence
 

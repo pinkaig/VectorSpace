@@ -32,6 +32,7 @@
  */
 import {
   AssetKind,
+  InteractionRule,
   ProjectData,
   SceneObject,
   cloneProject,
@@ -132,6 +133,7 @@ export interface ObjectOperationResult {
   objectId?: string
   removedObject?: SceneObject
   originalIndex?: number
+  removedRules?: InteractionRule[]
 }
 
 export interface UpdateObjectInput extends ObjectTargetInput {
@@ -219,10 +221,22 @@ export const removeObject = (
   // removing an object removes its whole subtree so no child is left orphaned
   const subtreeIds = collectSubtreeIds(scene.objects, object.id)
   scene.objects = scene.objects.filter((item) => !subtreeIds.has(item.id))
+  // a rule referencing a removed object would fail validateRules on the next
+  // load, so it must be dropped alongside the object it targets
+  let removedRules: InteractionRule[] | undefined
+  if (Array.isArray(next.rules)) {
+    removedRules = next.rules.filter((rule) => rule.objectId !== undefined && subtreeIds.has(rule.objectId))
+    if (removedRules.length > 0) {
+      next.rules = next.rules.filter((rule) => !(rule.objectId !== undefined && subtreeIds.has(rule.objectId)))
+    } else {
+      removedRules = undefined
+    }
+  }
   return {
     project: next,
     removedObject: object,
     originalIndex: index,
+    removedRules,
   }
 }
 

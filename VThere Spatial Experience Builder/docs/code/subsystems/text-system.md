@@ -392,12 +392,25 @@ invalid params are ignored with a logged warning, not thrown.
 
 ## Open questions
 
-1. **`showPanel` argument.** Confirm `attachmentId` with `componentId` as an alias, or migrate existing examples.
-2. **Inline vs file default.** Recommendation: inline first (T1), file text once Stage 3 storage exists. Confirm.
-3. **Markdown subset.** Is the list in section 2 enough, or is a full markdown library wanted despite the sanitiser it would need?
-4. **Panel stack cap and modal behaviour.** Three non-modal panels is a placeholder number.
-5. **Link confirmation.** On by default in published runtime, or author-configurable?
-6. **Where dialogue lives.** As a text presentation (this doc), or as its own dialogue system later.
+**Decision (2026-09-22): `showPanel` takes `attachmentId`, with `componentId` accepted as an alias.** See
+`attachment-integration.md`'s "Open questions" decision log and its section 9. No existing example rules need
+migrating; the alias keeps them working.
+
+**Decision (2026-09-22): Small markdown subset, no library.** Section 2's subset list is confirmed as the T1 scope. No
+`marked`/`markdown-it` + DOMPurify dependency is added; a full markdown library stays a possible future upgrade if the
+subset proves too limiting in practice, re-evaluated against `tech-stack.md`'s unreviewed-dependency policy at that
+time.
+
+The following are lower-impact and take the stated default; flag if any should change:
+
+1. **Inline vs. file default** — default: inline first (T1), as recommended; file-backed text asset support waits for
+   Stage 3 storage.
+2. **Panel stack cap and modal behaviour** — default: three non-modal panels, as a placeholder, tuned once real
+   authoring content exists.
+3. **Link confirmation** — default: on by default in the published runtime (a visitor confirms before leaving the
+   experience); author-configurable is a later refinement if it turns out too intrusive.
+4. **Where dialogue lives** — default: as a text presentation in this doc; a standalone dialogue system is deferred
+   until a concrete case needs branching or a queue this doc's `PanelManager` doesn't cover.
 
 ## Build sequence
 
