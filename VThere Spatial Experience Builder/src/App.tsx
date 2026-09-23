@@ -30,7 +30,6 @@ import {
 } from '@vthere/authoring-engine'
 import { createLogger } from '../packages/debugging/src/index'
 import {
-  AssetKind,
   ProjectData,
   SceneObject,
   defaultProject,
@@ -49,7 +48,8 @@ import {
   subscribeProjectSync,
   type ProjectSyncStatus,
 } from './sync/projectSync'
-import { assetCatalog, filterAssets } from './assets'
+import { AssetDefinition, assetCatalog, filterAssets } from './assets'
+import { addUserAsset, isUserAsset, loadUserAssets, removeUserAsset } from './userAssets'
 import {
   createEditorObject,
   createEditorScene,
@@ -108,10 +108,41 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
+  const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
+  const [assetImportError, setAssetImportError] = useState<string | null>(null)
+  const [isDraggingAsset, setIsDraggingAsset] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const modelFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
+  const visibleAssets = [...assetCatalog, ...userAssets]
+
+  useEffect(() => {
+    loadUserAssets()
+      .then(setUserAssets)
+      .catch((error) => setAssetImportError(error instanceof Error ? error.message : 'Could not load imported assets'))
+  }, [])
+
+  const importModelFiles = async (files: FileList | null | undefined) => {
+    if (!files || files.length === 0) return
+    try {
+      // A .glb is one file; a .gltf needs its .bin/texture files selected or dropped
+      // alongside it — addUserAsset() picks the .glb/.gltf out of the batch as the entry
+      // point and keeps the rest as that asset's supporting files.
+      const asset = await addUserAsset(Array.from(files))
+      setUserAssets((prev) => [...prev, asset])
+      setAssetImportError(null)
+    } catch (error) {
+      setAssetImportError(error instanceof Error ? error.message : 'Could not import this file')
+    }
+  }
+  const deleteUserAsset = async (assetId: string) => {
+    // Any already-placed objects using this asset are left as-is and will simply stop
+    // rendering next reload — removing them from existing scenes isn't handled here.
+    await removeUserAsset(assetId)
+    setUserAssets((prev) => prev.filter((asset) => asset.assetId !== assetId))
+  }
 
   const commit = (label: string, next: ProjectData) => {
     timelineRef.current.commit(label, next)
@@ -147,8 +178,8 @@ export default function App() {
     if (!pose) return
     commit('Set start view', updateEditorScene(project, project.activeSceneId, { startCamera: pose }).project)
   }
-  const addObject = (kind: AssetKind) => {
-    const result = createEditorObject(project, scene.id, kind)
+  const addObject = (asset: AssetDefinition) => {
+    const result = createEditorObject(project, scene.id, asset.kind, asset.assetId)
     commit('Create object', result.project)
     setSelectedId(result.objectId ?? null)
   }
@@ -320,14 +351,42 @@ export default function App() {
             </div>
           ))}</div>
           <section className="panel">
-            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
+            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
             <div className="asset-tools">
               <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+              <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select a .glb, or a .gltf together with its .bin/texture files">Import GLB / glTF</button>
+              <input
+                ref={modelFileInputRef}
+                className="hidden-file-input"
+                type="file"
+                multiple
+                accept=".glb,.gltf,.bin,image/*"
+                onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
+              />
             </div>
-            <div className="asset-list">
-              {filterAssets(assetQuery).map((asset) => <button className="asset-card" key={asset.kind} onClick={() => addObject(asset.kind)}><span className={`asset-preview ${asset.kind}`}><span /></span><span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span><span className="add-symbol">+</span></button>)}
-              {filterAssets(assetQuery).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+            <div
+              className={isDraggingAsset ? 'asset-list drag-over' : 'asset-list'}
+              onDragOver={(event) => { event.preventDefault(); setIsDraggingAsset(true) }}
+              onDragLeave={() => setIsDraggingAsset(false)}
+              onDrop={(event) => {
+                event.preventDefault()
+                setIsDraggingAsset(false)
+                void importModelFiles(event.dataTransfer.files)
+              }}
+            >
+              {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                  <span className={`asset-preview ${asset.kind}`}><span /></span>
+                  <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                  {isUserAsset(asset.assetId)
+                    ? <span className="icon-button" title="Remove imported asset" onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset.assetId) }}>×</span>
+                    : <span className="add-symbol">+</span>}
+                </button>
+              ))}
+              {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+              {isDraggingAsset && <div className="asset-drop-hint">Drop a .glb, or a .gltf with its .bin/texture files, to import it</div>}
             </div>
+            {assetImportError && <div className="asset-import-error">{assetImportError}</div>}
           </section>
           <div className="rail-footer">
             <span className="status-dot" />
@@ -375,33 +434,12 @@ export default function App() {
             </div>
             <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
           </div>
-          {layoutMode === 'quad' ? (
-            <div className="quad-viewport">
-              <Viewport
-                ref={viewportRef}
-                objects={scene.objects}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onMove={moveObject}
-                onScale={scaleObject}
-                onRotate={rotateObject}
-                gizmoMode={gizmoMode}
-                scaleSpace={scaleSpace}
-                rotateSpace={rotateSpace}
-                sceneId={scene.id}
-                environmentId={scene.environmentId}
-                startCamera={scene.startCamera}
-                cameraMode={cameraMode}
-                resetToken={resetToken}
-                syncToken={syncToken}
-                showOctaOrb={showOctaOrb}
-                showAxisIndicator={showAxisIndicator}
-              />
-              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
-              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
-              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
-            </div>
-          ) : (
+          {/*
+            Keep both layouts mounted and toggle visibility with CSS.
+            This avoids recreating WebGL contexts and reloading shaders,
+            geometry, and textures whenever the layout changes.
+          */}
+          <div className={layoutMode === 'quad' ? 'quad-viewport' : 'quad-viewport single-mode'}>
             <Viewport
               ref={viewportRef}
               objects={scene.objects}
@@ -419,12 +457,17 @@ export default function App() {
               cameraMode={cameraMode}
               resetToken={resetToken}
               syncToken={syncToken}
-              orthographic={singleViewOrthographic}
-              onOrthographicChange={setSingleViewOrthographic}
+              // The quad layout's main pane is always perspective - only the three reference
+              // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
+              orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}
+              onOrthographicChange={layoutMode === 'quad' ? undefined : setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
             />
-          )}
+            <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
+            <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
+            <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
+          </div>
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
