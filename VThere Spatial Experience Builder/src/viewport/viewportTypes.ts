@@ -16,6 +16,7 @@ export const VERTICAL_KEYS: Record<string, number> = {
   KeyC: -1,
 }
 export const MIN_FLY_HEIGHT = 0.2
+export const EYE_HEIGHT = 1.7   //human-eye height level
 // Radians of camera rotation per pixel of mouse movement, shared by drag-to-look
 // (editor + un-locked walk) and pointer-lock look (Run simulation).
 export const LOOK_SENSITIVITY = 0.0045
