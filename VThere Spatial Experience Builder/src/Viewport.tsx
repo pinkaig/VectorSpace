@@ -50,6 +50,7 @@ import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
+import { EYE_HEIGHT } from './viewport/viewportTypes'
 import { createGizmoSet } from './viewport/createGizmoSet'
 import { AXIS_INDICATOR_DIM, OCTAORB_DIM, OVERLAY_MARGIN, createViewportOverlays } from './viewport/overlayWidgets'
 import { matchFaceView } from './gizmo/viewSnap'
@@ -251,7 +252,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const activeCameraRef: { current: THREE.Camera } = { current: camera }
 
     applyPoseRef.current = (pose) => {
-      const orientation = applyCameraPose(camera, controls, pose)
+      const effectivePose = dataRef.current.runtimeMode === 'play'
+        ? { position: [pose.position[0], EYE_HEIGHT, pose.position[2]] as [number, number, number], target: [pose.target[0], EYE_HEIGHT, pose.target[2]] as [number, number, number] }
+        : pose
+      const orientation = applyCameraPose(camera, controls, effectivePose)
       yawRef.current = orientation.yaw
       pitchRef.current = orientation.pitch
       walkHeightRef.current = camera.position.y
@@ -346,7 +350,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderedSignature = ''
       if (restart) emitRuntimeEvent({ kind: 'sceneStart' })
     }
-    restartRuntimeRef.current = () => { if (dataRef.current.runtimeMode === 'play') stopRun(true) }
+    // Restarting a walkthrough must return the visitor to the start view — otherwise
+    // a scene with no rule-driven visual change looks like the R key did nothing.
+    restartRuntimeRef.current = () => {
+      if (dataRef.current.runtimeMode !== 'play') return
+      stopRun(true)
+      applyPoseRef.current(dataRef.current.startCamera)
+    }
 
     let interactionController: ReturnType<typeof createViewportInteractionController>
     const syncGizmoFrame = () => {
