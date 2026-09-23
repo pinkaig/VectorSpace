@@ -108,6 +108,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
+  const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
   const [assetImportError, setAssetImportError] = useState<string | null>(null)
@@ -347,64 +348,112 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside className="left-rail">
-          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>          
-            <div className="scene-dropdown">{project.scenes.map((item)=>{const isExpanded=expandedSceneIds.has(item.id); const isActive = item.id === scene.id; return (
-              <div className="scene-group" key={item.id}>
-                
-                <button className="icon-button" title={isExpanded? 'Collapse object list': 'Expand object list'} onClick={()=>toggleSceneExpanded(item.id)}>
-                  {isExpanded? 'v':'>'}
-                </button>
-                
-                <button className="scene-tab" title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} onClick={() => { if (!isActive) { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) } }}>
-                  {item.name}<span>{item.objects.length}</span>
-                </button>
-                
-                {isExpanded && <div className="tree-list"> 
-                  {item.objects.length === 0 ? /*check for any objects */
-                    <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div> 
-                    : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
-                      <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} onClick={() => setSelectedId(object.id)}><span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
-                      : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}</div>}
-              </div>
-            )})}</div>
-          <section className="panel">
-            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
-            <div className="asset-tools">
-              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-              <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select a .glb, or a .gltf together with its .bin/texture files">Import GLB / glTF</button>
-              <input
-                ref={modelFileInputRef}
-                className="hidden-file-input"
-                type="file"
-                multiple
-                accept=".glb,.gltf,.bin,image/*"
-                onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
-              />
-            </div>
-            <div
-              className={isDraggingAsset ? 'asset-list drag-over' : 'asset-list'}
-              onDragOver={(event) => { event.preventDefault(); setIsDraggingAsset(true) }}
-              onDragLeave={() => setIsDraggingAsset(false)}
-              onDrop={(event) => {
-                event.preventDefault()
-                setIsDraggingAsset(false)
-                void importModelFiles(event.dataTransfer.files)
-              }}
+          <div className="rail-tabs">
+            <button //scene
+              className={LeftTabs === 'scenes' ? 'rail-tab active' : 'rail-tab'}
+              onClick={() => SetLeftTab('scenes')}
+              >
+              Scene
+            </button>
+            <button //assets
+              className={LeftTabs === 'assets' ? 'rail-tab active' : 'rail-tab'}
+              onClick={() => SetLeftTab('assets')}
+              >
+              Assets
+            </button>
+            <button //interactions
+              className={LeftTabs === 'interactions' ? 'rail-tab active' : 'rail-tab'}
+              onClick={() => SetLeftTab('interactions')}
             >
-              {filterAssets(assetQuery, visibleAssets).map((asset) => (
-                <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
-                  <span className={`asset-preview ${asset.kind}`}><span /></span>
-                  <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
-                  {isUserAsset(asset.assetId)
-                    ? <span className="icon-button" title="Remove imported asset" onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset.assetId) }}>×</span>
-                    : <span className="add-symbol">+</span>}
-                </button>
-              ))}
-              {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
-              {isDraggingAsset && <div className="asset-drop-hint">Drop a .glb, or a .gltf with its .bin/texture files, to import it</div>}
+              Interact
+            </button>
+          </div>
+          {/* ── Scenes tab ─────────────────────────────────────────── */}
+          {LeftTabs === 'scenes' && (
+            <div className="rail-tab-panel">
+              <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
+              <div className="scene-dropdown">{project.scenes.map((item)=>{const isExpanded=expandedSceneIds.has(item.id); const isActive = item.id === scene.id; return (
+                <div className="scene-group" key={item.id}>
+                  <div className="scene-row"> 
+                    <button className="scene-tab" 
+                            title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} 
+                            onClick={() => { if (!isActive) { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) } }}>
+                            {item.name}<span className="scene-count">[{item.objects.length}]</span>
+                    </button>
+                    <button className="scene-chevron" 
+                            title={isExpanded? 'Collapse object list': 'Expand object list'} 
+                            onClick={()=>toggleSceneExpanded(item.id)}>
+                            {isExpanded? 'v':'>'}
+                    </button>
+                  </div>
+                  {isExpanded && <div className="tree-list">
+                    {item.objects.length === 0 ? /*check for any objects */
+                      <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div>
+                      : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
+                        <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} 
+                                onClick={() => setSelectedId(object.id)}>
+                                  <span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
+                        : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}</div>}
+                </div>
+              )})}</div>
             </div>
-            {assetImportError && <div className="asset-import-error">{assetImportError}</div>}
-          </section>
+          )}
+          {/* ── Scenes tab end ─────────────────────────────────────── */}
+
+          {/* ── Assets tab ─────────────────────────────────────────── */}
+          {LeftTabs === 'assets' && (
+            <div className="rail-tab-panel">
+              <section className="panel">
+                <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
+                <div className="asset-tools">
+                  <input placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                  <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select a .glb, or a .gltf together with its .bin/texture files">Import GLB / glTF</button>
+                  <input
+                    ref={modelFileInputRef}
+                    className="hidden-file-input"
+                    type="file"
+                    multiple
+                    accept=".glb,.gltf,.bin,image/*"
+                    onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
+                  />
+                </div>
+                <div
+                  className={isDraggingAsset ? 'asset-list drag-over' : 'asset-list'}
+                  onDragOver={(event) => { event.preventDefault(); setIsDraggingAsset(true) }}
+                  onDragLeave={() => setIsDraggingAsset(false)}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    setIsDraggingAsset(false)
+                    void importModelFiles(event.dataTransfer.files)
+                  }}
+                >
+                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                    <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                      {isUserAsset(asset.assetId)
+                        ? <span className="icon-button" title="Remove imported asset" onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset.assetId) }}>×</span>
+                        : <span className="add-symbol">+</span>}
+                    </button>
+                  ))}
+                  {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+                  {isDraggingAsset && <div className="asset-drop-hint">Drop a .glb, or a .gltf with its .bin/texture files, to import it</div>}
+                </div>
+                {assetImportError && <div className="asset-import-error">{assetImportError}</div>}
+              </section>
+            </div>
+          )}
+          {/* ── Assets tab end ─────────────────────────────────────── */}
+
+          {/* ── Interactions tab (empty) ─────────────────────── */}
+          {LeftTabs === 'interactions' && (
+            <div className="rail-tab-panel">
+              <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Interactions</h2></div></div>
+              <div className="empty-state">Nothing here yet.<br /><span>Interactions will appear in this tab.</span></div>
+            </div>
+          )}
+          {/* ── Interactions tab end (empty) ─────────────────── */}
+          
           <div className="rail-footer">
             <span className="status-dot" />
             {persistenceState}
@@ -534,5 +583,5 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
       </div>
     )
   }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input aria-label="Asset ID" value={object.assetId} onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }

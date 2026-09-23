@@ -140,6 +140,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 .right-rail {
   border-left: 1px solid #203039;
@@ -159,6 +160,40 @@ button:disabled {
   margin: 5px 0 0;
   font-weight: 600;
 }
+
+.rail-tabs {
+  display: flex;
+  flex: 0 0 auto;     
+  border-bottom: 1px solid #203039;
+}
+.rail-tab {
+  flex: 1;            
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 8px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #729097;
+  font-size: 11px;
+  font-weight: 600;
+}
+.rail-tab span { color: #557278; font-family: 'DM Mono', monospace; font-size: 9px; }
+.rail-tab:hover { color: #b9ccc8; }
+.rail-tab.active { color: #e2eeea; border-bottom-color: #d7b577; background: #142328; }
+.rail-tab.active span { color: #a8d7ca; }
+.rail-tab:focus-visible { outline: 1px solid #71b7aa; outline-offset: -3px; }
+
+.rail-tab-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.left-rail .rail-footer { flex: 0 0 auto; }
+
 .icon-button {
   width: 26px;
   height: 26px;
@@ -169,10 +204,7 @@ button:disabled {
   font-size: 18px;
   line-height: 1;
 }
-.scene-tabs {
-  padding: 0 10px 13px;
-  border-bottom: 1px solid #1c2b32;
-}
+
 .scene-tab {
   width: 100%;
   display: flex;
@@ -185,6 +217,26 @@ button:disabled {
   text-align: left;
   font-size: 11px;
 }
+
+.scene-row {
+  display: flex;                  /* puts the two buttons side by side */
+  align-items: center;
+  border-left: 2px solid transparent;
+}
+.scene-row:hover { background: #111f24; }
+.scene-row.active { border-left-color: #d7b577; background: #142328; }
+
+.scene-row .scene-tab {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;   
+  gap: 5px;
+  border-left: 0;
+  background: transparent;
+}
+.scene-row.active .scene-tab { color: #e2eeea; }
+.scene-count { color: #628086; font-family: "DM Mono", monospace; font-size: 10px; }
+
 .scene-tab.active {
   border-left-color: #d7b577;
   background: #142328;
@@ -194,6 +246,25 @@ button:disabled {
   color: #628086;
   font-family: "DM Mono", monospace;
 }
+
+.scene-chevron {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #557278;
+}
+.scene-chevron:hover { color: #a8d7ca; background: #1b3032; }
+
+
+
+
 .tree-list {
   padding: 12px 10px;
   flex: 0.4;
@@ -271,7 +342,8 @@ button:disabled {
   background: #8a8fa3;
 }
 .tree-chevron {
-  margin-left: auto;
+  border: 0;
+  background: transparent;
   color: #557278;
   font-size: 17px;
 }
