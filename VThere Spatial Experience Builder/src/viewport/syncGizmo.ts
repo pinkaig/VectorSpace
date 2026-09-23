@@ -59,7 +59,7 @@ export const syncGizmo = ({
 
   if (!selected || !selectedMesh || isDragging) return
 
-  gizmoGroup.position.set(...selected.transform.position)
+  gizmoGroup.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()))
   axisArrows.forEach((arrow) => {
     const offset = extentAlong(selectedMesh, arrow.axis) + GIZMO_GAP
     arrow.group.position.copy(arrow.direction).multiplyScalar(offset)
@@ -71,7 +71,7 @@ export const syncGizmo = ({
       ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation))
       : handle.direction
     const offset = (isLocalScale
-      ? extentAlongLocal(selectedMesh as THREE.Mesh, handle.axis)
+      ? extentAlongLocal(selectedMesh, handle.axis)
       : extentAlong(selectedMesh, handle.axis)) + GIZMO_GAP + ARROW_LENGTH
     handle.mesh.position.copy(direction).multiplyScalar(offset)
   })

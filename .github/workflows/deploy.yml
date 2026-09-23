@@ -1,0 +1,62 @@
+name: deploy
+
+# Manual-only for now. This workflow is infrastructure scaffolding, not an
+# active deploy pipeline: it must not run against a real target until a
+# deployment provider/VM owner is confirmed (see
+# "VThere Spatial Experience Builder/SESSION.md" open question: "Which
+# approved deployment provider will own the protected production
+# environment?"). No `push` trigger is wired up on purpose.
+#
+# Required repo configuration once that question is answered:
+#   - A GitHub Environment named "production" with required reviewers
+#     configured (Settings > Environments), so every run needs approval.
+#   - Environment secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY
+#     (private key with access to the VM's deploy user), DEPLOY_PATH
+#     (absolute path to the checkout on the VM).
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: VThere Spatial Experience Builder
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add remote host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync repository to VM
+        run: |
+          rsync -az --delete \
+            --exclude 'node_modules' --exclude '.git' --exclude 'dist' \
+            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+
+      - name: Build and restart services on the VM
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && \
+             docker compose -f docker-compose.prod.yml pull --ignore-pull-failures && \
+             docker compose -f docker-compose.prod.yml build && \
+             docker compose -f docker-compose.prod.yml up -d && \
+             docker image prune -f"
+
+      - name: Verify health after deploy
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "curl -fsS --retry 5 --retry-delay 3 http://localhost/health"

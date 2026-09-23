@@ -24,10 +24,12 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import {
+  collectSubtreeIds,
   createCommandTimeline,
+  executeCommand,
 } from '@vthere/authoring-engine'
+import { createLogger } from '../packages/debugging/src/index'
 import {
-  AssetKind,
   ProjectData,
   SceneObject,
   defaultProject,
@@ -40,25 +42,40 @@ import {
   loadProjectWithSource,
   saveProject,
 } from './serializer'
-import { assetCatalog, filterAssets } from './assets'
+import {
+  getProjectSyncStatus,
+  stageProjectSync,
+  subscribeProjectSync,
+  type ProjectSyncStatus,
+} from './sync/projectSync'
+import { AssetDefinition, assetCatalog, filterAssets } from './assets'
+import { addUserAsset, isUserAsset, loadUserAssets, removeUserAsset } from './userAssets'
 import {
   createEditorObject,
   createEditorScene,
   duplicateEditorObject,
+  moveEditorObjectCommand,
   removeEditorObject,
   renameEditorObject,
+  reparentEditorObject,
+  rotateEditorObjectCommand,
+  scaleEditorObjectCommand,
   selectEditorScene,
+  setEditorObjectAssetId,
   setEditorObjectEnabled,
   setEditorObjectVisible,
+  transformEditorObjectCommand,
   updateEditorScene,
-  updateEditorTransform,
+  type EditorCommandBuilder,
 } from './editor/editorOperations'
+import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTree'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
+const logger = createLogger('editor.commands')
 
 export default function App() {
   const [project, setProject] = useState<ProjectData>(initialProject)
@@ -75,6 +92,9 @@ export default function App() {
   const [showOctaOrb, setShowOctaOrb] = useState(true)
   const [showAxisIndicator, setShowAxisIndicator] = useState(true)
   const [resetToken, setResetToken] = useState(0)
+  // Bumped when an edit is rejected, to pull the viewport's preview meshes back
+  // to ProjectData. See runCommand.
+  const [syncToken, setSyncToken] = useState(0)
   const [savedAt, setSavedAt] = useState(
     initialLoad.source === 'default'
       ? 'New local project'
@@ -85,13 +105,45 @@ export default function App() {
       ? 'No local draft found; using clean project'
       : `Loaded from browser localStorage ${initialLoad.source}`,
   )
+  const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
+  const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
+  const [assetImportError, setAssetImportError] = useState<string | null>(null)
+  const [isDraggingAsset, setIsDraggingAsset] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const modelFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
+  const visibleAssets = [...assetCatalog, ...userAssets]
+
+  useEffect(() => {
+    loadUserAssets()
+      .then(setUserAssets)
+      .catch((error) => setAssetImportError(error instanceof Error ? error.message : 'Could not load imported assets'))
+  }, [])
+
+  const importModelFiles = async (files: FileList | null | undefined) => {
+    if (!files || files.length === 0) return
+    try {
+      // A .glb is one file; a .gltf needs its .bin/texture files selected or dropped
+      // alongside it — addUserAsset() picks the .glb/.gltf out of the batch as the entry
+      // point and keeps the rest as that asset's supporting files.
+      const asset = await addUserAsset(Array.from(files))
+      setUserAssets((prev) => [...prev, asset])
+      setAssetImportError(null)
+    } catch (error) {
+      setAssetImportError(error instanceof Error ? error.message : 'Could not import this file')
+    }
+  }
+  const deleteUserAsset = async (assetId: string) => {
+    // Any already-placed objects using this asset are left as-is and will simply stop
+    // rendering next reload — removing them from existing scenes isn't handled here.
+    await removeUserAsset(assetId)
+    setUserAssets((prev) => prev.filter((asset) => asset.assetId !== assetId))
+  }
 
   const toggleSceneExpanded = (id: string) => {
     setExpandedSceneIds((current) => {
@@ -106,6 +158,24 @@ export default function App() {
     timelineRef.current.commit(label, next)
     setProject(timelineRef.current.current)
   }
+  /**
+   * The single entry point for transform edits. The command service owns whether
+   * an edit reaches history; this only reflects the outcome into React.
+   *
+   * A rejected edit leaves ProjectData untouched, so the viewport's render
+   * signature would not change and the previewed mesh would stay at the invalid
+   * pose. Bumping syncToken forces the viewport to rebuild from ProjectData.
+   * An 'unchanged' result needs no resync: the mesh is already correct.
+   */
+  const runCommand = (build: EditorCommandBuilder) => {
+    const result = executeCommand(timelineRef.current, build)
+    if (result.status === 'committed') setProject(timelineRef.current.current)
+    if (result.status === 'rejected') {
+      logger.warn('Transform rejected; no history entry was created', { error: result.error })
+      setSyncToken((value) => value + 1)
+    }
+    return result
+  }
   const resetTimeline = (next: ProjectData) => {
     timelineRef.current = createCommandTimeline(next, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
     setProject(timelineRef.current.current)
@@ -118,27 +188,32 @@ export default function App() {
     if (!pose) return
     commit('Set start view', updateEditorScene(project, project.activeSceneId, { startCamera: pose }).project)
   }
-  const addObject = (kind: AssetKind) => {
-    const result = createEditorObject(project, scene.id, kind)
+  const addObject = (asset: AssetDefinition) => {
+    const result = createEditorObject(project, scene.id, asset.kind, asset.assetId)
     commit('Create object', result.project)
     setSelectedId(result.objectId ?? null)
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
     if (!selected) return
-    commit('Update transform', updateEditorTransform(project, scene.id, selected.id, changes).project)
+    const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
+    if (builder) runCommand(builder)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
-    commit('Move object', updateEditorTransform(project, scene.id, id, { position }).project)
+    runCommand(moveEditorObjectCommand(scene.id, id, position))
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
-    commit('Scale object', updateEditorTransform(project, scene.id, id, { scale }).project)
+    runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
   const rotateObject = (id: string, rotation: [number, number, number]) => {
-    commit('Rotate object', updateEditorTransform(project, scene.id, id, { rotation }).project)
+    runCommand(rotateEditorObjectCommand(scene.id, id, rotation))
   }
   const renameSelected = (name: string) => {
     if (!selected) return
     commit('Rename object', renameEditorObject(project, scene.id, selected.id, name).project)
+  }
+  const setSelectedAssetId = (assetId: string) => {
+    if (!selected) return
+    commit('Change asset ID', setEditorObjectAssetId(project, scene.id, selected.id, assetId).project)
   }
   const deleteSelected = () => {
     if (!selected) return
@@ -150,6 +225,18 @@ export default function App() {
     const result = duplicateEditorObject(project, scene.id, selected.id)
     commit('Duplicate object', result.project)
     setSelectedId(result.objectId ?? null)
+  }
+  const reparentObjectTo = (objectId: string, parentId: string | null) => {
+    commit('Reparent object', reparentEditorObject(project, scene.id, objectId, parentId).project)
+  }
+  const indentObject = (objectId: string) => {
+    const target = previousSibling(scene.objects, objectId)
+    if (target) reparentObjectTo(objectId, target.id)
+  }
+  const outdentObject = (objectId: string) => {
+    const object = scene.objects.find((item) => item.id === objectId)
+    if (object?.parentId === undefined) return
+    reparentObjectTo(objectId, grandparentId(scene.objects, objectId))
   }
   const setSelectedVisible = (value: boolean) => {
     if (!selected) return
@@ -173,16 +260,30 @@ export default function App() {
     timelineRef.current.redo()
     setProject(timelineRef.current.current)
   }
+  /**
+   * Dual write: Tier 1 (serializer.ts's localStorage save) happens synchronously
+   * first so a reload never loses an edit even if sync never completes; Tier 2
+   * (packages/sync's queue) is then staged for background delivery. Save status
+   * text reflects Tier 1; sync status is tracked separately via syncStatus.
+   */
   const persist = (nextProject: ProjectData, label: string) => {
     const result = saveProject(nextProject)
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
     setPersistenceState(result === 'saved' ? 'Primary + backup ready' : result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
+    if (result !== 'failed') stageProjectSync(nextProject)
   }
   useEffect(() => {
     const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
     return () => window.clearTimeout(timer)
   }, [project])
+  useEffect(() => subscribeProjectSync(setSyncStatus), [])
+  const syncStatusLabel: Record<ProjectSyncStatus, string> = {
+    idle: 'Synced',
+    pending: 'Syncing to server…',
+    conflict: 'Sync conflict; local edits kept',
+    failed: 'Sync failed, will retry',
+  }
   const save = () => persist(project, 'Saved')
   const loadDraft = () => {
     const loaded = loadProjectWithSource()
@@ -267,20 +368,52 @@ export default function App() {
               </div>
             )})}</div>
           <section className="panel">
-            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery).length}/{assetCatalog.length}</span></div>
-              <div className="asset-tools">
-                <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-              </div>
-            <div className="asset-list">
-              {filterAssets(assetQuery).map((asset) => <button className="asset-card" key={asset.kind} onClick={() => addObject(asset.kind)}><span className={`asset-preview ${asset.kind}`}><span /></span><span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span><span className="add-symbol">+</span></button>)}
-              {filterAssets(assetQuery).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
+            <div className="asset-tools">
+              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+              <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select a .glb, or a .gltf together with its .bin/texture files">Import GLB / glTF</button>
+              <input
+                ref={modelFileInputRef}
+                className="hidden-file-input"
+                type="file"
+                multiple
+                accept=".glb,.gltf,.bin,image/*"
+                onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
+              />
             </div>
+            <div
+              className={isDraggingAsset ? 'asset-list drag-over' : 'asset-list'}
+              onDragOver={(event) => { event.preventDefault(); setIsDraggingAsset(true) }}
+              onDragLeave={() => setIsDraggingAsset(false)}
+              onDrop={(event) => {
+                event.preventDefault()
+                setIsDraggingAsset(false)
+                void importModelFiles(event.dataTransfer.files)
+              }}
+            >
+              {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                  <span className={`asset-preview ${asset.kind}`}><span /></span>
+                  <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                  {isUserAsset(asset.assetId)
+                    ? <span className="icon-button" title="Remove imported asset" onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset.assetId) }}>×</span>
+                    : <span className="add-symbol">+</span>}
+                </button>
+              ))}
+              {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+              {isDraggingAsset && <div className="asset-drop-hint">Drop a .glb, or a .gltf with its .bin/texture files, to import it</div>}
+            </div>
+            {assetImportError && <div className="asset-import-error">{assetImportError}</div>}
           </section>
           <div className="rail-footer">
             <span className="status-dot" />
             {persistenceState}
             <small className="storage-note">Save location: browser localStorage</small>
             <button className="text-button" onClick={reset}>Reset draft</button>
+          </div>
+          <div className="rail-footer">
+            <span className={`status-dot ${syncStatus}`} />
+            {syncStatusLabel[syncStatus]}
           </div>
         </aside>
         <section className="center-stage">
@@ -318,32 +451,12 @@ export default function App() {
             </div>
             <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
           </div>
-          {layoutMode === 'quad' ? (
-            <div className="quad-viewport">
-              <Viewport
-                ref={viewportRef}
-                objects={scene.objects}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onMove={moveObject}
-                onScale={scaleObject}
-                onRotate={rotateObject}
-                gizmoMode={gizmoMode}
-                scaleSpace={scaleSpace}
-                rotateSpace={rotateSpace}
-                sceneId={scene.id}
-                environmentId={scene.environmentId}
-                startCamera={scene.startCamera}
-                cameraMode={cameraMode}
-                resetToken={resetToken}
-                showOctaOrb={showOctaOrb}
-                showAxisIndicator={showAxisIndicator}
-              />
-              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
-              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
-              <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
-            </div>
-          ) : (
+          {/*
+            Keep both layouts mounted and toggle visibility with CSS.
+            This avoids recreating WebGL contexts and reloading shaders,
+            geometry, and textures whenever the layout changes.
+          */}
+          <div className={layoutMode === 'quad' ? 'quad-viewport' : 'quad-viewport single-mode'}>
             <Viewport
               ref={viewportRef}
               objects={scene.objects}
@@ -360,16 +473,22 @@ export default function App() {
               startCamera={scene.startCamera}
               cameraMode={cameraMode}
               resetToken={resetToken}
-              orthographic={singleViewOrthographic}
-              onOrthographicChange={setSingleViewOrthographic}
+              syncToken={syncToken}
+              // The quad layout's main pane is always perspective - only the three reference
+              // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
+              orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}
+              onOrthographicChange={layoutMode === 'quad' ? undefined : setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
             />
-          )}
+            <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
+            <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
+            <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
+          </div>
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
         </section>
         <aside className="right-rail">
-          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
+          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} onAssetIdChange={setSelectedAssetId} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
     </main>
@@ -379,13 +498,19 @@ export default function App() {
 const radToDeg = (radians: number) => radians * (180 / Math.PI)
 const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 
-function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange }: { object: SceneObject; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void }) {
+function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange, onReparent, onAssetIdChange }: { object: SceneObject; sceneObjects: SceneObject[]; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void; onReparent: (parentId: string | null) => void; onAssetIdChange: (assetId: string) => void }) {
+  // An object cannot become its own or its own descendant's parent, or the tree would cycle.
+  const excludedParentIds = collectSubtreeIds(sceneObjects, object.id)
+  const parentChoices = sceneObjects.filter((item) => !excludedParentIds.has(item.id))
+  // A parented object's transform is local to its parent; a top-level object's
+  // transform is already world space (there's no parent to be local to).
+  const spaceLabel = object.parentId !== undefined ? 'local' : 'world'
   const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
     const isRotation = key === 'rotation'
     const displayValues = isRotation ? values.map(radToDeg) : values
     return (
       <div className="field-group">
-        <label>{isRotation ? `${label} (°)` : label}</label>
+        <label>{isRotation ? `${label} (°, ${spaceLabel})` : `${label} (${spaceLabel})`}</label>
         <div className="vector-fields">
           {displayValues.map((value, index) => (
             <label className="number-field" key={`${key}-${index}`}>
@@ -409,5 +534,5 @@ function Inspector({ object, onRename, onTransform, onDuplicate, onDelete, onVis
       </div>
     )
   }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />{object.assetId}<span>Library asset</span></div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input aria-label="Asset ID" value={object.assetId} onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }

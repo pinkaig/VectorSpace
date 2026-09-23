@@ -11,8 +11,8 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { SceneObject } from './model'
-import { colorFor } from './viewport/viewportTypes'
 import { loadEnvironment } from './environments'
+import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 
 export type ReferenceAxis = 'top' | 'front' | 'right'
 
@@ -108,30 +108,18 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       renderer.setSize(width, height, false)
     }
 
+    // Shares syncArtefacts with the main Viewport rather than rebuilding this logic per
+    // pane — important here specifically, since three of these panes render at once, so a
+    // full-rebuild-every-sync approach (its previous form) tripled the cost of every edit.
     let renderedSignature = ''
     const syncObjects = () => {
       const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
       if (signature === renderedSignature) return
-      objectsGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
-      })
-      objectsGroup.clear()
-      dataRef.current.objects.forEach((item) => {
-        const geometry = item.assetKind === 'sphere' ? new THREE.SphereGeometry(0.65, 32, 20) : item.assetKind === 'cylinder' ? new THREE.CylinderGeometry(0.55, 0.55, 1.2, 32) : new THREE.BoxGeometry(1.1, 1.1, 1.1)
-        const material = new THREE.MeshStandardMaterial({ color: colorFor(item.assetKind), roughness: 0.68, metalness: 0.05 })
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.position.set(...item.transform.position)
-        mesh.rotation.set(...item.transform.rotation)
-        mesh.scale.set(...item.transform.scale)
-        if (item.id === dataRef.current.selectedId) {
-          const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xf3d48b }))
-          mesh.add(edges)
-        }
-        objectsGroup.add(mesh)
+      syncArtefacts({
+        group: objectsGroup,
+        objects: dataRef.current.objects,
+        selectedId: dataRef.current.selectedId,
+        onModelLoaded: () => { renderedSignature = '' },
       })
       renderedSignature = signature
     }
@@ -155,13 +143,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
-      objectsGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
-      })
+      disposeObjectResources(objectsGroup)
       grid.geometry.dispose()
       ;(grid.material as THREE.Material).dispose()
       renderer.dispose()

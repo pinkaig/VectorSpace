@@ -17,10 +17,13 @@ export const MIN_FLY_HEIGHT = 0.2
 export const GIZMO_GAP = 0.15
 export const ARROW_LENGTH = 0.725
 
+// Used for the primitives' own material and for the sidebar/palette dot color. GLB models
+// render with their own authored materials - this entry only colors their sidebar dot.
 const ASSET_COLORS: Record<SceneObject['assetKind'], number> = {
   cube: 0x4ea7a0,
   sphere: 0xe6ad5a,
   cylinder: 0xd66d75,
+  model: 0x8a8fa3,
 }
 
 export const colorFor = (kind: SceneObject['assetKind']) => ASSET_COLORS[kind]
