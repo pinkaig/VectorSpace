@@ -419,6 +419,37 @@ button:disabled {
   font-size: 9px;
   pointer-events: none;
 }
+.viewport-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  pointer-events: none;
+  z-index: 1;
+}
+.viewport-crosshair::before,
+.viewport-crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(225, 237, 235, 0.9);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.7);
+}
+.viewport-crosshair::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  margin-left: -0.75px;
+}
+.viewport-crosshair::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  margin-top: -0.75px;
+}
 .stage-footer {
   display: flex;
   gap: 22px;
@@ -836,7 +867,21 @@ button:disabled {
 .runtime-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
+}
+.runtime-actions span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #81989b;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
+.runtime-actions kbd {
+  color: #a4bbb7;
+  border: 1px solid #365158;
+  padding: 3px 6px;
+  border-radius: 2px;
 }
 .runtime-title {
   display: flex;

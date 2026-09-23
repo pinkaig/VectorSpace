@@ -106,11 +106,20 @@ export const syncOrthoCamera = (
   ortho.updateProjectionMatrix()
 }
 
+export interface WalkCameraOptions {
+  // Run simulation only: pins the camera's Y to this eye height every frame instead of
+  // using keys 'X' and 'C' fly the camera up/down, so the visitor's walk stays ground-locked instead
+  // of floating or flying. Editor walk-mode preview keeps free fly (in interactionController's VERTICAL_KEYS)
+  groundLocked: boolean
+  eyeHeight: number
+}
+
 export const updateWalkCamera = (
   camera: THREE.PerspectiveCamera,
   pressedKeys: Iterable<string>,
   delta: number,
   yaw: number,
+  { groundLocked, eyeHeight }: WalkCameraOptions,
 ): void => {
   const { x: dx, z: dz } = getWalkDirection(pressedKeys)
   const isSprinting = Array.from(pressedKeys).some((key) => key === 'ShiftLeft' || key === 'ShiftRight')
@@ -122,6 +131,10 @@ export const updateWalkCamera = (
     const step = (speed * delta) / length
     camera.position.addScaledVector(forward, dz * step)
     camera.position.addScaledVector(right, dx * step)
+  }
+  if (groundLocked) {
+    camera.position.y = eyeHeight
+    return
   }
   const dy = getVerticalDirection(pressedKeys)
   if (dy !== 0) camera.position.y = Math.max(MIN_FLY_HEIGHT, camera.position.y + dy * speed * delta)

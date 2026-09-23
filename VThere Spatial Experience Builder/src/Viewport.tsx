@@ -45,7 +45,7 @@ import {
   type RuntimeState,
 } from '../packages/interaction/src/index'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
-import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
+import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
@@ -155,6 +155,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // effect below can re-seed it from the camera's current orientation on every transition.
   const yawRef = useRef(0)
   const pitchRef = useRef(0)
+  // Walk-mode eye height, pinned each time a camera pose is applied (initial load,
+  // scene reset, or Home) so WASD movement stays ground-locked instead of flying.
+  const walkHeightRef = useRef(0)
   // Set by the setup effect; lets the imperative handle reach the live run.
   const restartRuntimeRef = useRef<() => void>(() => {})
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
@@ -251,6 +254,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const orientation = applyCameraPose(camera, controls, pose)
       yawRef.current = orientation.yaw
       pitchRef.current = orientation.pitch
+      walkHeightRef.current = camera.position.y
     }
     applyPoseRef.current(dataRef.current.startCamera)
 
@@ -459,7 +463,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       }
 
       if (dataRef.current.cameraMode === 'walk') {
-        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current)
+        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current, {
+          groundLocked: dataRef.current.runtimeMode === 'play',
+          eyeHeight: walkHeightRef.current,
+        })
       } else {
         controls.update()
       }
@@ -608,8 +615,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   const hint = cameraMode === 'walk'
     ? interactive
-      ? 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint · Click to select'
-      : 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint'
+      ? 'Drag to look · WASD to walk · X/C to fly up/down · Shift to sprint · Click to select'
+      : 'Click to look around · WASD to walk · Shift to sprint · Esc to exit · R to restart'
     : !interactive
       ? null
       : gizmoMode === 'move'
@@ -624,6 +631,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
+      {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
       {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
