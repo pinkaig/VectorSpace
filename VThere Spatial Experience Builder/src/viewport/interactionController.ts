@@ -40,6 +40,7 @@ import { matchFaceView, nudgeView, rollView } from '../gizmo/viewSnap'
 import { LOOK_SENSITIVITY, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewportTypes'
 import { normalizeAngle } from './interactionMath'
 import type { ViewportOverlays } from './overlayWidgets'
+import { createDragSessions } from './dragSessions'
 import { AXIS_INDICATOR_DIM, OCTAORB_DIM, ndcInRect, overlayRect, pointInRect } from './overlayWidgets'
 
 export type InteractionCameraMode = 'orbit' | 'walk'
@@ -118,16 +119,6 @@ export interface ViewportInteractionController {
 export const createViewportInteractionController = (input: ViewportInteractionInput): ViewportInteractionController => {
   const { element, camera, controls, raycaster, pointer, activeCamera, overlays, objectsGroup, gizmoGroup, axisArrows, scaleHandles, rotateHandles, yaw, pitch, callbacks, interactive } = input
 
-  // Each drag state is renderer-side preview state. The project is changed only
-  // by the commit callbacks on pointer release, so one drag creates one history entry.
-  let dragging: { id: string; plane: THREE.Plane; offset: THREE.Vector3 } | null = null
-  let lastDragPosition: [number, number, number] | null = null
-  let axisDragging: { id: string; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number } | null = null
-  let lastAxisDragPosition: [number, number, number] | null = null
-  let scaleDragging: { id: string; axis: AxisName; origin: THREE.Vector3; direction: THREE.Vector3; grabT: number; startScale: [number, number, number] } | null = null
-  let lastScaleValue: [number, number, number] | null = null
-  let rotateDragging: { id: string; axisIndex: 0 | 1 | 2; center: THREE.Vector3; normal: THREE.Vector3; plane: THREE.Plane; lastAngle: number; spaceMode: 'world' | 'local'; currentRotation: [number, number, number]; currentQuaternion: THREE.Quaternion } | null = null
-  let lastRotateValue: [number, number, number] | null = null
   let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
   const pressedKeys = new Set<string>()
   // Where the pointer went down, so a runtime click can be distinguished from a
@@ -148,12 +139,6 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   // unchanged by these conversions.
   const worldPositionOf = (mesh: THREE.Object3D) => mesh.getWorldPosition(new THREE.Vector3())
   const worldQuaternionOf = (mesh: THREE.Object3D) => mesh.getWorldQuaternion(new THREE.Quaternion())
-  const toLocalPosition = (mesh: THREE.Object3D, world: THREE.Vector3) =>
-    mesh.parent && mesh.parent !== objectsGroup ? mesh.parent.worldToLocal(world.clone()) : world.clone()
-  const toLocalQuaternion = (mesh: THREE.Object3D, world: THREE.Quaternion) => {
-    if (!mesh.parent || mesh.parent === objectsGroup) return world.clone()
-    return mesh.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world)
-  }
 
   const getPointer = (event: PointerEvent) => {
   // In pointer lock mode, the mouse position stays fixed.
@@ -167,6 +152,11 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
   }
+
+  const dragSessions = createDragSessions({
+  raycaster, pointer, activeCamera, objectsGroup, gizmoGroup, getPointer,
+  callbacks: { commitMove: callbacks.commitMove, commitScale: callbacks.commitScale, commitRotate: callbacks.commitRotate },
+})
   const pick = (event: PointerEvent) => {
     getPointer(event)
     raycaster.setFromCamera(pointer, activeCamera.current)
@@ -341,13 +331,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, arrow.direction)
-        if (grabT !== null) { controls.enabled = false; axisDragging = { id: selected.id, origin, direction: arrow.direction.clone(), grabT } }
+        if (grabT !== null) { controls.enabled = false;  dragSessions.beginAxisDrag({ id: selected.id, origin, direction: arrow.direction.clone(), grabT }) }
       } else if (gizmoHit.kind === 'scale') {
         const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
         const direction = data.scaleSpace === 'local' ? handle.direction.clone().applyQuaternion(worldQuaternion) : handle.direction.clone()
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, direction)
-        if (grabT !== null) { controls.enabled = false; scaleDragging = { id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z] } }
+        if (grabT !== null) { controls.enabled = false;  dragSessions.beginScaleDrag({ id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z] }) }
       } else {
         const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
         const local = data.rotateSpace === 'local'
@@ -360,7 +350,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         if (raycaster.ray.intersectPlane(plane, hitPoint)) {
           controls.enabled = false
           const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
-          rotateDragging = { id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() }
+          dragSessions.beginRotateDrag({ id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() })
         }
       }
       element.setPointerCapture(event.pointerId)
@@ -375,7 +365,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       const objectPosition = worldPositionOf(hit)
       const cameraForward = camera.getWorldDirection(new THREE.Vector3())
       const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, objectPosition)
-      if (raycaster.ray.intersectPlane(plane, dragPoint)) dragging = { id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) }
+      if (raycaster.ray.intersectPlane(plane, dragPoint)) {
+        dragSessions.beginFreeDrag({ id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) })
+      }
     }
     element.setPointerCapture(event.pointerId)
   }
@@ -393,7 +385,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       camera.rotation.order = 'YXZ'; camera.rotation.set(pitch.current, yaw.current, 0)
       return
     }
-    const noActiveDrag = !axisDragging && !scaleDragging && !rotateDragging && !dragging
+    const noActiveDrag = !dragSessions.isActive()
     // Tier 1 hover, edge-triggered: one event when the pointer enters an object
     // and one when it leaves, never one per move. Skipped during a drag, where
     // the pointer is manipulating rather than pointing, and skipped entirely
@@ -415,73 +407,10 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       if (hovering?.kind === 'rotate') setRotateHandleColor(rotateHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
       return
     }
-    if (axisDragging) {
-      getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
-      const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, axisDragging.origin, axisDragging.direction)
-      // A camera looking down the constrained axis produces an unstable
-      // closest-point solution; skip that frame instead of jumping.
-      if (hitT === null) return
-      const next = axisDragging.origin.clone().addScaledVector(axisDragging.direction, hitT - axisDragging.grabT)
-      const mesh = objectsGroup.getObjectByName(axisDragging.id)
-      if (mesh) {
-        const local = toLocalPosition(mesh, next)
-        lastAxisDragPosition = [local.x, local.y, local.z]
-        mesh.position.copy(local)
-      }
-      gizmoGroup.position.copy(next)
-      return
-    }
-    if (scaleDragging) {
-      getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
-      const hitT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, scaleDragging.origin, scaleDragging.direction)
-      if (hitT === null) return
-      const scale = [...scaleDragging.startScale] as [number, number, number]
-      const axisIndex = scaleDragging.axis === 'x' ? 0 : scaleDragging.axis === 'y' ? 1 : 2
-      scale[axisIndex] = Math.max(0.05, scaleDragging.startScale[axisIndex] * (1 + hitT - scaleDragging.grabT))
-      lastScaleValue = scale; objectsGroup.getObjectByName(scaleDragging.id)?.scale.set(...scale)
-      return
-    }
-    if (rotateDragging) {
-      getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
-      const hitPoint = new THREE.Vector3()
-      // A parallel camera ray can miss the rotation plane for a frame.
-      if (!raycaster.ray.intersectPlane(rotateDragging.plane, hitPoint)) return
-      const angle = angleAroundAxis(hitPoint, rotateDragging.center, rotateDragging.normal)
-      // Unwrap atan2 at +/- PI so crossing the seam does not snap the object.
-      let step = angle - rotateDragging.lastAngle
-      if (step > Math.PI) step -= Math.PI * 2
-      if (step < -Math.PI) step += Math.PI * 2
-      rotateDragging.lastAngle = angle
-      let rotation: [number, number, number]
-      if (rotateDragging.spaceMode === 'local') {
-        // A local-axis rotation must compose quaternions. Incrementing one
-        // Euler component would be wrong after rotation on another axis.
-        // currentQuaternion accumulates in world space; convert to local only
-        // when writing to the mesh and when deriving the committed Euler.
-        rotateDragging.currentQuaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step))
-        const mesh = objectsGroup.getObjectByName(rotateDragging.id)
-        const localQuaternion = mesh ? toLocalQuaternion(mesh, rotateDragging.currentQuaternion) : rotateDragging.currentQuaternion
-        const euler = new THREE.Euler().setFromQuaternion(localQuaternion, 'XYZ'); rotation = [euler.x, euler.y, euler.z]
-        mesh?.quaternion.copy(localQuaternion)
-      } else {
-        rotation = [...rotateDragging.currentRotation]; rotation[rotateDragging.axisIndex] += step; rotateDragging.currentRotation = rotation
-        objectsGroup.getObjectByName(rotateDragging.id)?.rotation.set(...rotation)
-      }
-      lastRotateValue = rotation; return
-    }
-    if (dragging) {
-      getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
-      if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return
-      dragPoint.add(dragging.offset)
-      const mesh = objectsGroup.getObjectByName(dragging.id)
-      if (mesh) {
-        const local = toLocalPosition(mesh, dragPoint)
-        lastDragPosition = [local.x, local.y, local.z]
-        mesh.position.copy(local)
-      }
-      gizmoGroup.position.copy(dragPoint)
-    }
+
+    dragSessions.updatePreview(event)
   }
+
   const onPointerUp = (event: PointerEvent) => {
     // Tier 1 click, emitted before any editor handling below so it fires in both
     // orbit and walk mode. A pointer that travelled is a drag or a look-around,
@@ -493,20 +422,17 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         if (hit) callbacks.onRuntimeEvent({ kind: 'click', objectId: hit.name })
       }
     }
-    if (event.button === 0) pointerDownAt = null
 
+    if (event.button === 0) pointerDownAt = null
     if (looking) {
       const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY); looking = null
       if (moved < 4) callbacks.select(pick(event)?.name ?? null)
       return
     }
+
     // Commit only the final preview value. Pointer-move events must not spam
     // the authoring timeline.
-    if (axisDragging && lastAxisDragPosition) callbacks.commitMove(axisDragging.id, lastAxisDragPosition)
-    if (scaleDragging && lastScaleValue) callbacks.commitScale(scaleDragging.id, lastScaleValue)
-    if (rotateDragging && lastRotateValue) callbacks.commitRotate(rotateDragging.id, lastRotateValue.map(normalizeAngle) as [number, number, number])
-    if (dragging && lastDragPosition) callbacks.commitMove(dragging.id, lastDragPosition)
-    dragging = null; lastDragPosition = null; axisDragging = null; lastAxisDragPosition = null; scaleDragging = null; lastScaleValue = null; rotateDragging = null; lastRotateValue = null
+    dragSessions.commit()
     controls.enabled = callbacks.getData().cameraMode === 'orbit'
   }
   const onKeyDown = (event: KeyboardEvent) => {
@@ -528,7 +454,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); window.addEventListener('blur', onBlur)
   document.addEventListener('pointerlockchange', onPointerLockChange)
   return {
-    isDragging: () => !!dragging || !!axisDragging || !!scaleDragging || !!rotateDragging,
+    isDragging: dragSessions.isActive,
     pressedKeys,
     dispose: () => {
       element.removeEventListener('pointerdown', onPointerDown); element.removeEventListener('pointermove', onPointerMove); element.removeEventListener('pointerup', onPointerUp); element.removeEventListener('contextmenu', onContextMenu); element.removeEventListener('pointerleave', onPointerLeave)
