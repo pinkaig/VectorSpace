@@ -182,7 +182,7 @@ The current smoke test verifies that:
 1. the application title loads;
 2. the `Run simulation` control is visible;
 3. simulation mode opens;
-4. the `Exit simulation` control is visible;
+4. pressing Escape exits simulation mode (there is no on-screen exit button);
 5. exiting simulation returns to the editor.
 
 The current Playwright project covers Chromium desktop only. It does not yet
