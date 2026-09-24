@@ -1,7 +1,16 @@
-// ======================================================================
-// moveGizmo.ts
-// BRIEF: move gizmo specific logic. Builds one axis arrow with its shaft and cone, measures an object's real size along an axis, and sets an arrow's color
-// ======================================================================
+/**
+ * @file        moveGizmo.ts
+ * @project     Spatial Experience Builder
+ * @author      Chloe Lau Rey En
+ * @brief       move gizmo specific logic. Builds one axis arrow with its shaft and
+ *              cone, measures an object's real size along an axis, and sets an arrow's
+ *              color
+ * 
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+ /******************************************************************************/
 import * as THREE from 'three'
 import { AxisName, AxisArrow } from './types'
 import { AXIS_COLORS } from './colors'
