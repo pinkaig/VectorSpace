@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: vthere-spatial-experience-builder
+    runtime: static
+    rootDir: VThere Spatial Experience Builder
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    branch: Wk4_KickOff_Presentation
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
