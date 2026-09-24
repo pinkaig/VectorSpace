@@ -7,8 +7,8 @@ test('loads the editor and enters simulation mode', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Run simulation' }).click()
-  await expect(page.getByRole('button', { name: 'Exit simulation' })).toBeVisible()
+  await expect(page.getByText('Visitor view')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Exit simulation' }).click()
+  await page.keyboard.press('Escape')
   await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
 })

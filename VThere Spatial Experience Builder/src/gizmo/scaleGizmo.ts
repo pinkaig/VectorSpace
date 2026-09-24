@@ -1,7 +1,15 @@
-// ======================================================================
-// scaleGizmo.ts
-// BRIEF: scale gizmo specific logic. Builds one small cube handle per axis, used to scale the selected object along that axis
-// ======================================================================
+/**
+ * @file        scaleGizmo.ts
+ * @project     Spatial Experience Builder
+ * @author      Chloe Lau Rey En
+ * @brief       scale gizmo specific logic. Builds one small cube handle per axis, used to
+ *              scale the selected object along that axis
+ * 
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+ /******************************************************************************/
 import * as THREE from "three";
 import { AxisName } from "./types";
 import { AXIS_COLORS } from "./colors";
