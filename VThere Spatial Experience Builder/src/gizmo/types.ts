@@ -1,7 +1,16 @@
-// ======================================================================
-// types.ts
-// BRIEF: shared TypeScript types for gizmo code. AxisName lists the three axis identifiers, AxisArrow describes the shape of one built arrow (its group, meshes, and direction)
-// ======================================================================
+/**
+ * @file        types.ts
+ * @project     Spatial Experience Builder
+ * @author      Chloe Lau Rey En
+ * @brief       shared TypeScript types for gizmo code. AxisName lists
+ *              the three axis identifiers, AxisArrow describes the shape of
+ *              one built arrow (its group, meshes, and direction)
+ * 
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+ /******************************************************************************/
 import * as THREE from 'three'
 
 export type AxisName = 'x' | 'y' | 'z'
