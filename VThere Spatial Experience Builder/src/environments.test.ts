@@ -18,9 +18,10 @@ describe('environment loading', () => {
     }
   })
 
-  it('falls back to the first environment for an unknown id rather than throwing', async () => {
+  it('falls back to the default (empty) environment for an unknown id rather than throwing', async () => {
     const loaded = await loadEnvironment('env-does-not-exist')
-    expect(loaded.group.children.length).toBeGreaterThan(0)
+    expect(loaded.group.name).toBe('env-empty')
+    expect(() => loaded.dispose()).not.toThrow()
   })
 
   it('reports load progress from 0 to 1', async () => {

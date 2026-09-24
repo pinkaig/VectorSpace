@@ -54,8 +54,8 @@ export const createObjectIdFactory = () => ({
   nextId: (_project: ProjectData, sceneId: string) => `${sceneId}-object-${crypto.randomUUID()}`,
 })
 
-export const createEditorObject = (project: ProjectData, sceneId: string, assetKind: AssetKind): ObjectOperationResult =>
-  createObject(project, { sceneId, assetKind }, createObjectIdFactory())
+export const createEditorObject = (project: ProjectData, sceneId: string, assetKind: AssetKind, assetId?: string): ObjectOperationResult =>
+  createObject(project, { sceneId, assetKind, assetId }, createObjectIdFactory())
 
 export const duplicateEditorObject = (project: ProjectData, sceneId: string, objectId: string): ObjectOperationResult =>
   duplicateObject(project, { sceneId, objectId }, createObjectIdFactory())

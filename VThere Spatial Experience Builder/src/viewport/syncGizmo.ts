@@ -71,7 +71,7 @@ export const syncGizmo = ({
       ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation))
       : handle.direction
     const offset = (isLocalScale
-      ? extentAlongLocal(selectedMesh as THREE.Mesh, handle.axis)
+      ? extentAlongLocal(selectedMesh, handle.axis)
       : extentAlong(selectedMesh, handle.axis)) + GIZMO_GAP + ARROW_LENGTH
     handle.mesh.position.copy(direction).multiplyScalar(offset)
   })

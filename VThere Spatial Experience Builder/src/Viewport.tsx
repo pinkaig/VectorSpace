@@ -50,11 +50,12 @@ import {
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../packages/audio/src/index'
 import { audioResolver } from './viewport/audioResolution'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
-import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
+import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
+import { EYE_HEIGHT } from './viewport/viewportTypes'
 import { createGizmoSet } from './viewport/createGizmoSet'
 import { AXIS_INDICATOR_DIM, OCTAORB_DIM, OVERLAY_MARGIN, createViewportOverlays } from './viewport/overlayWidgets'
 import { matchFaceView } from './gizmo/viewSnap'
@@ -166,6 +167,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // effect below can re-seed it from the camera's current orientation on every transition.
   const yawRef = useRef(0)
   const pitchRef = useRef(0)
+  // Walk-mode eye height, pinned each time a camera pose is applied (initial load,
+  // scene reset, or Home) so WASD movement stays ground-locked instead of flying.
+  const walkHeightRef = useRef(0)
   // Set by the setup effect; lets the imperative handle reach the live run.
   const restartRuntimeRef = useRef<() => void>(() => {})
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
@@ -259,9 +263,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const activeCameraRef: { current: THREE.Camera } = { current: camera }
 
     applyPoseRef.current = (pose) => {
-      const orientation = applyCameraPose(camera, controls, pose)
+      const effectivePose = dataRef.current.runtimeMode === 'play'
+        ? { position: [pose.position[0], EYE_HEIGHT, pose.position[2]] as [number, number, number], target: [pose.target[0], EYE_HEIGHT, pose.target[2]] as [number, number, number] }
+        : pose
+      const orientation = applyCameraPose(camera, controls, effectivePose)
       yawRef.current = orientation.yaw
       pitchRef.current = orientation.pitch
+      walkHeightRef.current = camera.position.y
     }
     applyPoseRef.current(dataRef.current.startCamera)
 
@@ -277,7 +285,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const syncObjects = () => {
       const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId, dataRef.current.syncToken])
       if (signature === renderedSignature) return
-      syncArtefacts({ group: objectsGroup, objects: dataRef.current.objects, selectedId: dataRef.current.selectedId })
+      syncArtefacts({
+        group: objectsGroup,
+        objects: dataRef.current.objects,
+        selectedId: dataRef.current.selectedId,
+        // A `model` asset's GLB may not be cached yet — retry once it resolves instead of
+        // waiting for some unrelated prop change to naturally invalidate the memo.
+        onModelLoaded: () => { renderedSignature = '' },
+      })
       renderedSignature = signature
     }
 
@@ -361,7 +376,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderedSignature = ''
       if (restart) emitRuntimeEvent({ kind: 'sceneStart' })
     }
-    restartRuntimeRef.current = () => { if (dataRef.current.runtimeMode === 'play') stopRun(true) }
+    // Restarting a walkthrough must return the visitor to the start view — otherwise
+    // a scene with no rule-driven visual change looks like the R key did nothing.
+    restartRuntimeRef.current = () => {
+      if (dataRef.current.runtimeMode !== 'play') return
+      stopRun(true)
+      applyPoseRef.current(dataRef.current.startCamera)
+    }
 
     let interactionController: ReturnType<typeof createViewportInteractionController>
     const syncGizmoFrame = () => {
@@ -486,7 +507,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       }
 
       if (dataRef.current.cameraMode === 'walk') {
-        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current)
+        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current, {
+          groundLocked: dataRef.current.runtimeMode === 'play',
+          eyeHeight: walkHeightRef.current,
+        })
       } else {
         controls.update()
       }
@@ -638,8 +662,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   const hint = cameraMode === 'walk'
     ? interactive
-      ? 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint · Click to select'
-      : 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint'
+      ? 'Drag to look · WASD to walk · X/C to fly up/down · Shift to sprint · Click to select'
+      : 'Click to look around · WASD to walk · Shift to sprint · Esc to exit · R to restart'
     : !interactive
       ? null
       : gizmoMode === 'move'
@@ -654,6 +678,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
+      {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
       {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}

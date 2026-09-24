@@ -37,7 +37,7 @@ import type { AxisRotateHandle } from '../gizmo/rotateGizmo'
 import { setRotateHandleColor } from '../gizmo/rotateGizmo'
 import type { ArrowKind } from '../gizmo/octaOrb'
 import { matchFaceView, nudgeView, rollView } from '../gizmo/viewSnap'
-import { MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewportTypes'
+import { LOOK_SENSITIVITY, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewportTypes'
 import { normalizeAngle } from './interactionMath'
 import type { ViewportOverlays } from './overlayWidgets'
 import { AXIS_INDICATOR_DIM, OCTAORB_DIM, ndcInRect, overlayRect, pointInRect } from './overlayWidgets'
@@ -156,6 +156,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   }
 
   const getPointer = (event: PointerEvent) => {
+  // In pointer lock mode, the mouse position stays fixed.
+  // Use the screen center (crosshair) for picking and hover raycasts.
+    if (document.pointerLockElement === element) {
+      pointer.x = 0
+      pointer.y = 0
+      return
+    }
     const rect = element.getBoundingClientRect()
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
@@ -165,22 +172,20 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     raycaster.setFromCamera(pointer, activeCamera.current)
     // An object whose asset is still resolving or has failed has no confirmed
     // visual representation yet, so it must not be selectable or draggable.
-    // Nested meshes are no longer direct children of objectsGroup, so picking
-    // must walk the whole subtree rather than filter one level of children.
     const unpickableAssetIds = callbacks.getData().unpickableAssetIds
-    const pickable: THREE.Object3D[] = []
-    objectsGroup.traverse((child) => {
-      if (
-        child instanceof THREE.Mesh &&
-        child.userData.entityId &&
-        child.visible &&
-        child.userData.enabled !== false &&
-        !unpickableAssetIds.has(child.userData.entityId)
-      ) {
-        pickable.push(child)
-      }
-    })
-    return raycaster.intersectObjects(pickable, false)[0]?.object ?? null
+    // Recursive because objects nest (parentId) and a `model` artefact is a Group of
+    // sub-meshes; each hit is walked up to the nearest ancestor stamped with
+    // userData.entityId, then checked for pickability. Non-pickable hits are skipped
+    // so an object behind a disabled/unresolved one can still be selected.
+    for (const hit of raycaster.intersectObjects(objectsGroup.children, true)) {
+      let node: THREE.Object3D | null = hit.object
+      while (node && node.userData.entityId === undefined) node = node.parent
+      if (!node || !hit.object.visible) continue
+      if (!node.visible || node.userData.enabled === false) continue
+      if (unpickableAssetIds.has(node.userData.entityId as string)) continue
+      return node
+    }
+    return null
   }
 
   // Gizmo hits are kept separate from artefact hits because they start a
@@ -308,11 +313,17 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   const onPointerDown = (event: PointerEvent) => {
     const data = callbacks.getData()
     if (event.button === 0) pointerDownAt = { x: event.clientX, y: event.clientY }
-    // OctaOrb / axis indicator hits are consumed before anything else — both widgets
+    // OctaOrb / axis indicator hits are consumed before anything else - both widgets
     // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
     if (data.cameraMode === 'orbit' && event.button === 0 && tryOverlayPointerDown(event)) return
     if (data.cameraMode === 'walk') {
       if (event.button !== 0) return
+      // Run simulation: mouse-look is driven by pointer lock (in onPointerMove), not
+      // click-and-drag.
+      if (!interactive && data.runtimeActive) {
+        if (document.pointerLockElement !== element) element.requestPointerLock()
+        return
+      }
       looking = { startPointerX: event.clientX, startPointerY: event.clientY, startYaw: yaw.current, startPitch: pitch.current }
       element.setPointerCapture(event.pointerId)
       return
@@ -369,10 +380,16 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     element.setPointerCapture(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent) => {
-    if (looking) {
-      const sensitivity = 0.0045
-      yaw.current = looking.startYaw - (event.clientX - looking.startPointerX) * sensitivity
-      pitch.current = THREE.MathUtils.clamp(looking.startPitch - (event.clientY - looking.startPointerY) * sensitivity, -1.4, 1.4)
+    // Run simulation, pointer locked: look follows raw mouse delta every frame, no
+    // button held - this is what lets hover/click below keep raycasting from the
+    // crosshair as the camera turns
+    if (document.pointerLockElement === element) {
+      yaw.current -= event.movementX * LOOK_SENSITIVITY
+      pitch.current = THREE.MathUtils.clamp(pitch.current - event.movementY * LOOK_SENSITIVITY, -1.4, 1.4)
+      camera.rotation.order = 'YXZ'; camera.rotation.set(pitch.current, yaw.current, 0)
+    } else if (looking) {
+      yaw.current = looking.startYaw - (event.clientX - looking.startPointerX) * LOOK_SENSITIVITY
+      pitch.current = THREE.MathUtils.clamp(looking.startPitch - (event.clientY - looking.startPointerY) * LOOK_SENSITIVITY, -1.4, 1.4)
       camera.rotation.order = 'YXZ'; camera.rotation.set(pitch.current, yaw.current, 0)
       return
     }
@@ -504,14 +521,22 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   const onContextMenu = (event: MouseEvent) => { event.preventDefault() }
   const onBlur = () => { pressedKeys.clear() }
   const onPointerLeave = () => { callbacks.hideOctaOrbTooltip() }
+  // cursor disappears while pointer-locked and replaced with a crosshair
+  // so it's hidden only for as long as the lock is actually held.
+  const onPointerLockChange = () => { element.style.cursor = document.pointerLockElement === element ? 'none' : '' }
   element.addEventListener('pointerdown', onPointerDown); element.addEventListener('pointermove', onPointerMove); element.addEventListener('pointerup', onPointerUp); element.addEventListener('contextmenu', onContextMenu); element.addEventListener('pointerleave', onPointerLeave)
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); window.addEventListener('blur', onBlur)
+  document.addEventListener('pointerlockchange', onPointerLockChange)
   return {
     isDragging: () => !!dragging || !!axisDragging || !!scaleDragging || !!rotateDragging,
     pressedKeys,
     dispose: () => {
       element.removeEventListener('pointerdown', onPointerDown); element.removeEventListener('pointermove', onPointerMove); element.removeEventListener('pointerup', onPointerUp); element.removeEventListener('contextmenu', onContextMenu); element.removeEventListener('pointerleave', onPointerLeave)
       window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('blur', onBlur)
+      document.removeEventListener('pointerlockchange', onPointerLockChange)
+      // Leaving the run mid-lock (Esc, restart, exit) must always release the
+      // cursor - an unmount never fires pointerlockchange on its own.
+      if (document.pointerLockElement === element) document.exitPointerLock()
     },
   }
 }

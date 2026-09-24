@@ -13,9 +13,9 @@ describe('viewport policies', () => {
     expect(getWalkDirection(['KeyW', 'KeyS'])).toEqual({ x: 0, z: 0 })
   })
 
-  it('combines vertical keys', () => {
-    expect(getVerticalDirection(['Space', 'KeyC'])).toBe(0)
-    expect(getVerticalDirection(['Space', 'Escape'])).toBe(1)
+  it('combines vertical fly keys (editor walk-mode preview only)', () => {
+    expect(getVerticalDirection(['KeyX', 'KeyC'])).toBe(0)
+    expect(getVerticalDirection(['KeyX', 'Escape'])).toBe(1)
   })
 
   it('identifies editable text targets without requiring a browser element', () => {

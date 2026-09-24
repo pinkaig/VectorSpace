@@ -21,9 +21,10 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/viewport.md
  */
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import Viewport, { type ViewportHandle } from './Viewport'
 import { ProjectData } from './model'
+import { isTypingTarget } from './viewport/viewportTypes'
 
 interface RuntimeViewProps {
   project: ProjectData;
@@ -35,6 +36,16 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
     project.scenes.find((item) => item.id === project.activeSceneId) ??
     project.scenes[0];
   const viewportRef = useRef<ViewportHandle>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target) || event.repeat) return
+      if (event.code === 'Escape') onExit()
+      else if (event.code === 'KeyR') viewportRef.current?.restartRuntime()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onExit])
 
   return (
     <main className="runtime-shell">
@@ -52,15 +63,8 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           <span>{scene.name}</span>
         </div>
         <div className="runtime-actions">
-          {/* Both controls run the same resetRuntime() teardown: restart arms a
-              fresh run in place, exit unmounts the viewport, which tears down
-              through the same path. */}
-          <button className="button ghost" onClick={() => viewportRef.current?.restartRuntime()}>
-            Restart scene
-          </button>
-          <button className="button ghost" onClick={onExit}>
-            Exit simulation
-          </button>
+          <span><kbd>Esc</kbd> exit</span>
+          <span><kbd>R</kbd> restart</span>
         </div>
       </header>
       <section className="runtime-stage">
