@@ -22,7 +22,7 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/project-serialization.md
  */
-export type AssetKind = 'cube' | 'sphere' | 'cylinder'
+export type AssetKind = 'cube' | 'sphere' | 'cylinder' | 'model'
 
 export interface TransformData {
   position: [number, number, number]
@@ -90,7 +90,7 @@ export const environmentLibrary: EnvironmentDefinition[] = [
 ]
 
 export const defaultEnvironmentId =
-  environmentLibrary.find((item) => item.proceduralId !== 'empty')?.id ?? environmentLibrary[0].id
+  environmentLibrary.find((item) => item.proceduralId === 'empty')?.id ?? environmentLibrary[0].id
 
 export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
   environmentLibrary.find((item) => item.id === environmentId) ??
@@ -177,13 +177,15 @@ export const defaultProject = (): ProjectData => ({
 export const cloneProject = (project: ProjectData): ProjectData =>
   JSON.parse(JSON.stringify(project)) as ProjectData
 
-// half the height of each primitive's geometry, so a freshly placed object rests on the floor
-const restingHeight: Record<AssetKind, number> = { cube: 0.55, sphere: 0.65, cylinder: 0.6 }
+// half the height of each primitive's geometry, so a freshly placed object rests on the
+// floor. GLB models carry no known height here — 0 assumes the source model's own pivot
+// sits at its base; the author repositions it via the transform gizmo if that's not true.
+const restingHeight: Record<AssetKind, number> = { cube: 0.55, sphere: 0.65, cylinder: 0.6, model: 0 }
 
-export const makeObject = (assetKind: AssetKind, index: number): SceneObject => ({
+export const makeObject = (assetKind: AssetKind, index: number, assetId?: string): SceneObject => ({
   id: `${assetKind}-${Date.now()}-${index}`,
   name: `${assetKind[0].toUpperCase()}${assetKind.slice(1)} ${index}`,
-  assetId: `primitive-${assetKind}`,
+  assetId: assetId ?? `primitive-${assetKind}`,
   assetKind,
   visible: true,
   enabled: true,

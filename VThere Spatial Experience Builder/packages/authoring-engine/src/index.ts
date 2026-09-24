@@ -125,6 +125,9 @@ export interface CreateObjectInput {
   sceneId: string
   assetKind: AssetKind
   name?: string
+  // Overrides the default `primitive-${assetKind}` id makeObject() would otherwise assign —
+  // required for a `model` asset, where assetId identifies which GLB source to load.
+  assetId?: string
 }
 
 export interface ObjectOperationResult {
@@ -166,7 +169,7 @@ export const createObject = (
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const scene = requireScene(next, input.sceneId)
-  const object = makeObject(input.assetKind, scene.objects.length)
+  const object = makeObject(input.assetKind, scene.objects.length, input.assetId)
   object.id = idFactory.nextId(next, input.sceneId)
   if (input.name) object.name = input.name
   scene.objects.push(object)

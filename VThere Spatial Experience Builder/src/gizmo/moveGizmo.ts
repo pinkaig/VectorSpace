@@ -54,12 +54,26 @@ export const extentAlong = (mesh: THREE.Object3D, axis: AxisName) => {
 // measures the object's half-size along one of its own LOCAL axes, from the geometry's
 // bounding box (which never rotates) scaled by the mesh's current scale. Unlike extentAlong,
 // this stays correct relative to the object's own faces even after the object is rotated.
-export const extentAlongLocal = (mesh: THREE.Mesh, axis: AxisName) => {
-  mesh.geometry.computeBoundingBox()
+export const extentAlongLocal = (mesh: THREE.Object3D, axis: AxisName) => {
+  if (mesh instanceof THREE.Mesh) {
+    mesh.geometry.computeBoundingBox()
+    const size = new THREE.Vector3()
+    mesh.geometry.boundingBox!.getSize(size)
+    const half = axis === 'x' ? size.x * mesh.scale.x : axis === 'y' ? size.y * mesh.scale.y : size.z * mesh.scale.z
+    return half / 2
+  }
+  // A composite object (e.g. an imported GLB) has no single geometry to read a bounding
+  // box from. Approximate its local extent by measuring the world-space box with rotation
+  // temporarily zeroed, then restoring it — scale is still baked into the result.
+  const savedRotation = mesh.rotation.clone()
+  mesh.rotation.set(0, 0, 0)
+  mesh.updateMatrixWorld(true)
+  const box = new THREE.Box3().setFromObject(mesh)
+  mesh.rotation.copy(savedRotation)
+  mesh.updateMatrixWorld(true)
   const size = new THREE.Vector3()
-  mesh.geometry.boundingBox!.getSize(size)
-  const half = axis === 'x' ? size.x * mesh.scale.x : axis === 'y' ? size.y * mesh.scale.y : size.z * mesh.scale.z
-  return half / 2
+  box.getSize(size)
+  return (axis === 'x' ? size.x : axis === 'y' ? size.y : size.z) / 2
 }
 
 // sets both meshes of one arrow to the same color together, since the shaft
