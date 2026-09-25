@@ -218,7 +218,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Keep editor-only gizmos outside the authored artefact group. Artefact
     // synchronisation may rebuild objects, but must never dispose the gizmos.
     const gizmoSet = createGizmoSet()
-    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles, originHandle } = gizmoSet
+    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles, originHandle, uniformScaleHandle } = gizmoSet
     scene.add(gizmoGroup)
 
     // Corner overlay widgets: each owns a tiny scene rendered into a scissor rect of the
@@ -366,10 +366,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
       syncGizmo({
         gizmoGroup,
+        camera,
+        controlsTarget: controls.target,
+        isOrtho: dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic,
         axisArrows,
         scaleHandles,
         rotateHandles,
         originHandle,
+        uniformScaleHandle,
         selected,
         selectedMesh: selected ? objectsGroup.getObjectByName(selected.id) : undefined,
         mode: dataRef.current.gizmoMode,
@@ -392,6 +396,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       axisArrows,
       scaleHandles,
       rotateHandles,
+      originHandle,
+      uniformScaleHandle,
       yaw: yawRef,
       pitch: pitchRef,
       interactive,
@@ -446,7 +452,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const delta = Math.min((now - lastTime) / 1000, 0.1)
       lastTime = now
       syncObjects()
-      syncGizmoFrame()
 
       // ---- WHEN→DO tiers, play mode only ---------------------------------
       // Edit mode falls straight past this block, so authoring runs exactly the
@@ -490,6 +495,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const useOrtho = dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic
       if (useOrtho) syncOrthoCamera(camera, orthoCamera, controls.target)
       activeCameraRef.current = useOrtho ? orthoCamera : camera
+      syncGizmoFrame()
 
       const width = mount.clientWidth
       const height = mount.clientHeight

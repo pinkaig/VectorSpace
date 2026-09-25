@@ -2,11 +2,11 @@
  * @file        dragSessions.ts
  * @project     Spatial Experience Builder
  * @author      Chloe Lau Rey En (Move + Scale), Goh Pin Kai (Rotate)
- * @brief       Owns the four transform drag sessions (free, axis, scale, rotate)
- *              extracted from interactionController.ts. Each session is
- *              renderer-side preview state only; the project is changed by the
- *              commit callbacks on pointer release, so one drag creates one
- *              history entry.
+ * @brief       Owns the five transform drag sessions (free, axis, scale, rotate,
+ *              uniform scale) extracted from interactionController.ts. Each
+ *              session is renderer-side preview state only; the project is
+ *              changed by the commit callbacks on pointer release, so one
+ *              drag creates one history entry.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -68,16 +68,26 @@ export interface FreeDragParams {
   offset: THREE.Vector3;
 }
 
+// params captured once when the uniform-scale handle is grabbed
+export interface UniformScaleDragParams {
+  id: string;
+  origin: THREE.Vector3;
+  cameraForward: THREE.Vector3;
+  grabDistance: number;
+  startScale: [number, number, number];
+}
+
 /**
- * Creates a drag-session manager holding all four transform drag types
- * (free, axis, scale, rotate) as private state, with begin/preview/commit
- * entry points for the interaction controller to call into.
+ * Creates a drag-session manager holding all five transform drag types
+ * (free, axis, scale, rotate, uniform scale) as private state, with
+ * begin/preview/commit entry points for the interaction controller to call
+ * into.
  *
  * @param input - Shared references (raycaster, pointer, active camera,
  * object/gizmo groups, a getPointer helper, and the project commit
  * callbacks) needed to preview and commit a drag.
  * @returns An object exposing beginAxisDrag, beginScaleDrag, beginRotateDrag,
- * beginFreeDrag, updatePreview, commit, and isActive.
+ * beginFreeDrag, beginUniformScaleDrag, updatePreview, commit, and isActive.
  */
 export const createDragSessions = (input: DragSessionsInput) => {
   const {
@@ -130,6 +140,8 @@ export const createDragSessions = (input: DragSessionsInput) => {
   let lastScaleValue: [number, number, number] | null = null;
   let rotateDragging: RotateDragParams | null = null;
   let lastRotateValue: [number, number, number] | null = null;
+  let uniformScaleDragging: UniformScaleDragParams | null = null; // active uniform-scale session, if any
+  let lastUniformScaleValue: [number, number, number] | null = null; // most recent preview value, committed once on release
   const dragPoint = new THREE.Vector3();
 
   /**
@@ -179,14 +191,32 @@ export const createDragSessions = (input: DragSessionsInput) => {
   };
 
   /**
-   * Reports whether any of the four drag sessions is currently active.
+   * Starts a uniform-scale session, called when the center scale handle is
+   * grabbed. Scales all three axes together, proportional to how far the
+   * pointer moves away from or toward the object's center.
+   *
+   * @param params - The object id, the object's world position, the
+   * camera-facing plane's normal, the initial grab distance from center,
+   * and the object's scale at the moment of grab.
+   */
+  const beginUniformScaleDrag = (params: UniformScaleDragParams) => {
+    uniformScaleDragging = params;
+  };
+
+  /**
+   * Reports whether any of the five drag sessions is currently active.
    * Used by the interaction controller to gate hover feedback, overlay
    * picking, and OrbitControls re-enabling.
    *
-   * @returns True if a free, axis, scale, or rotate drag is in progress.
+   * @returns True if a free, axis, scale, rotate, or uniform-scale drag is
+   * in progress.
    */
   const isActive = () =>
-    !!dragging || !!axisDragging || !!scaleDragging || !!rotateDragging;
+    !!dragging ||
+    !!axisDragging ||
+    !!scaleDragging ||
+    !!rotateDragging ||
+    !!uniformScaleDragging;
 
   /**
    * Updates whichever drag session is currently active for this pointer
@@ -289,6 +319,33 @@ export const createDragSessions = (input: DragSessionsInput) => {
       lastRotateValue = rotation;
       return;
     }
+    if (uniformScaleDragging) {
+      getPointer(event);
+      raycaster.setFromCamera(pointer, activeCamera.current);
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+        uniformScaleDragging.cameraForward,
+        uniformScaleDragging.origin,
+      );
+      const hitPoint = new THREE.Vector3();
+      // Camera-parallel ray this frame, skip rather than jump.
+      if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
+      const currentDistance = hitPoint.distanceTo(uniformScaleDragging.origin);
+      // Clamp so it can't invert or vanish.
+      const ratio = Math.max(
+        0.05,
+        currentDistance / uniformScaleDragging.grabDistance,
+      );
+      const nextScale: [number, number, number] = [
+        uniformScaleDragging.startScale[0] * ratio,
+        uniformScaleDragging.startScale[1] * ratio,
+        uniformScaleDragging.startScale[2] * ratio,
+      ];
+      objectsGroup
+        .getObjectByName(uniformScaleDragging.id)
+        ?.scale.set(...nextScale);
+      lastUniformScaleValue = nextScale;
+      return;
+    }
     if (dragging) {
       getPointer(event);
       raycaster.setFromCamera(pointer, activeCamera.current);
@@ -307,7 +364,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
   /**
    * Commits only the final preview value of whichever session was active,
    * through the relevant commitMove/commitScale/commitRotate callback, then
-   * clears all four sessions' state. Called once from onPointerUp, so a
+   * clears all five sessions' state. Called once from onPointerUp, so a
    * whole drag produces exactly one history entry, never one per
    * pointermove event.
    */
@@ -316,6 +373,9 @@ export const createDragSessions = (input: DragSessionsInput) => {
       callbacks.commitMove(axisDragging.id, lastAxisDragPosition);
     if (scaleDragging && lastScaleValue)
       callbacks.commitScale(scaleDragging.id, lastScaleValue);
+    // Same commitScale callback as axis-scale, just a different source.
+    if (uniformScaleDragging && lastUniformScaleValue)
+      callbacks.commitScale(uniformScaleDragging.id, lastUniformScaleValue);
     if (rotateDragging && lastRotateValue)
       callbacks.commitRotate(
         rotateDragging.id,
@@ -331,6 +391,8 @@ export const createDragSessions = (input: DragSessionsInput) => {
     lastScaleValue = null;
     rotateDragging = null;
     lastRotateValue = null;
+    uniformScaleDragging = null;
+    lastUniformScaleValue = null;
   };
 
   return {
@@ -338,6 +400,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
     beginScaleDrag,
     beginRotateDrag,
     beginFreeDrag,
+    beginUniformScaleDrag,
     updatePreview,
     commit,
     isActive,

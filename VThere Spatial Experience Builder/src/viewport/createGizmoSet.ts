@@ -26,6 +26,7 @@ import { makeAxisArrow } from "../gizmo/moveGizmo";
 import { AxisScaleHandle, makeAxisScaleHandle } from "../gizmo/scaleGizmo";
 import { AxisRotateHandle, makeAxisRotateHandle } from "../gizmo/rotateGizmo";
 import { OriginHandle, makeOriginHandle } from "../gizmo/originHandle";
+import { UniformScaleHandle, makeUniformScaleHandle } from "../gizmo/uniformScaleHandle";
 
 export interface GizmoSet {
   group: THREE.Group;
@@ -33,6 +34,7 @@ export interface GizmoSet {
   scaleHandles: AxisScaleHandle[];
   rotateHandles: AxisRotateHandle[];
   originHandle: OriginHandle;
+  uniformScaleHandle: UniformScaleHandle;
   dispose: () => void;
 }
 
@@ -53,7 +55,7 @@ export const createGizmoSet = (): GizmoSet => {
     makeAxisScaleHandle("y"),
     makeAxisScaleHandle("z"),
   ];
-  scaleHandles.forEach((handle) => group.add(handle.mesh));
+  scaleHandles.forEach((handle) => group.add(handle.group));
 
   // rotate gizmo: one ring per axis, built once
   const rotateHandles: AxisRotateHandle[] = [
@@ -66,6 +68,10 @@ export const createGizmoSet = (): GizmoSet => {
   // origin handle: single center handle, triggers free move when grabbed
   const originHandle: OriginHandle = makeOriginHandle();
   group.add(originHandle.mesh);
+  
+  // uniform scale handle: single center handle, triggers uniform scaling when grabbed
+  const uniformScaleHandle: UniformScaleHandle = makeUniformScaleHandle();
+  group.add(uniformScaleHandle.mesh);
 
   return {
     group,
@@ -73,6 +79,7 @@ export const createGizmoSet = (): GizmoSet => {
     scaleHandles,
     rotateHandles,
     originHandle,
+    uniformScaleHandle,
     dispose: () => {
       group.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;

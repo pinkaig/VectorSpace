@@ -28,7 +28,7 @@ import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js
 import type { SceneObject } from '../model'
 import type { RuntimeEvent } from '../../packages/interaction/src/index'
 import type { AxisName, AxisArrow } from '../gizmo/types'
-import { AXIS_COLORS, AXIS_HOVER_COLORS } from '../gizmo/colors'
+import { AXIS_COLORS, AXIS_HOVER_COLORS, ORIGIN_COLOR, ORIGIN_HOVER_COLOR } from '../gizmo/colors'
 import { closestPointOnAxis, angleAroundAxis } from '../gizmo/math'
 import { setArrowColor } from '../gizmo/moveGizmo'
 import type { AxisScaleHandle } from '../gizmo/scaleGizmo'
@@ -39,6 +39,10 @@ import type { ArrowKind } from '../gizmo/octaOrb'
 import { matchFaceView, nudgeView, rollView } from '../gizmo/viewSnap'
 import { LOOK_SENSITIVITY, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewportTypes'
 import { normalizeAngle } from './interactionMath'
+import type { OriginHandle } from '../gizmo/originHandle'
+import type { UniformScaleHandle } from '../gizmo/uniformScaleHandle'
+import { setUniformScaleHandleColor, UNIFORM_SCALE_COLOR, UNIFORM_SCALE_HOVER_COLOR } from '../gizmo/uniformScaleHandle'
+import { setOriginHandleColor } from '../gizmo/originHandle'
 import type { ViewportOverlays } from './overlayWidgets'
 import { createDragSessions } from './dragSessions'
 import { AXIS_INDICATOR_DIM, OCTAORB_DIM, ndcInRect, overlayRect, pointInRect } from './overlayWidgets'
@@ -104,6 +108,8 @@ export interface ViewportInteractionInput {
   axisArrows: readonly AxisArrow[]
   scaleHandles: readonly AxisScaleHandle[]
   rotateHandles: readonly AxisRotateHandle[]
+  originHandle: OriginHandle
+  uniformScaleHandle: UniformScaleHandle
   yaw: { current: number }
   pitch: { current: number }
   callbacks: ViewportInteractionCallbacks
@@ -117,7 +123,7 @@ export interface ViewportInteractionController {
 }
 
 export const createViewportInteractionController = (input: ViewportInteractionInput): ViewportInteractionController => {
-  const { element, camera, controls, raycaster, pointer, activeCamera, overlays, objectsGroup, gizmoGroup, axisArrows, scaleHandles, rotateHandles, yaw, pitch, callbacks, interactive } = input
+  const { element, camera, controls, raycaster, pointer, activeCamera, overlays, objectsGroup, gizmoGroup, axisArrows, scaleHandles, rotateHandles, originHandle, uniformScaleHandle, yaw, pitch, callbacks, interactive } = input
 
   let looking: { startPointerX: number; startPointerY: number; startYaw: number; startPitch: number } | null = null
   const pressedKeys = new Set<string>()
@@ -180,19 +186,29 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
 
   // Gizmo hits are kept separate from artefact hits because they start a
   // constrained transform session rather than selecting a scene object.
-  const pickGizmo = (event: PointerEvent): { axis: AxisName; kind: 'arrow' | 'scale' | 'rotate' } | null => {
+  const pickGizmo = (event: PointerEvent): { kind: 'origin' } | { kind: 'uniformScale' } | { axis: AxisName; kind: 'arrow' | 'scale' | 'rotate' } | null => {
     getPointer(event)
     raycaster.setFromCamera(pointer, activeCamera.current)
     const mode = callbacks.getData().gizmoMode
-    if (mode === 'move') for (const arrow of axisArrows) if (raycaster.intersectObjects(arrow.group.children, true)[0]) return { axis: arrow.axis, kind: 'arrow' }
-    if (mode === 'scale') for (const handle of scaleHandles) if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'scale' }
-    if (mode === 'rotate') for (const handle of rotateHandles) if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'rotate' }
+    if (mode === 'move') {
+      if (raycaster.intersectObject(originHandle.mesh, true)[0]) return { kind: 'origin' }
+      for (const arrow of axisArrows) if (raycaster.intersectObjects(arrow.group.children, true)[0]) return { axis: arrow.axis, kind: 'arrow' }
+    }
+    if (mode === 'scale') {
+      if (raycaster.intersectObject(uniformScaleHandle.mesh, true)[0]) return { kind: 'uniformScale' }
+      for (const handle of scaleHandles) if (raycaster.intersectObjects(handle.group.children, true)[0]) return { axis: handle.axis, kind: 'scale' }
+    }
+    if (mode === 'rotate') {
+      for (const handle of rotateHandles) if (raycaster.intersectObject(handle.mesh, true)[0]) return { axis: handle.axis, kind: 'rotate' }
+    }
     return null
   }
   const resetColours = () => {
     axisArrows.forEach((arrow) => setArrowColor(arrow, AXIS_COLORS[arrow.axis]))
     scaleHandles.forEach((handle) => setScaleHandleColor(handle, AXIS_COLORS[handle.axis]))
     rotateHandles.forEach((handle) => setRotateHandleColor(handle, AXIS_COLORS[handle.axis]))
+    setOriginHandleColor(originHandle, ORIGIN_COLOR)
+    setUniformScaleHandleColor(uniformScaleHandle, UNIFORM_SCALE_COLOR)
   }
 
   // OctaOrb / axis-indicator hit-testing. Both widgets render into their own small
@@ -318,29 +334,57 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       element.setPointerCapture(event.pointerId)
       return
     }
+
     // Camera look/walk navigation always works; object selection, dragging, and the
     // gizmo are editing actions and stay off in read-only (e.g. visitor simulation) mode.
     if (!interactive || event.button !== 0) return
     const gizmoHit = pickGizmo(event)
     const selected = data.objects.find((object) => object.id === data.selectedId)
     const selectedMesh = selected ? objectsGroup.getObjectByName(selected.id) : undefined
+
     if (gizmoHit && selected && selectedMesh) {
       const origin = worldPositionOf(selectedMesh)
       const worldQuaternion = worldQuaternionOf(selectedMesh)
-      if (gizmoHit.kind === 'arrow') {
+
+    if (gizmoHit.kind === 'origin') {
+      const cameraForward = camera.getWorldDirection(new THREE.Vector3())
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, origin)
+      
+      if (raycaster.ray.intersectPlane(plane, dragPoint)) {
+        controls.enabled = false
+        dragSessions.beginFreeDrag({ id: selected.id, plane, offset: origin.clone().sub(dragPoint) })
+      }
+    } else if (gizmoHit.kind === 'uniformScale') { // clicked the center scale cube, start a uniform-scale drag
+      const cameraForward = camera.getWorldDirection(new THREE.Vector3())
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, origin) // camera-facing plane, same technique as free-move
+      const hitPoint = new THREE.Vector3()
+      if (raycaster.ray.intersectPlane(plane, hitPoint)) {
+        controls.enabled = false
+        dragSessions.beginUniformScaleDrag({
+          id: selected.id,
+          origin,
+          cameraForward,
+          grabDistance: Math.max(0.01, hitPoint.distanceTo(origin)), // baseline distance, ratio to this drives the scale factor
+          startScale: [selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z],
+        })
+      }
+    } else if (gizmoHit.kind === 'arrow') {
         const arrow = axisArrows.find((item) => item.axis === gizmoHit.axis)!
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, arrow.direction)
+        
         if (grabT !== null) { controls.enabled = false;  dragSessions.beginAxisDrag({ id: selected.id, origin, direction: arrow.direction.clone(), grabT }) }
-      } else if (gizmoHit.kind === 'scale') {
+    } else if (gizmoHit.kind === 'scale') {
         const handle = scaleHandles.find((item) => item.axis === gizmoHit.axis)!
         const direction = data.scaleSpace === 'local' ? handle.direction.clone().applyQuaternion(worldQuaternion) : handle.direction.clone()
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const grabT = closestPointOnAxis(raycaster.ray.origin, raycaster.ray.direction, origin, direction)
+        
         if (grabT !== null) { controls.enabled = false;  dragSessions.beginScaleDrag({ id: selected.id, axis: handle.axis, origin, direction, grabT, startScale: [selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z] }) }
       } else {
         const handle = rotateHandles.find((item) => item.axis === gizmoHit.axis)!
         const local = data.rotateSpace === 'local'
+        
         // Resolve the rotation plane once at grab time. Local rotation still
         // uses a fixed world-space axis for the duration of the drag.
         const normal = local ? handle.normal.clone().applyQuaternion(worldQuaternion) : handle.normal.clone()
@@ -357,18 +401,11 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       return
     }
     const hit = pick(event)
-    if (!hit) { callbacks.select(null); return }
-    controls.enabled = false
-    callbacks.select(hit.name)
-    const item = data.objects.find((object) => object.id === hit.name)
-    if (item) {
-      const objectPosition = worldPositionOf(hit)
-      const cameraForward = camera.getWorldDirection(new THREE.Vector3())
-      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraForward, objectPosition)
-      if (raycaster.ray.intersectPlane(plane, dragPoint)) {
-        dragSessions.beginFreeDrag({ id: item.id, plane, offset: objectPosition.clone().sub(dragPoint) })
-      }
+    if (!hit) {
+      if (data.gizmoMode === 'select') callbacks.select(null) // only deselect on empty click while in Select mode, so the gizmo doesn't vanish while actively transforming
+      return
     }
+    callbacks.select(hit.name)
     element.setPointerCapture(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent) => {
@@ -402,6 +439,8 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (noActiveDrag) {
       const hovering = pickGizmo(event)
       resetColours()
+      if (hovering?.kind === 'origin') setOriginHandleColor(originHandle, ORIGIN_HOVER_COLOR)
+      if (hovering?.kind === 'uniformScale') setUniformScaleHandleColor(uniformScaleHandle, UNIFORM_SCALE_HOVER_COLOR)
       if (hovering?.kind === 'arrow') setArrowColor(axisArrows.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
       if (hovering?.kind === 'scale') setScaleHandleColor(scaleHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])
       if (hovering?.kind === 'rotate') setRotateHandleColor(rotateHandles.find((item) => item.axis === hovering.axis)!, AXIS_HOVER_COLORS[hovering.axis])

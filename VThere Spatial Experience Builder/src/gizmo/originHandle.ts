@@ -29,7 +29,7 @@ export interface OriginHandle {
  */
 export const makeOriginHandle = (): OriginHandle => {
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.06, 16, 16), // smaller, and more segments for a smoother, more visibly round shape
+    new THREE.SphereGeometry(0.10, 16, 16), // smaller, and more segments for a smoother, more visibly round shape
     new THREE.MeshStandardMaterial({ color: ORIGIN_COLOR, depthTest: false, depthWrite: false, roughness: 0.4, metalness: 0.1 }), // responds to scene lighting, reads as 3D instead of a flat disc
   )
   mesh.renderOrder = 1000 // slightly above the arrows' 999, so it consistently draws on top rather than fighting them
