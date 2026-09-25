@@ -218,7 +218,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Keep editor-only gizmos outside the authored artefact group. Artefact
     // synchronisation may rebuild objects, but must never dispose the gizmos.
     const gizmoSet = createGizmoSet()
-    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles } = gizmoSet
+    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles, originHandle } = gizmoSet
     scene.add(gizmoGroup)
 
     // Corner overlay widgets: each owns a tiny scene rendered into a scissor rect of the
@@ -369,6 +369,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         axisArrows,
         scaleHandles,
         rotateHandles,
+        originHandle,
         selected,
         selectedMesh: selected ? objectsGroup.getObjectByName(selected.id) : undefined,
         mode: dataRef.current.gizmoMode,

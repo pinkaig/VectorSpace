@@ -21,15 +21,21 @@ import { AXIS_COLORS } from './colors'
 export const makeAxisArrow = (axis: AxisName): AxisArrow => {
   const color = AXIS_COLORS[axis]
   const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.05, 0.05, 0.6, 12), // thin shaft
+    new THREE.CylinderGeometry(0.03, 0.03, 0.9, 12), // thin shaft
     new THREE.MeshBasicMaterial({ color }),
   )
   const head = new THREE.Mesh(
-    new THREE.ConeGeometry(0.12, 0.15, 12), // arrowhead
+    new THREE.ConeGeometry(0.08, 0.15, 12), // arrowhead
     new THREE.MeshBasicMaterial({ color }),
   )
-  body.position.y = 0.3 // shift shaft so its base sits at the group's origin, not its center
-  head.position.y = 0.65 // sit cone just past the end of the shaft
+  body.position.y = 0.45 // shift shaft so its base sits at the group's origin, not its center
+  head.position.y = 0.95 // sit cone just past the end of the shaft
+
+  // always-on-top rendering
+  body.material.depthTest = false
+  head.material.depthTest = false
+  body.renderOrder = 999
+  head.renderOrder = 999
 
   const group = new THREE.Group()
   group.add(body, head)
