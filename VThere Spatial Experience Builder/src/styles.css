@@ -700,7 +700,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #F7E3C3;
+  color: #E2A845;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -708,7 +708,7 @@ button:disabled {
 .env-select select {
   border: 1px solid #F7E3C3;
   border-radius: 2px;
-  background: #4294E2;
+  background: #5C3705;
   color: #E2A845;
   padding: 6px 8px;
   font-size: 11px;
