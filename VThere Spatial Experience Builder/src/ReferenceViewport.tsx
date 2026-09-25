@@ -58,7 +58,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0b1118)
+    scene.background = new THREE.Color(0x1e1e1e)
 
     const environmentGroup = new THREE.Group()
     environmentGroupRef.current = environmentGroup

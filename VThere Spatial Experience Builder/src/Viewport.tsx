@@ -184,7 +184,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0b1118)
+    scene.background = new THREE.Color(0x1e1e1e)
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200)
     cameraRef.current = camera
     const renderer = new THREE.WebGLRenderer({ antialias: true })
