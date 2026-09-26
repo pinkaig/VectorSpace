@@ -29,6 +29,22 @@ import { matchFaceView } from '../gizmo/viewSnap'
 
 export const OCTAORB_DIM = 128
 export const AXIS_INDICATOR_DIM = 84
+// Compact sizes for the quad layout (a quarter-size pane) and orthographic views — small
+// enough to get out of the way, but the targets stay easy mouse hits on a ~15" laptop
+// (OctaOrb tips ≈12px across, axis balls ≈9px).
+export const OCTAORB_DIM_COMPACT = 96
+export const AXIS_INDICATOR_DIM_COMPACT = 68
+
+export interface OverlayDims {
+  octaOrb: number
+  axisIndicator: number
+}
+
+// Single source for widget size: drives the render rects, hit-test rects and the DOM backdrops.
+export const overlayDims = (compact: boolean): OverlayDims => compact
+  ? { octaOrb: OCTAORB_DIM_COMPACT, axisIndicator: AXIS_INDICATOR_DIM_COMPACT }
+  : { octaOrb: OCTAORB_DIM, axisIndicator: AXIS_INDICATOR_DIM }
+
 // Matches the CSS backdrop insets in styles.css.
 export const OVERLAY_MARGIN = 8
 
@@ -67,6 +83,8 @@ export interface OverlayRenderInput {
   height: number
   showOctaOrb: boolean
   showAxisIndicator: boolean
+  /** Shrinks both widgets — see overlayDims. */
+  compact: boolean
 }
 
 export interface ViewportOverlays {
@@ -112,16 +130,17 @@ export const createViewportOverlays = (mount: HTMLElement, canvas: HTMLCanvasEle
   return {
     octaOrb,
     axisIndicator,
-    render: (renderer, { camera, target, width, height, showOctaOrb, showAxisIndicator }) => {
+    render: (renderer, { camera, target, width, height, showOctaOrb, showAxisIndicator, compact }) => {
+      const dims = overlayDims(compact)
       if (showOctaOrb) {
         direction.copy(camera.position).sub(target).normalize()
         octaOrb.syncToCamera(direction, camera.up)
         octaOrb.setArrowsVisible(matchFaceView(direction) !== null)
-        renderInRect(renderer, octaOrb.scene, octaOrb.camera, width - OVERLAY_MARGIN - OCTAORB_DIM, height - OVERLAY_MARGIN - OCTAORB_DIM, OCTAORB_DIM)
+        renderInRect(renderer, octaOrb.scene, octaOrb.camera, width - OVERLAY_MARGIN - dims.octaOrb, height - OVERLAY_MARGIN - dims.octaOrb, dims.octaOrb)
       }
       if (showAxisIndicator) {
         axisIndicator.group.quaternion.copy(camera.quaternion).invert()
-        renderInRect(renderer, axisIndicator.group, axisIndicator.camera, OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM)
+        renderInRect(renderer, axisIndicator.group, axisIndicator.camera, OVERLAY_MARGIN, OVERLAY_MARGIN, dims.axisIndicator)
       }
       renderer.setScissorTest(false)
     },

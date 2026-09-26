@@ -48,11 +48,11 @@ import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
-import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
+import { applyCameraPose, applyViewOrientation, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
 import { EYE_HEIGHT } from './viewport/viewportTypes'
 import { createGizmoSet } from './viewport/createGizmoSet'
-import { createViewportOverlays } from './viewport/overlayWidgets'
+import { createViewportOverlays, overlayDims } from './viewport/overlayWidgets'
 import type { EnvStatus } from './viewport/renderTypes'
 import {
   getAssetDescriptor,
@@ -107,6 +107,8 @@ interface ViewportProps {
   onOrthographicChange?: (value: boolean) => void
   showOctaOrb?: boolean
   showAxisIndicator?: boolean
+  // Shrinks the OctaOrb / axis indicator, e.g. when this is one pane of the quad layout.
+  compactOverlays?: boolean
 }
 
 export interface ViewportHandle {
@@ -138,6 +140,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     onOrthographicChange,
     showOctaOrb = true,
     showAxisIndicator = true,
+    compactOverlays = false,
   },
   ref,
 ) {
@@ -145,8 +148,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, sceneId }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -233,6 +236,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // regardless of how the camera got there, so any tighter cap here would clamp that snap
     // back to near-horizontal on the very next frame.
     controls.maxPolarAngle = Math.PI
+    // OctaOrb views can leave camera.up off world Y, which OrbitControls can't rotate
+    // around — hand it back a Y-up camera whenever a rotate drag begins (pan/zoom keep the
+    // current up, so a rolled view survives them). State is set before 'start' fires;
+    // 0 / 3 / 6 are OrbitControls' ROTATE / TOUCH_ROTATE / TOUCH_DOLLY_ROTATE.
+    controls.addEventListener('start', () => {
+      const { state } = controls as unknown as { state: number } // runtime field, missing from @types/three
+      if (state === 0 || state === 3 || state === 6) realignOrbitUp(camera, controls)
+    })
     controlsRef.current = controls
 
     // Orthographic camera mirrors the perspective camera's position/rotation every frame
@@ -410,6 +421,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
+          compactOverlays: dataRef.current.compactOverlays || dataRef.current.orthographic,
           unpickableAssetIds: unpickableAssetIdsRef.current,
           runtimeActive: dataRef.current.runtimeMode === 'play',
         }),
@@ -522,6 +534,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           height,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
+          compact: dataRef.current.compactOverlays || dataRef.current.orthographic,
         })
       }
     }
@@ -668,13 +681,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             ? 'Drag a ring to rotate around that axis'
             : 'Click to select · Drag to move'
 
+  const dims = overlayDims(compactOverlays || orthographic)
+
   return (
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
       {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
-      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
-      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
+      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" style={{ width: dims.octaOrb, height: dims.octaOrb }} />}
+      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" style={{ width: dims.axisIndicator, height: dims.axisIndicator }} />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
       <AssetStatusBadge descriptor={selectedAssetDescriptor} onRetry={retrySelectedAsset} />
     </div>

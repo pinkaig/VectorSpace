@@ -45,7 +45,7 @@ import { setUniformScaleHandleColor, UNIFORM_SCALE_COLOR, UNIFORM_SCALE_HOVER_CO
 import { setOriginHandleColor } from '../gizmo/originHandle'
 import type { ViewportOverlays } from './overlayWidgets'
 import { createDragSessions } from './dragSessions'
-import { AXIS_INDICATOR_DIM, OCTAORB_DIM, ndcInRect, overlayRect, pointInRect } from './overlayWidgets'
+import { ndcInRect, overlayDims, overlayRect, pointInRect } from './overlayWidgets'
 
 export type InteractionCameraMode = 'orbit' | 'walk'
 export type InteractionGizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -59,6 +59,8 @@ export interface ViewportInteractionData {
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
+  // Widgets shrink in the quad layout / orthographic views (overlayDims), so their hit boxes must too.
+  compactOverlays: boolean
   // Object ids whose asset is still resolving or failed to resolve. Raycasting
   // skips these so a click can't select or drag an object with no confirmed
   // visual representation yet — see docs/05-subsystems/asset-manager.md.
@@ -221,7 +223,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     const data = callbacks.getData()
     const rect = element.getBoundingClientRect()
     if (data.showOctaOrb) {
-      const box = overlayRect('top-right', OCTAORB_DIM, rect)
+      const box = overlayRect('top-right', overlayDims(data.compactOverlays).octaOrb, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
         overlays.octaOrb.scene.updateMatrixWorld(true)
@@ -256,7 +258,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       }
     }
     if (data.showAxisIndicator) {
-      const box = overlayRect('bottom-left', AXIS_INDICATOR_DIM, rect)
+      const box = overlayRect('bottom-left', overlayDims(data.compactOverlays).axisIndicator, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
         overlays.axisIndicator.group.updateMatrixWorld(true)
@@ -276,7 +278,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     const rect = element.getBoundingClientRect()
     let overlayHovered = false
     if (data.showOctaOrb) {
-      const box = overlayRect('top-right', OCTAORB_DIM, rect)
+      const box = overlayRect('top-right', overlayDims(data.compactOverlays).octaOrb, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         overlayHovered = true
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
@@ -301,7 +303,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       }
     }
     if (data.showAxisIndicator) {
-      const box = overlayRect('bottom-left', AXIS_INDICATOR_DIM, rect)
+      const box = overlayRect('bottom-left', overlayDims(data.compactOverlays).axisIndicator, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         overlayHovered = true
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)

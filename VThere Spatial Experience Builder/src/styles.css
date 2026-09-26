@@ -728,16 +728,13 @@ button:disabled {
   pointer-events: none;
 }
 .octaorb-backdrop {
+  /* width/height set inline from overlayDims (shrinks in orthographic mode) */
   top: 8px;
   right: 8px;
-  width: 128px;
-  height: 128px;
 }
 .axis-indicator-backdrop {
   left: 8px;
   bottom: 8px;
-  width: 84px;
-  height: 84px;
 }
 .octaorb-tooltip {
   position: absolute;
