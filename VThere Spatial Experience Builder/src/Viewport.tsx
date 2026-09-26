@@ -211,7 +211,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Keep editor-only gizmos outside the authored artefact group. Artefact
     // synchronisation may rebuild objects, but must never dispose the gizmos.
     const gizmoSet = createGizmoSet()
-    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles } = gizmoSet
+    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles, originHandle, uniformScaleHandle } = gizmoSet
     scene.add(gizmoGroup)
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
@@ -365,9 +365,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
       syncGizmo({
         gizmoGroup,
+        camera,
+        controlsTarget: controls.target,
+        isOrtho: dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic,
         axisArrows,
         scaleHandles,
         rotateHandles,
+        originHandle,
+        uniformScaleHandle,
         selected,
         selectedMesh: selected ? objectsGroup.getObjectByName(selected.id) : undefined,
         mode: dataRef.current.gizmoMode,
@@ -390,6 +395,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       axisArrows,
       scaleHandles,
       rotateHandles,
+      originHandle,
+      uniformScaleHandle,
       yaw: yawRef,
       pitch: pitchRef,
       interactive,
@@ -494,6 +501,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const useOrtho = dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic
       if (useOrtho) syncOrthoCamera(camera, orthoCamera, controls.target)
       activeCameraRef.current = useOrtho ? orthoCamera : camera
+      syncGizmoFrame()
 
       // Play mode always draws: action executors (e.g. changeColor) mutate the
       // scene asynchronously with no render hook, and a walkthrough is rarely idle.
