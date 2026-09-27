@@ -318,12 +318,22 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     return overlayHovered
   }
 
+  // OctaOrb / axis indicator hits are consumed before anything else - both widgets
+  // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
+  // Runs in the capture phase and stops the event outright: OrbitControls listens for
+  // pointerdown on this same element and was registered first, so without this every
+  // widget click also began an orbit drag - the slightest mouse movement during the
+  // click then rotated the camera straight back off the face it had just snapped to.
+  const onOverlayPointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || callbacks.getData().cameraMode !== 'orbit') return
+    if (!tryOverlayPointerDown(event)) return
+    pointerDownAt = { x: event.clientX, y: event.clientY }
+    event.stopImmediatePropagation()
+  }
+
   const onPointerDown = (event: PointerEvent) => {
     const data = callbacks.getData()
     if (event.button === 0) pointerDownAt = { x: event.clientX, y: event.clientY }
-    // OctaOrb / axis indicator hits are consumed before anything else - both widgets
-    // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
-    if (data.cameraMode === 'orbit' && event.button === 0 && tryOverlayPointerDown(event)) return
     if (data.cameraMode === 'walk') {
       if (event.button !== 0) return
       // Run simulation: mouse-look is driven by pointer lock (in onPointerMove), not
@@ -491,6 +501,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   // cursor disappears while pointer-locked and replaced with a crosshair
   // so it's hidden only for as long as the lock is actually held.
   const onPointerLockChange = () => { element.style.cursor = document.pointerLockElement === element ? 'none' : '' }
+  element.addEventListener('pointerdown', onOverlayPointerDown, { capture: true })
   element.addEventListener('pointerdown', onPointerDown); element.addEventListener('pointermove', onPointerMove); element.addEventListener('pointerup', onPointerUp); element.addEventListener('contextmenu', onContextMenu); element.addEventListener('pointerleave', onPointerLeave)
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); window.addEventListener('blur', onBlur)
   document.addEventListener('pointerlockchange', onPointerLockChange)
@@ -498,6 +509,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     isDragging: dragSessions.isActive,
     pressedKeys,
     dispose: () => {
+      element.removeEventListener('pointerdown', onOverlayPointerDown, { capture: true })
       element.removeEventListener('pointerdown', onPointerDown); element.removeEventListener('pointermove', onPointerMove); element.removeEventListener('pointerup', onPointerUp); element.removeEventListener('contextmenu', onContextMenu); element.removeEventListener('pointerleave', onPointerLeave)
       window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('blur', onBlur)
       document.removeEventListener('pointerlockchange', onPointerLockChange)

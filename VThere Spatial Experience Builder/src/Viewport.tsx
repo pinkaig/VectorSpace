@@ -51,6 +51,7 @@ import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, applyViewOrientation, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
 import { EYE_HEIGHT } from './viewport/viewportTypes'
+import { FACE_VIEWS, matchFaceView } from './gizmo/viewSnap'
 import { createGizmoSet } from './viewport/createGizmoSet'
 import { createViewportOverlays, overlayDims } from './viewport/overlayWidgets'
 import type { EnvStatus } from './viewport/renderTypes'
@@ -120,6 +121,12 @@ export interface ViewportHandle {
   restartRuntime: () => void
 }
 
+// 'TOP', 'FRONT', … when `direction` (target -> camera) is flat against a face, else null.
+const faceLabelFor = (direction: THREE.Vector3): string | null => {
+  const index = matchFaceView(direction)
+  return index === null ? null : FACE_VIEWS[index].label
+}
+
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   {
     objects, selectedId, onSelect, onMove, onScale, onRotate,
@@ -173,6 +180,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const requestRenderRef = useRef<() => void>(() => {})
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
+  // Name of the OctaOrb face the camera is snapped to ('TOP', 'FRONT', …), shown as a
+  // header; null once the user orbits away or the view is reset.
+  const [faceLabel, setFaceLabel] = useState<string | null>(null)
   // Tracks every object currently loading/erroring so the interaction controller
   // can skip them at pick time; see requirement 2 in the Stage 6 plan section.
   const unpickableAssetIdsRef = useRef<Set<string>>(new Set())
@@ -242,7 +252,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // 0 / 3 / 6 are OrbitControls' ROTATE / TOUCH_ROTATE / TOUCH_DOLLY_ROTATE.
     controls.addEventListener('start', () => {
       const { state } = controls as unknown as { state: number } // runtime field, missing from @types/three
-      if (state === 0 || state === 3 || state === 6) realignOrbitUp(camera, controls)
+      if (state === 0 || state === 3 || state === 6) {
+        realignOrbitUp(camera, controls)
+        // Orbiting leaves the snapped face, and orthographic only belongs to face views
+        // (the OctaOrb switches it on) — drop back to perspective for free orbiting.
+        setFaceLabel(null)
+        if (dataRef.current.orthographic) dataRef.current.onOrthographicChange?.(false)
+      }
     })
     controlsRef.current = controls
 
@@ -260,6 +276,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       pitchRef.current = orientation.pitch
       walkHeightRef.current = camera.position.y
       orbitPoseRef.current = null
+      setFaceLabel(null)
     }
     applyPoseRef.current(dataRef.current.startCamera)
 
@@ -434,11 +451,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           const orientation = applyViewOrientation(camera, controls, direction, up)
           yawRef.current = orientation.yaw
           pitchRef.current = orientation.pitch
+          setFaceLabel(faceLabelFor(direction))
         },
         snapTo: (direction) => {
           const orientation = snapCameraTo(camera, controls, direction)
           yawRef.current = orientation.yaw
           pitchRef.current = orientation.pitch
+          setFaceLabel(faceLabelFor(direction))
         },
         setOrthographic: (value) => dataRef.current.onOrthographicChange?.(value),
         showOctaOrbTooltip: overlays.showOctaOrbTooltip,
@@ -690,7 +709,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
       {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" style={{ width: dims.octaOrb, height: dims.octaOrb }} />}
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" style={{ width: dims.axisIndicator, height: dims.axisIndicator }} />}
-      {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
+      {cameraMode === 'orbit' && faceLabel && (
+        <div className="viewport-face-header" key={faceLabel}>
+          <span className="viewport-face-header-name">{faceLabel}</span>
+          <span className="viewport-face-header-projection">{orthographic ? 'Orthographic' : 'Perspective'}</span>
+        </div>
+      )}
       <AssetStatusBadge descriptor={selectedAssetDescriptor} onRetry={retrySelectedAsset} />
     </div>
   )

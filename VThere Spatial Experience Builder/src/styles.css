@@ -778,20 +778,42 @@ button:disabled {
   height: 14px;
   border-width: 2px;
 }
-.viewport-projection-badge {
+/* Which OctaOrb face the camera is snapped to; removed as soon as an orbit drag starts. */
+.viewport-face-header {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  color: #9fe4d7;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid #4294E2;
+  border-radius: 5px;
+  background: rgba(9, 15, 19, 0.8);
   font-family: "DM Mono", monospace;
-  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 4px 8px;
-  border: 1px solid #2a444a;
-  border-radius: 3px;
-  background: rgba(13, 24, 30, 0.6);
+  white-space: nowrap;
   pointer-events: none;
+  animation: viewport-face-header-in 160ms ease-out;
+}
+.viewport-face-header-name {
+  color: #f4c94f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.viewport-face-header-projection {
+  color: #9fe4d7;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+@keyframes viewport-face-header-in {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport-face-header { animation: none; }
 }
 .viewport-overlay {
   position: absolute;
