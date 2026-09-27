@@ -24,6 +24,9 @@ import { AudioStateStore, type AudioSnapshot, type ChannelState } from './AudioS
 
 const DEFAULT_CHANNELS: ChannelId[] = ['bgm', 'sfx', 'narration', 'ambient']
 
+/** Decoded buffers beyond this count are evicted, least-recently-used first, once nothing plays them. */
+const DEFAULT_MAX_CACHED_BUFFERS = 32
+
 export interface PlayRequest {
   assetId: string
   channel?: ChannelId
@@ -44,6 +47,8 @@ export interface AudioSystemOptions {
   resolver: AudioResolver
   assets?: AudioAssetLibrary
   settings?: AudioSettings
+  /** Cap on decoded buffers held in the cache; default DEFAULT_MAX_CACHED_BUFFERS. */
+  maxCachedBuffers?: number
 }
 
 /** A `play()` before unlock is queued and flushed, in order, on `unlock()`. */
@@ -60,7 +65,10 @@ export class AudioSystem {
   private readonly master: MasterBus
   private readonly channels = new Map<ChannelId, ChannelBus>()
   private readonly voices = new Map<string, AudioVoice>()
+  // Insertion order doubles as LRU order: loadBuffer() re-inserts an entry on cache hit
+  // to bump it to most-recently-used, so eviction can just delete the Map's first key.
   private readonly bufferCache = new Map<string, Promise<BackendBuffer>>()
+  private readonly maxCachedBuffers: number
   private unlocked = false
   private readonly unlockQueue: QueuedPlay[] = []
 
@@ -68,6 +76,7 @@ export class AudioSystem {
     this.backend = opts.backend
     this.resolver = opts.resolver
     this.assets = opts.assets ?? new AudioAssetLibrary()
+    this.maxCachedBuffers = opts.maxCachedBuffers ?? DEFAULT_MAX_CACHED_BUFFERS
     this.master = new MasterBus(this.backend)
 
     const channelIds = opts.settings ? (Object.keys(opts.settings.channels) as ChannelId[]) : DEFAULT_CHANNELS
@@ -145,17 +154,34 @@ export class AudioSystem {
 
   private async loadBuffer(assetId: string): Promise<BackendBuffer> {
     const cached = this.bufferCache.get(assetId)
-    if (cached) return cached
+    if (cached) {
+      // Bump to most-recently-used: delete + re-set moves the key to the end of insertion order.
+      this.bufferCache.delete(assetId)
+      this.bufferCache.set(assetId, cached)
+      return cached
+    }
 
     const promise = (async () => {
       const resolved = await this.resolver.resolve(assetId)
       if (!resolved) throw new Error(`No audio resolves for asset "${assetId}"`)
-      return this.backend.decode(resolved.url)
+      return resolved.kind === 'buffer' ? this.backend.decodeBytes(resolved.data) : this.backend.decode(resolved.url)
     })()
 
     this.bufferCache.set(assetId, promise)
     promise.catch(() => this.bufferCache.delete(assetId))
+    this.evictUnusedBuffers()
     return promise
+  }
+
+  /** Drops least-recently-used decoded buffers over the cap, skipping any asset a live voice still plays. */
+  private evictUnusedBuffers(): void {
+    if (this.bufferCache.size <= this.maxCachedBuffers) return
+    const assetIdsInUse = new Set([...this.voices.values()].map((voice) => voice.assetId))
+    for (const assetId of this.bufferCache.keys()) {
+      if (this.bufferCache.size <= this.maxCachedBuffers) break
+      if (assetIdsInUse.has(assetId)) continue
+      this.bufferCache.delete(assetId)
+    }
   }
 
   private selectVoices(sel: VoiceSelector): AudioVoice[] {
@@ -258,6 +284,14 @@ export class AudioSystem {
   }
 
   private notify(): void {
+    this.reapEndedVoices()
     this.store.update(this.buildSnapshot())
+  }
+
+  /** A voice that finished on its own (never explicitly stopped) is otherwise never removed. */
+  private reapEndedVoices(): void {
+    for (const [id, voice] of this.voices) {
+      if (voice.status === 'ended') this.voices.delete(id)
+    }
   }
 }

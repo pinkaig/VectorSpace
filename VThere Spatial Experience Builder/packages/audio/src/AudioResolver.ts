@@ -12,10 +12,17 @@
  * @documentation
  * Larger system guide: docs/code/subsystems/audio-system.md
  */
-export interface ResolvedAudio {
-  url: string
-  contentType?: string
-}
+/**
+ * Two forms a resolved asset can take. `url`: fetched by the backend at decode
+ * time, nothing persisted on the device (Tier A — long-form/streaming audio).
+ * `buffer`: the encoded bytes already in hand (e.g. read from an on-device
+ * cache), decoded directly with no fetch (Tier B — small/frequent clips
+ * cached in IndexedDB). See audio-system.md's "Loading audio into the app"
+ * for which tier a given asset should use and why.
+ */
+export type ResolvedAudio =
+  | { kind: 'url'; url: string; contentType?: string }
+  | { kind: 'buffer'; data: ArrayBuffer; contentType?: string }
 
 export interface AudioResolver {
   resolve(assetId: string): Promise<ResolvedAudio | null>

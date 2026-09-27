@@ -61,6 +61,8 @@ export interface AudioBackend {
   createGain(): BackendGain
   connectToDestination(gain: BackendGain): void
   decode(url: string): Promise<BackendBuffer>
+  /** Decodes bytes already in hand (e.g. from an IndexedDB cache) with no fetch. */
+  decodeBytes(data: ArrayBuffer): Promise<BackendBuffer>
   createSource(options: CreateSourceOptions): BackendSource
   dispose(): void
 }

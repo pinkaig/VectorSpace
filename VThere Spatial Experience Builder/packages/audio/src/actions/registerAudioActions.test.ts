@@ -6,7 +6,7 @@ import { FakeAudioBackend } from '../backend/FakeAudioBackend'
 import { registerAudioActions } from './registerAudioActions'
 import type { AudioResolver } from '../AudioResolver'
 
-const resolver: AudioResolver = { async resolve(assetId) { return { url: `${assetId}.mp3` } } }
+const resolver: AudioResolver = { async resolve(assetId) { return { kind: 'url', url: `${assetId}.mp3` } } }
 
 const flush = async () => {
   await Promise.resolve()

@@ -197,7 +197,11 @@ export class WebAudioBackend implements AudioBackend {
     const response = await fetch(url)
     if (!response.ok) throw new Error(`Failed to fetch audio "${url}": ${response.status}`)
     const arrayBuffer = await response.arrayBuffer()
-    const audioBuffer = await this.context.decodeAudioData(arrayBuffer)
+    return this.decodeBytes(arrayBuffer)
+  }
+
+  async decodeBytes(data: ArrayBuffer): Promise<BackendBuffer> {
+    const audioBuffer = await this.context.decodeAudioData(data)
     return new WebBuffer(audioBuffer)
   }
 

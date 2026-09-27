@@ -103,12 +103,14 @@ class FakeSource implements BackendSource {
 }
 
 export interface FakeAudioBackendOptions {
-  /** Duration returned by `decode()` for any URL not listed here. Default 1s. */
+  /** Duration returned by `decode()`/`decodeBytes()` when nothing more specific matches. Default 1s. */
   defaultDurationSeconds?: number
   /** Per-URL durations, for tests that care about a specific length. */
   durations?: Record<string, number>
   /** Make `decode()` reject for these URLs, to test the error path. */
   failUrls?: string[]
+  /** Make `decodeBytes()` reject, to test the tier-B decode error path. */
+  failDecodeBytes?: boolean
 }
 
 /**
@@ -119,6 +121,7 @@ export interface FakeAudioBackendOptions {
 export class FakeAudioBackend implements AudioBackend {
   state: AudioContextState = 'suspended'
   readonly decodeCalls: string[] = []
+  decodeBytesCallCount = 0
   private readonly sources = new Set<FakeSource>()
 
   constructor(private readonly options: FakeAudioBackendOptions = {}) {}
@@ -142,6 +145,14 @@ export class FakeAudioBackend implements AudioBackend {
     }
     const durationSeconds = this.options.durations?.[url] ?? this.options.defaultDurationSeconds ?? 1
     return { durationSeconds }
+  }
+
+  async decodeBytes(_data: ArrayBuffer): Promise<BackendBuffer> {
+    this.decodeBytesCallCount += 1
+    if (this.options.failDecodeBytes) {
+      throw new Error('FakeAudioBackend: decodeBytes failed')
+    }
+    return { durationSeconds: this.options.defaultDurationSeconds ?? 1 }
   }
 
   createSource(options: CreateSourceOptions): BackendSource {

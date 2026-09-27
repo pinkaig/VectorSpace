@@ -7,7 +7,7 @@ import { AudioAssetLibrary } from './AudioAssetLibrary'
 const resolverFor = (urls: Record<string, string>): AudioResolver => ({
   async resolve(assetId) {
     const url = urls[assetId]
-    return url ? { url } : null
+    return url ? { kind: 'url', url } : null
   },
 })
 
@@ -108,6 +108,31 @@ describe('AudioSystem', () => {
     expect(voice.status).toBe('ended')
   })
 
+  it('decodes buffer-kind resolutions via decodeBytes instead of fetching a URL', async () => {
+    const backend = new FakeAudioBackend()
+    const bytes = new ArrayBuffer(8)
+    const resolver: AudioResolver = { async resolve() { return { kind: 'buffer', data: bytes } } }
+    const audio = new AudioSystem({ backend, resolver })
+    await audio.unlock()
+
+    const voice = audio.play({ assetId: 'cached-clip' })
+    await flush()
+    expect(voice.status).toBe('playing')
+    expect(backend.decodeCalls).toEqual([])
+    expect(backend.decodeBytesCallCount).toBe(1)
+  })
+
+  it('surfaces a decodeBytes failure as a voice in error, never throwing', async () => {
+    const backend = new FakeAudioBackend({ failDecodeBytes: true })
+    const resolver: AudioResolver = { async resolve() { return { kind: 'buffer', data: new ArrayBuffer(8) } } }
+    const audio = new AudioSystem({ backend, resolver })
+    await audio.unlock()
+
+    const voice = audio.play({ assetId: 'cached-clip' })
+    await flush()
+    expect(voice.status).toBe('error')
+  })
+
   it('reports a failed resolve as a voice in error, never throwing', async () => {
     const backend = new FakeAudioBackend()
     const audio = new AudioSystem({ backend, resolver: resolverFor({}) })
@@ -153,5 +178,66 @@ describe('AudioSystem', () => {
     audio.stop({ channel: 'sfx' })
     expect(v1.status).toBe('stopped')
     expect(v2.status).toBe('stopped')
+  })
+
+  it('reaps a voice that ends on its own from the store', async () => {
+    const backend = new FakeAudioBackend({ defaultDurationSeconds: 2 })
+    const audio = new AudioSystem({ backend, resolver: resolverFor({ a: 'a.mp3' }) })
+    await audio.unlock()
+    const voice = audio.play({ assetId: 'a' })
+    await flush()
+
+    backend.advanceAll(3)
+    expect(voice.status).toBe('ended')
+    expect(audio.store.getVoice(voice.id)).toBeUndefined()
+    expect(audio.store.getSnapshot().voices).toHaveLength(0)
+  })
+
+  it('evicts least-recently-used decoded buffers once over the cap, skipping in-use assets', async () => {
+    const backend = new FakeAudioBackend()
+    const audio = new AudioSystem({
+      backend,
+      resolver: resolverFor({ a: 'a.mp3', b: 'b.mp3', c: 'c.mp3' }),
+      maxCachedBuffers: 2,
+    })
+    await audio.unlock()
+
+    const a = audio.play({ assetId: 'a' })
+    await flush()
+    audio.stop({ voiceId: a.id }) // 'a' has no live voice anymore, so it's evictable
+    audio.play({ assetId: 'b' })
+    await flush()
+
+    // Cache is now [a, b] (2, at cap). Playing 'c' should evict 'a' (LRU, unused) not 'b' (in use).
+    audio.play({ assetId: 'c' })
+    await flush()
+    expect(backend.decodeCalls).toEqual(['a.mp3', 'b.mp3', 'c.mp3'])
+
+    // Replaying 'a' must decode again since its buffer was evicted.
+    audio.play({ assetId: 'a' })
+    await flush()
+    expect(backend.decodeCalls).toEqual(['a.mp3', 'b.mp3', 'c.mp3', 'a.mp3'])
+  })
+
+  it('does not evict a buffer while a live voice still plays it', async () => {
+    const backend = new FakeAudioBackend()
+    const audio = new AudioSystem({
+      backend,
+      resolver: resolverFor({ a: 'a.mp3', b: 'b.mp3', c: 'c.mp3' }),
+      maxCachedBuffers: 1,
+    })
+    await audio.unlock()
+
+    audio.play({ assetId: 'a' }) // stays playing; must survive every later eviction pass
+    await flush()
+    audio.play({ assetId: 'b' })
+    await flush()
+    audio.play({ assetId: 'c' })
+    await flush()
+
+    // 'a' is still in use, so re-playing it must not re-decode even though the cap is 1.
+    audio.play({ assetId: 'a' })
+    await flush()
+    expect(backend.decodeCalls).toEqual(['a.mp3', 'b.mp3', 'c.mp3'])
   })
 })
