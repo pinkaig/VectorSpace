@@ -766,7 +766,113 @@ Fix before rule authoring ships.
 4. On approval, implement in this order: types and serializer, authoring operations (`duplicateObject`, `createScene`), `packages/assets` work (kind specs, content guard, in-flight de-duplication, `DecodedCache`), then `packages/audio` with `FakeAudioBackend` and tests first, then `WebAudioBackend` and wiring, then image, text, video.
 5. Commit in logical steps. `GIT_AND_HANDOFF_CONVENTIONS.md` asks for an `[agent]` subject prefix and no `Co-authored-by` trailer unless the team agreed. The session attribution setting says to add one; resolve that before the first commit.
 
+## 2026-09-27 Text system: prev/curr/next navigation, modal-input boundary, build-handoff prompt (docs only)
+
+### Objective / topic
+
+Continue `text-system.md` (docs-only, per the 2026-09-21 design-docs entry above) to close two open design questions
+— sequence navigation direction and who owns modal-input decisions — then produce a handoff prompt so a teammate
+(Wei An) can pick up implementation with a comprehension step built in, not just a spec to translate into code.
+
+### Decisions made and why
+
+- **Sequences navigate both ways (prev/curr/next), not forward-only.** A dialogue queue or paged panel tracks a
+  plain `index`/`length` pair over an array that is already fully resolved in memory (text is capped at 64 KB/asset,
+  512 KB/project — see the 2026-09-27 project-data-only decision already in `text-system.md`). Explicitly rejected:
+  buffering or pre-loading upcoming panels, raised and self-scoped down as over-engineering for content this small.
+  `advance(sel, dir?: 'next' | 'prev')` defaults to `'next'`; both directions no-op at the sequence ends rather than
+  closing the panel or erroring.
+- **The modal-input boundary is one read-only boolean, not a text-system decision.** `packages/text` exposes only
+  `TextStateStore.getSnapshot().modalOpen`; every decision about what that means for input — which keys/pointer
+  events get swallowed, whether the runtime clock pauses, walk-mode pointer-lock interaction — belongs to
+  `src/viewport/interactionController.ts`. The dependency points one way (store → controller, read not pushed), the
+  same shape as the existing event bridge but inverted. This closes what was previously an open "settle when wiring"
+  note.
+- **Fixed a stale doc inconsistency** (self-identified, not user-flagged): section 10 still described a
+  `DecodedCache`/file-fetch path left over from before the 2026-09-21 "text is project data only" decision was fully
+  swept through the doc. Corrected to synchronous parse-on-open, no cache.
+- **A build-handoff prompt, not a plain instruction dump, for the next implementer.** Wrote
+  `text-system-build-prompt.md` telling whoever builds `packages/text` to run the (already-existing, uncommitted
+  until this session) `codebase-comprehension` skill (`Agent Skills/agents/codebase-comprehension.skill`) against
+  `text-system.md` and the real `packages/audio`/`packages/assets` code first, producing a dependency diagram and a
+  tour-walkthrough for their own understanding before writing code — rather than translating the spec
+  section-by-section.
+- **When-Do integration is called out as a checkable gate, not an implied step.** The commit message for this
+  session's work says it directly: "abit apprehensive on the when-do interaction integration as we have to check the
+  asset manager and systems itself is working." The build prompt was extended with a dedicated section requiring
+  verification that `registerTextActions` is actually called from `Viewport.tsx` (not just built), that all three
+  actions (`showPanel`/`hidePanel`/`advancePanel`, including both `advancePanel` directions and `wait: true`) have
+  working executors, that panel-close disposers are wired to scene reset, and that `panelOpened`/`panelClosed`
+  actually reach `emitRuntimeEvent` — because `packages/audio` documents hitting this exact gap once already
+  (`Viewport.tsx:278` creating the registry and registering nothing), and unit tests on `packages/text` in isolation
+  won't catch a missing registration call.
+- **Where the text asset itself lives is flagged, not fully re-settled, in the commit message**: "the text asset
+  would live inside the serialised project data in the asset section, probably, unless we open up url to be used for
+  bigger text document." This matches `text-system.md` section 1's existing decision (project-data-only, no
+  file-backed kind) but the phrasing ("probably", "unless") signals the author still sees the document-dock
+  large-text case (section 1's "What was deferred, not solved", Open questions item 6) as a live possibility worth
+  re-litigating later, not fully closed. Treat item 6 as still open in spirit even though the doc calls it shelved.
+
+### Current skeleton / plan state
+
+- `docs/code/subsystems/text-system.md`: updated with the §7 "Navigation: prev/curr/next" subsection, matching
+  `TextSystem`/`PanelHandle`/action-vocabulary signature updates, the "Modal input boundary" rewrite in
+  "Considerations and limits" and the integration-points table, the §10 stale-cache fix, and two new dated Open
+  Questions decisions. Status remains **design specification, nothing implemented**.
+- `docs/code/subsystems/text-system-build-prompt.md` (new): a handoff prompt for the teammate implementing
+  `packages/text`, built around running the codebase-comprehension skill first, then an explicit When-Do
+  integration verification checklist, then the existing build sequence in `text-system.md`.
+- `Agent Skills/agents/codebase-comprehension.skill` (new, committed this session): a packaged skill for generating
+  a dependency/data-flow diagram plus a tour-style walkthrough when onboarding someone onto a codebase/system. Its
+  own instructions include a hard rule never to commit on the user's behalf.
+
+### Build / verify command and status
+
+Docs-only session; no code changed, so no build or test was run. Working tree is clean on `sherman-branch` — this
+session's changes are already committed (see below), unlike some earlier sessions in this file where changes were
+left uncommitted at handoff time.
+
+### Files touched this session
+
+Already committed in `3fc195d` ("Building out the prompt for text system, passing to wei an"), on top of `02e65fd`
+and `eba1c58`:
+
+- `docs/code/subsystems/text-system.md` (edited)
+- `docs/code/subsystems/text-system-build-prompt.md` (new)
+- `Agent Skills/agents/codebase-comprehension.skill` (new)
+- `SESSION.md` (this entry)
+
+### Failed approaches already tried
+
+- None this session — both rounds of user instructions (prev/curr/next navigation design, then the When-Do
+  integration check) were forward-moving requests, not corrections of prior work.
+
+### Open questions
+
+- Carried over, unresolved, from `text-system.md`'s own Open Questions section (untouched this session): panel stack
+  cap (how many simultaneously open panels), link confirmation default, where dialogue lives long-term, font package
+  ownership, `ReferenceViewport.tsx` text-surface parity, and the shelved document-dock idea (item 6 — see the
+  commit-message caveat above; treat as softer-closed than the doc text implies).
+- Whether the codebase-comprehension skill's generated diagram/walkthrough should be saved anywhere durable (a
+  scratch file per the build prompt's own instruction) or is genuinely throwaway once the implementer has internalised
+  it — not yet decided, low stakes either way.
+- Whether `text-system-build-prompt.md` itself should get folded back into `text-system.md` once `packages/text` is
+  actually implemented (build sequence step 8, "docs sync," mentions marking the design doc as implemented, but
+  doesn't mention what happens to this companion prompt file).
+
+### Next recommended step
+
+Wei An (or whoever picks up `packages/text`) reads `text-system-build-prompt.md`, runs the codebase-comprehension
+skill against `text-system.md` per that prompt, then works through the When-Do integration verification checklist
+and the existing "Build sequence" in `text-system.md` in order. Before implementation starts, confirm with the user
+whether the document-dock/large-text question (Open questions item 6) needs a firmer decision now given the
+commit-message caveat, or whether "shelved" stands as written.
+
 ## Handoff precedence note
+
+The `2026-09-27 Text system: prev/curr/next navigation, modal-input boundary, build-handoff prompt` section above is
+the latest status for the text-system design specifically; it extends, and does not contradict, the
+`2026-09-21 Attachment model and audio/image/text/video system designs` section below it.
 
 The `2026-09-21 Attachment model and audio/image/text/video system designs` section above is the latest status for the
 attachment and audio design work; it is docs-only and supersedes nothing about the rendering or lifecycle sections.
