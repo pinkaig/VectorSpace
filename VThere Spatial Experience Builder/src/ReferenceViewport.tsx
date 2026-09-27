@@ -13,6 +13,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { SceneObject } from './model'
 import { loadEnvironment } from './environments'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
+import { createRenderScheduler } from './viewport/renderScheduler'
 
 export type ReferenceAxis = 'top' | 'front' | 'right'
 
@@ -53,12 +54,13 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
   dataRef.current = { objects, selectedId }
   const environmentGroupRef = useRef<THREE.Group | null>(null)
   const currentEnvDisposeRef = useRef<(() => void) | null>(null)
+  const requestRenderRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0b1118)
+    scene.background = new THREE.Color(0x1e1e1e)
 
     const environmentGroup = new THREE.Group()
     environmentGroupRef.current = environmentGroup
@@ -96,6 +98,12 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     controls.maxZoom = 12
     controls.update()
 
+    // Same on-demand drawing as the main Viewport; matters more here since three
+    // panes are open at once and are usually idle.
+    const scheduler = createRenderScheduler()
+    const { requestRender } = scheduler
+    requestRenderRef.current = requestRender
+
     const resize = () => {
       const width = mount.clientWidth
       const height = Math.max(mount.clientHeight, 1)
@@ -106,32 +114,40 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       camera.bottom = -FRUSTUM_HALF_HEIGHT
       camera.updateProjectionMatrix()
       renderer.setSize(width, height, false)
+      requestRender()
     }
 
     // Shares syncArtefacts with the main Viewport rather than rebuilding this logic per
     // pane — important here specifically, since three of these panes render at once, so a
     // full-rebuild-every-sync approach (its previous form) tripled the cost of every edit.
-    let renderedSignature = ''
+    // Reference equality is exact because every edit clones ProjectData.
+    let synced: { objects: readonly SceneObject[]; selectedId: string | null } | null = null
     const syncObjects = () => {
-      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
-      if (signature === renderedSignature) return
+      const { objects, selectedId } = dataRef.current
+      if (synced && synced.objects === objects && synced.selectedId === selectedId) return
       syncArtefacts({
         group: objectsGroup,
-        objects: dataRef.current.objects,
-        selectedId: dataRef.current.selectedId,
-        onModelLoaded: () => { renderedSignature = '' },
+        objects,
+        selectedId,
+        onModelLoaded: () => { synced = null },
       })
-      renderedSignature = signature
+      synced = { objects, selectedId }
+      requestRender()
     }
 
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
 
+    // Pan and zoom change the camera (caught by the scheduler); zoom on an
+    // orthographic camera only changes its projection, so the wheel wakes a draw.
+    renderer.domElement.addEventListener('wheel', requestRender)
+
     let frame = 0
     const animate = () => {
       frame = requestAnimationFrame(animate)
       syncObjects()
-      controls.update()
+      if (controls.update()) requestRender()
+      if (!scheduler.shouldRender(camera, controls.target)) return
       renderer.render(scene, camera)
     }
     resize()
@@ -139,7 +155,9 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
 
     return () => {
       cancelAnimationFrame(frame)
+      requestRenderRef.current = () => {}
       observer.disconnect()
+      renderer.domElement.removeEventListener('wheel', requestRender)
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
@@ -162,6 +180,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       holder?.add(loaded.group)
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = loaded.dispose
+      requestRenderRef.current()
     }).catch(() => {
       // Reference panes are secondary; a failed environment load just leaves the grid visible.
     })

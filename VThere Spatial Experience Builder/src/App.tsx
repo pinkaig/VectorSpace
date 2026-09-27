@@ -120,7 +120,12 @@ export default function App() {
 
   useEffect(() => {
     loadUserAssets()
-      .then(setUserAssets)
+      .then((assets) => {
+        setUserAssets(assets)
+        // Imported models only get a URL once registered here; any already-placed
+        // instance skipped by an earlier sync needs the viewport to retry now.
+        setSyncToken((value) => value + 1)
+      })
       .catch((error) => setAssetImportError(error instanceof Error ? error.message : 'Could not load imported assets'))
   }, [])
 
