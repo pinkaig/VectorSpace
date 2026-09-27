@@ -98,10 +98,10 @@ The dispatcher and rule shape are implemented in `packages/interaction`; both th
 
 ```text
 RuntimeEvent.kind (open string) = objectClick | zoneEnter | sceneStart | timerElapsed | objectLookedAt | panelClosed | ...
-ActionSpec.kind (open string, resolved by an ActionRegistry the caller populates) = showPanel | playAudioOrVideo | moveCameraToViewpoint | showOrHideObject | navigateScene | openLink | ...
+ActionSpec.kind (open string, resolved by an ActionRegistry the caller populates) = showPanel | playAudio | moveCameraToViewpoint | showOrHideObject | navigateScene | openLink | ...
 ```
 
-**Naming drift: `playAudioOrVideo`.** The list above is the originally planned example vocabulary and is not implemented verbatim. Real registered/tested action kinds use `playAudio` (`packages/interaction/src/actions/registry.test.ts:42`), not `playAudioOrVideo`. [`attachment-integration.md`](../subsystems/attachment-integration.md) (section 9, proposed) keeps that split and defines separate `playAudio`/`playVideo` (and other per-kind) action kinds rather than one combined kind — align this list with that split once the first executor lands.
+**Resolved naming drift: `playAudioOrVideo` → `playAudio`.** The list above originally used a combined `playAudioOrVideo` example, not implemented verbatim. The real, registered and tested action kind is `playAudio` (`packages/audio/src/actions/registerAudioActions.ts`, `packages/interaction/src/actions/registry.test.ts:42`), aligned here 2026-09-27. [`attachment-integration.md`](../subsystems/attachment-integration.md) (section 9, proposed) keeps a `playAudio`/`playVideo` split rather than one combined kind, consistent with this.
 
 An `InteractionRule` (`packages/project`) has `id`, optional `objectId`/`zoneId` (absent = wildcard match), `triggers: string[]`, `actions: ActionSpec[]`, and optional `priority`. `dispatch(event, rules, project, state)` (`packages/interaction/src/dispatcher.ts`) matches every rule whose `triggers` include the event's `kind` and whose `objectId`/`zoneId` don't contradict the event, orders matches by priority (descending) then authoring order (stable sort), and returns a `DispatchResult` — it performs no I/O and executes no action itself.
 

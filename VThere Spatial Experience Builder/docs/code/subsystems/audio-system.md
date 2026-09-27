@@ -1,6 +1,12 @@
 # Audio System
 
-**Status:** Design specification (2026-09-21). Nothing in this doc is implemented yet. It becomes a description of built code as each build-sequence phase lands.
+**Status:** Partially implemented (2026-09-27). The core playback slice — `AudioSystem`, buses, voices, the
+`WebAudioBackend`/`FakeAudioBackend`, the six registered actions, bundled-catalog (Tier A) loading, and the two-tier
+(Tier A/Tier B) loading model — is built and is the closing scope for this development pass. Everything else in this
+doc (spatial/360 audio, captions, ducking, mixer snapshots, playlists, reverb/occlusion, the rule-engine event
+bridge, autoplay/visibility handling, metering, and any authoring UI) is a design proposal, not built, and is
+explicitly deferred past this pass. See "Purpose" below for the exact built/proposed line, and "Helper builders and
+When-Do authoring plan" for what exists on top of the action vocabulary.
 **Baseline phase:** Post-baseline subsystem. Builds on the Asset Manager (Stage 4a/6) and the When-Do action registry. See [8-stage baseline overview](../baseline-phases.md).
 **Companions:** [`attachment-integration.md`](attachment-integration.md) is the shared attachment model (project data, scene-object binding, asset kinds, resolvers, libraries) that this doc builds on. [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) covers how audio fits with the other attachment types. Sibling designs: [`image-system.md`](image-system.md), [`text-system.md`](text-system.md), [`video-system.md`](video-system.md).
 **Architecture decision:** [`repository.md`](../architecture/UNDATED--FOUNDATION--repository.md) L67-69 treats a new canonical subsystem as an architectural change. This doc is the proposal for that decision; the new package is created only after it is approved.
@@ -12,9 +18,18 @@ on separate channels, at the same time, with a master volume, per-sound presets,
 360-degree audio, scrubbing, captions, and a queryable state so any other system can ask what is playing. It also
 owns keeping decoded audio within a memory budget and loading it only when needed.
 
-Today there is no audio at all. `playAudio` is an untyped action-kind string with no executor
-(`Viewport.tsx:278` creates the registry and registers nothing), and no `AudioContext`, `HTMLAudioElement` or `PositionalAudio` exists in the
-repo. What does exist and is reused: the `EffectRegistry` disposer contract, the `ActionRegistry`, the
+**2026-09-27 update:** the core playback slice below is now implemented — `packages/audio` (`AudioSystem`,
+`AudioVoice`, `WebAudioBackend`/`FakeAudioBackend`, `MasterBus`/`ChannelBus`) and `registerAudioActions` (`playAudio`,
+`stopAudio`, `pauseAudio`, `resumeAudio`, `setChannelVolume`, `setMasterVolume`), wired into `Viewport.tsx` for both
+the editor and runtime shells. See `packages/audio/src/AudioSystem.ts`'s header comment for exactly what this slice
+deliberately excludes (spatial audio, captions, mixer snapshots, ducking, retrigger gating, the rule-engine event
+bridge). **This is the closing scope for this development pass** — the features above are stable and tested; what
+follows in this doc beyond that slice — spatial/360 audio, captions, snapshots, the event bridge, and any authoring
+UI — remains a design proposal, deferred, not built code. See "Helper builders and When-Do authoring plan" below for
+what's built on top of the action vocabulary today, and "Loading audio into the app" for the two-tier (URL / IndexedDB
+cache) loading model.
+
+What exists and is reused: the `EffectRegistry` disposer contract, the `ActionRegistry`, the
 `ActionSequencer`, the Asset Manager resolver and the zone tracker.
 
 ## Boundary
@@ -610,8 +625,121 @@ invalid params are ignored with a logged warning, not thrown. A rule references 
 | `setMasterVolume` | `volume`, optional `duration` | Ramp master |
 | `applyMixSnapshot` | `name`, optional `duration` | Apply a snapshot |
 
-Note `contracts.md` lists `playAudioOrVideo` as the example name while code and tests use `playAudio`. This doc uses
-`playAudio`; `contracts.md` should be aligned when the executor lands.
+Note: `contracts.md` previously listed `playAudioOrVideo` as the example name; this has been aligned to `playAudio`
+to match code and tests (2026-09-27).
+
+## Helper builders and When-Do authoring plan (2026-09-27)
+
+`packages/audio/src/actions/audioActionBuilders.ts` adds typed constructors for the six action kinds
+`registerAudioActions` already registers (`playAudioAction`, `stopAudioAction`, `pauseAudioAction`,
+`resumeAudioAction`, `setChannelVolumeAction`, `setMasterVolumeAction`), plus `audioRule(...)` to assemble a full
+`InteractionRule` from one or more of them. These are **only** builders — they construct the same `ActionSpec`
+object literals a rule author would otherwise hand-roll, typed so a typo'd param name or wrong-typed value is a
+compile error instead of a silent no-op at run time (per the registry's "invalid params are ignored, not thrown"
+policy). No new action kind, executor, or registry behavior was added; nothing here is wired into any UI.
+
+This is deliberately scoped as **builders only, not authoring**. The plan for the remaining, unbuilt piece:
+
+1. **Rule storage already exists**: `ProjectData.rules?: InteractionRule[]` (`packages/project/src/index.ts`) is
+   defined and round-trips through the serializer, but nothing in the editor writes to it yet — today `rules` is
+   only ever populated in tests. A "When-Do" authoring feature's data layer is therefore already there; the gap is
+   entirely UI.
+2. **A rule inspector panel** (not built): pick a trigger (open string vocabulary — `click`, `zoneEnter`,
+   `sceneStart`, ...; see `packages/interaction`'s `InteractionRule.triggers`), optionally a target `objectId` or
+   `zoneId`, then one or more actions. For an audio action, the panel would call `playAudioAction`/etc. from
+   `audioActionBuilders.ts` rather than construct `{kind, params}` literals by hand, and pass the result to
+   `audioRule(...)` to produce the `InteractionRule` that gets pushed into `ProjectData.rules`.
+3. **An asset picker for `assetId`** (not built): reads `audioAssetCatalog` (`src/audioAssets.ts`) — see the
+   "Loading audio into the app" note below — to offer authors a dropdown instead of a free-typed string. Until a
+   catalog has entries, this is moot; see the loading plan.
+4. **No change needed in `packages/interaction`**: `dispatch()`, `ActionRegistry`, `EffectRegistry`, and
+   `ActionSequencer` are generic over action kind and already handle audio the same as any other registered
+   executor (see `changeColor` in `src/viewport/actions/changeColorAction.ts` for the other existing template —
+   a same-tick mutation with no cleanup — versus `playAudio`'s effect-registering, cleanup-on-reset template).
+   Authoring UI is therefore the entire remaining scope; the engine underneath does not need new work.
+
+### Loading audio into the app (built 2026-09-27)
+
+The architecture is cloud/bundle-hosted assets, resolved one of two ways depending on the clip: fetched by URL at
+play time (no device persistence), or fetched once and cached on-device in IndexedDB so replays and reloads don't
+re-hit the network. Which tier an asset uses is a per-asset choice, not a global one:
+
+- **Tier A — URL, fetched on demand:** for long-form/streaming audio (ambient beds, VO, music) — large files
+  typically played once per session, where device persistence buys little and costs storage. `AudioBackend.decode(url)`
+  fetches and decodes on every cache-miss play.
+- **Tier B — asset itself, cached in IndexedDB:** for small/frequent clips (SFX, UI chimes, short stingers) that get
+  replayed constantly. These are cheap to store whole and benefit the most from zero re-fetch latency and offline
+  resilience. Still sourced from the cloud/bundle on first use — this is a cache in front of the network, not a
+  replacement for it, and not the same thing as `src/userAssets.ts`'s IndexedDB store (that one persists
+  *user-authored, offline-editable* imports; this one is a transparent cache the app manages and can evict or
+  repopulate at will).
+
+**The seam both tiers share is `ResolvedAudio`** (`packages/audio/src/AudioResolver.ts`), a tagged union:
+
+```ts
+export type ResolvedAudio =
+  | { kind: 'url'; url: string; contentType?: string }
+  | { kind: 'buffer'; data: ArrayBuffer; contentType?: string }
+```
+
+`AudioSystem.loadBuffer` (`AudioSystem.ts`) branches on `resolved.kind` and calls one of two `AudioBackend` methods —
+`decode(url)` (fetch + `decodeAudioData`) or `decodeBytes(data: ArrayBuffer)` (just `decodeAudioData`, no fetch).
+Both `WebAudioBackend` and `FakeAudioBackend` implement both methods; `decode(url)` on `WebAudioBackend` is now
+implemented in terms of `decodeBytes` (fetch, then delegate), so there is exactly one decode path.
+`bufferCache`'s in-memory LRU eviction needs no special-casing — both tiers produce the same decoded `BackendBuffer`,
+cached identically, keyed by `assetId`.
+
+Built pieces:
+
+- **`AudioResolver.ts`:** `ResolvedAudio` is the union above. `AudioResolver`'s method signature is unchanged
+  (`resolve(assetId): Promise<ResolvedAudio | null>`) — only the shape of what it resolves to grew.
+- **`AudioBackend.ts` / `WebAudioBackend.ts` / `FakeAudioBackend.ts`:** `decodeBytes(data: ArrayBuffer):
+  Promise<BackendBuffer>`, sharing the same `BackendBuffer` wrapper `decode()` returns. `FakeAudioBackend` gained
+  `decodeBytesCallCount` and a `failDecodeBytes` test option, mirroring `decodeCalls`/`failUrls`.
+- **`AudioSystem.loadBuffer`:** branches on `resolved.kind` to call `decode` or `decodeBytes`. Covered by
+  `AudioSystem.test.ts`'s "decodes buffer-kind resolutions via decodeBytes" and "surfaces a decodeBytes failure..."
+  cases.
+- **`src/viewport/audioByteCache.ts` (new):** the IndexedDB-backed byte cache. `readCachedClip(assetId)` /
+  `writeCachedClip(assetId, data, contentType, maxBytes?)` / `evictCachedClip(assetId)` /
+  `clearAudioByteCache()`. One object store (`vthere-audio-cache` DB, `clips` store, keyed by `assetId`), each record
+  tracking `byteLength` and `lastAccessedAt`. `writeCachedClip` evicts least-recently-*accessed* entries (reads bump
+  the timestamp, not just writes) once total bytes exceed the budget (default 32 MB) — this is separate from and
+  unrelated to `bufferCache`'s in-memory decoded-buffer LRU, since nothing else bounds on-disk usage. Follows
+  `userAssets.ts`'s `indexedDB.open`/`onupgradeneeded`/promise-wrapped-request pattern. Not unit-tested directly
+  (no `indexedDB` under the project's vitest `node` environment), matching `userAssets.ts`'s precedent — the
+  testable branch logic (tier selection, decode dispatch) is covered in `packages/audio` against `FakeAudioBackend`.
+- **`src/viewport/audioResolution.ts` (rewritten):** the catalog entry is now `{url, contentType?, cacheStrategy}`
+  instead of a bare `ResolvedAudio`. `resolve(assetId)` returns `{kind:'url', url}` directly for `cacheStrategy:
+  'url'` entries; for `'cached'` entries it checks `audioByteCache.readCachedClip` first, and on a miss fetches the
+  URL itself, fires `writeCachedClip` (best-effort — a failed cache write, e.g. quota, just means the next play
+  re-fetches; never fatal), and returns `{kind:'buffer', data}` for that same call so the first play doesn't pay for
+  a second round-trip. This composes with the existing catalog rather than replacing it: the catalog still decides
+  *which URL* an assetId maps to; `cacheStrategy` only decides what happens to those bytes after the first fetch.
+- **`src/audioAssets.ts`:** `AudioAssetDefinition.cacheStrategy?: 'url' | 'cached'` (default `'url'` when omitted).
+  Each catalog entry registers into `audioResolution.ts` with its chosen strategy.
+- **Cloud catalog (still not built):** once a backend media endpoint exists (`RemoteMediaResolver` is presently a
+  Stage-3 stub, per "Considerations" below), populate `audioResolution.ts`'s map — via `registerAudioAsset` or a
+  resolver swap — from a fetched manifest instead of the static `audioAssetCatalog` array. Orthogonal to the tier
+  split: the cloud catalog decides *what URL an assetId maps to*; the tier decides whether that URL's bytes also get
+  cached in IndexedDB after the first fetch.
+- **User import UI (still not built):** should not clone `src/userAssets.ts`'s IndexedDB approach as an *authoring*
+  store — a future audio import flow uploads to the eventual backend and registers the returned URL. Tier B's
+  IndexedDB use stays a distinct, app-managed cache the user never directly browses or edits, not a place authored
+  content lives.
+
+What's built, from earlier in this pass:
+
+- **Bundled catalog:** `src/audioAssets.ts` defines `audioAssetCatalog: AudioAssetDefinition[]`, mirroring
+  `src/assets.ts`'s role for models, and registers each entry into `audioResolution.ts`'s resolver map via
+  `registerAudioAsset(assetId, {url, cacheStrategy})` (mirroring `registerLocalAsset`). Files ship under
+  `public/audio/`; the catalog is empty until real clips are added (see `public/audio/README.md`). `Viewport.tsx`
+  imports `./audioAssets` for this module-load side effect only, the same way `audioResolver` itself is imported
+  there.
+- **Lifecycle fixes:** `AudioVoice` disconnects its gain node on natural `ended`, not only on explicit `stop()`
+  (`AudioVoice.ts`'s `onEnded` handler). `AudioSystem` reaps `ended` voices from its internal map on every
+  `notify()` (previously they lived forever until an explicit stop/stopAll/dispose), and caps `bufferCache` at
+  `maxCachedBuffers` (default 32), evicting least-recently-used decoded buffers that no live voice still
+  references. None of this changes the public API; `AudioSystemOptions.maxCachedBuffers` is optional.
 
 ## Integration points
 
