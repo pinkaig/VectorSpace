@@ -30,3 +30,15 @@ export { FakeAudioBackend, type FakeAudioBackendOptions } from './backend/FakeAu
 export { WebAudioBackend } from './backend/WebAudioBackend'
 
 export { registerAudioActions } from './actions/registerAudioActions'
+export {
+  playAudioAction,
+  stopAudioAction,
+  pauseAudioAction,
+  resumeAudioAction,
+  setChannelVolumeAction,
+  setMasterVolumeAction,
+  audioRule,
+  type PlayAudioOptions,
+  type AudioVoiceSelector,
+  type AudioRuleOptions,
+} from './actions/audioActionBuilders'

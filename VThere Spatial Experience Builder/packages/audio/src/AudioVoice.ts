@@ -85,6 +85,7 @@ export class AudioVoice {
     this.source.onEnded(() => {
       if (this.status === 'playing' || this.status === 'paused') {
         this.status = 'ended'
+        this.gain.disconnect()
         this.onEvent(this, 'ended')
       }
     })

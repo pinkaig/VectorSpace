@@ -49,6 +49,9 @@ import {
 } from '../packages/interaction/src/index'
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../packages/audio/src/index'
 import { audioResolver } from './viewport/audioResolution'
+// Import only for its module-load side effect: registers the bundled public/audio/ catalog
+// into audioResolver's map. See audioAssets.ts — empty until real clips ship.
+import './audioAssets'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
