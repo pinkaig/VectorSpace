@@ -59,7 +59,7 @@ export interface ViewportInteractionData {
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
-  // Widgets shrink in the quad layout / orthographic views (overlayDims), so their hit boxes must too.
+  // Widgets shrink in the quad layout (overlayDims), so their hit boxes must too.
   compactOverlays: boolean
   // Object ids whose asset is still resolving or failed to resolve. Raycasting
   // skips these so a click can't select or drag an object with no confirmed

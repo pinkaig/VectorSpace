@@ -29,7 +29,7 @@ import { matchFaceView } from '../gizmo/viewSnap'
 
 export const OCTAORB_DIM = 128
 export const AXIS_INDICATOR_DIM = 84
-// Compact sizes for the quad layout (a quarter-size pane) and orthographic views — small
+// Compact sizes for the quad ("Orthographic") layout's quarter-size main pane — small
 // enough to get out of the way, but the targets stay easy mouse hits on a ~15" laptop
 // (OctaOrb tips ≈12px across, axis balls ≈9px).
 export const OCTAORB_DIM_COMPACT = 96
@@ -97,13 +97,68 @@ export interface ViewportOverlays {
   dispose: () => void
 }
 
+// Matches the .octaorb-backdrop / .axis-indicator-backdrop border-radius in styles.css
+// (border-box, so the panel fills exactly the box the CSS border is drawn around).
+const PANEL_RADIUS = 6
+// Same shade the widgets had when the scissor rect was cleared to black under the
+// CSS rgba(13, 24, 30, 0.45) tint.
+const PANEL_COLOR = 0x060b0e
+
+const roundedRectGeometry = (size: number, radius: number): THREE.ShapeGeometry => {
+  const shape = new THREE.Shape()
+  shape.moveTo(radius, 0)
+  shape.lineTo(size - radius, 0)
+  shape.quadraticCurveTo(size, 0, size, radius)
+  shape.lineTo(size, size - radius)
+  shape.quadraticCurveTo(size, size, size - radius, size)
+  shape.lineTo(radius, size)
+  shape.quadraticCurveTo(0, size, 0, size - radius)
+  shape.lineTo(0, radius)
+  shape.quadraticCurveTo(0, 0, radius, 0)
+  return new THREE.ShapeGeometry(shape, 8)
+}
+
+// making the panel rounded by drawing a rounded rectangle into the scissor rect, then drawing the widget scene on top of it
+const createPanel = () => {
+  const scene = new THREE.Scene()
+  const camera = new THREE.OrthographicCamera(0, 1, 1, 0, -1, 1)
+  const material = new THREE.MeshBasicMaterial({ color: PANEL_COLOR, toneMapped: false, depthWrite: false })
+  const mesh = new THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>(new THREE.BufferGeometry(), material)
+  scene.add(mesh)
+  const geometries = new Map<number, THREE.ShapeGeometry>()
+  return {
+    render: (renderer: THREE.WebGLRenderer, dim: number) => {
+      let geometry = geometries.get(dim)
+      if (!geometry) {
+        geometry = roundedRectGeometry(dim, PANEL_RADIUS)
+        geometries.set(dim, geometry)
+      }
+      mesh.geometry = geometry
+      camera.right = dim
+      camera.top = dim
+      camera.updateProjectionMatrix()
+      renderer.render(scene, camera)
+    },
+    dispose: () => {
+      geometries.forEach((geometry) => geometry.dispose())
+      material.dispose()
+    },
+  }
+}
+
+type Panel = ReturnType<typeof createPanel>
+
 // Draws into a sub-rect of the canvas. Origin is bottom-left, as WebGL expects.
-const renderInRect = (renderer: THREE.WebGLRenderer, scene: THREE.Object3D, camera: THREE.Camera, x: number, y: number, dim: number) => {
-  renderer.clearDepth()
+const renderInRect = (renderer: THREE.WebGLRenderer, panel: Panel, scene: THREE.Object3D, camera: THREE.Camera, x: number, y: number, dim: number) => {
+  const { autoClear } = renderer
+  renderer.autoClear = false // keep the main pass visible outside the panel's rounded corners
   renderer.setScissorTest(true)
   renderer.setScissor(x, y, dim, dim)
   renderer.setViewport(x, y, dim, dim)
+  renderer.clearDepth()
+  panel.render(renderer, dim)
   renderer.render(scene, camera)
+  renderer.autoClear = autoClear
 }
 
 /**
@@ -118,6 +173,7 @@ export const createViewportOverlays = (mount: HTMLElement, canvas: HTMLCanvasEle
   const octaOrb = createOctaOrb()
   const axisIndicator = createAxisIndicator()
   const direction = new THREE.Vector3()
+  const panel = createPanel()
 
   // OctaOrb's orb names render here, not as in-scene sprites — at the widget's small
   // on-screen size, world-unit text came out illegibly tiny no matter how it was tuned.
@@ -136,11 +192,11 @@ export const createViewportOverlays = (mount: HTMLElement, canvas: HTMLCanvasEle
         direction.copy(camera.position).sub(target).normalize()
         octaOrb.syncToCamera(direction, camera.up)
         octaOrb.setArrowsVisible(matchFaceView(direction) !== null)
-        renderInRect(renderer, octaOrb.scene, octaOrb.camera, width - OVERLAY_MARGIN - dims.octaOrb, height - OVERLAY_MARGIN - dims.octaOrb, dims.octaOrb)
+        renderInRect(renderer, panel, octaOrb.scene, octaOrb.camera, width - OVERLAY_MARGIN - dims.octaOrb, height - OVERLAY_MARGIN - dims.octaOrb, dims.octaOrb)
       }
       if (showAxisIndicator) {
         axisIndicator.group.quaternion.copy(camera.quaternion).invert()
-        renderInRect(renderer, axisIndicator.group, axisIndicator.camera, OVERLAY_MARGIN, OVERLAY_MARGIN, dims.axisIndicator)
+        renderInRect(renderer, panel, axisIndicator.group, axisIndicator.camera, OVERLAY_MARGIN, OVERLAY_MARGIN, dims.axisIndicator)
       }
       renderer.setScissorTest(false)
     },
@@ -154,6 +210,7 @@ export const createViewportOverlays = (mount: HTMLElement, canvas: HTMLCanvasEle
     hideOctaOrbTooltip: () => { tooltip.style.display = 'none' },
     dispose: () => {
       octaOrb.dispose()
+      panel.dispose()
       axisIndicator.dispose()
       tooltip.remove()
     },

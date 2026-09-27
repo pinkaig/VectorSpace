@@ -722,13 +722,14 @@ button:disabled {
 .octaorb-backdrop,
 .axis-indicator-backdrop {
   position: absolute;
+  /* Border only - the dark rounded fill is drawn in WebGL (overlayWidgets.ts, PANEL_RADIUS
+     must match this radius), since a tint here would sit on top of and dim the widget. */
   border-radius: 6px;
-  background: rgba(13, 24, 30, 0.45);
   border: 1px solid #4294E2;
   pointer-events: none;
 }
 .octaorb-backdrop {
-  /* width/height set inline from overlayDims (shrinks in orthographic mode) */
+  /* width/height set inline from overlayDims (shrinks in the quad layout) */
   top: 8px;
   right: 8px;
 }
@@ -778,7 +779,6 @@ button:disabled {
   height: 14px;
   border-width: 2px;
 }
-/* Which OctaOrb face the camera is snapped to; removed as soon as an orbit drag starts. */
 .viewport-face-header {
   position: absolute;
   top: 12px;
@@ -937,8 +937,13 @@ button:disabled {
   flex: 1;
   min-height: calc(100vh - 76px);
 }
+/* A fixed height, not min-height: with only a minimum, the canvas's height: 100% has
+   nothing definite to resolve against, so the canvas falls back to its own aspect ratio
+   and drives the viewport's height instead. Any resize that passes through a narrow width
+   (minimise/maximise) then locks the viewport taller than the window, pushing the
+   crosshair and the camera's framing off-screen. */
 .runtime-stage .viewport {
-  min-height: calc(100vh - 76px);
+  height: calc(100vh - 76px);
 }
 .runtime-meta {
   position: absolute;

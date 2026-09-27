@@ -438,7 +438,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
-          compactOverlays: dataRef.current.compactOverlays || dataRef.current.orthographic,
+          compactOverlays: dataRef.current.compactOverlays,
           unpickableAssetIds: unpickableAssetIdsRef.current,
           runtimeActive: dataRef.current.runtimeMode === 'play',
         }),
@@ -553,7 +553,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           height,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
-          compact: dataRef.current.compactOverlays || dataRef.current.orthographic,
+          compact: dataRef.current.compactOverlays,
         })
       }
     }
@@ -700,7 +700,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             ? 'Drag a ring to rotate around that axis'
             : 'Click to select · Drag to move'
 
-  const dims = overlayDims(compactOverlays || orthographic)
+  const dims = overlayDims(compactOverlays)
 
   return (
     <div className="viewport" ref={mountRef}>

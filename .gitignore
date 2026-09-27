@@ -3,6 +3,8 @@ node_modules/
 .venv/
 venv/
 env/
+# ...but not the app's bundled 3D environment models
+!VThere Spatial Experience Builder/src/env/
 
 # Build and test output
 dist/

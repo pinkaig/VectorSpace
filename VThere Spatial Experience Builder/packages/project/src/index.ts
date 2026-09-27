@@ -73,19 +73,35 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     proceduralId: 'empty',
     description: 'No walls or floor — just the grid, for working against a blank scene.',
   },
+  // `url` for these is relative to the app's src/ — the app bundles src/env/*.glb and
+  // resolves it to the built file (see loadGlb in src/environments.ts).
   {
-    id: 'env-riverside-warehouse',
-    name: 'Riverside Warehouse',
-    kind: 'procedural',
-    proceduralId: 'riverside-warehouse',
-    description: 'An open warehouse shell facing the water, standing in for the Singapore River trade site. Placeholder environment.',
+    id: 'env-room-1',
+    name: 'Room 1',
+    kind: 'glb',
+    url: 'env/room_1.glb',
+    description: 'Exhibition room 1.',
   },
   {
-    id: 'env-gallery-hall',
-    name: 'Gallery Hall',
-    kind: 'procedural',
-    proceduralId: 'gallery-hall',
-    description: 'A bright rectangular gallery room with a skylight band. Placeholder environment.',
+    id: 'env-room-2',
+    name: 'Room 2',
+    kind: 'glb',
+    url: 'env/room_2.glb',
+    description: 'Exhibition room 2.',
+  },
+  {
+    id: 'env-room-3',
+    name: 'Room 3',
+    kind: 'glb',
+    url: 'env/room_3.glb',
+    description: 'Exhibition room 3.',
+  },
+  {
+    id: 'env-room-4',
+    name: 'Room 4',
+    kind: 'glb',
+    url: 'env/room_4.glb',
+    description: 'Exhibition room 4.',
   },
 ]
 
