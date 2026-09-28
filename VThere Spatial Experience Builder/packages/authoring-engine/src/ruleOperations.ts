@@ -45,12 +45,3 @@ export const addObjectRule = (project: ProjectData, input: AddObjectRuleInput): 
     rules.push(input.rule)
     return { project: next, ruleId: input.rule.id }
 }
-
-// delete every rule linked to these object ids (this edits the project we pass in, so only pass a copy)
-export const dropRulesForObjects = (project: ProjectData, objectIds: ReadonlySet<string>): void => {
-  // nothing to clean up if the project has no rules list
-  if (!project.rules) return
-  
-  // keep rules with no object (like zone rules) and rules whose object still exists
-  project.rules = project.rules.filter((rule) => rule.objectId === undefined || !objectIds.has(rule.objectId))
-}
