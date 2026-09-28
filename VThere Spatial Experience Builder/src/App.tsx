@@ -73,6 +73,7 @@ import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTr
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
+import { applyDemoAudioScene } from './demoAudioScene'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
@@ -109,6 +110,8 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
+  const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
+  const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
   // Outcome of the last import: what was added, what was skipped and why, or a failure.
   const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success'; lines: string[] } | null>(null)
@@ -177,6 +180,15 @@ export default function App() {
     }
     await removeUserAsset(asset.assetId)
     setUserAssets((prev) => prev.filter((item) => item.assetId !== asset.assetId))
+  }
+
+  const toggleSceneExpanded = (id: string) => {
+    setExpandedSceneIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const commit = (label: string, next: ProjectData) => {
@@ -340,6 +352,19 @@ export default function App() {
     setSavedAt('New local draft')
     setPersistenceState('Pending autosave to browser localStorage')
   }
+  /**
+   * Appends the bundled audio demo (zones, SFX click targets, When-Do rules,
+   * per-asset volume) into the active scene/project. Opt-in and additive — see
+   * demoAudioScene.ts — rather than baked into defaultProject(), so it never
+   * surprises unrelated work.
+   */
+  const loadAudioDemo = () => {
+    const { project: nextProject, scene: nextScene } = applyDemoAudioScene(project, scene)
+    const nextScenes = nextProject.scenes.map((item) => (item.id === nextScene.id ? nextScene : item))
+    resetTimeline({ ...nextProject, scenes: nextScenes })
+    setSavedAt('Loaded audio demo (zones, rules, SFX targets)')
+    setPersistenceState('Pending autosave to browser localStorage')
+  }
 
   if (viewMode === 'runtime') {
     return (
@@ -359,6 +384,7 @@ export default function App() {
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
+          <button className="button ghost" onClick={loadAudioDemo}>Load audio demo</button>
           <button className="button ghost" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
           <input
             ref={fileInputRef}
@@ -374,90 +400,162 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside className="left-rail">
-          <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
-          <div className="scene-tabs">{project.scenes.map((item) => <button key={item.id} className={item.id === scene.id ? 'scene-tab active' : 'scene-tab'} onClick={() => { commit('Select scene', selectEditorScene(project, item.id).project); setSelectedId(null) }}>{item.name}<span>{item.objects.length}</span></button>)}</div>
-          <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
-            <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
-              <div className="tree-indent-controls">
-                <button className="tree-indent-btn" title="Outdent" disabled={row.object.parentId === undefined} onClick={() => outdentObject(row.object.id)}>⇤</button>
-                <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
-              </div>
-              <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
-                <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
-              </button>
+          <div className="rail-tabs">
+            <button //scene
+              className={LeftTabs === 'scenes' ? 'rail-tab active' : 'rail-tab'}
+              onClick={() => SetLeftTab('scenes')}
+              >
+              Scene
+            </button>
+            <button //assets
+              className={LeftTabs === 'assets' ? 'rail-tab active' : 'rail-tab'}
+              onClick={() => SetLeftTab('assets')}
+              >
+              Assets
+            </button>
+            <button //interactions
+              className={LeftTabs === 'interactions' ? 'rail-tab active' : 'rail-tab'}
+              onClick={() => SetLeftTab('interactions')}
+            >
+              Interact
+            </button>
+          </div>
+          {/* ── Scenes tab ─────────────────────────────────────────── */}
+          {LeftTabs === 'scenes' && (
+            <div className="rail-tab-panel">
+              <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
+              <div className="scene-dropdown">{project.scenes.map((item) => {
+                const isExpanded = expandedSceneIds.has(item.id)
+                const isActive = item.id === scene.id
+                return (
+                  <div className="scene-group" key={item.id}>
+                    <div className="scene-row">
+                      {/* Switch through commit so the command timeline agrees on the active
+                          scene; setting React state alone is overwritten by the next edit. */}
+                      <button className={isActive ? 'scene-tab active' : 'scene-tab'}
+                              title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`}
+                              onClick={() => { if (!isActive) { commit('Select scene', selectEditorScene(project, item.id).project); setSelectedId(null) } }}>
+                              {item.name}<span className="scene-count">[{item.objects.length}]</span>
+                      </button>
+                      <button className="scene-chevron"
+                              title={isExpanded ? 'Collapse object list' : 'Expand object list'}
+                              onClick={() => toggleSceneExpanded(item.id)}>
+                              {isExpanded ? 'v' : '>'}
+                      </button>
+                    </div>
+                    {/* The active scene gets the full hierarchy with indent/outdent controls;
+                        other scenes list their objects for reference only. */}
+                    {isExpanded && (isActive
+                      ? <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
+                          <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
+                            <div className="tree-indent-controls">
+                              <button className="tree-indent-btn" title="Outdent" disabled={row.object.parentId === undefined} onClick={() => outdentObject(row.object.id)}>⇤</button>
+                              <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
+                            </div>
+                            <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
+                              <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+                            </button>
+                          </div>
+                        ))}</div>
+                      : <div className="tree-list">
+                          {item.objects.length === 0
+                            ? <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div>
+                            : item.objects.map((object) => <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}
+                        </div>)}
+                  </div>
+                )
+              })}</div>
             </div>
-          ))}</div>
-          {/* The whole Library panel is the drop target, not just the card list, so the
-              hint can't shift the target out from under the pointer mid-drag. */}
-          <section
-            className={isDraggingAsset ? 'panel asset-library drag-over' : 'panel asset-library'}
-            onDragEnter={(event) => {
-              if (!isFileDrag(event)) return
-              event.preventDefault()
-              assetDragDepthRef.current += 1
-              setIsDraggingAsset(true)
-            }}
-            onDragOver={(event) => {
-              if (!isFileDrag(event)) return
-              event.preventDefault()
-              event.dataTransfer.dropEffect = 'copy'
-            }}
-            onDragLeave={() => {
-              assetDragDepthRef.current = Math.max(0, assetDragDepthRef.current - 1)
-              if (assetDragDepthRef.current === 0) setIsDraggingAsset(false)
-            }}
-            onDrop={(event) => {
-              if (!isFileDrag(event)) return
-              event.preventDefault()
-              assetDragDepthRef.current = 0
-              setIsDraggingAsset(false)
-              void importModelFiles(event.dataTransfer.files)
-            }}
-          >
-            <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
-            <div className="asset-tools">
-              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-              <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select one or more .glb files, or .gltf files together with their .bin/texture files">Import GLB / glTF</button>
-              <input
-                ref={modelFileInputRef}
-                className="hidden-file-input"
-                type="file"
-                multiple
-                accept=".glb,.gltf,.bin,image/*"
-                onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
-              />
+          )}
+          {/* ── Scenes tab end ─────────────────────────────────────── */}
+
+          {/* ── Assets tab ─────────────────────────────────────────── */}
+          {LeftTabs === 'assets' && (
+            <div className="rail-tab-panel">
+              {/* The whole Library panel is the drop target, not just the card list, so the
+                  hint can't shift the target out from under the pointer mid-drag. */}
+              <section
+                className={isDraggingAsset ? 'panel asset-library drag-over' : 'panel asset-library'}
+                onDragEnter={(event) => {
+                  if (!isFileDrag(event)) return
+                  event.preventDefault()
+                  assetDragDepthRef.current += 1
+                  setIsDraggingAsset(true)
+                }}
+                onDragOver={(event) => {
+                  if (!isFileDrag(event)) return
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = 'copy'
+                }}
+                onDragLeave={() => {
+                  assetDragDepthRef.current = Math.max(0, assetDragDepthRef.current - 1)
+                  if (assetDragDepthRef.current === 0) setIsDraggingAsset(false)
+                }}
+                onDrop={(event) => {
+                  if (!isFileDrag(event)) return
+                  event.preventDefault()
+                  assetDragDepthRef.current = 0
+                  setIsDraggingAsset(false)
+                  void importModelFiles(event.dataTransfer.files)
+                }}
+              >
+                <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
+                <div className="asset-tools">
+                  <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                  <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select one or more .glb files, or .gltf files together with their .bin/texture files">Import GLB / glTF</button>
+                  <input
+                    ref={modelFileInputRef}
+                    className="hidden-file-input"
+                    type="file"
+                    multiple
+                    accept=".glb,.gltf,.bin,image/*"
+                    onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
+                  />
+                </div>
+                <div className="asset-list">
+                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                    <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                      {isUserAsset(asset.assetId)
+                        ? (() => {
+                            const uses = countAssetUses(project, asset.assetId)
+                            return (
+                              <span
+                                className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
+                                aria-disabled={uses > 0}
+                                title={uses > 0 ? `In use by ${uses} object${uses === 1 ? '' : 's'} - delete ${uses === 1 ? 'it' : 'them'} to remove this asset` : 'Remove imported asset'}
+                                onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset) }}
+                              >×</span>
+                            )
+                          })()
+                        : <span className="add-symbol">+</span>}
+                    </button>
+                  ))}
+                  {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+                </div>
+                {assetNotice && (
+                  <div className={`asset-import-notice ${assetNotice.tone}`}>
+                    {assetNotice.lines.map((line) => <div key={line}>{line}</div>)}
+                    <button className="asset-notice-close" title="Dismiss" onClick={() => setAssetNotice(null)}>×</button>
+                  </div>
+                )}
+                {/* Overlay rather than an inline block, so showing it never changes the layout. */}
+                {isDraggingAsset && <div className="asset-drop-hint">Drop .glb files, or .gltf files with their .bin/texture files, to import them</div>}
+              </section>
             </div>
-            <div className="asset-list">
-              {filterAssets(assetQuery, visibleAssets).map((asset) => (
-                <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
-                  <span className={`asset-preview ${asset.kind}`}><span /></span>
-                  <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
-                  {isUserAsset(asset.assetId)
-                    ? (() => {
-                        const uses = countAssetUses(project, asset.assetId)
-                        return (
-                          <span
-                            className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
-                            aria-disabled={uses > 0}
-                            title={uses > 0 ? `In use by ${uses} object${uses === 1 ? '' : 's'} - delete ${uses === 1 ? 'it' : 'them'} to remove this asset` : 'Remove imported asset'}
-                            onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset) }}
-                          >×</span>
-                        )
-                      })()
-                    : <span className="add-symbol">+</span>}
-                </button>
-              ))}
-              {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+          )}
+          {/* ── Assets tab end ─────────────────────────────────────── */}
+
+          {/* ── Interactions tab (empty) ─────────────────────── */}
+          {LeftTabs === 'interactions' && (
+            <div className="rail-tab-panel">
+              <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Interactions</h2></div></div>
+              <div className="empty-state">Nothing here yet.<br /><span>Interactions will appear in this tab.</span></div>
             </div>
-            {assetNotice && (
-              <div className={`asset-import-notice ${assetNotice.tone}`}>
-                {assetNotice.lines.map((line) => <div key={line}>{line}</div>)}
-                <button className="asset-notice-close" title="Dismiss" onClick={() => setAssetNotice(null)}>×</button>
-              </div>
-            )}
-            {/* Overlay rather than an inline block, so showing it never changes the layout. */}
-            {isDraggingAsset && <div className="asset-drop-hint">Drop .glb files, or .gltf files with their .bin/texture files, to import them</div>}
-          </section>
+          )}
+          {/* ── Interactions tab end (empty) ─────────────────── */}
+          
           <div className="rail-footer">
             <span className="status-dot" />
             {persistenceState}
@@ -588,5 +686,5 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
       </div>
     )
   }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input aria-label="Asset ID" value={object.assetId} onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }

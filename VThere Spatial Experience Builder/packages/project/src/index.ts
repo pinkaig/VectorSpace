@@ -40,6 +40,10 @@ export interface SceneObject {
   // absent = top-level object; must reference an object in the same scene, no cycles
   parentId?: string
   transform: TransformData
+  // absent = fall back to colorFor(assetKind)'s shape-based default. A hex color
+  // (e.g. 0x4ea7a0) that overrides the primitive material for just this object,
+  // without needing a new AssetKind or touching asset resolution.
+  color?: number
 }
 
 /**
@@ -164,6 +168,27 @@ export interface SceneData {
   zones?: ZoneDefinition[]
 }
 
+/** A mix group with its own volume and mute. The four below always exist; a project may add custom ids. */
+export type ChannelId = 'bgm' | 'sfx' | 'narration' | 'ambient' | (string & {})
+
+/**
+ * Authored presettings for one audio asset, stored on the project. Core
+ * playback fields only — see docs/code/subsystems/audio-system.md for the
+ * full field set (spatial, captions, loop points, etc.) not yet implemented.
+ */
+export interface AudioAssetMeta {
+  assetId: string
+  name: string
+  channel: ChannelId
+  volume: number
+  loop: boolean
+}
+
+export interface AudioSettings {
+  master: number
+  channels: Record<ChannelId, { volume: number; muted: boolean }>
+}
+
 export interface ProjectData {
   schemaVersion: 1
   id: string
@@ -172,7 +197,21 @@ export interface ProjectData {
   activeSceneId: string
   // absent in files written before rules existed; the serializer backfills to []
   rules?: InteractionRule[]
+  // absent in files written before audio existed; the serializer backfills to []
+  audioAssets?: AudioAssetMeta[]
+  // absent in files written before audio existed; the serializer backfills to defaultAudioSettings()
+  audioSettings?: AudioSettings
 }
+
+export const defaultAudioSettings = (): AudioSettings => ({
+  master: 1,
+  channels: {
+    bgm: { volume: 1, muted: false },
+    sfx: { volume: 1, muted: false },
+    narration: { volume: 1, muted: false },
+    ambient: { volume: 1, muted: false },
+  },
+})
 
 export const makeScene = (id: string, name: string): SceneData => ({
   id,
