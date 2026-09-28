@@ -24,6 +24,7 @@
  */
 export {
   cloneProject,
+  defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
   defaultProject,
@@ -35,7 +36,10 @@ export {
 export type {
   ActionSpec,
   AssetKind,
+  AudioAssetMeta,
+  AudioSettings,
   CameraPose,
+  ChannelId,
   EnvironmentDefinition,
   EnvironmentKind,
   InteractionRule,

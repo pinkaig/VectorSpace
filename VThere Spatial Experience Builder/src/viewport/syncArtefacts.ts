@@ -122,7 +122,7 @@ const setSelectionOutline = (node: THREE.Object3D, isSelected: boolean): void =>
 
 const createPrimitiveArtefact = (item: SceneObject): THREE.Mesh => {
   const geometry = createGeometry(item.assetKind)
-  const material = new THREE.MeshStandardMaterial({ color: colorFor(item.assetKind), roughness: 0.68, metalness: 0.05 })
+  const material = new THREE.MeshStandardMaterial({ color: item.color ?? colorFor(item.assetKind), roughness: 0.68, metalness: 0.05 })
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = item.id
   mesh.userData.entityId = item.id
