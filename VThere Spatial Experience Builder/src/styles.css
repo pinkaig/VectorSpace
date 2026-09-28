@@ -1078,3 +1078,110 @@ button:disabled {
   border-radius: 3px;
 }
 
+/* When / Do inspector section: sentence text matches the Visible / Enabled labels, not the blue heading */
+.when-do-line,
+.when-do-color {
+  color: #a4b9b7;
+  font-size: 11px;
+}
+
+/* each line is one part of the sentence, text above its dropdown */
+.when-do-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* the "to" text and the colour picker sit side by side */
+.when-do-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* overrides .field-group input (full width, thick padding), which squashed the swatch into a thin line */
+.when-do-color input[type='color'] {
+  width: 48px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* remove the browser's inner spacing around the swatch in Chrome and Edge */
+.when-do-color input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+/* same for Firefox */
+.when-do-color input[type='color']::-moz-color-swatch {
+  border: none;
+}
+
+/* the interaction count is a quiet note, not a heading */
+.when-do-count {
+  color: #a4b9b7;
+  opacity: 0.7;
+}
+
+/* one interaction shown as a short sentence, with its remove button on the right */
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #2a444a;
+  border-radius: 2px;
+  color: #a4b9b7;
+  font-size: 11px;
+}
+
+/* the sentence takes the remaining space so the button stays on the right */
+.rule-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* small square showing the colour a change colour rule will apply */
+.rule-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border: 1px solid #F7E3C3;
+  border-radius: 2px;
+}
+
+/* the remove button is big enough to hit easily, and turns red when hovered like the asset remove button */
+.rule-remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  color: #E2A845;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* turns red on hover */
+.rule-remove:hover {
+  background: #C0392B;
+  color: #fff;
+}
+
+/* keep the add button compact instead of stretching across the whole section */
+.when-do-add {
+  justify-self: center;
+  padding: 6px 12px;
+}
+
+/* the rule's place in the run order, gold like the other labels but quieter than the sentence */
+.rule-number {
+  color: #E2A845;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
