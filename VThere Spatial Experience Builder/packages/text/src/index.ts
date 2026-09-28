@@ -14,6 +14,8 @@
  * Larger system guide: docs/code/subsystems/text-system.md
  */
 export { TextSystem, type PanelHandle, type TextStats, type TextSystemOptions } from './TextSystem'
+export { registerTextActions, type RegisterTextActionsOptions } from './actions/registerTextActions'
+export { createTextEventBridge, type TextRuntimeEvent } from './actions/TextEventBridge'
 export { TextLibrary } from './TextLibrary'
 export { UrlPolicy } from './UrlPolicy'
 export { RichTextParser } from './parse/RichTextParser'

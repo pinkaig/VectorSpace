@@ -31,6 +31,8 @@ import {
   CameraPose,
   InteractionRule,
   SceneObject,
+  TextAssetMeta,
+  TextAttachment,
   ZoneDefinition,
   defaultAudioSettings,
   defaultCameraPose,
@@ -48,6 +50,8 @@ import {
   type RuntimeState,
 } from '../packages/interaction/src/index'
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../packages/audio/src/index'
+import { TextLibrary, TextSystem, createTextEventBridge, registerTextActions } from '../packages/text/src/index'
+import TextPanelHost from './TextPanelHost'
 import { audioResolver } from './viewport/audioResolution'
 // Import only for its module-load side effect: registers the bundled public/audio/ catalog
 // into audioResolver's map. See audioAssets.ts — empty until real clips ship.
@@ -66,6 +70,7 @@ import {
   getAssetDescriptor,
   resolveAsset,
   retryAsset,
+  setProjectTextAssets,
   subscribeAssetResolution,
   type AssetDescriptor,
 } from './viewport/assetResolution'
@@ -115,6 +120,8 @@ interface ViewportProps {
   audioAssets?: readonly AudioAssetMeta[]
   /** Authored master/channel mix defaults; only read in play mode. */
   audioSettings?: AudioSettings
+  /** Authored inline text assets, fed to the text system and resolver. */
+  textAssets?: readonly TextAssetMeta[]
   orthographic?: boolean
   onOrthographicChange?: (value: boolean) => void
   showOctaOrb?: boolean
@@ -148,6 +155,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     zones = [],
     audioAssets = [],
     audioSettings,
+    textAssets = [],
     orthographic = false,
     onOrthographicChange,
     showOctaOrb = true,
@@ -159,8 +167,24 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, textAssets, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, textAssets, sceneId }
+
+  // One TextSystem for the mounted viewport lifetime, created lazily so React
+  // strict/dev re-renders don't build spare instances. TextPanelHost renders
+  // from its store; the runtime effect below registers its executors.
+  const textLibraryRef = useRef<TextLibrary | null>(null)
+  const textSystemRef = useRef<TextSystem | null>(null)
+  if (textLibraryRef.current === null) textLibraryRef.current = new TextLibrary()
+  if (textSystemRef.current === null) textSystemRef.current = new TextSystem({ library: textLibraryRef.current })
+  const text = textSystemRef.current
+
+  // Text content lives in project data: feed the current list to the library
+  // (for TextSystem.open) and the asset resolver (for InlineTextResolver).
+  useEffect(() => {
+    textLibraryRef.current?.setTextAssets(textAssets)
+    setProjectTextAssets(textAssets)
+  }, [textAssets])
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -316,7 +340,23 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     })
     audio.setProjectAudioAssets(dataRef.current.audioAssets as AudioAssetMeta[])
     registerAudioActions(actions, audio)
-    
+
+    // showPanel/hidePanel/advancePanel executors. The lookup reads the live
+    // scene feed, so a rule can address any text attachment on an object or
+    // zone in the active scene; disposers close panels on scene reset.
+    const findTextAttachment = (attachmentId: string): TextAttachment | undefined => {
+      for (const object of dataRef.current.objects as readonly SceneObject[]) {
+        const found = object.attachments?.find((item) => item.id === attachmentId)
+        if (found?.kind === 'text') return found
+      }
+      for (const zone of dataRef.current.zones as readonly ZoneDefinition[]) {
+        const found = zone.attachments?.find((item) => item.id === attachmentId)
+        if (found?.kind === 'text') return found
+      }
+      return undefined
+    }
+    registerTextActions(actions, text, { findAttachment: findTextAttachment })
+
     actions.register('changeColor', createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
     
     let zoneTracker = createZoneTracker(dataRef.current.zones)
@@ -339,6 +379,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         })
       }
     }
+
+    // Rules can chain on panels ("when the intro panel closes, start the
+    // tour"); the bridge's re-entrancy guard stops a rule that opens or
+    // closes panels from recursing back through the same emit.
+    const unsubscribeTextBridge = createTextEventBridge(text.store, emitRuntimeEvent)
 
     /**
      * dispatch() takes a ProjectData for rule context but must never mutate it.
@@ -442,6 +487,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           showAxisIndicator: dataRef.current.showAxisIndicator,
           unpickableAssetIds: unpickableAssetIdsRef.current,
           runtimeActive: dataRef.current.runtimeMode === 'play',
+          // one-way boolean per the modal-input-boundary decision: text
+          // reports, this controller decides what the modal means for input
+          modalOpen: text.store.getSnapshot().modalOpen,
         }),
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
@@ -523,6 +571,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         }
         // Tier 3: one tick per frame, reusing the delta computed above.
         sequencer.tick(delta)
+        // Text auto-close reads its injected clock here, not via timers.
+        text.tick()
       }
 
       if (dataRef.current.cameraMode === 'walk') {
@@ -571,6 +621,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // Unmounting is an exit from play mode: stop sequencing and dispose every
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
+      unsubscribeTextBridge()
+      text.closeAll()
       restartRuntimeRef.current = () => {}
       requestRenderRef.current = () => {}
       observer.disconnect()
@@ -715,6 +767,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
       <AssetStatusBadge descriptor={selectedAssetDescriptor} onRetry={retrySelectedAsset} />
+      <TextPanelHost text={text} />
     </div>
   )
 })

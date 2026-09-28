@@ -114,6 +114,10 @@ const showPanel: ActionExecutor = (action, context: ActionContext) => {
   return context.state
 }
 actions.register('showPanel', showPanel)
+// The illustration above is now real: registerAudioActions (packages/audio)
+// and registerTextActions (packages/text — showPanel, hidePanel, advancePanel)
+// register their executors this way in src/Viewport.tsx, each with a disposer
+// per opened effect so resetRuntime() tears them down.
 
 // Tier 3 duration-based actions:
 const sequencer = createActionSequencer()

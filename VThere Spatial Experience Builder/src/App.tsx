@@ -534,6 +534,7 @@ export default function App() {
               onOrthographicChange={layoutMode === 'quad' ? undefined : setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
+              textAssets={project.textAssets ?? []}
             />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />

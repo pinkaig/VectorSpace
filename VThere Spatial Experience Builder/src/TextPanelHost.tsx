@@ -7,8 +7,9 @@
  * TextSystem.store and renders every open `panel`-mode entry as a
  * role="dialog" card: labelled heading, visible keyboard-reachable close
  * control, focus moved in on open and returned on close, Escape closing the
- * top panel, lang set on the container, links opening in a new tab with
- * rel="noopener noreferrer". No HTML ever: text renders as React children,
+ * focused panel (consumed there so it never doubles as exit-simulation or
+ * clear-selection), lang set on the container, links opening in a new tab
+ * with rel="noopener noreferrer". No HTML ever: text renders as React children,
  * so author content cannot become markup. An error panel shows
  * "Content unavailable"; an empty text renders nothing rather than an
  * empty panel.
@@ -85,6 +86,13 @@ function PanelDialog({ panel, nodes, modal, onClose }: {
       aria-label={panel.title ? undefined : 'Information panel'}
       lang={panel.lang}
       tabIndex={-1}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return
+        // the focused panel consumes Escape, so it never doubles as
+        // "exit simulation" (RuntimeView) or "clear selection" (editor)
+        event.stopPropagation()
+        onClose()
+      }}
     >
       <header className="text-panel-header">
         {panel.title && <h2 id={headingId}>{panel.title}</h2>}
@@ -107,15 +115,6 @@ export default function TextPanelHost({ text }: { text: TextSystem }) {
     if (panel.state !== 'error' && !panel.title && (text.getNodes(panel.id)?.length ?? 0) === 0) return false
     return true
   })
-
-  useEffect(() => {
-    if (overlayPanels.length === 0) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') text.close({ top: true })
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [text, overlayPanels.length])
 
   if (overlayPanels.length === 0) return null
   return (
