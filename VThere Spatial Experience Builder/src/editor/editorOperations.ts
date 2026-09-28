@@ -24,6 +24,7 @@
 import {
   createMoveCommand,
   createObject,
+  createRotateAboutPivotCommand,
   createRotateCommand,
   createScaleCommand,
   createScene,
@@ -84,6 +85,14 @@ export const moveEditorObjectCommand = (sceneId: string, objectId: string, posit
 
 export const rotateEditorObjectCommand = (sceneId: string, objectId: string, rotation: Vector3Tuple): EditorCommandBuilder =>
   (project) => createRotateCommand(project, { sceneId, objectId }, rotation)
+
+export const rotateEditorObjectAboutPivotCommand = (
+  sceneId: string,
+  objectId: string,
+  rotation: Vector3Tuple,
+  position: Vector3Tuple,
+): EditorCommandBuilder =>
+  (project) => createRotateAboutPivotCommand(project, { sceneId, objectId }, rotation, position)
 
 export const scaleEditorObjectCommand = (sceneId: string, objectId: string, scale: Vector3Tuple): EditorCommandBuilder =>
   (project) => createScaleCommand(project, { sceneId, objectId }, scale)

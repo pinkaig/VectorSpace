@@ -2,8 +2,6 @@
 
 **Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../baseline-phases.md).
 
-**Proposed, not built.** [`attachment-integration.md`](../subsystems/attachment-integration.md) and its four companion docs (audio, image, text, video) propose additions to `ProjectData` (`Attachment`, `MediaKind`, per-kind meta arrays) and new action kinds. None of that is implemented; the contracts below describe only what is built today.
-
 ## Project document
 
 The editor and runtime exchange the canonical `ProjectData` document defined in `packages/project/src/index.ts`. The real shape (as implemented, schema version 1) is:
@@ -101,7 +99,7 @@ RuntimeEvent.kind (open string) = objectClick | zoneEnter | sceneStart | timerEl
 ActionSpec.kind (open string, resolved by an ActionRegistry the caller populates) = showPanel | playAudio | moveCameraToViewpoint | showOrHideObject | navigateScene | openLink | ...
 ```
 
-**Resolved naming drift: `playAudioOrVideo` → `playAudio`.** The list above originally used a combined `playAudioOrVideo` example, not implemented verbatim. The real, registered and tested action kind is `playAudio` (`packages/audio/src/actions/registerAudioActions.ts`, `packages/interaction/src/actions/registry.test.ts:42`), aligned here 2026-09-27. [`attachment-integration.md`](../subsystems/attachment-integration.md) (section 9, proposed) keeps a `playAudio`/`playVideo` split rather than one combined kind, consistent with this.
+**Resolved naming drift: `playAudioOrVideo` → `playAudio`.** The list above originally used a combined `playAudioOrVideo` example, not implemented verbatim. The real, registered and tested action kind is `playAudio` (`packages/audio/src/actions/registerAudioActions.ts`, `packages/interaction/src/actions/registry.test.ts`), aligned here 2026-09-27. [`attachment-integration.md`](../subsystems/attachment-integration.md) (section 9, proposed) keeps a `playAudio`/`playVideo` split rather than one combined kind, consistent with this.
 
 An `InteractionRule` (`packages/project`) has `id`, optional `objectId`/`zoneId` (absent = wildcard match), `triggers: string[]`, `actions: ActionSpec[]`, and optional `priority`. `dispatch(event, rules, project, state)` (`packages/interaction/src/dispatcher.ts`) matches every rule whose `triggers` include the event's `kind` and whose `objectId`/`zoneId` don't contradict the event, orders matches by priority (descending) then authoring order (stable sort), and returns a `DispatchResult` — it performs no I/O and executes no action itself.
 

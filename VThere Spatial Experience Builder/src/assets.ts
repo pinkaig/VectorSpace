@@ -1,4 +1,4 @@
-import { AssetKind } from './model'
+import { AssetKind, type ProjectData } from './model'
 import { getUserModelUrlModifier } from './userAssets'
 import { registerLocalAsset, resolveLocalAssetUrl } from './viewport/assetResolution'
 
@@ -13,11 +13,31 @@ export interface AssetDefinition {
   modelUrl?: string
 }
 
-export const assetCatalog: AssetDefinition[] = [
-  { kind: 'cube', assetId: 'primitive-cube', label: 'Display block', detail: 'A clean pedestal form', category: 'primitive', searchableText: 'cube display block pedestal primitive' },
-  { kind: 'sphere', assetId: 'primitive-sphere', label: 'Ornament', detail: 'Soft rounded exhibit', category: 'primitive', searchableText: 'sphere ornament rounded primitive' },
-  { kind: 'cylinder', assetId: 'primitive-cylinder', label: 'Column', detail: 'Tall architectural form', category: 'primitive', searchableText: 'cylinder column architectural primitive' },
-]
+// Models shipped with the app. Vite bundles every src/assets/*.glb and maps its path to
+// the built (hashed) URL — dropping a new .glb into that folder adds it to the library.
+const bundledModelUrls = import.meta.glob<string>('./assets/*.glb', { query: '?url', import: 'default', eager: true })
+
+// './assets/Display_Case.glb' -> 'Display Case'
+const labelFromPath = (path: string): string =>
+  path.replace(/^.*\//, '').replace(/\.glb$/i, '').replace(/[_-]+/g, ' ').trim()
+
+// The primitive (cube/sphere/cylinder) placeholders are no longer offered here, but
+// objects already saved with them still render — syncArtefacts keeps drawing them.
+export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
+  .map(([path, url]): AssetDefinition => {
+    const label = labelFromPath(path)
+    return {
+      kind: 'model',
+      // Stable across builds (the file name, not the hashed URL) so saved projects keep resolving.
+      assetId: `bundled-model-${label.toLowerCase().replace(/\s+/g, '-')}`,
+      label,
+      detail: 'Built-in model',
+      category: 'model',
+      searchableText: `${label.toLowerCase()} model`,
+      modelUrl: url,
+    }
+  })
+  .sort((a, b) => a.label.localeCompare(b.label))
 
 // Built-in catalog models register with the shared local catalog (the same one the asset
 // resolver chain reads), so rendering and load-status/pickability agree on one URL source.
@@ -34,7 +54,12 @@ export const resolveModelUrl = (assetId: string): string | undefined => resolveL
 export const resolveModelUrlModifier = (assetId: string): ((url: string) => string) | undefined =>
   getUserModelUrlModifier(assetId)
 
-export const filterAssets = (query: string, catalog: readonly AssetDefinition[] = assetCatalog): AssetDefinition[] => {
+// How many objects, across every scene of the project, are placed from `assetId`. An asset
+// in use can't be removed from the library, or those objects would lose their model.
+export const countAssetUses = (project: ProjectData, assetId: string): number =>
+  project.scenes.reduce((total, scene) => total + scene.objects.filter((object) => object.assetId === assetId).length, 0)
+
+export const filterAssets =(query: string, catalog: readonly AssetDefinition[] = assetCatalog): AssetDefinition[] => {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return [...catalog]
   return catalog.filter((asset) => asset.searchableText.includes(normalized))

@@ -37,6 +37,7 @@ import type { AxisRotateHandle } from '../gizmo/rotateGizmo'
 import { setRotateHandleColor } from '../gizmo/rotateGizmo'
 import type { ArrowKind } from '../gizmo/octaOrb'
 import { matchFaceView, nudgeView, rollView } from '../gizmo/viewSnap'
+import { artefactLocalCenter } from './syncArtefacts'
 import { LOOK_SENSITIVITY, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewportTypes'
 import { normalizeAngle } from './interactionMath'
 import type { OriginHandle } from '../gizmo/originHandle'
@@ -45,7 +46,7 @@ import { setUniformScaleHandleColor, UNIFORM_SCALE_COLOR, UNIFORM_SCALE_HOVER_CO
 import { setOriginHandleColor } from '../gizmo/originHandle'
 import type { ViewportOverlays } from './overlayWidgets'
 import { createDragSessions } from './dragSessions'
-import { AXIS_INDICATOR_DIM, OCTAORB_DIM, ndcInRect, overlayRect, pointInRect } from './overlayWidgets'
+import { ndcInRect, overlayDims, overlayRect, pointInRect } from './overlayWidgets'
 
 export type InteractionCameraMode = 'orbit' | 'walk'
 export type InteractionGizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -59,6 +60,8 @@ export interface ViewportInteractionData {
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
+  // Widgets shrink in the quad layout (overlayDims), so their hit boxes must too.
+  compactOverlays: boolean
   // Object ids whose asset is still resolving or failed to resolve. Raycasting
   // skips these so a click can't select or drag an object with no confirmed
   // visual representation yet — see docs/05-subsystems/asset-manager.md.
@@ -78,7 +81,7 @@ export interface ViewportInteractionCallbacks {
   select: (id: string | null) => void
   commitMove: (id: string, position: [number, number, number]) => void
   commitScale: (id: string, scale: [number, number, number]) => void
-  commitRotate: (id: string, rotation: [number, number, number]) => void
+  commitRotate: (id: string, rotation: [number, number, number], position?: [number, number, number]) => void
   // OctaOrb / axis-indicator navigation — camera policy lives in cameraController and
   // is invoked through Viewport.tsx, which owns applyPoseRef and the orthographic state.
   applyStartPose: () => void
@@ -222,11 +225,19 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   // Consumes the pointerdown (returns true) whenever the click lands inside a visible
   // widget's box, even if it misses every target inside it — the click still shouldn't
   // fall through to walk-look or scene/gizmo picking underneath the widget.
+  // Nearest face/edge orb under the overlay ray. The solid body is tested too: if it's
+  // hit first, the orb behind it is on the far side and out of sight, so nothing is picked.
+  const pickOctaOrbTarget = (): THREE.Intersection | undefined => {
+    const { body, vertexMeshes, edgeMeshes } = overlays.octaOrb
+    const hit = overlayRaycaster.intersectObjects([body, ...vertexMeshes, ...edgeMeshes], false)[0]
+    return hit && hit.object !== body ? hit : undefined
+  }
+
   const tryOverlayPointerDown = (event: PointerEvent): boolean => {
     const data = callbacks.getData()
     const rect = element.getBoundingClientRect()
     if (data.showOctaOrb) {
-      const box = overlayRect('top-right', OCTAORB_DIM, rect)
+      const box = overlayRect('top-right', overlayDims(data.compactOverlays).octaOrb, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
         overlays.octaOrb.scene.updateMatrixWorld(true)
@@ -252,16 +263,17 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
             return true
           }
         }
-        const vertexHit = overlayRaycaster.intersectObjects(overlays.octaOrb.vertexMeshes, false)[0]
+        const vertexHit = pickOctaOrbTarget()
         if (vertexHit) {
           callbacks.snapTo(vertexHit.object.userData.direction as THREE.Vector3)
-          callbacks.setOrthographic(true)
+          // Orthographic only suits flat face views; an edge view keeps its perspective.
+          callbacks.setOrthographic(overlays.octaOrb.vertexMeshes.includes(vertexHit.object as THREE.Mesh))
         }
         return true
       }
     }
     if (data.showAxisIndicator) {
-      const box = overlayRect('bottom-left', AXIS_INDICATOR_DIM, rect)
+      const box = overlayRect('bottom-left', overlayDims(data.compactOverlays).axisIndicator, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
         overlays.axisIndicator.group.updateMatrixWorld(true)
@@ -281,7 +293,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     const rect = element.getBoundingClientRect()
     let overlayHovered = false
     if (data.showOctaOrb) {
-      const box = overlayRect('top-right', OCTAORB_DIM, rect)
+      const box = overlayRect('top-right', overlayDims(data.compactOverlays).octaOrb, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         overlayHovered = true
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
@@ -291,10 +303,12 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         const homeHit = overlayRaycaster.intersectObject(overlays.octaOrb.homeSprite, false)[0]
         overlays.octaOrb.setHomeHover(!!homeHit)
 
-        const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(overlays.octaOrb.arrows.map((arrow) => arrow.sprite), false)[0]
+        // Raycasting ignores `visible`, so filter out the arrows hidden off a face view.
+        const visibleArrows = overlays.octaOrb.arrows.map((arrow) => arrow.sprite).filter((sprite) => sprite.visible)
+        const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(visibleArrows, false)[0]
         overlays.octaOrb.setArrowHover((arrowHit?.object as THREE.Sprite | undefined) ?? null)
 
-        const hit = homeHit || arrowHit ? undefined : overlayRaycaster.intersectObjects(overlays.octaOrb.vertexMeshes, false)[0]
+        const hit = homeHit || arrowHit ? undefined : pickOctaOrbTarget()
         overlays.octaOrb.setVertexHover((hit?.object as THREE.Mesh | undefined) ?? null)
         if (hit) callbacks.showOctaOrbTooltip(hit.object.userData.label as string, event.clientX, event.clientY)
         else callbacks.hideOctaOrbTooltip()
@@ -306,7 +320,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       }
     }
     if (data.showAxisIndicator) {
-      const box = overlayRect('bottom-left', AXIS_INDICATOR_DIM, rect)
+      const box = overlayRect('bottom-left', overlayDims(data.compactOverlays).axisIndicator, rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         overlayHovered = true
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
@@ -321,13 +335,23 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     return overlayHovered
   }
 
+  // OctaOrb / axis indicator hits are consumed before anything else - both widgets
+  // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
+  // Runs in the capture phase and stops the event outright: OrbitControls listens for
+  // pointerdown on this same element and was registered first, so without this every
+  // widget click also began an orbit drag - the slightest mouse movement during the
+  // click then rotated the camera straight back off the face it had just snapped to.
+  const onOverlayPointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || callbacks.getData().cameraMode !== 'orbit') return
+    if (!tryOverlayPointerDown(event)) return
+    pointerDownAt = { x: event.clientX, y: event.clientY }
+    event.stopImmediatePropagation()
+  }
+
   const onPointerDown = (event: PointerEvent) => {
     const data = callbacks.getData()
     if (data.modalOpen) return
     if (event.button === 0) pointerDownAt = { x: event.clientX, y: event.clientY }
-    // OctaOrb / axis indicator hits are consumed before anything else - both widgets
-    // only make sense while orbiting, so they're inert (and not hit-tested) in walk mode.
-    if (data.cameraMode === 'orbit' && event.button === 0 && tryOverlayPointerDown(event)) return
     if (data.cameraMode === 'walk') {
       if (event.button !== 0) return
       // Run simulation: mouse-look is driven by pointer lock (in onPointerMove), not
@@ -394,13 +418,17 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         // Resolve the rotation plane once at grab time. Local rotation still
         // uses a fixed world-space axis for the duration of the drag.
         const normal = local ? handle.normal.clone().applyQuaternion(worldQuaternion) : handle.normal.clone()
-        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
+        // Rotation pivots about the object's visual centre (where syncGizmo draws the
+        // rings), not its origin, which for a model is usually its base.
+        const localPivot = artefactLocalCenter(selectedMesh)
+        const center = localPivot.clone().applyMatrix4(selectedMesh.matrixWorld)
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, center)
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const hitPoint = new THREE.Vector3()
         if (raycaster.ray.intersectPlane(plane, hitPoint)) {
           controls.enabled = false
           const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
-          dragSessions.beginRotateDrag({ id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() })
+          dragSessions.beginRotateDrag({ id: selected.id, axisIndex, center, localPivot, normal, plane, lastAngle: angleAroundAxis(hitPoint, center, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() })
         }
       }
       element.setPointerCapture(event.pointerId)
@@ -504,6 +532,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   // cursor disappears while pointer-locked and replaced with a crosshair
   // so it's hidden only for as long as the lock is actually held.
   const onPointerLockChange = () => { element.style.cursor = document.pointerLockElement === element ? 'none' : '' }
+  element.addEventListener('pointerdown', onOverlayPointerDown, { capture: true })
   element.addEventListener('pointerdown', onPointerDown); element.addEventListener('pointermove', onPointerMove); element.addEventListener('pointerup', onPointerUp); element.addEventListener('contextmenu', onContextMenu); element.addEventListener('pointerleave', onPointerLeave)
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); window.addEventListener('blur', onBlur)
   document.addEventListener('pointerlockchange', onPointerLockChange)
@@ -511,6 +540,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     isDragging: dragSessions.isActive,
     pressedKeys,
     dispose: () => {
+      element.removeEventListener('pointerdown', onOverlayPointerDown, { capture: true })
       element.removeEventListener('pointerdown', onPointerDown); element.removeEventListener('pointermove', onPointerMove); element.removeEventListener('pointerup', onPointerUp); element.removeEventListener('contextmenu', onContextMenu); element.removeEventListener('pointerleave', onPointerLeave)
       window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('blur', onBlur)
       document.removeEventListener('pointerlockchange', onPointerLockChange)

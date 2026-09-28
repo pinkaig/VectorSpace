@@ -45,6 +45,8 @@ export const applyCameraPose = (
   controls: OrbitControls,
   pose: CameraPose,
 ): CameraOrientation => {
+  // Poses are always stored Y-up; clear any up left behind by an OctaOrb top/bottom/roll view.
+  camera.up.set(0, 1, 0)
   camera.position.set(...pose.position)
   const target = new THREE.Vector3(...pose.target)
   camera.lookAt(target)
@@ -76,6 +78,41 @@ export const applyViewOrientation = (
     yaw: Math.atan2(-forward.x, -forward.z),
     pitch: Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1)),
   }
+}
+
+// How far off the pole a straight-down/up view is tipped when handed back to OrbitControls.
+// Must stay well above Spherical.makeSafe's 1e-6 clamp so theta stays well-defined.
+const ORBIT_POLE_TILT = 1e-3
+
+// OrbitControls caches its "which way is up" frame from camera.up once, at construction,
+// so it always orbits in world Y-up space. OctaOrb's top/bottom snaps and roll arrows swap
+// camera.up to something else, and orbiting in Y-up space while lookAt uses that other up
+// goes degenerate as soon as the view swings parallel to it (the camera flips / rolls wildly).
+// Call this when an orbit drag starts: it restores world Y-up and, for a straight-down/up
+// view, tips the camera a hair off the pole on the side that keeps what's currently "up"
+// on screen, so the drag starts from the same picture the user was looking at.
+export const realignOrbitUp = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+): void => {
+  if (camera.up.y > 0.999999) return
+  const offset = camera.position.clone().sub(controls.target)
+  const distance = offset.length()
+  const direction = offset.normalize()
+  if (Math.abs(direction.y) > 0.999) {
+    const screenUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion)
+    const horizontal = new THREE.Vector3(screenUp.x, 0, screenUp.z).normalize()
+    // With Y-up, screen-up above the target points away from the camera's horizontal
+    // offset, and below the target it points toward it.
+    const pole = Math.sign(direction.y)
+    direction
+      .copy(horizontal)
+      .multiplyScalar(-pole * Math.sin(ORBIT_POLE_TILT))
+      .setY(pole * Math.cos(ORBIT_POLE_TILT))
+  }
+  camera.up.set(0, 1, 0)
+  camera.position.copy(controls.target).addScaledVector(direction, distance)
+  camera.lookAt(controls.target)
 }
 
 export const snapCameraTo = (

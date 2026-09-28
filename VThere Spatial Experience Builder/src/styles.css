@@ -572,9 +572,20 @@ button:disabled {
   color: #4294E2;
 }
 .asset-list {
-  padding: 0 13px 17px;
+  /* Card = 38px preview + 2 x 7px padding + 2 x 1px border = 54px. Four cards and
+     their three gaps show at once; the rest of the library scrolls. */
+  --asset-card-height: 54px;
+  --asset-list-gap: 7px;
+  padding: 0 13px;
+  margin-bottom: 17px;
   display: grid;
-  gap: 7px;
+  gap: var(--asset-list-gap);
+  grid-auto-rows: var(--asset-card-height);
+  max-height: calc(4 * var(--asset-card-height) + 3 * var(--asset-list-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #5C3705 transparent;
 }
 .asset-card {
   border: 1px solid #F7E3C3;
@@ -797,22 +808,20 @@ button:disabled {
 .octaorb-backdrop,
 .axis-indicator-backdrop {
   position: absolute;
+  /* Border only - the dark rounded fill is drawn in WebGL (overlayWidgets.ts, PANEL_RADIUS
+     must match this radius), since a tint here would sit on top of and dim the widget. */
   border-radius: 6px;
-  background: rgba(13, 24, 30, 0.45);
   border: 1px solid #4294E2;
   pointer-events: none;
 }
 .octaorb-backdrop {
+  /* width/height set inline from overlayDims (shrinks in the quad layout) */
   top: 8px;
   right: 8px;
-  width: 128px;
-  height: 128px;
 }
 .axis-indicator-backdrop {
   left: 8px;
   bottom: 8px;
-  width: 84px;
-  height: 84px;
 }
 .octaorb-tooltip {
   position: absolute;
@@ -856,20 +865,41 @@ button:disabled {
   height: 14px;
   border-width: 2px;
 }
-.viewport-projection-badge {
+.viewport-face-header {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  color: #9fe4d7;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid #4294E2;
+  border-radius: 5px;
+  background: rgba(9, 15, 19, 0.8);
   font-family: "DM Mono", monospace;
-  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 4px 8px;
-  border: 1px solid #2a444a;
-  border-radius: 3px;
-  background: rgba(13, 24, 30, 0.6);
+  white-space: nowrap;
   pointer-events: none;
+  animation: viewport-face-header-in 160ms ease-out;
+}
+.viewport-face-header-name {
+  color: #f4c94f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.viewport-face-header-projection {
+  color: #9fe4d7;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+@keyframes viewport-face-header-in {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport-face-header { animation: none; }
 }
 .viewport-overlay {
   position: absolute;
@@ -993,8 +1023,13 @@ button:disabled {
   flex: 1;
   min-height: calc(100vh - 76px);
 }
+/* A fixed height, not min-height: with only a minimum, the canvas's height: 100% has
+   nothing definite to resolve against, so the canvas falls back to its own aspect ratio
+   and drives the viewport's height instead. Any resize that passes through a narrow width
+   (minimise/maximise) then locks the viewport taller than the window, pushing the
+   crosshair and the camera's framing off-screen. */
 .runtime-stage .viewport {
-  min-height: calc(100vh - 76px);
+  height: calc(100vh - 76px);
 }
 .runtime-meta {
   position: absolute;
@@ -1049,33 +1084,87 @@ button:disabled {
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.asset-card .icon-button:hover {
+.asset-card .icon-button.in-use {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.asset-card .icon-button:not(.in-use):hover {
   background: #C0392B;
   border-color: #F7E3C3;
   color: #FFF;
 }
-.asset-list.drag-over {
+.asset-library {
+  position: relative;
+}
+.asset-library.drag-over {
   outline: 2px dashed #B0E0F6;
   outline-offset: -4px;
   border-radius: 4px;
 }
+/* Covers the panel while a file is dragged over it. pointer-events: none so it never
+   becomes a drag target itself, which would fire extra enter/leave events. */
 .asset-drop-hint {
-  margin: 0 13px 10px;
-  padding: 10px;
-  border: 1px dashed #4294E2;
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  place-items: center;
+  padding: 16px;
   border-radius: 4px;
+  background: rgba(8, 20, 30, 0.88);
   color: #B0E0F6;
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
+  pointer-events: none;
 }
-.asset-import-error {
+.asset-import-notice {
+  position: relative;
+  display: grid;
+  gap: 3px;
   margin: 0 13px 13px;
-  padding: 8px 9px;
-  border: 1px solid #7a3b3b;
-  background: #2a1414;
-  color: #f0b4b4;
+  padding: 8px 24px 8px 9px;
+  border: 1px solid;
   font-size: 10px;
   border-radius: 3px;
+}
+.asset-import-notice.error {
+  border-color: #7a3b3b;
+  background: #2a1414;
+  color: #f0b4b4;
+}
+.asset-import-notice.success {
+  border-color: #2f5f4a;
+  background: #102219;
+  color: #a8e0c4;
+}
+.asset-import-notice.info {
+  border-color: #2d4d6b;
+  background: #0f1c28;
+  color: #B0E0F6;
+}
+.asset-optimised {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.asset-keep-original {
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.asset-notice-close {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
 }
 
 /* ---- text panel overlay (TextPanelHost) ---- */
@@ -1175,3 +1264,110 @@ button:disabled {
   font-style: italic;
 }
 
+/* When / Do inspector section: sentence text matches the Visible / Enabled labels, not the blue heading */
+.when-do-line,
+.when-do-color {
+  color: #a4b9b7;
+  font-size: 11px;
+}
+
+/* each line is one part of the sentence, text above its dropdown */
+.when-do-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* the "to" text and the colour picker sit side by side */
+.when-do-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* overrides .field-group input (full width, thick padding), which squashed the swatch into a thin line */
+.when-do-color input[type='color'] {
+  width: 48px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* remove the browser's inner spacing around the swatch in Chrome and Edge */
+.when-do-color input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+/* same for Firefox */
+.when-do-color input[type='color']::-moz-color-swatch {
+  border: none;
+}
+
+/* the interaction count is a quiet note, not a heading */
+.when-do-count {
+  color: #a4b9b7;
+  opacity: 0.7;
+}
+
+/* one interaction shown as a short sentence, with its remove button on the right */
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #2a444a;
+  border-radius: 2px;
+  color: #a4b9b7;
+  font-size: 11px;
+}
+
+/* the sentence takes the remaining space so the button stays on the right */
+.rule-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* small square showing the colour a change colour rule will apply */
+.rule-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border: 1px solid #F7E3C3;
+  border-radius: 2px;
+}
+
+/* the remove button is big enough to hit easily, and turns red when hovered like the asset remove button */
+.rule-remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  color: #E2A845;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* turns red on hover */
+.rule-remove:hover {
+  background: #C0392B;
+  color: #fff;
+}
+
+/* keep the add button compact instead of stretching across the whole section */
+.when-do-add {
+  justify-self: center;
+  padding: 6px 12px;
+}
+
+/* the rule's place in the run order, gold like the other labels but quieter than the sentence */
+.rule-number {
+  color: #E2A845;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
