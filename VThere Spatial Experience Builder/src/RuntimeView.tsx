@@ -86,6 +86,8 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           runtimeMode="play"
           rules={project.rules ?? []}
           zones={scene.zones ?? []}
+          audioAssets={project.audioAssets ?? []}
+          audioSettings={project.audioSettings}
         />
       </section>
     </main>

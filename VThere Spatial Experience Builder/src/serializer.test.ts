@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeProject, serializeProject } from './serializer'
 import { defaultCameraPose, defaultEnvironmentId } from './model'
+import { removeObject } from '../packages/authoring-engine/src/index'
 
 describe('deserializeProject backfill', () => {
   it('fills in environmentId and startCamera for a project saved before those fields existed', () => {
@@ -169,5 +170,18 @@ describe('deserializeProject rules and zones', () => {
     const restored = deserializeProject(serializeProject(original))
     expect(restored.rules).toEqual(original.rules)
     expect(restored.scenes[0].zones).toEqual(original.scenes[0].zones)
+  })
+
+  it('round-trips after removing an object that a rule referenced', () => {
+    const original = deserializeProject(
+      projectJson({ rules: [{ id: 'r1', objectId: 'cube-1', triggers: ['click'], actions: [{ kind: 'playAudio' }] }] }),
+    )
+
+    const result = removeObject(original, { sceneId: 'scene-a', objectId: 'cube-1' })
+
+    expect(result.project.rules).toEqual([])
+    expect(() => deserializeProject(serializeProject(result.project))).not.toThrow()
+    const restored = deserializeProject(serializeProject(result.project))
+    expect(restored.rules).toEqual([])
   })
 })
