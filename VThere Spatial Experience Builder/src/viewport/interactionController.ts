@@ -37,6 +37,7 @@ import type { AxisRotateHandle } from '../gizmo/rotateGizmo'
 import { setRotateHandleColor } from '../gizmo/rotateGizmo'
 import type { ArrowKind } from '../gizmo/octaOrb'
 import { matchFaceView, nudgeView, rollView } from '../gizmo/viewSnap'
+import { artefactLocalCenter } from './syncArtefacts'
 import { LOOK_SENSITIVITY, MOVE_KEYS, SPRINT_KEYS, VERTICAL_KEYS, isTypingTarget } from './viewportTypes'
 import { normalizeAngle } from './interactionMath'
 import type { OriginHandle } from '../gizmo/originHandle'
@@ -75,7 +76,7 @@ export interface ViewportInteractionCallbacks {
   select: (id: string | null) => void
   commitMove: (id: string, position: [number, number, number]) => void
   commitScale: (id: string, scale: [number, number, number]) => void
-  commitRotate: (id: string, rotation: [number, number, number]) => void
+  commitRotate: (id: string, rotation: [number, number, number], position?: [number, number, number]) => void
   // OctaOrb / axis-indicator navigation — camera policy lives in cameraController and
   // is invoked through Viewport.tsx, which owns applyPoseRef and the orthographic state.
   applyStartPose: () => void
@@ -219,6 +220,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   // Consumes the pointerdown (returns true) whenever the click lands inside a visible
   // widget's box, even if it misses every target inside it — the click still shouldn't
   // fall through to walk-look or scene/gizmo picking underneath the widget.
+  // Nearest face/edge orb under the overlay ray. The solid body is tested too: if it's
+  // hit first, the orb behind it is on the far side and out of sight, so nothing is picked.
+  const pickOctaOrbTarget = (): THREE.Intersection | undefined => {
+    const { body, vertexMeshes, edgeMeshes } = overlays.octaOrb
+    const hit = overlayRaycaster.intersectObjects([body, ...vertexMeshes, ...edgeMeshes], false)[0]
+    return hit && hit.object !== body ? hit : undefined
+  }
+
   const tryOverlayPointerDown = (event: PointerEvent): boolean => {
     const data = callbacks.getData()
     const rect = element.getBoundingClientRect()
@@ -249,10 +258,11 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
             return true
           }
         }
-        const vertexHit = overlayRaycaster.intersectObjects(overlays.octaOrb.vertexMeshes, false)[0]
+        const vertexHit = pickOctaOrbTarget()
         if (vertexHit) {
           callbacks.snapTo(vertexHit.object.userData.direction as THREE.Vector3)
-          callbacks.setOrthographic(true)
+          // Orthographic only suits flat face views; an edge view keeps its perspective.
+          callbacks.setOrthographic(overlays.octaOrb.vertexMeshes.includes(vertexHit.object as THREE.Mesh))
         }
         return true
       }
@@ -288,10 +298,12 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         const homeHit = overlayRaycaster.intersectObject(overlays.octaOrb.homeSprite, false)[0]
         overlays.octaOrb.setHomeHover(!!homeHit)
 
-        const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(overlays.octaOrb.arrows.map((arrow) => arrow.sprite), false)[0]
+        // Raycasting ignores `visible`, so filter out the arrows hidden off a face view.
+        const visibleArrows = overlays.octaOrb.arrows.map((arrow) => arrow.sprite).filter((sprite) => sprite.visible)
+        const arrowHit = homeHit ? undefined : overlayRaycaster.intersectObjects(visibleArrows, false)[0]
         overlays.octaOrb.setArrowHover((arrowHit?.object as THREE.Sprite | undefined) ?? null)
 
-        const hit = homeHit || arrowHit ? undefined : overlayRaycaster.intersectObjects(overlays.octaOrb.vertexMeshes, false)[0]
+        const hit = homeHit || arrowHit ? undefined : pickOctaOrbTarget()
         overlays.octaOrb.setVertexHover((hit?.object as THREE.Mesh | undefined) ?? null)
         if (hit) callbacks.showOctaOrbTooltip(hit.object.userData.label as string, event.clientX, event.clientY)
         else callbacks.hideOctaOrbTooltip()
@@ -400,13 +412,17 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
         // Resolve the rotation plane once at grab time. Local rotation still
         // uses a fixed world-space axis for the duration of the drag.
         const normal = local ? handle.normal.clone().applyQuaternion(worldQuaternion) : handle.normal.clone()
-        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
+        // Rotation pivots about the object's visual centre (where syncGizmo draws the
+        // rings), not its origin, which for a model is usually its base.
+        const localPivot = artefactLocalCenter(selectedMesh)
+        const center = localPivot.clone().applyMatrix4(selectedMesh.matrixWorld)
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, center)
         getPointer(event); raycaster.setFromCamera(pointer, activeCamera.current)
         const hitPoint = new THREE.Vector3()
         if (raycaster.ray.intersectPlane(plane, hitPoint)) {
           controls.enabled = false
           const axisIndex = handle.axis === 'x' ? 0 : handle.axis === 'y' ? 1 : 2
-          dragSessions.beginRotateDrag({ id: selected.id, axisIndex, center: origin, normal, plane, lastAngle: angleAroundAxis(hitPoint, origin, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() })
+          dragSessions.beginRotateDrag({ id: selected.id, axisIndex, center, localPivot, normal, plane, lastAngle: angleAroundAxis(hitPoint, center, normal), spaceMode: local ? 'local' : 'world', currentRotation: [...selected.transform.rotation], currentQuaternion: worldQuaternion.clone() })
         }
       }
       element.setPointerCapture(event.pointerId)

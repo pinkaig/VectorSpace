@@ -497,9 +497,20 @@ button:disabled {
   color: #4294E2;
 }
 .asset-list {
-  padding: 0 13px 17px;
+  /* Card = 38px preview + 2 x 7px padding + 2 x 1px border = 54px. Four cards and
+     their three gaps show at once; the rest of the library scrolls. */
+  --asset-card-height: 54px;
+  --asset-list-gap: 7px;
+  padding: 0 13px;
+  margin-bottom: 17px;
   display: grid;
-  gap: 7px;
+  gap: var(--asset-list-gap);
+  grid-auto-rows: var(--asset-card-height);
+  max-height: calc(4 * var(--asset-card-height) + 3 * var(--asset-list-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #5C3705 transparent;
 }
 .asset-card {
   border: 1px solid #F7E3C3;
@@ -998,32 +1009,67 @@ button:disabled {
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.asset-card .icon-button:hover {
+.asset-card .icon-button.in-use {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.asset-card .icon-button:not(.in-use):hover {
   background: #C0392B;
   border-color: #F7E3C3;
   color: #FFF;
 }
-.asset-list.drag-over {
+.asset-library {
+  position: relative;
+}
+.asset-library.drag-over {
   outline: 2px dashed #B0E0F6;
   outline-offset: -4px;
   border-radius: 4px;
 }
+/* Covers the panel while a file is dragged over it. pointer-events: none so it never
+   becomes a drag target itself, which would fire extra enter/leave events. */
 .asset-drop-hint {
-  margin: 0 13px 10px;
-  padding: 10px;
-  border: 1px dashed #4294E2;
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  place-items: center;
+  padding: 16px;
   border-radius: 4px;
+  background: rgba(8, 20, 30, 0.88);
   color: #B0E0F6;
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
+  pointer-events: none;
 }
-.asset-import-error {
+.asset-import-notice {
+  position: relative;
+  display: grid;
+  gap: 3px;
   margin: 0 13px 13px;
-  padding: 8px 9px;
-  border: 1px solid #7a3b3b;
-  background: #2a1414;
-  color: #f0b4b4;
+  padding: 8px 24px 8px 9px;
+  border: 1px solid;
   font-size: 10px;
   border-radius: 3px;
+}
+.asset-import-notice.error {
+  border-color: #7a3b3b;
+  background: #2a1414;
+  color: #f0b4b4;
+}
+.asset-import-notice.success {
+  border-color: #2f5f4a;
+  background: #102219;
+  color: #a8e0c4;
+}
+.asset-notice-close {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
 }
 

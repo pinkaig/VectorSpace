@@ -22,7 +22,7 @@
  * @documentation
  * Larger system guide: docs/02-architecture/UNDATED--FOUNDATION--architecture.md
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 import {
   collectSubtreeIds,
   createCommandTimeline,
@@ -48,8 +48,8 @@ import {
   subscribeProjectSync,
   type ProjectSyncStatus,
 } from './sync/projectSync'
-import { AssetDefinition, assetCatalog, filterAssets } from './assets'
-import { addUserAsset, isUserAsset, loadUserAssets, removeUserAsset } from './userAssets'
+import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './assets'
+import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset } from './userAssets'
 import {
   createEditorObject,
   createEditorScene,
@@ -58,6 +58,7 @@ import {
   removeEditorObject,
   renameEditorObject,
   reparentEditorObject,
+  rotateEditorObjectAboutPivotCommand,
   rotateEditorObjectCommand,
   scaleEditorObjectCommand,
   selectEditorScene,
@@ -109,8 +110,10 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
-  const [assetImportError, setAssetImportError] = useState<string | null>(null)
+  // Outcome of the last import: what was added, what was skipped and why, or a failure.
+  const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success'; lines: string[] } | null>(null)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)
+  const assetDragDepthRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
@@ -126,27 +129,54 @@ export default function App() {
         // instance skipped by an earlier sync needs the viewport to retry now.
         setSyncToken((value) => value + 1)
       })
-      .catch((error) => setAssetImportError(error instanceof Error ? error.message : 'Could not load imported assets'))
+      .catch((error) => setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not load imported assets'] }))
+  }, [])
+
+  // A file dropped just outside the library would otherwise make the browser navigate
+  // away to open it, discarding the editor. Only file drags are affected.
+  useEffect(() => {
+    const blockFileDrop = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('Files')) event.preventDefault()
+    }
+    window.addEventListener('dragover', blockFileDrop)
+    window.addEventListener('drop', blockFileDrop)
+    return () => {
+      window.removeEventListener('dragover', blockFileDrop)
+      window.removeEventListener('drop', blockFileDrop)
+    }
   }, [])
 
   const importModelFiles = async (files: FileList | null | undefined) => {
     if (!files || files.length === 0) return
     try {
-      // A .glb is one file; a .gltf needs its .bin/texture files selected or dropped
-      // alongside it — addUserAsset() picks the .glb/.gltf out of the batch as the entry
-      // point and keeps the rest as that asset's supporting files.
-      const asset = await addUserAsset(Array.from(files))
-      setUserAssets((prev) => [...prev, asset])
-      setAssetImportError(null)
+      // Any number of .glb files, and .gltf files with their .bin/texture files, in one go.
+      // Names already in the library (built-in or imported) and repeat content are skipped.
+      const { added, skipped } = await addUserAssets(
+        Array.from(files),
+        visibleAssets.map((asset) => asset.label),
+        assetCatalog.flatMap((asset) => (asset.modelUrl ? [{ label: asset.label, url: asset.modelUrl }] : [])),
+      )
+      if (added.length > 0) setUserAssets((prev) => [...prev, ...added])
+      const lines = [
+        ...(added.length > 0 ? [`Added ${added.map((asset) => asset.label).join(', ')}`] : []),
+        ...skipped.map((item) => `Skipped ${item.fileName}: ${item.reason}`),
+      ]
+      setAssetNotice({ tone: skipped.length > 0 ? 'error' : 'success', lines })
     } catch (error) {
-      setAssetImportError(error instanceof Error ? error.message : 'Could not import this file')
+      setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not import these files'] })
     }
   }
-  const deleteUserAsset = async (assetId: string) => {
-    // Any already-placed objects using this asset are left as-is and will simply stop
-    // rendering next reload — removing them from existing scenes isn't handled here.
-    await removeUserAsset(assetId)
-    setUserAssets((prev) => prev.filter((asset) => asset.assetId !== assetId))
+  const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
+  const deleteUserAsset = async (asset: AssetDefinition) => {
+    // Removing an asset that placed objects still use would leave them with no model
+    // ("Asset unavailable"), so it is refused until those objects are deleted.
+    const uses = countAssetUses(project, asset.assetId)
+    if (uses > 0) {
+      setAssetNotice({ tone: 'error', lines: [`Can't remove ${asset.label}: ${uses} object${uses === 1 ? '' : 's'} in the project use${uses === 1 ? 's' : ''} it. Delete ${uses === 1 ? 'that object' : 'those objects'} first.`] })
+      return
+    }
+    await removeUserAsset(asset.assetId)
+    setUserAssets((prev) => prev.filter((item) => item.assetId !== asset.assetId))
   }
 
   const commit = (label: string, next: ProjectData) => {
@@ -199,8 +229,10 @@ export default function App() {
   const scaleObject = (id: string, scale: [number, number, number]) => {
     runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
-  const rotateObject = (id: string, rotation: [number, number, number]) => {
-    runCommand(rotateEditorObjectCommand(scene.id, id, rotation))
+  const rotateObject = (id: string, rotation: [number, number, number], position?: [number, number, number]) => {
+    runCommand(position
+      ? rotateEditorObjectAboutPivotCommand(scene.id, id, rotation, position)
+      : rotateEditorObjectCommand(scene.id, id, rotation))
   }
   const renameSelected = (name: string) => {
     if (!selected) return
@@ -355,11 +387,37 @@ export default function App() {
               </button>
             </div>
           ))}</div>
-          <section className="panel">
+          {/* The whole Library panel is the drop target, not just the card list, so the
+              hint can't shift the target out from under the pointer mid-drag. */}
+          <section
+            className={isDraggingAsset ? 'panel asset-library drag-over' : 'panel asset-library'}
+            onDragEnter={(event) => {
+              if (!isFileDrag(event)) return
+              event.preventDefault()
+              assetDragDepthRef.current += 1
+              setIsDraggingAsset(true)
+            }}
+            onDragOver={(event) => {
+              if (!isFileDrag(event)) return
+              event.preventDefault()
+              event.dataTransfer.dropEffect = 'copy'
+            }}
+            onDragLeave={() => {
+              assetDragDepthRef.current = Math.max(0, assetDragDepthRef.current - 1)
+              if (assetDragDepthRef.current === 0) setIsDraggingAsset(false)
+            }}
+            onDrop={(event) => {
+              if (!isFileDrag(event)) return
+              event.preventDefault()
+              assetDragDepthRef.current = 0
+              setIsDraggingAsset(false)
+              void importModelFiles(event.dataTransfer.files)
+            }}
+          >
             <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
             <div className="asset-tools">
               <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-              <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select a .glb, or a .gltf together with its .bin/texture files">Import GLB / glTF</button>
+              <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select one or more .glb files, or .gltf files together with their .bin/texture files">Import GLB / glTF</button>
               <input
                 ref={modelFileInputRef}
                 className="hidden-file-input"
@@ -369,29 +427,36 @@ export default function App() {
                 onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
               />
             </div>
-            <div
-              className={isDraggingAsset ? 'asset-list drag-over' : 'asset-list'}
-              onDragOver={(event) => { event.preventDefault(); setIsDraggingAsset(true) }}
-              onDragLeave={() => setIsDraggingAsset(false)}
-              onDrop={(event) => {
-                event.preventDefault()
-                setIsDraggingAsset(false)
-                void importModelFiles(event.dataTransfer.files)
-              }}
-            >
+            <div className="asset-list">
               {filterAssets(assetQuery, visibleAssets).map((asset) => (
                 <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
                   <span className={`asset-preview ${asset.kind}`}><span /></span>
                   <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                   {isUserAsset(asset.assetId)
-                    ? <span className="icon-button" title="Remove imported asset" onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset.assetId) }}>×</span>
+                    ? (() => {
+                        const uses = countAssetUses(project, asset.assetId)
+                        return (
+                          <span
+                            className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
+                            aria-disabled={uses > 0}
+                            title={uses > 0 ? `In use by ${uses} object${uses === 1 ? '' : 's'} - delete ${uses === 1 ? 'it' : 'them'} to remove this asset` : 'Remove imported asset'}
+                            onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset) }}
+                          >×</span>
+                        )
+                      })()
                     : <span className="add-symbol">+</span>}
                 </button>
               ))}
               {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
-              {isDraggingAsset && <div className="asset-drop-hint">Drop a .glb, or a .gltf with its .bin/texture files, to import it</div>}
             </div>
-            {assetImportError && <div className="asset-import-error">{assetImportError}</div>}
+            {assetNotice && (
+              <div className={`asset-import-notice ${assetNotice.tone}`}>
+                {assetNotice.lines.map((line) => <div key={line}>{line}</div>)}
+                <button className="asset-notice-close" title="Dismiss" onClick={() => setAssetNotice(null)}>×</button>
+              </div>
+            )}
+            {/* Overlay rather than an inline block, so showing it never changes the layout. */}
+            {isDraggingAsset && <div className="asset-drop-hint">Drop .glb files, or .gltf files with their .bin/texture files, to import them</div>}
           </section>
           <div className="rail-footer">
             <span className="status-dot" />

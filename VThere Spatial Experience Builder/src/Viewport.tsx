@@ -51,7 +51,7 @@ import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, applyViewOrientation, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
 import { EYE_HEIGHT } from './viewport/viewportTypes'
-import { FACE_VIEWS, matchFaceView } from './gizmo/viewSnap'
+import { EDGE_VIEWS, FACE_VIEWS, matchEdgeView, matchFaceView } from './gizmo/viewSnap'
 import { createGizmoSet } from './viewport/createGizmoSet'
 import { createViewportOverlays, overlayDims } from './viewport/overlayWidgets'
 import type { EnvStatus } from './viewport/renderTypes'
@@ -75,7 +75,8 @@ interface ViewportProps {
   onSelect: (id: string | null) => void
   onMove: (id: string, position: [number, number, number]) => void
   onScale?: (id: string, scale: [number, number, number]) => void
-  onRotate?: (id: string, rotation: [number, number, number]) => void
+  /** `position` is present when the rotation pivoted about the object's centre, which also moves its origin. */
+  onRotate?: (id: string, rotation: [number, number, number], position?: [number, number, number]) => void
   gizmoMode?: GizmoMode
   scaleSpace?: 'world' | 'local'
   rotateSpace?: 'world' | 'local'
@@ -121,10 +122,13 @@ export interface ViewportHandle {
   restartRuntime: () => void
 }
 
-// 'TOP', 'FRONT', … when `direction` (target -> camera) is flat against a face, else null.
+// 'TOP', 'FRONT', … when `direction` (target -> camera) is flat against a face,
+// 'TOP-FRONT', … when it looks along a cube edge, else null.
 const faceLabelFor = (direction: THREE.Vector3): string | null => {
   const index = matchFaceView(direction)
-  return index === null ? null : FACE_VIEWS[index].label
+  if (index !== null) return FACE_VIEWS[index].label
+  const edgeIndex = matchEdgeView(direction)
+  return edgeIndex === null ? null : EDGE_VIEWS[edgeIndex].label
 }
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
@@ -445,7 +449,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
         commitScale: (id, scale) => dataRef.current.onScale?.(id, scale),
-        commitRotate: (id, rotation) => dataRef.current.onRotate?.(id, rotation),
+        commitRotate: (id, rotation, position) => dataRef.current.onRotate?.(id, rotation, position),
         applyStartPose: () => applyPoseRef.current(dataRef.current.startCamera),
         applyOrientation: (direction, up) => {
           const orientation = applyViewOrientation(camera, controls, direction, up)
@@ -494,6 +498,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // Edit mode falls straight past this block, so authoring runs exactly the
       // frame loop it ran before this subsystem existed.
       const playing = dataRef.current.runtimeMode === 'play'
+      // The floor grid only appears in edit mode
+      grid.visible = !playing
       if (playing && !runtimeState) {
         startRun()
       } else if (!playing && runtimeState) {

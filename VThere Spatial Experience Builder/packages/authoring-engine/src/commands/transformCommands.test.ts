@@ -8,6 +8,7 @@ import {
   applyRotate,
   applyScale,
   createMoveCommand,
+  createRotateAboutPivotCommand,
   createRotateCommand,
   createScaleCommand,
   Vector3Tuple,
@@ -190,5 +191,27 @@ describe('transform command execution and inversion', () => {
     expect(createMoveCommand(project, target, [1, 2, 3]).isNoop?.(project)).toBe(true)
     expect(createMoveCommand(project, target, [1, 2, 3.0001]).isNoop?.(project)).toBe(false)
     expect(createScaleCommand(project, target, [2, 2, 2]).isNoop?.(project)).toBe(true)
+  })
+})
+
+describe('createRotateAboutPivotCommand', () => {
+  it('writes rotation and position together and undoes both in one step', () => {
+    const project = buildProject()
+    const command = createRotateAboutPivotCommand(project, target, [0, 1, 0], [4, 5, 6])
+
+    const done = command.execute(project)
+    expect(objectIn(done).transform.rotation).toEqual([0, 1, 0])
+    expect(objectIn(done).transform.position).toEqual([4, 5, 6])
+    expect(objectIn(done).transform.scale).toEqual([2, 2, 2])
+    expect(command.isNoop(done)).toBe(true)
+
+    const undone = command.undo(done)
+    expect(objectIn(undone).transform.rotation).toEqual([0.1, 0.2, 0.3])
+    expect(objectIn(undone).transform.position).toEqual([1, 2, 3])
+  })
+
+  it('rejects a non-finite position before any command exists', () => {
+    expect(() => createRotateAboutPivotCommand(buildProject(), target, [0, 0, 0], [Number.NaN, 0, 0]))
+      .toThrow(TransformValidationError)
   })
 })

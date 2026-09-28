@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { FACE_VIEWS, matchFaceView, nudgeView, upFor } from './viewSnap'
+import { EDGE_VIEWS, FACE_VIEWS, matchEdgeView, matchFaceView, nudgeView, upFor } from './viewSnap'
 
 const labelFor = (direction: THREE.Vector3): string | undefined =>
   FACE_VIEWS.find((face) => face.direction.distanceTo(direction) < 1e-6)?.label
@@ -56,5 +56,22 @@ describe('nudgeView', () => {
         expect(next.up).toEqual(upFor(next.direction))
       }
     }
+  })
+})
+
+describe('EDGE_VIEWS', () => {
+  it('has the 12 cube edges with vertical-first labels', () => {
+    const labels = EDGE_VIEWS.map((edge) => edge.label)
+    expect(labels).toHaveLength(12)
+    expect(new Set(labels).size).toBe(12)
+    expect(labels).toEqual(expect.arrayContaining(['TOP-FRONT', 'BOTTOM-FRONT', 'LEFT-BACK', 'RIGHT-FRONT']))
+  })
+
+  it('looks along the diagonal between its two faces and matches only as an edge', () => {
+    const topFront = EDGE_VIEWS.find((edge) => edge.label === 'TOP-FRONT')!
+    expect(topFront.direction.distanceTo(new THREE.Vector3(0, 1, 1).normalize())).toBeLessThan(1e-6)
+    expect(EDGE_VIEWS[matchEdgeView(topFront.direction)!].label).toBe('TOP-FRONT')
+    expect(matchFaceView(topFront.direction)).toBeNull()
+    expect(matchEdgeView(new THREE.Vector3(0, 0, 1))).toBeNull()
   })
 })

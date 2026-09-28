@@ -63,20 +63,58 @@ const applyTransform = (node: THREE.Object3D, item: SceneObject): void => {
   node.scale.set(...item.transform.scale)
 }
 
-// Primitives only - a `model` node never gets one (its geometry isn't a single
-// BufferGeometry EdgesGeometry can be built from, and it never had one before either).
-const setPrimitiveSelectionOutline = (mesh: THREE.Mesh, isSelected: boolean): void => {
-  const current = mesh.children.find((child) => child.userData.isSelectionOutline) as THREE.LineSegments | undefined
+const SELECTION_COLOR = 0xf3d48b
+
+// Bounds of an artefact's own meshes, in the node's local space. Stops at nested
+// artefacts (children parented to this object) so it measures this object only.
+export const artefactLocalBounds = (node: THREE.Object3D): THREE.Box3 => {
+  node.updateMatrixWorld(true)
+  const toLocal = node.matrixWorld.clone().invert()
+  const box = new THREE.Box3()
+  const visit = (child: THREE.Object3D) => {
+    if (child !== node && (child.userData.entityId || child.userData.isSelectionOutline)) return
+    if (child instanceof THREE.Mesh) {
+      if (!child.geometry.boundingBox) child.geometry.computeBoundingBox()
+      box.union(child.geometry.boundingBox!.clone().applyMatrix4(toLocal.clone().multiply(child.matrixWorld)))
+    }
+    child.children.forEach(visit)
+  }
+  visit(node)
+  return box
+}
+
+// Primitives are outlined along their own edges. A model's geometry is many meshes with
+// far too many edges for that, so it gets a box around its bounds instead.
+const createSelectionOutline = (node: THREE.Object3D): THREE.LineSegments => {
+  const material = new THREE.LineBasicMaterial({ color: SELECTION_COLOR })
+  let outline: THREE.LineSegments
+  if (node instanceof THREE.Mesh && !node.userData.sharedResources) {
+    outline = new THREE.LineSegments(new THREE.EdgesGeometry(node.geometry), material)
+  } else {
+    const bounds = artefactLocalBounds(node)
+    const size = bounds.getSize(new THREE.Vector3())
+    const boxGeometry = new THREE.BoxGeometry(size.x, size.y, size.z)
+    outline = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeometry), material)
+    boxGeometry.dispose() // only needed to derive the edges
+    bounds.getCenter(outline.position)
+  }
+  outline.raycast = () => {} // outline only - never steal a click from the object it outlines
+  outline.userData.isSelectionOutline = true
+  return outline
+}
+
+// The middle of an artefact's own bounds, as a point in its local space — fixed to the
+// object, so it stays the same point on the object however it is rotated. The rotate
+// gizmo sits here and turns the object about it.
+export const artefactLocalCenter = (node: THREE.Object3D): THREE.Vector3 =>
+  artefactLocalBounds(node).getCenter(new THREE.Vector3())
+
+const setSelectionOutline = (node: THREE.Object3D, isSelected: boolean): void => {
+  const current = node.children.find((child) => child.userData.isSelectionOutline) as THREE.LineSegments | undefined
   if (isSelected && !current) {
-    const edges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(mesh.geometry),
-      new THREE.LineBasicMaterial({ color: 0xf3d48b }),
-    )
-    edges.raycast = () => {} // outline only - never steal a click from the mesh it outlines
-    edges.userData.isSelectionOutline = true
-    mesh.add(edges)
+    node.add(createSelectionOutline(node))
   } else if (!isSelected && current) {
-    mesh.remove(current)
+    node.remove(current)
     current.geometry.dispose()
     ;(current.material as THREE.Material).dispose()
   }
@@ -124,7 +162,7 @@ export const syncArtefacts = ({ group, objects, selectedId, onModelLoaded }: Art
       if (!created) return // model not loaded yet - retried via onModelLoaded
       node = created
     }
-    if (item.assetKind !== 'model') setPrimitiveSelectionOutline(node as THREE.Mesh, item.id === selectedId)
+    setSelectionOutline(node, item.id === selectedId)
     nodesById.set(item.id, node)
   })
 

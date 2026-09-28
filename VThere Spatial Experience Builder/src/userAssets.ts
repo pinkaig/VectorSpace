@@ -40,6 +40,9 @@ interface StoredUserModel {
   entryFileName: string
   files: StoredUserModelFile[]
   addedAt: number
+  // SHA-256 of the entry file, used to refuse re-importing the same model under another
+  // name. Missing on records saved before duplicate checking; filled in on first import.
+  contentHash?: string
 }
 
 const openDb = (): Promise<IDBDatabase> =>
@@ -93,37 +96,149 @@ export const getUserModelUrlModifier = (assetId: string): ((url: string) => stri
 export const isUserAsset = (assetId: string): boolean => assetId.startsWith(ASSET_ID_PREFIX)
 
 export const loadUserAssets = async (): Promise<AssetDefinition[]> => {
-  const db = await openDb()
-  const records = await new Promise<StoredUserModel[]>((resolve, reject) => {
+  const records = await readAllRecords(await openDb())
+  return records.sort((a, b) => a.addedAt - b.addedAt).map(registerRecord)
+}
+
+const readAllRecords = async (db: IDBDatabase): Promise<StoredUserModel[]> =>
+  new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll()
     request.onsuccess = () => resolve(request.result as StoredUserModel[])
     request.onerror = () => reject(request.error ?? new Error('Failed to read imported assets'))
   })
-  return records.sort((a, b) => a.addedAt - b.addedAt).map(registerRecord)
-}
 
-// `files` is everything the user selected/dropped together in one go — for a .glb that's
-// just the one file; for a .gltf it's expected to include its .bin and texture files too.
-export const addUserAsset = async (files: File[]): Promise<AssetDefinition> => {
-  const entries = files.filter((file) => ENTRY_FILE_PATTERN.test(file.name))
-  if (entries.length === 0) throw new Error('Select a .glb or .gltf file')
-  if (entries.length > 1) throw new Error('Select only one .glb or .gltf file at a time (its .bin/texture files can come along with it)')
-  const entry = entries[0]
-
-  const db = await openDb()
-  const record: StoredUserModel = {
-    id: crypto.randomUUID(),
-    name: entry.name.replace(ENTRY_FILE_PATTERN, ''),
-    entryFileName: entry.name,
-    files: files.map((file) => ({ name: file.name, blob: file })),
-    addedAt: Date.now(),
-  }
-  await new Promise<void>((resolve, reject) => {
+const putRecord = async (db: IDBDatabase, record: StoredUserModel): Promise<void> =>
+  new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(record)
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error ?? new Error('Failed to save the imported asset'))
   })
-  return registerRecord(record)
+
+const hashBlob = async (blob: Blob): Promise<string> => {
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+// Built-in model files never change during a session, so each is fetched and hashed once.
+const builtInHashes = new Map<string, Promise<string>>()
+const hashBuiltIn = (url: string): Promise<string> => {
+  let hash = builtInHashes.get(url)
+  if (!hash) {
+    hash = fetch(url).then((response) => response.blob()).then(hashBlob)
+    builtInHashes.set(url, hash)
+    hash.catch(() => builtInHashes.delete(url)) // let a failed fetch retry next import
+  }
+  return hash
+}
+
+// Names compare case- and spacing-insensitively, Pedestal clashes 
+// with pedestal, and underscores/dashes are treated as spaces.
+export const normalizeAssetName = (name: string): string => name.trim().toLowerCase().replace(/[\s_-]+/g, ' ')
+
+// The external files (.bin buffers, textures) a .gltf references by relative URI.
+// Embedded data: URIs need no companion file and are skipped.
+export const referencedFileNames = (gltfJson: string): string[] => {
+  const gltf = JSON.parse(gltfJson) as { buffers?: { uri?: string }[]; images?: { uri?: string }[] }
+  const uris = [...(gltf.buffers ?? []), ...(gltf.images ?? [])]
+    .map((item) => item.uri)
+    .filter((uri): uri is string => !!uri && !uri.startsWith('data:'))
+  return [...new Set(uris.map((uri) => decodeURIComponent(uri.split('/').pop() ?? uri)))]
+}
+
+export interface SkippedImport {
+  fileName: string
+  reason: string
+}
+
+export interface ImportResult {
+  added: AssetDefinition[]
+  skipped: SkippedImport[]
+}
+
+/**
+ * Imports every model in `files` — any mix of .glb files and .gltf files with their
+ * .bin/texture files, selected or dropped together in one go. Each .gltf is given the
+ * companion files it actually references. A model is skipped, not imported, when its
+ * name matches one already in the library (`existingNames`, which includes built-ins)
+ * or its content is byte-identical to one already in it — imported or `builtInModels`.
+ */
+export const addUserAssets = async (
+  files: File[],
+  existingNames: readonly string[],
+  builtInModels: readonly { label: string; url: string }[],
+): Promise<ImportResult> => {
+  const entries = files.filter((file) => ENTRY_FILE_PATTERN.test(file.name))
+  if (entries.length === 0) throw new Error('Select a .glb or .gltf file')
+  const companions = new Map(files.filter((file) => !ENTRY_FILE_PATTERN.test(file.name)).map((file) => [file.name, file]))
+
+  const db = await openDb()
+  const records = await readAllRecords(db)
+  const hashes = new Map<string, string>() // content hash -> library name
+  for (const record of records) {
+    if (!record.contentHash) {
+      const entry = record.files.find((file) => file.name === record.entryFileName)
+      if (!entry) continue
+      record.contentHash = await hashBlob(entry.blob)
+      await putRecord(db, record)
+    }
+    hashes.set(record.contentHash, record.name)
+  }
+  // Built-ins aren't in the database, so their content is hashed from the bundled file.
+  // One that can't be fetched is only protected by the name check.
+  for (const model of builtInModels) {
+    try {
+      hashes.set(await hashBuiltIn(model.url), model.label)
+    } catch {
+      // ignore: see above
+    }
+  }
+  const takenNames = new Set(existingNames.map(normalizeAssetName))
+
+  const result: ImportResult = { added: [], skipped: [] }
+  for (const entry of entries) {
+    const name = entry.name.replace(ENTRY_FILE_PATTERN, '')
+    if (takenNames.has(normalizeAssetName(name))) {
+      result.skipped.push({ fileName: entry.name, reason: `an asset named "${name}" is already in the library` })
+      continue
+    }
+    const contentHash = await hashBlob(entry)
+    const sameAs = hashes.get(contentHash)
+    if (sameAs !== undefined) {
+      result.skipped.push({ fileName: entry.name, reason: `it is the same model as "${sameAs}"` })
+      continue
+    }
+
+    let modelFiles: File[] = [entry]
+    if (entry.name.toLowerCase().endsWith('.gltf')) {
+      let referenced: string[]
+      try {
+        referenced = referencedFileNames(await entry.text())
+      } catch {
+        result.skipped.push({ fileName: entry.name, reason: 'it is not valid glTF' })
+        continue
+      }
+      const missing = referenced.filter((fileName) => !companions.has(fileName))
+      if (missing.length > 0) {
+        result.skipped.push({ fileName: entry.name, reason: `add ${missing.join(', ')} alongside it` })
+        continue
+      }
+      modelFiles = [entry, ...referenced.map((fileName) => companions.get(fileName)!)]
+    }
+
+    const record: StoredUserModel = {
+      id: crypto.randomUUID(),
+      name,
+      entryFileName: entry.name,
+      files: modelFiles.map((file) => ({ name: file.name, blob: file })),
+      addedAt: Date.now(),
+      contentHash,
+    }
+    await putRecord(db, record)
+    takenNames.add(normalizeAssetName(name))
+    hashes.set(contentHash, name)
+    result.added.push(registerRecord(record))
+  }
+  return result
 }
 
 export const removeUserAsset = async (assetId: string): Promise<void> => {
