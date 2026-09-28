@@ -1,4 +1,3 @@
-/******************************************************************************/
 /**
  * @file        octaOrb.ts
  * @project     Spatial Experience Builder
