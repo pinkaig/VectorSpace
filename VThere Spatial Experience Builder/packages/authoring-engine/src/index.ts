@@ -45,6 +45,7 @@ import {
   requireScene,
 } from './objectAccess'
 import { composeWorldTransform, localTransformForNewParent, type WorldTransform } from './transformMath'
+import { dropRulesForObjects } from './ruleOperations'
 
 const identityWorldTransform: WorldTransform = {
   position: { x: 0, y: 0, z: 0 },
@@ -57,6 +58,7 @@ export type { ObjectTargetInput } from './objectAccess'
 export * from './commands/types'
 export * from './commands/transformCommands'
 export * from './commands/commandService'
+export * from './ruleOperations'
 export { composeWorldTransform, localTransformForNewParent } from './transformMath'
 export type { Quaternion, Vector3, WorldTransform } from './transformMath'
 
@@ -219,9 +221,14 @@ export const removeObject = (
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const { scene, object, index } = requireObject(next, input)
+
   // removing an object removes its whole subtree so no child is left orphaned
   const subtreeIds = collectSubtreeIds(scene.objects, object.id)
   scene.objects = scene.objects.filter((item) => !subtreeIds.has(item.id))
+
+  // also delete rules linked to any removed object, or the project would fail to load
+  dropRulesForObjects(next, subtreeIds)
+
   return {
     project: next,
     removedObject: object,
