@@ -564,6 +564,58 @@ After it passes, extract only the pure transform/session logic that the tests
 demonstrate is framework-independent. Do not begin the full app migration or
 package expansion until that slice is integrated and verified.
 
+## 2026-09-28 Text system T1 (text-system.md build steps 3-5)
+
+### Objective / topic
+
+Implement `packages/text` from `docs/code/subsystems/text-system.md` per the
+build prompt (`text-system-build-prompt.md`): core package (step 3),
+`TextPanelHost` overlay (step 4), and runtime wiring (step 5) with the docs
+synced in the same pass. Commits `58e339e`, `d1e9d70`, `ea608cc`.
+
+### What exists now
+
+- `packages/text` core: `RichTextParser` (markdown-lite/plain → bounded
+  `TextNode` tree; raw HTML stays literal; caps truncate, never throw),
+  `UrlPolicy` (https/mailto only), `TextLibrary` (sync project-data lookup),
+  `TextLayout` + `FakeTextMeasurer` (CJK-aware wrap, grapheme force-break,
+  heading-widow paging), `PanelManager` (modal-top stack, cap 3 non-modal,
+  refocus not duplicate, injected-clock auto-close, prev/next index),
+  `TextStateStore` (snapshot/subscribe, `modalOpen`, typed events),
+  `TextSystem` facade (sync open; missing asset → error panel + `panelError`).
+- `src/TextPanelHost.tsx`: the only place `TextNode` becomes elements;
+  role=dialog, focus in/return, Escape consumed by the focused panel, lang on
+  container, links `_blank noopener noreferrer`, "Content unavailable" error
+  body, empty text renders no panel. Styles in `styles.css`.
+- Wiring: `registerTextActions` (showPanel/hidePanel/advancePanel;
+  `componentId` alias; hostless `assetId` form; disposers via
+  `context.effects.add`) and `createTextEventBridge`
+  (panelOpened/panelClosed → `emitRuntimeEvent`, re-entrancy guard), both
+  registered in `Viewport.tsx` beside audio. `textAssets` prop flows from
+  `RuntimeView`/`App` to the `TextLibrary` and `InlineTextResolver`.
+  `interactionController` reads the one-way `modalOpen` boolean and pauses
+  picking, look, drags, runtime key triggers and walk movement behind a modal.
+
+### Known gaps / next steps
+
+- `showPanel wait: true` is accepted but warns: the `ActionSequencer` has no
+  wait-for-close primitive yet. Design it before building (new sequencer
+  yield kind), do not bolt it into the executor.
+- Build step 6 (demo scene + deliberately hostile text file) and the design
+  doc's manual browser checks (focus trap, screen reader, hostile render) are
+  not done — they need a browser session.
+- All T2 rows (surface, dialogue queue, paging UI, localisation, DOM mirror,
+  link confirmation, fonts) remain unbuilt by design.
+- Docs synced: `contracts.md` (showPanel decision resolved+implemented),
+  `when-do-dispatch-engine.md` (real executors noted), `text-system.md`
+  (status = steps 2-5 built).
+
+### Build / verify command and status
+
+`npm run typecheck && npm test && npm run build` — all passing at each of the
+three commits; final state 329 tests across 44 files. `packages/text` is now
+inside the app tsc program (src imports it), so plain typecheck covers it.
+
 ## 2026-09-28 Shared attachment work slice (attachment-integration steps 2-5)
 
 ### Objective / topic
