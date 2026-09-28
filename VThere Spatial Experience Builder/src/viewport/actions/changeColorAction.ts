@@ -30,9 +30,13 @@ export const createChangeColorExecutor = (objectsGroup: THREE.Group): ActionExec
       const mesh = objectsGroup.getObjectByName(params.objectId) as THREE.Mesh | undefined
       if (mesh) {
         const material = mesh.material as THREE.MeshStandardMaterial
+        // remember the current colour so a restart can put it back
+        const previous = material.color.getHex()
         material.color.setHex(params.color) // set the new color directly on the material
+        // restarting (R), exiting, or closing the viewport runs this and restores the old colour
+        context.effects.add(() => material.color.setHex(previous))
       }
     }
-    return context.state // must return state, since this action registers no effect and needs no cleanup tracking
+    return context.state // must return state, the colour reset is handled by the effect registered above
   }
 }

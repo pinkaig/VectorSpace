@@ -12,6 +12,7 @@
 
 import { addObjectRule, type RuleOperationResult } from '@vthere/authoring-engine'
 import type { ProjectData } from '../model'
+import { changeColorAction } from '../viewport/actions/changeColorActionBuilder'
 
 // builds a "when clicked, change colour" rule for one object and adds it to a copy of the project
 export const addEditorClickColorRule = (project: ProjectData, sceneId: string, objectId: string, color: number): RuleOperationResult =>
@@ -22,9 +23,9 @@ export const addEditorClickColorRule = (project: ProjectData, sceneId: string, o
       // a random id so no two rules share one, because loading rejects duplicate ids
       id: crypto.randomUUID(),
       objectId,
-      // 'click' and 'changeColor' are typed by hand for now, a shared vocabulary list will replace them later
+      // 'click' is typed by hand for now, a shared vocabulary list will replace it later
       triggers: ['click'],
-      // params.objectId must be the same object, because the colour action recolours whichever object it names
-      actions: [{ kind: 'changeColor', params: { objectId, color } }],
+      // the builder makes sure params.objectId is the same object and the params match the executor
+      actions: [changeColorAction(objectId, color)],
     },
   })
