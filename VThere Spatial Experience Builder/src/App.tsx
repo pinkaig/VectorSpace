@@ -49,7 +49,7 @@ import {
   type ProjectSyncStatus,
 } from './sync/projectSync'
 import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './assets'
-import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset } from './userAssets'
+import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from './userAssets'
 import {
   createEditorObject,
   createEditorScene,
@@ -113,8 +113,10 @@ export default function App() {
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
-  // Outcome of the last import: what was added, what was skipped and why, or a failure.
-  const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success'; lines: string[] } | null>(null)
+  // Outcome of the last import. `info` is shown while an import is still running;
+  // `optimised` lists imports that were shrunk to fit the real-time budget, each offering
+  // to keep the original instead.
+  const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[]; optimised?: OptimisedImport[] } | null>(null)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)
   const assetDragDepthRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -154,19 +156,38 @@ export default function App() {
     try {
       // Any number of .glb files, and .gltf files with their .bin/texture files, in one go.
       // Names already in the library (built-in or imported) and repeat content are skipped.
-      const { added, skipped } = await addUserAssets(
+      // Models over the real-time budget are optimised on import
+      const { added, skipped, optimised, unoptimised } = await addUserAssets(
         Array.from(files),
         visibleAssets.map((asset) => asset.label),
         assetCatalog.flatMap((asset) => (asset.modelUrl ? [{ label: asset.label, url: asset.modelUrl }] : [])),
+        (message) => setAssetNotice({ tone: 'info', lines: [message] }),
       )
       if (added.length > 0) setUserAssets((prev) => [...prev, ...added])
       const lines = [
         ...(added.length > 0 ? [`Added ${added.map((asset) => asset.label).join(', ')}`] : []),
+        ...unoptimised.map((item) => `Imported ${item.fileName} as-is, over the real-time budget: ${item.reason}`),
         ...skipped.map((item) => `Skipped ${item.fileName}: ${item.reason}`),
       ]
-      setAssetNotice({ tone: skipped.length > 0 ? 'error' : 'success', lines })
+      setAssetNotice({ tone: skipped.length > 0 || unoptimised.length > 0 ? 'error' : 'success', lines, optimised })
     } catch (error) {
       setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not import these files'] })
+    }
+  }
+  // Replaces an optimised import with its original files. Only offered in the import
+  // notice: the original is held in memory until then, not stored alongside.
+  const keepOriginalModel = async (item: OptimisedImport) => {
+    try {
+      const original = await item.keepOriginal()
+      setUserAssets((prev) => prev.map((asset) => (asset.assetId === original.assetId ? original : asset)))
+      setSyncToken((value) => value + 1)
+      setAssetNotice((notice) => notice && {
+        ...notice,
+        lines: [...notice.lines, `Kept the original ${original.label}`],
+        optimised: notice.optimised?.filter((entry) => entry !== item),
+      })
+    } catch (error) {
+      setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : `Could not restore the original ${item.asset.label}`] })
     }
   }
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
@@ -537,6 +558,12 @@ export default function App() {
                 {assetNotice && (
                   <div className={`asset-import-notice ${assetNotice.tone}`}>
                     {assetNotice.lines.map((line) => <div key={line}>{line}</div>)}
+                    {assetNotice.optimised?.map((item) => (
+                      <div key={item.asset.assetId} className="asset-optimised">
+                        <span>Optimised {item.asset.label} for real-time: {item.summary}</span>
+                        <button className="asset-keep-original" title="Use the file exactly as imported instead. Heavy models can make the editor and visitor view slow." onClick={() => void keepOriginalModel(item)}>Keep original</button>
+                      </div>
+                    ))}
                     <button className="asset-notice-close" title="Dismiss" onClick={() => setAssetNotice(null)}>×</button>
                   </div>
                 )}

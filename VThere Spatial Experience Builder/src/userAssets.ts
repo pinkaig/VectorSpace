@@ -22,6 +22,8 @@
 
 /************************************************************************************/
 import type { AssetDefinition } from './assets'
+import { describeOptimisation, type ModelStats } from './assetPipeline/modelBudget'
+import { optimiseInWorker } from './assetPipeline/optimiseInWorker'
 import { registerLocalAsset, resolveLocalAssetUrl, unregisterLocalAsset } from './viewport/assetResolution'
 
 const DB_NAME = 'vthere-user-assets'
@@ -43,6 +45,9 @@ interface StoredUserModel {
   // SHA-256 of the entry file, used to refuse re-importing the same model under another
   // name. Missing on records saved before duplicate checking; filled in on first import.
   contentHash?: string
+  // Set when the stored files are the budget-optimised version of the import rather
+  // than the files as given (see assetPipeline/). Absent for untouched imports.
+  optimisation?: { before: ModelStats; after: ModelStats }
 }
 
 const openDb = (): Promise<IDBDatabase> =>
@@ -83,7 +88,7 @@ const registerRecord = (record: StoredUserModel): AssetDefinition => {
     kind: 'model',
     assetId,
     label: record.name,
-    detail: record.entryFileName.toLowerCase().endsWith('.gltf') ? 'Imported glTF' : 'Imported GLB',
+    detail: `${record.entryFileName.toLowerCase().endsWith('.gltf') ? 'Imported glTF' : 'Imported GLB'}${record.optimisation ? ' · optimised' : ''}`,
     category: 'model',
     searchableText: `${record.name} imported model glb gltf user`.toLowerCase(),
     modelUrl: entryUrl,
@@ -150,9 +155,27 @@ export interface SkippedImport {
   reason: string
 }
 
+export interface OptimisedImport {
+  asset: AssetDefinition
+  /** e.g. "753k → 100k triangles, 8K → 2K textures, 46.4 MB → 5.1 MB" */
+  summary: string
+  /** Swaps the stored optimised model for the files exactly as imported. */
+  keepOriginal: () => Promise<AssetDefinition>
+}
+
 export interface ImportResult {
   added: AssetDefinition[]
   skipped: SkippedImport[]
+  optimised: OptimisedImport[]
+  /** Over budget but couldn't be optimised, so stored as given: file name and why. */
+  unoptimised: SkippedImport[]
+}
+
+const releaseRecordUrls = (assetId: string): void => {
+  const url = resolveLocalAssetUrl(assetId)
+  if (url) URL.revokeObjectURL(url)
+  unregisterLocalAsset(assetId)
+  delete userModelUrlModifiers[assetId]
 }
 
 /**
@@ -166,6 +189,8 @@ export const addUserAssets = async (
   files: File[],
   existingNames: readonly string[],
   builtInModels: readonly { label: string; url: string }[],
+  /** Reports long-running steps (optimising a large model) while the import runs. */
+  onProgress?: (message: string) => void,
 ): Promise<ImportResult> => {
   const entries = files.filter((file) => ENTRY_FILE_PATTERN.test(file.name))
   if (entries.length === 0) throw new Error('Select a .glb or .gltf file')
@@ -194,7 +219,7 @@ export const addUserAssets = async (
   }
   const takenNames = new Set(existingNames.map(normalizeAssetName))
 
-  const result: ImportResult = { added: [], skipped: [] }
+  const result: ImportResult = { added: [], skipped: [], optimised: [], unoptimised: [] }
   for (const entry of entries) {
     const name = entry.name.replace(ENTRY_FILE_PATTERN, '')
     if (takenNames.has(normalizeAssetName(name))) {
@@ -225,18 +250,48 @@ export const addUserAssets = async (
       modelFiles = [entry, ...referenced.map((fileName) => companions.get(fileName)!)]
     }
 
+    const originalFiles = modelFiles.map((file) => ({ name: file.name, blob: file as Blob }))
     const record: StoredUserModel = {
       id: crypto.randomUUID(),
       name,
       entryFileName: entry.name,
-      files: modelFiles.map((file) => ({ name: file.name, blob: file })),
+      files: originalFiles,
       addedAt: Date.now(),
       contentHash,
     }
+
+    // Over-budget models are stored optimised; the duplicate check above still used the
+    // original's hash, so re-importing the same original is still recognised.
+    onProgress?.(`Checking ${name} against the real-time budget…`)
+    const optimisation = await optimiseInWorker(entry, modelFiles.slice(1))
+    if (optimisation.status === 'optimised') {
+      // A .gltf comes back as one self-contained GLB.
+      const glbName = `${name}.glb`
+      record.entryFileName = glbName
+      record.files = [{ name: glbName, blob: new Blob([optimisation.glb as Uint8Array<ArrayBuffer>], { type: 'model/gltf-binary' }) }]
+      record.optimisation = { before: optimisation.before, after: optimisation.after }
+    } else if (optimisation.status === 'failed') {
+      result.unoptimised.push({ fileName: entry.name, reason: optimisation.reason })
+    }
+
     await putRecord(db, record)
     takenNames.add(normalizeAssetName(name))
     hashes.set(contentHash, name)
-    result.added.push(registerRecord(record))
+    const asset = registerRecord(record)
+    result.added.push(asset)
+    if (record.optimisation) {
+      const { before, after } = record.optimisation
+      result.optimised.push({
+        asset,
+        summary: describeOptimisation(before, after),
+        keepOriginal: async () => {
+          const original: StoredUserModel = { ...record, entryFileName: entry.name, files: originalFiles, optimisation: undefined }
+          await putRecord(await openDb(), original)
+          releaseRecordUrls(asset.assetId)
+          return registerRecord(original)
+        },
+      })
+    }
   }
   return result
 }
@@ -249,10 +304,7 @@ export const removeUserAsset = async (assetId: string): Promise<void> => {
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error ?? new Error('Failed to remove the imported asset'))
   })
-  const url = resolveLocalAssetUrl(assetId)
-  if (url) URL.revokeObjectURL(url)
-  unregisterLocalAsset(assetId)
-  delete userModelUrlModifiers[assetId]
+  releaseRecordUrls(assetId)
   // Auxiliary (.bin/texture) blob URLs created in registerRecord's fileMap closure aren't
   // individually revoked here — a bounded, session-local leak of dead URL handles, not of
   // the underlying memory, and acceptable for this local-only prototype feature.
