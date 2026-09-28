@@ -23,12 +23,15 @@
  * Larger system guide: docs/05-subsystems/project-serialization.md
  */
 export {
+  assetRefForAttachment,
   cloneProject,
+  collectAttachments,
   defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
   defaultProject,
   environmentLibrary,
+  findAttachment,
   findEnvironment,
   makeObject,
   makeScene,
@@ -38,6 +41,8 @@ export type {
   AssetKind,
   AssetRefKind,
   Attachment,
+  AttachmentHostRef,
+  AttachmentLocation,
   AudioAssetMeta,
   AudioAttachment,
   AudioSettings,

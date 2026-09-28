@@ -23,6 +23,11 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/project-serialization.md
  */
+// Single-entry package (package.json "exports" is one string), so the
+// attachment lookup helpers must be re-exported here to be importable.
+export { assetRefForAttachment, collectAttachments, findAttachment } from './attachments'
+export type { AttachmentHostRef, AttachmentLocation } from './attachments'
+
 export type AssetKind = 'cube' | 'sphere' | 'cylinder' | 'model'
 
 export interface TransformData {
