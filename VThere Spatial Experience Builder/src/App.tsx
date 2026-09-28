@@ -72,6 +72,7 @@ import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTr
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
+import { applyDemoAudioScene } from './demoAudioScene'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
@@ -319,6 +320,19 @@ export default function App() {
     setSavedAt('New local draft')
     setPersistenceState('Pending autosave to browser localStorage')
   }
+  /**
+   * Appends the bundled audio demo (zones, SFX click targets, When-Do rules,
+   * per-asset volume) into the active scene/project. Opt-in and additive — see
+   * demoAudioScene.ts — rather than baked into defaultProject(), so it never
+   * surprises unrelated work.
+   */
+  const loadAudioDemo = () => {
+    const { project: nextProject, scene: nextScene } = applyDemoAudioScene(project, scene)
+    const nextScenes = nextProject.scenes.map((item) => (item.id === nextScene.id ? nextScene : item))
+    resetTimeline({ ...nextProject, scenes: nextScenes })
+    setSavedAt('Loaded audio demo (zones, rules, SFX targets)')
+    setPersistenceState('Pending autosave to browser localStorage')
+  }
 
   if (viewMode === 'runtime') {
     return (
@@ -338,6 +352,7 @@ export default function App() {
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
+          <button className="button ghost" onClick={loadAudioDemo}>Load audio demo</button>
           <button className="button ghost" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
           <input
             ref={fileInputRef}

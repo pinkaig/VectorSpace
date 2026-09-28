@@ -50,6 +50,10 @@ export interface SceneObject {
   // backfilled) to keep files small — attachments live on their host so
   // delete/duplicate/undo carry them automatically
   attachments?: Attachment[]
+  // absent = fall back to colorFor(assetKind)'s shape-based default. A hex color
+  // (e.g. 0x4ea7a0) that overrides the primitive material for just this object,
+  // without needing a new AssetKind or touching asset resolution.
+  color?: number
 }
 
 /**
