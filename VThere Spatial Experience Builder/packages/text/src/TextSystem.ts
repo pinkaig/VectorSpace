@@ -66,7 +66,7 @@ export class TextSystem {
     })
   }
 
-  open(att: TextAttachment, opts: { modal?: boolean; autoCloseMs?: number } = {}): PanelHandle {
+  open(att: TextAttachment, opts: { modal?: boolean; autoCloseMs?: number; title?: string } = {}): PanelHandle {
     const meta = this.library.getMeta(att.assetId)
     const nodes = meta === undefined ? undefined : this.parser.parse(meta.format, meta.content)
     const status = this.panels.open({
@@ -74,9 +74,11 @@ export class TextSystem {
       assetId: att.assetId,
       mode: att.presentation.mode,
       state: meta === undefined ? 'error' : 'open',
-      // setting resolution order: action params > attachment presentation
+      // setting resolution order: action params > attachment presentation > meta
       modal: opts.modal ?? att.presentation.modal,
       autoCloseMs: opts.autoCloseMs ?? att.presentation.autoCloseMs,
+      title: opts.title ?? att.presentation.title ?? meta?.title,
+      lang: meta?.lang,
     })
     if (nodes) this.nodesByPanel.set(status.id, nodes)
     return {

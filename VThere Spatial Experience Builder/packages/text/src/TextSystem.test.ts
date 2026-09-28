@@ -49,6 +49,14 @@ describe('TextSystem', () => {
     expect(kinds).toEqual(['panelOpened', 'panelError'])
   })
 
+  it('carries title and lang into the panel status for the overlay, params first', () => {
+    const text = build()
+    text.open(attachment({ presentation: { mode: 'panel', title: 'From presentation' } }), { title: 'From action' })
+    const panel = text.store.getSnapshot().panels[0]
+    expect(panel.title).toBe('From action')
+    expect(panel.lang).toBe('en')
+  })
+
   it('lets action params override the attachment presentation for modal and auto-close', () => {
     let now = 0
     const text = build({ clock: () => now })

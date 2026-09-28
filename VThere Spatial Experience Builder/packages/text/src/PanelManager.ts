@@ -25,6 +25,8 @@ export interface OpenPanelInput {
   modal?: boolean
   autoCloseMs?: number
   pageCount?: number
+  title?: string
+  lang?: string
 }
 
 export type PanelSelector = { panelId: string } | { attachmentId: string } | { assetId: string } | { top: true }
@@ -68,6 +70,8 @@ export class PanelManager {
       state: input.state ?? 'open',
       page: 0,
       pageCount: Math.max(1, input.pageCount ?? 1),
+      title: input.title,
+      lang: input.lang,
       modal: input.modal ?? false,
       autoCloseAt: input.autoCloseMs === undefined ? undefined : this.clock() + input.autoCloseMs,
     }

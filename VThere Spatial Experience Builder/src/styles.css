@@ -1078,3 +1078,100 @@ button:disabled {
   border-radius: 3px;
 }
 
+/* ---- text panel overlay (TextPanelHost) ---- */
+.text-panel-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  pointer-events: none;
+}
+.text-panel-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 12, 15, 0.55);
+  pointer-events: auto;
+}
+.text-panel {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: 70%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2a444a;
+  border-radius: 4px;
+  background: #0d181e;
+  color: #e1edeb;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  outline: none;
+}
+.text-panel.modal {
+  border-color: #71b7aa;
+}
+.text-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #1e343b;
+}
+.text-panel-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+.text-panel-close {
+  margin-left: auto;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #81969a;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.text-panel-close:hover,
+.text-panel-close:focus-visible {
+  color: #a9d8ca;
+  border-color: #2d464c;
+}
+.text-panel-body {
+  padding: 12px 14px 16px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.text-panel-body p,
+.text-panel-body ul,
+.text-panel-body ol {
+  margin: 0 0 10px;
+}
+.text-panel-body h3,
+.text-panel-body h4,
+.text-panel-body h5 {
+  margin: 12px 0 6px;
+  color: #a9d8ca;
+}
+.text-panel-body code {
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  background: #101e24;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.text-panel-body a {
+  color: #71b7aa;
+}
+.text-panel-error {
+  color: #81969a;
+  font-style: italic;
+}
+

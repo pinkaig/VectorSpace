@@ -23,6 +23,10 @@ export interface PanelStatus {
   /** Position in this panel's sequence (a page, or later a dialogue line). */
   page: number
   pageCount: number
+  /** Heading the overlay labels the dialog with; absent = untitled panel. */
+  title?: string
+  /** BCP 47 language of the content, set on the panel container for screen readers. */
+  lang?: string
 }
 
 export interface TextSnapshot {
