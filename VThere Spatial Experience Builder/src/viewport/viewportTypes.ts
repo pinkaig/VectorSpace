@@ -9,11 +9,17 @@ export const MOVE_KEYS: Record<string, [number, number]> = {
   KeyA: [-1, 0], ArrowLeft: [-1, 0],
   KeyD: [1, 0], ArrowRight: [1, 0],
 }
+// Editor-only walk-mode fly controls (not available during Run simulation, which is
+// ground-locked to the authored eye height — see updateWalkCamera's groundLocked flag).
 export const VERTICAL_KEYS: Record<string, number> = {
-  Space: 1,
+  KeyX: 1,
   KeyC: -1,
 }
 export const MIN_FLY_HEIGHT = 0.2
+export const EYE_HEIGHT = 1.7   //human-eye height level
+// Radians of camera rotation per pixel of mouse movement, shared by drag-to-look
+// (editor + un-locked walk) and pointer-lock look (Run simulation).
+export const LOOK_SENSITIVITY = 0.0045
 export const GIZMO_GAP = 0.15
 export const ARROW_LENGTH = 0.725
 
@@ -49,3 +55,4 @@ export const getVerticalDirection = (pressedKeys: Iterable<string>) => {
   for (const code of pressedKeys) y += VERTICAL_KEYS[code] ?? 0
   return y
 }
+

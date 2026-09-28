@@ -16,32 +16,47 @@
  * @documentation
  * Rendering map: docs/05-subsystems/viewport.md
  */
-import * as THREE from 'three'
-import type { SceneObject } from '../model'
-import type { AxisArrow } from '../gizmo/types'
-import { extentAlong, extentAlongLocal } from '../gizmo/moveGizmo'
-import { AxisScaleHandle } from '../gizmo/scaleGizmo'
-import { AxisRotateHandle, ROTATE_RING_BASE_RADIUS } from '../gizmo/rotateGizmo'
-import { ARROW_LENGTH, GIZMO_GAP } from './viewportTypes'
+import * as THREE from "three";
+import type { SceneObject } from "../model";
+import type { AxisArrow } from "../gizmo/types";
+import { extentAlong, extentAlongLocal } from "../gizmo/moveGizmo";
+import { AxisScaleHandle } from "../gizmo/scaleGizmo";
+import {
+  AxisRotateHandle,
+  ROTATE_RING_BASE_RADIUS,
+} from "../gizmo/rotateGizmo";
+import { OriginHandle } from "../gizmo/originHandle";
+import { UniformScaleHandle } from "../gizmo/uniformScaleHandle";
+import { ARROW_LENGTH, GIZMO_GAP } from "./viewportTypes";
 
-export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
-export type TransformSpace = 'world' | 'local'
+export type GizmoMode = "select" | "move" | "rotate" | "scale";
+export type TransformSpace = "world" | "local";
+
+const GIZMO_REFERENCE_DISTANCE = 8; // this is the distance from the camera at which the gizmo will be at its reference size (GIZMO_SCREEN_SCALE * viewport height in world units)
 
 export interface GizmoSyncInput {
-  gizmoGroup: THREE.Group
-  axisArrows: readonly AxisArrow[]
-  scaleHandles: readonly AxisScaleHandle[]
-  rotateHandles: readonly AxisRotateHandle[]
-  selected: SceneObject | null
-  selectedMesh: THREE.Object3D | undefined
-  mode: GizmoMode
-  scaleSpace: TransformSpace
-  rotateSpace: TransformSpace
-  isDragging: boolean
+  gizmoGroup: THREE.Group;
+  camera: THREE.Camera;
+  controlsTarget: THREE.Vector3;
+  isOrtho: boolean;
+  axisArrows: readonly AxisArrow[];
+  scaleHandles: readonly AxisScaleHandle[];
+  rotateHandles: readonly AxisRotateHandle[];
+  selected: SceneObject | null;
+  selectedMesh: THREE.Object3D | undefined;
+  mode: GizmoMode;
+  scaleSpace: TransformSpace;
+  rotateSpace: TransformSpace;
+  isDragging: boolean;
+  originHandle: OriginHandle;
+  uniformScaleHandle: UniformScaleHandle;
 }
 
 export const syncGizmo = ({
   gizmoGroup,
+  camera,
+  controlsTarget,
+  isOrtho,
   axisArrows,
   scaleHandles,
   rotateHandles,
@@ -51,44 +66,76 @@ export const syncGizmo = ({
   scaleSpace,
   rotateSpace,
   isDragging,
+  originHandle,
+  uniformScaleHandle,
 }: GizmoSyncInput): void => {
-  gizmoGroup.visible = !!selected && (mode === 'move' || mode === 'scale' || mode === 'rotate')
-  axisArrows.forEach((arrow) => { arrow.group.visible = mode === 'move' })
-  scaleHandles.forEach((handle) => { handle.mesh.visible = mode === 'scale' })
-  rotateHandles.forEach((handle) => { handle.mesh.visible = mode === 'rotate' })
-
-  if (!selected || !selectedMesh || isDragging) return
-
-  gizmoGroup.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()))
+  gizmoGroup.visible =
+    !!selected && (mode === "move" || mode === "scale" || mode === "rotate");
   axisArrows.forEach((arrow) => {
-    const offset = extentAlong(selectedMesh, arrow.axis) + GIZMO_GAP
-    arrow.group.position.copy(arrow.direction).multiplyScalar(offset)
-  })
-
-  const isLocalScale = scaleSpace === 'local'
+    arrow.group.visible = mode === "move";
+  });
   scaleHandles.forEach((handle) => {
-    const direction = isLocalScale
-      ? handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation))
-      : handle.direction
-    const offset = (isLocalScale
-      ? extentAlongLocal(selectedMesh, handle.axis)
-      : extentAlong(selectedMesh, handle.axis)) + GIZMO_GAP + ARROW_LENGTH
-    handle.mesh.position.copy(direction).multiplyScalar(offset)
-  })
-
-  if (mode !== 'rotate') return
-  const box = new THREE.Box3().setFromObject(selectedMesh)
-  const size = new THREE.Vector3()
-  box.getSize(size)
-  const targetRadius = Math.max(size.x, size.y, size.z) / 2 + GIZMO_GAP + 0.2
-  const scale = targetRadius / ROTATE_RING_BASE_RADIUS
-  const isLocalRotate = rotateSpace === 'local'
-  const objectQuaternion = isLocalRotate
-    ? new THREE.Quaternion().setFromEuler(new THREE.Euler(...selected.transform.rotation))
-    : null
+    handle.group.visible = mode === "scale";
+  });
   rotateHandles.forEach((handle) => {
-    handle.mesh.scale.setScalar(scale)
-    if (objectQuaternion) handle.mesh.quaternion.copy(objectQuaternion).multiply(handle.baseQuaternion)
-    else handle.mesh.quaternion.copy(handle.baseQuaternion)
-  })
-}
+    handle.mesh.visible = mode === "rotate";
+  });
+
+  originHandle.mesh.visible = mode == "move";
+  uniformScaleHandle.mesh.visible = mode === "scale";
+
+  if (!selected || !selectedMesh || isDragging) return;
+
+  gizmoGroup.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()));
+  
+  const worldUnitsPerScreen = isOrtho
+    ? camera.position.distanceTo(controlsTarget)
+    : camera.position.distanceTo(gizmoGroup.position);
+  const screenScaleFactor = worldUnitsPerScreen / GIZMO_REFERENCE_DISTANCE;
+
+  axisArrows.forEach((arrow) => {
+    arrow.group.position.set(0, 0, 0);
+    arrow.group.scale.setScalar(screenScaleFactor);
+  });
+  originHandle.mesh.position.set(0, 0, 0);
+  originHandle.mesh.scale.setScalar(screenScaleFactor);
+
+  uniformScaleHandle.mesh.position.set(0, 0, 0);
+  uniformScaleHandle.mesh.scale.setScalar(screenScaleFactor);
+
+  const isLocalScale = scaleSpace === "local";
+  scaleHandles.forEach((handle) => {
+    handle.group.position.set(0, 0, 0);
+    handle.group.scale.setScalar(screenScaleFactor);
+    if (isLocalScale) {
+      const localDirection = handle.direction.clone().applyEuler(new THREE.Euler(...selected.transform.rotation));
+      const localRotation = new THREE.Quaternion().setFromUnitVectors(handle.direction, localDirection);
+      handle.group.quaternion.copy(localRotation).multiply(handle.baseQuaternion); // compose on top of the base orientation, don't overwrite it
+    } else {
+      handle.group.quaternion.copy(handle.baseQuaternion); // restore to base orientation, not identity
+    }
+  });
+
+  if (mode !== "rotate") return;
+  const box = new THREE.Box3().setFromObject(selectedMesh);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const targetRadius = Math.max(size.x, size.y, size.z) / 2 + GIZMO_GAP + 0.2;
+  const scale = (targetRadius / ROTATE_RING_BASE_RADIUS) * screenScaleFactor;
+  const isLocalRotate = rotateSpace === "local";
+  const objectQuaternion = isLocalRotate
+    ? new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(...selected.transform.rotation),
+      )
+    : null;
+  rotateHandles.forEach((handle) => {
+    handle.mesh.scale.setScalar(scale);
+    if (objectQuaternion)
+      handle.mesh.quaternion
+        .copy(objectQuaternion)
+        .multiply(handle.baseQuaternion);
+    else handle.mesh.quaternion.copy(handle.baseQuaternion);
+  });
+};
+
+

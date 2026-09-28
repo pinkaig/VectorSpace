@@ -45,14 +45,14 @@ import {
   type RuntimeState,
 } from '../packages/interaction/src/index'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
-import { ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
+import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
 import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
+import { EYE_HEIGHT } from './viewport/viewportTypes'
 import { createGizmoSet } from './viewport/createGizmoSet'
-import { AXIS_INDICATOR_DIM, OCTAORB_DIM, OVERLAY_MARGIN, createViewportOverlays } from './viewport/overlayWidgets'
-import { matchFaceView } from './gizmo/viewSnap'
+import { createViewportOverlays } from './viewport/overlayWidgets'
 import type { EnvStatus } from './viewport/renderTypes'
 import {
   getAssetDescriptor,
@@ -62,6 +62,8 @@ import {
   type AssetDescriptor,
 } from './viewport/assetResolution'
 import { AssetStatusBadge } from './viewport/AssetStatusBadge'
+import { createChangeColorExecutor} from './viewport/actions/changeColorAction'
+import { createRenderScheduler } from './viewport/renderScheduler'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -155,8 +157,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // effect below can re-seed it from the camera's current orientation on every transition.
   const yawRef = useRef(0)
   const pitchRef = useRef(0)
+  // Walk-mode eye height, pinned each time a camera pose is applied (initial load,
+  // scene reset, or Home) so WASD movement stays ground-locked instead of flying.
+  const walkHeightRef = useRef(0)
+  // Orbit view saved on entering walk mode and restored on leaving it. Cleared when a
+  // pose is applied mid-walk (Reset view, scene load) so that newer pose wins.
+  const orbitPoseRef = useRef<{ position: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3 } | null>(null)
   // Set by the setup effect; lets the imperative handle reach the live run.
   const restartRuntimeRef = useRef<() => void>(() => {})
+  // Set by the setup effect; lets effects outside it (environment swaps, prop
+  // changes) wake the on-demand render loop.
+  const requestRenderRef = useRef<() => void>(() => {})
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
   // Tracks every object currently loading/erroring so the interaction controller
@@ -179,28 +190,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0b1118)
+    scene.background = new THREE.Color(0x1e1e1e)
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200)
     cameraRef.current = camera
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     mount.appendChild(renderer.domElement)
 
-    // OctaOrb's orb names render here, not as in-scene sprites — at the widget's small
-    // on-screen size, world-unit text came out illegibly tiny no matter how it was tuned.
-    // A real DOM element is crisp at any size and only needs updating on hover.
-    const octaOrbTooltip = document.createElement('div')
-    octaOrbTooltip.className = 'octaorb-tooltip'
-    octaOrbTooltip.style.display = 'none'
-    mount.appendChild(octaOrbTooltip)
-    const showOctaOrbTooltip = (label: string, clientX: number, clientY: number) => {
-      const rect = renderer.domElement.getBoundingClientRect()
-      octaOrbTooltip.textContent = label
-      octaOrbTooltip.style.left = `${clientX - rect.left}px`
-      octaOrbTooltip.style.top = `${clientY - rect.top}px`
-      octaOrbTooltip.style.display = 'block'
-    }
-    const hideOctaOrbTooltip = () => { octaOrbTooltip.style.display = 'none' }
+    // Corner OctaOrb + axis indicator, drawn into the same canvas after the main pass.
+    const overlays = createViewportOverlays(mount, renderer.domElement)
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
@@ -213,13 +211,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Keep editor-only gizmos outside the authored artefact group. Artefact
     // synchronisation may rebuild objects, but must never dispose the gizmos.
     const gizmoSet = createGizmoSet()
-    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles } = gizmoSet
+    const { group: gizmoGroup, axisArrows, scaleHandles, rotateHandles, originHandle, uniformScaleHandle } = gizmoSet
     scene.add(gizmoGroup)
-
-    // Corner overlay widgets: each owns a tiny scene rendered into a scissor rect of the
-    // same canvas/renderer (no extra WebGL context), rotated opposite the main camera so
-    // it always shows the world's orientation relative to the current view.
-    const overlays = createViewportOverlays()
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
@@ -248,13 +241,22 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const activeCameraRef: { current: THREE.Camera } = { current: camera }
 
     applyPoseRef.current = (pose) => {
-      const orientation = applyCameraPose(camera, controls, pose)
+      const effectivePose = dataRef.current.runtimeMode === 'play'
+        ? { position: [pose.position[0], EYE_HEIGHT, pose.position[2]] as [number, number, number], target: [pose.target[0], EYE_HEIGHT, pose.target[2]] as [number, number, number] }
+        : pose
+      const orientation = applyCameraPose(camera, controls, effectivePose)
       yawRef.current = orientation.yaw
       pitchRef.current = orientation.pitch
+      walkHeightRef.current = camera.position.y
+      orbitPoseRef.current = null
     }
     applyPoseRef.current(dataRef.current.startCamera)
 
-    let renderedSignature = ''
+    // Draw on demand: the frame loop keeps running its logic, but only calls
+    // renderer.render() after requestRender() or when the camera has moved.
+    const scheduler = createRenderScheduler()
+    const { requestRender } = scheduler
+    requestRenderRef.current = requestRender
 
     const resize = () => {
       const width = mount.clientWidth
@@ -262,19 +264,25 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       camera.aspect = width / Math.max(height, 1)
       camera.updateProjectionMatrix()
       renderer.setSize(width, height, false)
+      requestRender()
     }
+    // Every edit produces a new ProjectData via cloneProject, so reference
+    // equality on `objects` is an exact change signal — no per-frame serialisation.
+    // Cleared to null to force one rebuild from the authoritative data.
+    let synced: { objects: readonly SceneObject[]; selectedId: string | null; syncToken: number } | null = null
     const syncObjects = () => {
-      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId, dataRef.current.syncToken])
-      if (signature === renderedSignature) return
+      const { objects, selectedId, syncToken } = dataRef.current
+      if (synced && synced.objects === objects && synced.selectedId === selectedId && synced.syncToken === syncToken) return
       syncArtefacts({
         group: objectsGroup,
-        objects: dataRef.current.objects,
-        selectedId: dataRef.current.selectedId,
+        objects,
+        selectedId,
         // A `model` asset's GLB may not be cached yet — retry once it resolves instead of
         // waiting for some unrelated prop change to naturally invalidate the memo.
-        onModelLoaded: () => { renderedSignature = '' },
+        onModelLoaded: () => { synced = null },
       })
-      renderedSignature = signature
+      synced = { objects, selectedId, syncToken }
+      requestRender()
     }
 
     // ---- WHEN→DO runtime (Tiers 1-3) -------------------------------------
@@ -283,6 +291,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const sequencer = createActionSequencer()
     const effects = createEffectRegistry()
     const actions = createActionRegistry()
+    actions.register('changeColor', createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
+    
     let zoneTracker = createZoneTracker(dataRef.current.zones)
     let zonesSignature = JSON.stringify(dataRef.current.zones)
     let runtimeState: RuntimeState | null = null
@@ -339,19 +349,30 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       )
       // ProjectData was never mutated during the run, so forcing one rebuild
       // from it is the whole visual reset.
-      renderedSignature = ''
+      synced = null
       if (restart) emitRuntimeEvent({ kind: 'sceneStart' })
     }
-    restartRuntimeRef.current = () => { if (dataRef.current.runtimeMode === 'play') stopRun(true) }
+    // Restarting a walkthrough must return the visitor to the start view — otherwise
+    // a scene with no rule-driven visual change looks like the R key did nothing.
+    restartRuntimeRef.current = () => {
+      if (dataRef.current.runtimeMode !== 'play') return
+      stopRun(true)
+      applyPoseRef.current(dataRef.current.startCamera)
+    }
 
     let interactionController: ReturnType<typeof createViewportInteractionController>
     const syncGizmoFrame = () => {
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
       syncGizmo({
         gizmoGroup,
+        camera,
+        controlsTarget: controls.target,
+        isOrtho: dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic,
         axisArrows,
         scaleHandles,
         rotateHandles,
+        originHandle,
+        uniformScaleHandle,
         selected,
         selectedMesh: selected ? objectsGroup.getObjectByName(selected.id) : undefined,
         mode: dataRef.current.gizmoMode,
@@ -374,6 +395,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       axisArrows,
       scaleHandles,
       rotateHandles,
+      originHandle,
+      uniformScaleHandle,
       yaw: yawRef,
       pitch: pitchRef,
       interactive,
@@ -406,8 +429,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           pitchRef.current = orientation.pitch
         },
         setOrthographic: (value) => dataRef.current.onOrthographicChange?.(value),
-        showOctaOrbTooltip,
-        hideOctaOrbTooltip,
+        showOctaOrbTooltip: overlays.showOctaOrbTooltip,
+        hideOctaOrbTooltip: overlays.hideOctaOrbTooltip,
         // Always supplied so a mode flip needs no listener rebinding; the
         // controller checks runtimeActive above before doing any picking for it.
         onRuntimeEvent: emitRuntimeEvent,
@@ -416,6 +439,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
+    // Pointer and key input can change the scene without moving the camera
+    // (gizmo hover colours, drag previews, OctaOrb highlights), so any input wakes
+    // one draw. Camera motion needs no listener — the scheduler detects it.
+    const inputEvents = ['pointerdown', 'pointermove', 'pointerup', 'pointerleave', 'wheel'] as const
+    inputEvents.forEach((type) => renderer.domElement.addEventListener(type, requestRender))
+    window.addEventListener('keydown', requestRender)
+    window.addEventListener('keyup', requestRender)
     // Walk-mode look and movement remain available in runtime mode. The
     // interaction controller gates editor selection and transforms with
     // `interactive` and owns all pointer/keyboard listener cleanup.
@@ -428,7 +458,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const delta = Math.min((now - lastTime) / 1000, 0.1)
       lastTime = now
       syncObjects()
-      syncGizmoFrame()
 
       // ---- WHEN→DO tiers, play mode only ---------------------------------
       // Edit mode falls straight past this block, so authoring runs exactly the
@@ -459,7 +488,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       }
 
       if (dataRef.current.cameraMode === 'walk') {
-        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current)
+        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current, {
+          groundLocked: dataRef.current.runtimeMode === 'play',
+          eyeHeight: walkHeightRef.current,
+        })
       } else {
         controls.update()
       }
@@ -469,6 +501,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const useOrtho = dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic
       if (useOrtho) syncOrthoCamera(camera, orthoCamera, controls.target)
       activeCameraRef.current = useOrtho ? orthoCamera : camera
+      syncGizmoFrame()
+
+      // Play mode always draws: action executors (e.g. changeColor) mutate the
+      // scene asynchronously with no render hook, and a walkthrough is rarely idle.
+      if (!playing && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
+      syncGizmoFrame()
 
       const width = mount.clientWidth
       const height = mount.clientHeight
@@ -477,27 +515,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.render(scene, activeCameraRef.current)
 
       if (dataRef.current.cameraMode === 'orbit') {
-        if (dataRef.current.showOctaOrb) {
-          const currentDirection = camera.position.clone().sub(controls.target).normalize()
-          overlays.octaOrb.syncToCamera(currentDirection, camera.up)
-          overlays.octaOrb.setArrowsVisible(matchFaceView(currentDirection) !== null)
-          renderer.clearDepth()
-          renderer.setScissorTest(true)
-          const x = width - OVERLAY_MARGIN - OCTAORB_DIM
-          const y = height - OVERLAY_MARGIN - OCTAORB_DIM
-          renderer.setScissor(x, y, OCTAORB_DIM, OCTAORB_DIM)
-          renderer.setViewport(x, y, OCTAORB_DIM, OCTAORB_DIM)
-          renderer.render(overlays.octaOrb.scene, overlays.octaOrb.camera)
-        }
-        if (dataRef.current.showAxisIndicator) {
-          overlays.axisIndicator.group.quaternion.copy(camera.quaternion).invert()
-          renderer.clearDepth()
-          renderer.setScissorTest(true)
-          renderer.setScissor(OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM, AXIS_INDICATOR_DIM)
-          renderer.setViewport(OVERLAY_MARGIN, OVERLAY_MARGIN, AXIS_INDICATOR_DIM, AXIS_INDICATOR_DIM)
-          renderer.render(overlays.axisIndicator.group, overlays.axisIndicator.camera)
-        }
-        renderer.setScissorTest(false)
+        overlays.render(renderer, {
+          camera,
+          target: controls.target,
+          width,
+          height,
+          showOctaOrb: dataRef.current.showOctaOrb,
+          showAxisIndicator: dataRef.current.showAxisIndicator,
+        })
       }
     }
     resize()
@@ -509,11 +534,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
       restartRuntimeRef.current = () => {}
+      requestRenderRef.current = () => {}
       observer.disconnect()
+      inputEvents.forEach((type) => renderer.domElement.removeEventListener(type, requestRender))
+      window.removeEventListener('keydown', requestRender)
+      window.removeEventListener('keyup', requestRender)
       interactionController.dispose()
       controls.dispose()
       overlays.dispose()
-      mount.removeChild(octaOrbTooltip)
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       disposeObjectResources(objectsGroup)
@@ -524,10 +552,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactive])
 
+  // Any prop change (gizmo mode, overlays, orthographic, …) may alter what the
+  // frame shows, so wake one draw after every React render. Cheap: it only sets a flag.
+  useEffect(() => { requestRenderRef.current() })
+
 // Orbit and walk mode use different camera controls.
 // Disable OrbitControls when walk mode starts to prevent camera snapping.
-// When switching modes, update the new control using the camera's current direction
-// so the camera transition stays smooth.
+// Entering walk seeds yaw/pitch from the camera's current direction. Leaving walk
+// restores the orbit view saved on entry, so Orbit really returns to orbiting
+// rather than staying at the walker's eye level.
   const previousModeRef = useRef<CameraMode | null>(null)
   useEffect(() => {
     const camera = cameraRef.current
@@ -540,12 +573,24 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     if (isFirstRun || !changed) return
     const forward = camera.getWorldDirection(new THREE.Vector3())
     if (cameraMode === 'walk') {
+      orbitPoseRef.current = { position: camera.position.clone(), target: controls.target.clone(), up: camera.up.clone() }
       yawRef.current = Math.atan2(-forward.x, -forward.z)
       pitchRef.current = THREE.MathUtils.clamp(Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1)), -1.4, 1.4)
       camera.rotation.order = 'YXZ'
       camera.rotation.set(pitchRef.current, yawRef.current, 0)
     } else {
-      controls.target.copy(camera.position.clone().addScaledVector(forward, 6))
+      const saved = orbitPoseRef.current
+      orbitPoseRef.current = null
+      if (saved) {
+        camera.up.copy(saved.up)
+        camera.position.copy(saved.position)
+        controls.target.copy(saved.target)
+        camera.lookAt(saved.target)
+        controls.update()
+      } else {
+        // No saved view (a pose was applied while walking): orbit around a point ahead.
+        controls.target.copy(camera.position.clone().addScaledVector(forward, 6))
+      }
     }
   }, [cameraMode])
 
@@ -559,7 +604,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       environmentId,
       currentDispose: currentEnvDisposeRef,
       onStatus: setEnvStatus,
-      onReady: () => applyPoseRef.current(dataRef.current.startCamera),
+      onReady: () => {
+        applyPoseRef.current(dataRef.current.startCamera)
+        requestRenderRef.current()
+      },
     })
     return loadHandle.cancel
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -608,8 +656,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   const hint = cameraMode === 'walk'
     ? interactive
-      ? 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint · Click to select'
-      : 'Drag to look · WASD to walk · Space/C to fly up/down · Shift to sprint'
+      ? 'Drag to look · WASD to walk · X/C to fly up/down · Shift to sprint · Click to select'
+      : 'Click to look around · WASD to walk · Shift to sprint · Esc to exit · R to restart'
     : !interactive
       ? null
       : gizmoMode === 'move'
@@ -624,6 +672,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
+      {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
       {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
       {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
       {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}

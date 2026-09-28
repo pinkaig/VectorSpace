@@ -90,7 +90,7 @@ export const environmentLibrary: EnvironmentDefinition[] = [
 ]
 
 export const defaultEnvironmentId =
-  environmentLibrary.find((item) => item.proceduralId !== 'empty')?.id ?? environmentLibrary[0].id
+  environmentLibrary.find((item) => item.proceduralId === 'empty')?.id ?? environmentLibrary[0].id
 
 export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
   environmentLibrary.find((item) => item.id === environmentId) ??
