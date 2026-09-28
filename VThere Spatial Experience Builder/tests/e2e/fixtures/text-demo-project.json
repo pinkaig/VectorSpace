@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "project-text-demo",
+  "name": "Text System Demo",
+  "activeSceneId": "scene-text-demo",
+  "scenes": [
+    {
+      "id": "scene-text-demo",
+      "name": "Text Demo",
+      "environmentId": "env-empty",
+      "startCamera": { "position": [7, 5.5, 8], "target": [0, 0.7, 0] },
+      "objects": [
+        {
+          "id": "sign-welcome",
+          "name": "Welcome Sign",
+          "assetId": "primitive-cube",
+          "assetKind": "cube",
+          "visible": true,
+          "enabled": true,
+          "transform": { "position": [0, 0.55, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+          "attachments": [
+            {
+              "id": "att-welcome",
+              "kind": "text",
+              "assetId": "text-welcome",
+              "presentation": { "mode": "panel", "title": "Welcome" }
+            },
+            {
+              "id": "att-hostile",
+              "kind": "text",
+              "assetId": "text-hostile",
+              "presentation": { "mode": "panel", "title": "Hostile Input" }
+            }
+          ]
+        }
+      ],
+      "zones": [
+        {
+          "id": "zone-spawn",
+          "name": "Spawn Zone",
+          "shape": { "kind": "box", "size": [8, 8, 8] },
+          "position": [7, 2, 8]
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule-welcome-on-start",
+      "triggers": ["sceneStart"],
+      "actions": [{ "kind": "showPanel", "params": { "attachmentId": "att-welcome" } }]
+    },
+    {
+      "id": "rule-hostile-on-spawn",
+      "zoneId": "zone-spawn",
+      "triggers": ["zoneEnter"],
+      "actions": [{ "kind": "showPanel", "params": { "componentId": "att-hostile", "modal": true } }]
+    }
+  ],
+  "textAssets": [
+    {
+      "assetId": "text-welcome",
+      "name": "Welcome",
+      "format": "markdown-lite",
+      "lang": "en",
+      "content": "# Hello visitor\n\nEnjoy the **exhibition**. Read the [guide](https://example.org/guide) before you start.\n\n- Look around\n- Click things"
+    },
+    {
+      "assetId": "text-hostile",
+      "name": "Hostile",
+      "format": "markdown-lite",
+      "lang": "en",
+      "content": "<script>alert('xss')</script>\n\n<img src=x onerror=alert('xss')>\n\n[click me](javascript:alert('xss')) must stay inert\n\n************************************deeply nested************************************"
+    }
+  ]
+}
