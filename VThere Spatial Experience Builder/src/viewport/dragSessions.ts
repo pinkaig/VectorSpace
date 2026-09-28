@@ -21,7 +21,11 @@ import { normalizeAngle } from "./interactionMath";
 export interface DragCommitCallbacks {
   commitMove: (id: string, position: [number, number, number]) => void;
   commitScale: (id: string, scale: [number, number, number]) => void;
-  commitRotate: (id: string, rotation: [number, number, number]) => void;
+  commitRotate: (
+    id: string,
+    rotation: [number, number, number],
+    position?: [number, number, number],
+  ) => void;
 }
 
 export interface DragSessionsInput {
@@ -53,7 +57,10 @@ export interface ScaleDragParams {
 export interface RotateDragParams {
   id: string;
   axisIndex: 0 | 1 | 2;
+  /** World-space pivot: the object's visual centre at grab time. */
   center: THREE.Vector3;
+  /** The same pivot in the object's local space, so its drift can be measured. */
+  localPivot: THREE.Vector3;
   normal: THREE.Vector3;
   plane: THREE.Plane;
   lastAngle: number;
@@ -140,6 +147,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
   let lastScaleValue: [number, number, number] | null = null;
   let rotateDragging: RotateDragParams | null = null;
   let lastRotateValue: [number, number, number] | null = null;
+  let lastRotatePosition: [number, number, number] | null = null;
   let uniformScaleDragging: UniformScaleDragParams | null = null; // active uniform-scale session, if any
   let lastUniformScaleValue: [number, number, number] | null = null; // most recent preview value, committed once on release
   const dragPoint = new THREE.Vector3();
@@ -317,6 +325,22 @@ export const createDragSessions = (input: DragSessionsInput) => {
           ?.rotation.set(...rotation);
       }
       lastRotateValue = rotation;
+      // Rotating turns the object about its own origin, which swings the centre away.
+      // Shift the origin by that drift so the centre stays put - i.e. the object turns
+      // about its centre, where the rings are drawn.
+      const mesh = objectsGroup.getObjectByName(rotateDragging.id);
+      if (mesh) {
+        mesh.updateMatrixWorld(true);
+        const drift = rotateDragging.center
+          .clone()
+          .sub(rotateDragging.localPivot.clone().applyMatrix4(mesh.matrixWorld));
+        const local = toLocalPosition(
+          mesh,
+          mesh.getWorldPosition(new THREE.Vector3()).add(drift),
+        );
+        mesh.position.copy(local);
+        lastRotatePosition = [local.x, local.y, local.z];
+      }
       return;
     }
     if (uniformScaleDragging) {
@@ -380,6 +404,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
       callbacks.commitRotate(
         rotateDragging.id,
         lastRotateValue.map(normalizeAngle) as [number, number, number],
+        lastRotatePosition ?? undefined,
       );
     if (dragging && lastDragPosition)
       callbacks.commitMove(dragging.id, lastDragPosition);
@@ -391,6 +416,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
     lastScaleValue = null;
     rotateDragging = null;
     lastRotateValue = null;
+    lastRotatePosition = null;
     uniformScaleDragging = null;
     lastUniformScaleValue = null;
   };

@@ -28,6 +28,7 @@ import {
 import { OriginHandle } from "../gizmo/originHandle";
 import { UniformScaleHandle } from "../gizmo/uniformScaleHandle";
 import { ARROW_LENGTH, GIZMO_GAP } from "./viewportTypes";
+import { artefactLocalCenter } from "./syncArtefacts";
 
 export type GizmoMode = "select" | "move" | "rotate" | "scale";
 export type TransformSpace = "world" | "local";
@@ -86,8 +87,15 @@ export const syncGizmo = ({
 
   if (!selected || !selectedMesh || isDragging) return;
 
-  gizmoGroup.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()));
-  
+  // Move/scale sit on the object's origin (a model's base, which placement relies on);
+  // rotate sits on its visual centre, which is also the point the rotate drag pivots about.
+  if (mode === "rotate") {
+    const center = artefactLocalCenter(selectedMesh);
+    gizmoGroup.position.copy(center.applyMatrix4(selectedMesh.matrixWorld));
+  } else {
+    gizmoGroup.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()));
+  }
+
   const worldUnitsPerScreen = isOrtho
     ? camera.position.distanceTo(controlsTarget)
     : camera.position.distanceTo(gizmoGroup.position);
