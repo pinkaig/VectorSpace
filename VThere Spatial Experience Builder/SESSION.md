@@ -564,6 +564,75 @@ After it passes, extract only the pure transform/session logic that the tests
 demonstrate is framework-independent. Do not begin the full app migration or
 package expansion until that slice is integrated and verified.
 
+## 2026-09-28 Shared attachment work slice (attachment-integration steps 2-5)
+
+### Objective / topic
+
+Build the shared attachment layer every media type system depends on, per
+`docs/code/subsystems/attachment-integration.md`, as the prerequisite for
+`packages/text` (its build-sequence step 2). Four commits on `weian_branch`:
+`aa2cac6` (types + serializer), `c15bedc` (authoring ops), `7ef921d` (assets
+machinery), `886eca8` (app wiring).
+
+### Decisions made and why
+
+- Scoped to `audio` + `text` attachment kinds: image/video shapes need their
+  design docs' presentation types, and widening the union later is additive.
+- Deferred to first consumers: `DecodedCache`/`MediaBudget` (image),
+  `ObjectUrlResolver` (media import UI), migrating audio off its bespoke
+  `audioResolver` seam.
+- One host-addressed op set (`host: { kind: 'object' | 'zone', id }`) instead
+  of four functions per host type.
+- `ObjectIdFactory` gained a required `nextAttachmentId` (type-enforced, all
+  factory sites updated) — attachment ids share one project-wide id space.
+- Host `attachments` stay undefined when absent (files stay small);
+  `textAssets` backfills to `[]` matching `audioAssets`.
+- `setProjectTextAssets` invalidates cached text descriptors so edited text
+  is never served stale through the descriptor cache.
+
+### What exists now
+
+- `packages/project`: `MediaKind`, `AssetRefKind`, `Attachment` (audio/text),
+  `TextAssetMeta`/`TextPresentation`/`TextStyle`, `attachments?` on both host
+  types, `textAssets?` on ProjectData, pure `findAttachment`/
+  `collectAttachments`/`assetRefForAttachment`.
+- `src/serializer.ts`: 16/host + 5,000 total attachment caps, project-wide
+  attachment id uniqueness, hex-only colours, 64 KB/asset + 512 KB/project
+  UTF-8 text caps (variants counted), control chars stripped, unknown
+  assetIds accepted as runtime placeholders.
+- `packages/authoring-engine`: `addAttachment`/`removeAttachment`/
+  `updateAttachment`/`reorderAttachments`; `duplicateObject` re-ids copied
+  attachments, `createScene` deep-copies them.
+- `packages/assets`: `MEDIA_KIND_SPECS`, `KindRouterResolver`,
+  `ContentGuardResolver`, `InlineTextResolver`, in-flight de-duplication in
+  `CachingAssetResolver`, optional sizeBytes/width/height/durationMs.
+- `src/viewport/assetResolution.ts`: chain is now
+  `Placeholder(Caching(ContentGuard(KindRouter(...))))`; prefixed per-id
+  store (`object:<id>` / `attachment:<id>`); `resolveAttachment`,
+  `getAttachmentDescriptor`, `subscribeAttachmentResolution`,
+  `retryAttachment`, `setProjectTextAssets`.
+
+### Build / verify command and status
+
+`npm run typecheck && npm test && npm run build` from
+`VThere Spatial Experience Builder/` — all passing at each commit; final
+state 288 tests across 38 files (was 251/34 before the slice; the jump from
+251 to 262 at commit aa2cac6 includes 3 audio test files unblocked by
+relinking workspaces). `npm install` was required once to link the
+assets/audio/interaction/sync workspaces (lockfile unchanged).
+
+### Open questions / next steps
+
+- Nothing calls `setProjectTextAssets` yet: the text-system build step 5
+  ("project-level textAssets prop", `Viewport.tsx` wiring) is the intended
+  caller. `resolveAttachment` likewise has no consumer until a type system
+  or inspector uses it — both are deliberate seams, not dead ends.
+- Next smallest slice: `packages/text` core (build step 3 — parser,
+  UrlPolicy, TextLibrary, TextLayout + FakeTextMeasurer, PanelManager,
+  TextStateStore), which now has every dependency it needs.
+- Image/video attachment shapes, editor attachment UI, and the client/backend
+  allowlist parity fixture remain future slices.
+
 ## 2026-09-17 Lifecycle verification, parent-child slices 1-2, inspector styling, tests
 
 ### Objective / topic
