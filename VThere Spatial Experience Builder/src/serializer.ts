@@ -23,7 +23,7 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/project-serialization.md
  */
-import { ProjectData, cloneProject, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
+import { ProjectData, cloneProject, defaultAudioSettings, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
 import { createLogger } from '../packages/debugging/src/index'
 
 const STORAGE_KEY = 'vthere-project-v1'
@@ -37,6 +37,7 @@ const MAX_OBJECTS = 5_000
 const MAX_LABEL_LENGTH = 200
 const MAX_ZONES = 500
 const MAX_RULES = 5_000
+const MAX_AUDIO_ASSETS = 1_000
 
 export interface ProjectLoadResult {
   project: ProjectData
@@ -63,6 +64,8 @@ const backfillScenes = (project: ProjectData): ProjectData => {
   // optional in the schema and default to empty, so schemaVersion stays 1 —
   // the same additive pattern as visible, enabled, and parentId.
   if (!Array.isArray(project.rules)) project.rules = []
+  if (!Array.isArray(project.audioAssets)) project.audioAssets = []
+  if (!project.audioSettings) project.audioSettings = defaultAudioSettings()
   project.scenes.forEach((scene) => {
     if (!scene.environmentId) scene.environmentId = defaultEnvironmentId
     if (!scene.startCamera) scene.startCamera = defaultCameraPose()
@@ -150,6 +153,37 @@ const validateRules = (project: ProjectData, objectIds: Set<string>, zoneIds: Se
   }
 }
 
+/**
+ * Presettings for an audio asset. Validated the same way as rules: optional,
+ * so older saves load, but well-formed when present.
+ */
+const validateAudioAssets = (project: ProjectData): void => {
+  if (project.audioAssets === undefined) return
+  if (!Array.isArray(project.audioAssets)) throw new Error('Project contains an invalid audio asset list')
+  if (project.audioAssets.length > MAX_AUDIO_ASSETS) throw new Error('Project contains too many audio assets')
+  const seen = new Set<string>()
+  for (const meta of project.audioAssets) {
+    if (!meta || typeof meta !== 'object' || typeof meta.assetId !== 'string' || !meta.assetId || meta.assetId.length > MAX_LABEL_LENGTH || typeof meta.name !== 'string' || meta.name.length > MAX_LABEL_LENGTH || typeof meta.channel !== 'string' || !meta.channel || typeof meta.volume !== 'number' || !Number.isFinite(meta.volume) || meta.volume < 0 || meta.volume > 1 || typeof meta.loop !== 'boolean') {
+      throw new Error('Project contains an invalid audio asset')
+    }
+    if (seen.has(meta.assetId)) throw new Error('Project contains duplicate audio asset IDs')
+    seen.add(meta.assetId)
+  }
+}
+
+const validateAudioSettings = (project: ProjectData): void => {
+  if (project.audioSettings === undefined) return
+  const settings = project.audioSettings
+  if (!settings || typeof settings !== 'object' || typeof settings.master !== 'number' || !Number.isFinite(settings.master) || settings.master < 0 || settings.master > 1 || !settings.channels || typeof settings.channels !== 'object') {
+    throw new Error('Project contains invalid audio settings')
+  }
+  for (const channel of Object.values(settings.channels)) {
+    if (!channel || typeof channel !== 'object' || typeof channel.volume !== 'number' || !Number.isFinite(channel.volume) || channel.volume < 0 || channel.volume > 1 || typeof channel.muted !== 'boolean') {
+      throw new Error('Project contains an invalid audio channel setting')
+    }
+  }
+}
+
 const validateProject = (parsed: unknown): ProjectData => {
   if (!parsed || typeof parsed !== 'object') throw new Error('Project file must contain a JSON object')
   const candidate = parsed as Partial<ProjectData>
@@ -179,6 +213,8 @@ const validateProject = (parsed: unknown): ProjectData => {
   // Rules are validated after every scene, so object and zone ids from the whole
   // project are available to check references against.
   validateRules(candidate as ProjectData, objectIds, zoneIds)
+  validateAudioAssets(candidate as ProjectData)
+  validateAudioSettings(candidate as ProjectData)
   return backfillScenes(parsed as ProjectData)
 }
 

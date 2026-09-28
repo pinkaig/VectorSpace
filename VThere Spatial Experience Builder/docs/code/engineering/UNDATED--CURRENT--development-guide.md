@@ -33,6 +33,8 @@ Still planned or incomplete:
 
 Treat the architecture documents as the target contract and the actual source tree as the current implementation state; the biggest remaining drift is the editor/runtime app-boundary split, not missing business logic.
 
+**Proposed, not built.** [`attachment-integration.md`](../subsystems/attachment-integration.md) and its four companion docs (audio, image, text, video) describe an unbuilt attachment system. Nothing under "Implemented and currently usable" above reflects them; treat those docs as design proposals only until code lands.
+
 ## Start the project
 
 From the VThere directory:
@@ -82,6 +84,7 @@ PowerShell may block `npm.ps1`; use `npm.cmd` as shown above.
 | Change viewport behavior | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | [`architecture`](../architecture/UNDATED--FOUNDATION--architecture.md), [`viewport subsystem`](../subsystems/viewport.md) |
 | Change save, recovery, or export | [`src/serializer.ts`](../../../src/serializer.ts) | [`contracts`](../architecture/UNDATED--FOUNDATION--contracts.md), [`sync engine`](../subsystems/sync-engine.md) |
 | Add undo/redo behavior | [`packages/authoring-engine/src/index.ts`](../../../packages/authoring-engine/src/index.ts) | [`packages/authoring-engine/src/index.test.ts`](../../../packages/authoring-engine/src/index.test.ts) |
+| Remove an object, zone, or scene | [`packages/authoring-engine/src/index.ts`](../../../packages/authoring-engine/src/index.ts) (`removeObject` also drops rules referencing the removed subtree) | [`src/serializer.ts`](../../../src/serializer.ts) (`validateRules` rejects a project with a dangling rule reference) |
 | Add or change WHEN->DO rules | [`packages/interaction/src/dispatcher.ts`](../../../packages/interaction/src/dispatcher.ts) | [`when-do dispatch engine`](../subsystems/when-do-dispatch-engine.md) |
 | Add or change asset resolution | [`packages/assets/src/index.ts`](../../../packages/assets/src/index.ts) | [`asset manager`](../subsystems/asset-manager.md) |
 | Add API behavior | [`apps/api/app/main.py`](../../../apps/api/app/main.py) | [`apps/api/tests/test_health.py`](../../../apps/api/tests/test_health.py), [`contracts`](../architecture/UNDATED--FOUNDATION--contracts.md) |
