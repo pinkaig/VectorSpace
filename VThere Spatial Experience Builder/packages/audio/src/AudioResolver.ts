@@ -3,14 +3,23 @@
  * @brief       Turns an assetId into a playable URL, without depending on @vthere/assets.
  *
  * @responsibility
- * This slice does not wire audio through the full Asset Manager resolver
- * chain (no AssetKind widening yet — see audio-system.md's "Considerations").
- * `AudioResolver` is the minimal seam that lets the app supply a URL lookup
- * (a local catalog, a future Asset Manager adapter) while packages/audio
- * itself stays dependency-free of @vthere/assets.
+ * Audio does not resolve through the full Asset Manager chain. `AudioResolver`
+ * is the minimal seam that lets the app supply a URL/bytes lookup while
+ * packages/audio stays dependency-free of @vthere/assets.
+ *
+ * The original reason was that AssetKind had not been widened past the 3D
+ * primitives. That is no longer true — AssetRef.kind now accepts the media
+ * kinds — so the remaining reason is the return type, and it is a real one:
+ * ResolvedAudio's url-vs-buffer discriminant IS the two-tier decision (stream
+ * vs decode from the IndexedDB byte cache), and AssetDescriptor has no way to
+ * say which tier an asset should use. `blob` vs `ArrayBuffer` is an adapter;
+ * "which tier" is not expressible yet. Converging means adding a tier concept
+ * to AssetDescriptor, not just mapping fields — so do not treat this as a
+ * simple adapter task.
  *
  * @documentation
  * Larger system guide: docs/code/subsystems/audio-system.md
+ * Chain-side policy: docs/code/subsystems/media-policy-and-cloud-download.md
  */
 /**
  * Two forms a resolved asset can take. `url`: fetched by the backend at decode

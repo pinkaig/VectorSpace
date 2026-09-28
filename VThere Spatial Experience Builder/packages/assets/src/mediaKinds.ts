@@ -6,11 +6,17 @@
  * One shared table answering "which content types may this kind carry, how
  * big may a file be, and which type package owns its decoded memory" — so
  * resolvers and guards stay table-driven instead of scattering per-kind
- * knowledge. Values are tuning numbers, not decisions; the client and the
- * future backend allowlist must stay the same list.
+ * knowledge. An asset can arrive from a primitive, the dev catalog, an inline
+ * project field or (Stage 3) a signed cloud URL; a per-origin check would be
+ * written four times and diverge, so the knowledge lives here and is enforced
+ * once by ContentGuardResolver. The caps are tuning numbers, but the
+ * allowlist is not: removing an entry is tuning, adding one is a security
+ * decision. The client and the backend allowlist must stay the same list —
+ * this table protects the client's own memory, it is not the security
+ * boundary.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/attachment-integration.md section 5
+ * Larger system guide: docs/code/subsystems/media-policy-and-cloud-download.md
  */
 import type { MediaKind } from '@vthere/project'
 

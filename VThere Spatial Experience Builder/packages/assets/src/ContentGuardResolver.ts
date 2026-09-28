@@ -11,8 +11,11 @@
  * their contract is owned by their own resolvers. Keeps the chain-wide rule:
  * never reject, a failure is an error descriptor.
  *
+ * Sits inside CachingAssetResolver, not outside it: a rejected asset must not
+ * occupy a cache entry, and an approved one should not be re-checked on a hit.
+ *
  * @documentation
- * Larger system guide: docs/code/subsystems/attachment-integration.md section 6.1
+ * Larger system guide: docs/code/subsystems/media-policy-and-cloud-download.md
  */
 import { errorAssetDescriptor, type AssetDescriptor } from './AssetDescriptor'
 import type { AssetRef } from './AssetRef'
