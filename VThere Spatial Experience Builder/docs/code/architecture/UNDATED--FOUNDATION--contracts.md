@@ -2,6 +2,8 @@
 
 **Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../baseline-phases.md).
 
+**Proposed, not built.** [`attachment-integration.md`](../subsystems/attachment-integration.md) and its four companion docs (audio, image, text, video) propose additions to `ProjectData` (`Attachment`, `MediaKind`, per-kind meta arrays) and new action kinds. None of that is implemented; the contracts below describe only what is built today.
+
 ## Project document
 
 The editor and runtime exchange the canonical `ProjectData` document defined in `packages/project/src/index.ts`. The real shape (as implemented, schema version 1) is:
@@ -96,10 +98,14 @@ The dispatcher and rule shape are implemented in `packages/interaction`; both th
 
 ```text
 RuntimeEvent.kind (open string) = objectClick | zoneEnter | sceneStart | timerElapsed | objectLookedAt | panelClosed | ...
-ActionSpec.kind (open string, resolved by an ActionRegistry the caller populates) = showPanel | playAudioOrVideo | moveCameraToViewpoint | showOrHideObject | navigateScene | openLink | ...
+ActionSpec.kind (open string, resolved by an ActionRegistry the caller populates) = showPanel | playAudio | moveCameraToViewpoint | showOrHideObject | navigateScene | openLink | ...
 ```
 
+**Resolved naming drift: `playAudioOrVideo` → `playAudio`.** The list above originally used a combined `playAudioOrVideo` example, not implemented verbatim. The real, registered and tested action kind is `playAudio` (`packages/audio/src/actions/registerAudioActions.ts`, `packages/interaction/src/actions/registry.test.ts:42`), aligned here 2026-09-27. [`attachment-integration.md`](../subsystems/attachment-integration.md) (section 9, proposed) keeps a `playAudio`/`playVideo` split rather than one combined kind, consistent with this.
+
 An `InteractionRule` (`packages/project`) has `id`, optional `objectId`/`zoneId` (absent = wildcard match), `triggers: string[]`, `actions: ActionSpec[]`, and optional `priority`. `dispatch(event, rules, project, state)` (`packages/interaction/src/dispatcher.ts`) matches every rule whose `triggers` include the event's `kind` and whose `objectId`/`zoneId` don't contradict the event, orders matches by priority (descending) then authoring order (stable sort), and returns a `DispatchResult` — it performs no I/O and executes no action itself.
+
+`ActionSpec`'s doc comment (`packages/project/src/index.ts:119-121`) names `componentId` as the argument for `showPanel`. [`text-system.md`](../subsystems/text-system.md) (proposed) instead uses `attachmentId` for `showPanel` and accepts `componentId` as an alias so existing example rules keep working; nothing in the built code implements either `showPanel` executor yet, so this is a naming choice to settle before one is written, not a contradiction in shipped behavior.
 
 Zone entry is edge-triggered as originally specified: `packages/interaction/src/zoneTracker.ts`'s `createZoneTracker()` tracks previous/current occupancy per zone and only emits a `zoneEnter` `RuntimeEvent` on the false -> true transition; `RuntimeState.visitedZones` then remembers that a zone was ever entered, independent of whether a rule matched at that moment. Action execution and sequencing (multi-step DO chains, waits) are implemented separately in `packages/interaction/src/ActionSequencer.ts` (`createActionSequencer`, `waitSeconds`). Immediate rule testing through an in-editor visitor-mode preview is not confirmed as implemented — the runtime (`src/RuntimeView.tsx`) reuses the shared viewport, but a dedicated "preview without leaving the authoring workflow" mode is not verified in source.
 
