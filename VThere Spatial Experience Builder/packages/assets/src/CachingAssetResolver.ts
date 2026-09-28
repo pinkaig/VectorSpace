@@ -18,6 +18,10 @@ import type { AssetRef } from './AssetRef'
 import type { AssetResolver } from './AssetResolver'
 
 export class CachingAssetResolver implements AssetResolver {
+  // concurrent resolves of one kind:assetId share a single delegate call
+  // instead of racing duplicate requests at the same origin
+  private readonly inFlight = new Map<string, Promise<AssetDescriptor>>()
+
   constructor(
     private readonly delegate: AssetResolver,
     private readonly cache: AssetCache = new AssetCache(),
@@ -27,9 +31,21 @@ export class CachingAssetResolver implements AssetResolver {
     const cached = this.cache.get(ref)
     if (cached) return cached
 
-    const descriptor = await this.delegate.resolve(ref)
-    this.cache.set(ref, descriptor)
-    return descriptor
+    const key = `${ref.kind}:${ref.assetId}`
+    const pending = this.inFlight.get(key)
+    if (pending) return pending
+
+    const request = this.delegate
+      .resolve(ref)
+      .then((descriptor) => {
+        this.cache.set(ref, descriptor)
+        return descriptor
+      })
+      .finally(() => {
+        this.inFlight.delete(key)
+      })
+    this.inFlight.set(key, request)
+    return request
   }
 
   invalidate(ref: AssetRef): void {

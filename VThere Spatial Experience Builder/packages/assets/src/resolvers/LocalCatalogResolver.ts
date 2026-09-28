@@ -17,7 +17,14 @@ import type { AssetResolver } from '../AssetResolver'
 
 export interface LocalCatalogEntry {
   url: string
+  // the model/gltf-binary default below is for 3D models only; a media entry
+  // (audio/image/video/text file) must state its real content type or the
+  // ContentGuardResolver will reject it
   contentType?: string
+  sizeBytes?: number
+  width?: number
+  height?: number
+  durationMs?: number
 }
 
 export class LocalCatalogResolver implements AssetResolver {
@@ -31,6 +38,10 @@ export class LocalCatalogResolver implements AssetResolver {
     return readyAssetDescriptor(ref, {
       contentType: entry.contentType ?? 'model/gltf-binary',
       url: entry.url,
+      sizeBytes: entry.sizeBytes,
+      width: entry.width,
+      height: entry.height,
+      durationMs: entry.durationMs,
     })
   }
 }
