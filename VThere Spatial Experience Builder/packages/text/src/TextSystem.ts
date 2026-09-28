@@ -26,7 +26,13 @@ import { UrlPolicy } from './UrlPolicy'
 
 export interface TextSystemOptions {
   library: TextLibrary
-  /** Needed only for layout(); overlay panels can rely on DOM wrapping instead. */
+  /**
+   * Needed only for layout(); the DOM overlay panels let the browser wrap, so
+   * the app constructs TextSystem without one. Supply a canvas-backed
+   * measurer for a fixed-size surface that has to wrap text itself — a
+   * caption box or a dialogue plate. Without it, layout() returns undefined
+   * and canLayout is false.
+   */
   measurer?: TextMeasurer
   clock?: () => number
   limits?: Partial<TextLimits>
@@ -108,11 +114,24 @@ export class TextSystem {
     return this.nodesByPanel.get(panelId)
   }
 
-  layout(att: TextAttachment, box: { width: number; height: number }, font: FontSpec): TextLayoutResult {
-    if (!this.layoutEngine) throw new Error('TextSystem was constructed without a measurer; layout() is unavailable')
+  /**
+   * Wrapped/paged lines for a fixed-size surface (a canvas caption box, a
+   * dialogue plate) — not needed by the DOM overlay panels, which let the
+   * browser wrap. Returns undefined when no measurer was supplied rather than
+   * throwing: whether layout is available is a construction-time fact the
+   * caller can check once, and a method that throws based on a constructor
+   * argument turns that into a runtime surprise.
+   */
+  layout(att: TextAttachment, box: { width: number; height: number }, font: FontSpec): TextLayoutResult | undefined {
+    if (!this.layoutEngine) return undefined
     const meta = this.library.getMeta(att.assetId)
     const nodes = meta === undefined ? [] : this.parser.parse(meta.format, meta.content)
     return this.layoutEngine.layout(nodes, box, font)
+  }
+
+  /** True when a measurer was supplied, so layout() returns a result. */
+  get canLayout(): boolean {
+    return this.layoutEngine !== undefined
   }
 
   /** Host loop drives auto-close through here. */

@@ -8,8 +8,22 @@
  * characters instead of overflowing), force-breaks a single unbreakable word
  * longer than the box at the grapheme, and never splits a grapheme. Paging
  * fits whole lines into the box height and never leaves a heading alone at
- * the bottom of a page. Overlay panels can rely on DOM wrapping instead;
- * this path exists for dialogue and canvas surfaces.
+ * the bottom of a page.
+ *
+ * @remarks
+ * The DOM overlay panels do not use this — the browser wraps for them. This
+ * path is for a surface that must wrap text itself: a canvas/3D caption box
+ * or a dialogue plate. No such renderer exists yet, and the only TextMeasurer
+ * implementation is FakeTextMeasurer (fixed glyph width, for deterministic
+ * tests), so a canvas-backed measurer is the missing piece.
+ *
+ * Two honest limits for whoever builds real-time captioning on this:
+ * - `page()`'s paging and heading-widow rule are for reading a document. A
+ *   caption is a rolling 1-3 line window that is never paginated, so captions
+ *   want `wrapLine` and can ignore pages entirely.
+ * - `layout()` re-wraps the whole node tree per call. That is fine per panel
+ *   open; called every frame against a growing transcript it is quadratic.
+ *   Incremental append is not implemented.
  *
  * @documentation
  * Larger system guide: docs/code/subsystems/text-system.md section 6

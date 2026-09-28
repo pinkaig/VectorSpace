@@ -71,7 +71,6 @@ import {
   getAssetDescriptor,
   resolveAsset,
   retryAsset,
-  setProjectTextAssets,
   subscribeAssetResolution,
   type AssetDescriptor,
 } from './viewport/assetResolution'
@@ -180,11 +179,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   if (textSystemRef.current === null) textSystemRef.current = new TextSystem({ library: textLibraryRef.current })
   const text = textSystemRef.current
 
-  // Text content lives in project data: feed the current list to the library
-  // (for TextSystem.open) and the asset resolver (for InlineTextResolver).
+  // Text content lives in project data, so TextLibrary is the single source
+  // TextSystem.open reads. Text is deliberately NOT also fed to the asset
+  // resolver chain: two feeds for the same bytes is two things to keep in
+  // sync, and the chain's copy had no reader. When text gains a non-inline
+  // origin (a document drive or a signed URL) the chain becomes the right
+  // home for it, because only a descriptor can express loading/error — see
+  // docs/code/subsystems/media-policy-and-cloud-download.md.
   useEffect(() => {
     textLibraryRef.current?.setTextAssets(textAssets)
-    setProjectTextAssets(textAssets)
   }, [textAssets])
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)

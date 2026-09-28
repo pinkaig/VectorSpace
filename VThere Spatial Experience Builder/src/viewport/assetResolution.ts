@@ -36,10 +36,18 @@ import { assetRefForAttachment, type Attachment, type SceneObject, type TextAsse
 const localCatalog = new Map<string, { url: string; contentType?: string }>()
 
 /**
- * Inline text resolves from ProjectData.textAssets, which lives in React
- * state, not here — the app feeds the current list in via
- * setProjectTextAssets whenever the project changes (the same pattern as
- * AudioSystem.setProjectAudioAssets).
+ * RESERVED, not live. Text content is inline in ProjectData today, so
+ * TextLibrary is the single source TextSystem.open reads and the app does NOT
+ * feed text in here — one set of bytes with two homes is two things to keep in
+ * sync, and this copy had no reader (see Viewport.tsx's text effect).
+ *
+ * The leg is kept wired because it is the seam a non-inline text origin needs:
+ * a document drive or signed URL has loading and error states that a
+ * synchronous Map cannot express but AssetDescriptor already does. Feeding
+ * this map (and swapping InlineTextResolver for the remote resolver) is the
+ * migration, not a rewrite.
+ *
+ * docs/code/subsystems/media-policy-and-cloud-download.md
  */
 let textAssetsById = new Map<string, TextAssetMeta>()
 
