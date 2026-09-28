@@ -53,6 +53,7 @@ import { audioResolver } from './viewport/audioResolution'
 // into audioResolver's map. See audioAssets.ts — empty until real clips ship.
 import './audioAssets'
 import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
+import { createZoneVisuals } from './viewport/zoneVisuals'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
@@ -222,6 +223,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     scene.add(environmentGroup)
     scene.add(objectsGroup)
 
+    // Zone indicator meshes — a pure rendering aid over ZoneDefinition, never
+    // consulted by the zone tracker or dispatcher. Visible in both edit and play
+    // mode so zone placement is inspectable while authoring.
+    const zoneVisualsGroup = new THREE.Group()
+    scene.add(zoneVisualsGroup)
+    const zoneVisuals = createZoneVisuals(zoneVisualsGroup)
+
     // Keep editor-only gizmos outside the authored artefact group. Artefact
     // synchronisation may rebuild objects, but must never dispose the gizmos.
     const gizmoSet = createGizmoSet()
@@ -321,6 +329,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     
     let zoneTracker = createZoneTracker(dataRef.current.zones)
     let zonesSignature = JSON.stringify(dataRef.current.zones)
+    zoneVisuals.rebuild(dataRef.current.zones)
+    const occupiedZoneIds = new Set<string>()
     let runtimeState: RuntimeState | null = null
 
     /**
@@ -506,23 +516,32 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       } else if (!playing && runtimeState) {
         stopRun(false)
       }
+      // Rebuilt whenever the authored zones actually change, in both edit and play
+      // mode, so zone placement is visible while authoring, not only while running.
+      const zoneSignature = JSON.stringify(dataRef.current.zones)
+      if (zoneSignature !== zonesSignature) {
+        zonesSignature = zoneSignature
+        zoneTracker = createZoneTracker(dataRef.current.zones)
+        zoneVisuals.rebuild(dataRef.current.zones)
+        occupiedZoneIds.clear()
+      }
       if (playing && runtimeState) {
-        // Rebuilt only when the authored zones actually change, so the tracker
-        // keeps its occupancy — and therefore its edges — across normal frames.
-        const signature = JSON.stringify(dataRef.current.zones)
-        if (signature !== zonesSignature) {
-          zonesSignature = signature
-          zoneTracker = createZoneTracker(dataRef.current.zones)
-        }
         // Tier 1 spatial: the visitor's camera is the occupant, diffed against
         // live world transforms. Edge-triggered inside the tracker, so this
         // emits only on a transition.
         const viewer = activeCameraRef.current.getWorldPosition(new THREE.Vector3())
         for (const event of zoneTracker.tick([{ id: 'viewer', position: [viewer.x, viewer.y, viewer.z] }])) {
+          if (event.kind === 'zoneEnter' && event.zoneId) occupiedZoneIds.add(event.zoneId)
+          else if (event.kind === 'zoneExit' && event.zoneId) occupiedZoneIds.delete(event.zoneId)
           emitRuntimeEvent(event)
         }
+        zoneVisuals.setOccupied(occupiedZoneIds)
         // Tier 3: one tick per frame, reusing the delta computed above.
         sequencer.tick(delta)
+      } else if (occupiedZoneIds.size > 0) {
+        // Not running (or just stopped) — nothing is "inside" anything.
+        occupiedZoneIds.clear()
+        zoneVisuals.setOccupied(occupiedZoneIds)
       }
 
       if (dataRef.current.cameraMode === 'walk') {
@@ -583,6 +602,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       disposeObjectResources(objectsGroup)
+      zoneVisuals.dispose()
       gizmoSet.dispose()
       renderer.dispose()
       mount.removeChild(renderer.domElement)

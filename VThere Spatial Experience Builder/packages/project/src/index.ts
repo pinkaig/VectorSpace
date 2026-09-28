@@ -40,6 +40,10 @@ export interface SceneObject {
   // absent = top-level object; must reference an object in the same scene, no cycles
   parentId?: string
   transform: TransformData
+  // absent = fall back to colorFor(assetKind)'s shape-based default. A hex color
+  // (e.g. 0x4ea7a0) that overrides the primitive material for just this object,
+  // without needing a new AssetKind or touching asset resolution.
+  color?: number
 }
 
 /**

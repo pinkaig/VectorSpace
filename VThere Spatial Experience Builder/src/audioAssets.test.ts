@@ -8,8 +8,9 @@ const fixture: AudioAssetDefinition[] = [
 ]
 
 describe('audioAssetCatalog', () => {
-  it('is empty until real clips are added, and never throws for an unresolved assetId', async () => {
-    expect(audioAssetCatalog).toEqual([])
+  it('registers the bundled demo clips, and never throws for an unresolved assetId', async () => {
+    expect(audioAssetCatalog.length).toBeGreaterThan(0)
+    expect(audioAssetCatalog.every((asset) => asset.assetId && asset.url.startsWith('/audio/'))).toBe(true)
     await expect(audioResolver.resolve('does-not-exist')).resolves.toBeNull()
   })
 })
