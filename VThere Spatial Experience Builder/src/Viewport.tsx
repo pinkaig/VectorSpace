@@ -73,6 +73,7 @@ import {
 } from './viewport/assetResolution'
 import { AssetStatusBadge } from './viewport/AssetStatusBadge'
 import { createChangeColorExecutor} from './viewport/actions/changeColorAction'
+import { CHANGE_COLOR_KIND } from './viewport/actions/changeColorActionBuilder'
 import { createRenderScheduler } from './viewport/renderScheduler'
 
 export type CameraMode = 'orbit' | 'walk'
@@ -357,7 +358,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     audio.setProjectAudioAssets(dataRef.current.audioAssets as AudioAssetMeta[])
     registerAudioActions(actions, audio)
     
-    actions.register('changeColor', createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
+    actions.register(CHANGE_COLOR_KIND, createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
     
     let zoneTracker = createZoneTracker(dataRef.current.zones)
     let zonesSignature = JSON.stringify(dataRef.current.zones)
