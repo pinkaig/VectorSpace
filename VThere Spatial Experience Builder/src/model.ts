@@ -24,6 +24,7 @@
  */
 export {
   cloneProject,
+  defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
   defaultProject,
@@ -33,12 +34,19 @@ export {
   makeScene,
 } from '../packages/project/src/index'
 export type {
+  ActionSpec,
   AssetKind,
+  AudioAssetMeta,
+  AudioSettings,
   CameraPose,
+  ChannelId,
   EnvironmentDefinition,
   EnvironmentKind,
+  InteractionRule,
   ProjectData,
   SceneData,
   SceneObject,
   TransformData,
+  ZoneDefinition,
+  ZoneShape,
 } from '../packages/project/src/index'

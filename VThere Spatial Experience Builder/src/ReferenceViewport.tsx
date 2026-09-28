@@ -11,8 +11,9 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { SceneObject } from './model'
-import { colorFor } from './viewport/viewportTypes'
 import { loadEnvironment } from './environments'
+import { disposeObjectResources, syncArtefacts } from './viewport/syncArtefacts'
+import { createRenderScheduler } from './viewport/renderScheduler'
 
 export type ReferenceAxis = 'top' | 'front' | 'right'
 
@@ -53,12 +54,13 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
   dataRef.current = { objects, selectedId }
   const environmentGroupRef = useRef<THREE.Group | null>(null)
   const currentEnvDisposeRef = useRef<(() => void) | null>(null)
+  const requestRenderRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0b1118)
+    scene.background = new THREE.Color(0x1e1e1e)
 
     const environmentGroup = new THREE.Group()
     environmentGroupRef.current = environmentGroup
@@ -96,6 +98,12 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     controls.maxZoom = 12
     controls.update()
 
+    // Same on-demand drawing as the main Viewport; matters more here since three
+    // panes are open at once and are usually idle.
+    const scheduler = createRenderScheduler()
+    const { requestRender } = scheduler
+    requestRenderRef.current = requestRender
+
     const resize = () => {
       const width = mount.clientWidth
       const height = Math.max(mount.clientHeight, 1)
@@ -106,44 +114,40 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       camera.bottom = -FRUSTUM_HALF_HEIGHT
       camera.updateProjectionMatrix()
       renderer.setSize(width, height, false)
+      requestRender()
     }
 
-    let renderedSignature = ''
+    // Shares syncArtefacts with the main Viewport rather than rebuilding this logic per
+    // pane — important here specifically, since three of these panes render at once, so a
+    // full-rebuild-every-sync approach (its previous form) tripled the cost of every edit.
+    // Reference equality is exact because every edit clones ProjectData.
+    let synced: { objects: readonly SceneObject[]; selectedId: string | null } | null = null
     const syncObjects = () => {
-      const signature = JSON.stringify([dataRef.current.objects, dataRef.current.selectedId])
-      if (signature === renderedSignature) return
-      objectsGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
+      const { objects, selectedId } = dataRef.current
+      if (synced && synced.objects === objects && synced.selectedId === selectedId) return
+      syncArtefacts({
+        group: objectsGroup,
+        objects,
+        selectedId,
+        onModelLoaded: () => { synced = null },
       })
-      objectsGroup.clear()
-      dataRef.current.objects.forEach((item) => {
-        const geometry = item.assetKind === 'sphere' ? new THREE.SphereGeometry(0.65, 32, 20) : item.assetKind === 'cylinder' ? new THREE.CylinderGeometry(0.55, 0.55, 1.2, 32) : new THREE.BoxGeometry(1.1, 1.1, 1.1)
-        const material = new THREE.MeshStandardMaterial({ color: colorFor(item.assetKind), roughness: 0.68, metalness: 0.05 })
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.position.set(...item.transform.position)
-        mesh.rotation.set(...item.transform.rotation)
-        mesh.scale.set(...item.transform.scale)
-        if (item.id === dataRef.current.selectedId) {
-          const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xf3d48b }))
-          mesh.add(edges)
-        }
-        objectsGroup.add(mesh)
-      })
-      renderedSignature = signature
+      synced = { objects, selectedId }
+      requestRender()
     }
 
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
 
+    // Pan and zoom change the camera (caught by the scheduler); zoom on an
+    // orthographic camera only changes its projection, so the wheel wakes a draw.
+    renderer.domElement.addEventListener('wheel', requestRender)
+
     let frame = 0
     const animate = () => {
       frame = requestAnimationFrame(animate)
       syncObjects()
-      controls.update()
+      if (controls.update()) requestRender()
+      if (!scheduler.shouldRender(camera, controls.target)) return
       renderer.render(scene, camera)
     }
     resize()
@@ -151,17 +155,13 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
 
     return () => {
       cancelAnimationFrame(frame)
+      requestRenderRef.current = () => {}
       observer.disconnect()
+      renderer.domElement.removeEventListener('wheel', requestRender)
       controls.dispose()
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
-      objectsGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-          child.geometry.dispose()
-          if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose())
-          else child.material.dispose()
-        }
-      })
+      disposeObjectResources(objectsGroup)
       grid.geometry.dispose()
       ;(grid.material as THREE.Material).dispose()
       renderer.dispose()
@@ -180,6 +180,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       holder?.add(loaded.group)
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = loaded.dispose
+      requestRenderRef.current()
     }).catch(() => {
       // Reference panes are secondary; a failed environment load just leaves the grid visible.
     })

@@ -46,3 +46,9 @@ export function ViewportOverlay({ status, onRetry }: ViewportOverlayProps) {
 export function ViewportHint({ text }: { text: string | null }) {
   return text ? <div className="viewport-hint">{text}</div> : null
 }
+
+// only in Run Simulation only: a fixed center-screen aim reference for mouse-look, since the
+// cursor is hidden while pointer-locked (in interactionController file, funtion: onPointerLockChange).
+export function ViewportCrosshair() {
+  return <div className="viewport-crosshair" />
+}

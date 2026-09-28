@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, reparentObject, setObjectEnabled, setObjectVisible } from './index'
-import { defaultProject, ProjectData } from '@vthere/project'
+import { composeWorldTransform, createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, reparentObject, setObjectEnabled, setObjectVisible, updateObjectTransform } from './index'
+import { defaultProject, InteractionRule, ProjectData } from '@vthere/project'
 
 describe('command timeline', () => {
   it('restores committed snapshots without sharing mutable state', () => {
@@ -122,6 +122,40 @@ describe('parent-child hierarchy', () => {
     expect(objects(project).find((item) => item.id === 'obj-1')?.parentId).toBe('obj-0')
   })
 
+  it('recomputes local transform on reparent so world position is unchanged', () => {
+    let { project } = buildFamily()
+    project = updateObjectTransform(project, { sceneId: 'scene-gallery', objectId: 'obj-0', changes: { position: [10, 0, 0], rotation: [0, Math.PI / 2, 0], scale: [2, 2, 2] } }).project
+    project = updateObjectTransform(project, { sceneId: 'scene-gallery', objectId: 'obj-1', changes: { position: [0, 0, 0] } }).project
+
+    const worldBefore = composeWorldTransform(objects(project), 'obj-1')
+    const detached = reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-1', parentId: null }).project
+    const worldAfter = composeWorldTransform(objects(detached), 'obj-1')
+
+    expect(worldAfter.position.x).toBeCloseTo(worldBefore.position.x, 6)
+    expect(worldAfter.position.y).toBeCloseTo(worldBefore.position.y, 6)
+    expect(worldAfter.position.z).toBeCloseTo(worldBefore.position.z, 6)
+    // Detaching to top-level makes local === world, so the local transform now
+    // carries the parent's rotation/scale contribution directly.
+    const detachedObject = objects(detached).find((item) => item.id === 'obj-1')!
+    expect(detachedObject.parentId).toBeUndefined()
+    expect(detachedObject.transform.position[0]).toBeCloseTo(10, 6)
+  })
+
+  it('recomputes local transform when reparenting between two transformed parents', () => {
+    let { project } = buildFamily()
+    project = updateObjectTransform(project, { sceneId: 'scene-gallery', objectId: 'obj-0', changes: { position: [10, 0, 0] } }).project
+    project = updateObjectTransform(project, { sceneId: 'scene-gallery', objectId: 'obj-2', changes: { position: [0, 5, 0], rotation: [0, Math.PI / 2, 0] } }).project
+
+    const worldBefore = composeWorldTransform(objects(project), 'obj-1')
+    const moved = reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-1', parentId: 'obj-2' }).project
+    const worldAfter = composeWorldTransform(objects(moved), 'obj-1')
+
+    expect(worldAfter.position.x).toBeCloseTo(worldBefore.position.x, 6)
+    expect(worldAfter.position.y).toBeCloseTo(worldBefore.position.y, 6)
+    expect(worldAfter.position.z).toBeCloseTo(worldBefore.position.z, 6)
+    expect(objects(moved).find((item) => item.id === 'obj-1')?.parentId).toBe('obj-2')
+  })
+
   it('rejects self-parenting, cycles, and missing parents', () => {
     const { project } = buildFamily()
     expect(() => reparentObject(project, { sceneId: 'scene-gallery', objectId: 'obj-0', parentId: 'obj-0' })).toThrow(ObjectOperationError)
@@ -139,6 +173,37 @@ describe('parent-child hierarchy', () => {
     expect(rootCopy?.parentId).toBeUndefined()
     expect(objects(result.project).filter((item) => item.parentId === result.objectId)).toHaveLength(2)
     expect(objects(project)).toHaveLength(3)
+  })
+
+  it('drops rules referencing a removed object, keeps unrelated and surviving-object rules', () => {
+    const { project } = buildFamily()
+    const rules: InteractionRule[] = [
+      { id: 'rule-target', objectId: 'obj-1', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-other', objectId: 'obj-2', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-scene-start', triggers: ['sceneStart'], actions: [{ kind: 'playAudio' }] },
+    ]
+    const withRules = { ...project, rules }
+
+    const result = removeObject(withRules, { sceneId: 'scene-gallery', objectId: 'obj-1' })
+
+    expect(result.project.rules?.map((rule) => rule.id)).toEqual(['rule-other', 'rule-scene-start'])
+    expect(result.removedRules?.map((rule) => rule.id)).toEqual(['rule-target'])
+    expect(withRules.rules).toHaveLength(3)
+  })
+
+  it('drops rules for every descendant when removing a parent', () => {
+    const { project } = buildFamily()
+    const rules: InteractionRule[] = [
+      { id: 'rule-parent', objectId: 'obj-0', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-child-1', objectId: 'obj-1', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-child-2', objectId: 'obj-2', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+    ]
+    const withRules = { ...project, rules }
+
+    const result = removeObject(withRules, { sceneId: 'scene-gallery', objectId: 'obj-0' })
+
+    expect(result.project.rules).toEqual([])
+    expect(result.removedRules?.map((rule) => rule.id).sort()).toEqual(['rule-child-1', 'rule-child-2', 'rule-parent'])
   })
 
   it('removes a parent together with its whole subtree', () => {

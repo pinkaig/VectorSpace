@@ -121,6 +121,16 @@ filler:
 
 Use `/handoff` to generate or refresh it on demand.
 
+**Command file location note:** `/handoff`, `/learn`, `/next`, and `/skeleton` are authored here in
+`Agent Skills/commands/`, but Claude Code only auto-discovers slash commands from `.claude/commands/` at the repo
+root — a plain `Agent Skills/commands/` folder is invisible to it. `.claude/` is gitignored (it holds local session
+state, not shared repo content), so this isn't set up for you automatically by cloning the repo: each person who
+wants these slash commands working locally copies the four files from `Agent Skills/commands/` into their own
+`.claude/commands/` once, e.g. `cp "Agent Skills/commands/"*.md .claude/commands/` from the repo root (create
+`.claude/commands/` first if it doesn't exist). If you edit one of the four files, treat `Agent Skills/commands/`
+as the source of truth and re-copy — don't edit the `.claude/commands/` copy directly, since it isn't tracked and
+your edit would be invisible to everyone else and easy to lose.
+
 ## Compact Instructions
 When compacting this conversation, always preserve:
 - The current approved skeleton/plan and which parts are implemented vs. pending

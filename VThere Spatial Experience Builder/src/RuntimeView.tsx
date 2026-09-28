@@ -21,8 +21,10 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/viewport.md
  */
-import Viewport from './Viewport'
+import { useEffect, useRef } from 'react'
+import Viewport, { type ViewportHandle } from './Viewport'
 import { ProjectData } from './model'
+import { isTypingTarget } from './viewport/viewportTypes'
 
 interface RuntimeViewProps {
   project: ProjectData;
@@ -33,6 +35,17 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
   const scene =
     project.scenes.find((item) => item.id === project.activeSceneId) ??
     project.scenes[0];
+  const viewportRef = useRef<ViewportHandle>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target) || event.repeat) return
+      if (event.code === 'Escape') onExit()
+      else if (event.code === 'KeyR') viewportRef.current?.restartRuntime()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onExit])
 
   return (
     <main className="runtime-shell">
@@ -49,9 +62,10 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           <strong>{project.name}</strong>
           <span>{scene.name}</span>
         </div>
-        <button className="button ghost" onClick={onExit}>
-          Exit simulation
-        </button>
+        <div className="runtime-actions">
+          <span><kbd>Esc</kbd> exit</span>
+          <span><kbd>R</kbd> restart</span>
+        </div>
       </header>
       <section className="runtime-stage">
         <div className="runtime-meta">
@@ -59,6 +73,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           Visitor view <span className="divider" /> {scene.name}
         </div>
         <Viewport
+          ref={viewportRef}
           objects={scene.objects}
           selectedId={null}
           onSelect={() => undefined}
@@ -68,6 +83,11 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           startCamera={scene.startCamera}
           cameraMode="walk"
           interactive={false}
+          runtimeMode="play"
+          rules={project.rules ?? []}
+          zones={scene.zones ?? []}
+          audioAssets={project.audioAssets ?? []}
+          audioSettings={project.audioSettings}
         />
       </section>
     </main>

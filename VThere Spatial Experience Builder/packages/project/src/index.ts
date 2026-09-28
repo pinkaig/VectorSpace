@@ -22,7 +22,7 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/project-serialization.md
  */
-export type AssetKind = 'cube' | 'sphere' | 'cylinder'
+export type AssetKind = 'cube' | 'sphere' | 'cylinder' | 'model'
 
 export interface TransformData {
   position: [number, number, number]
@@ -90,7 +90,7 @@ export const environmentLibrary: EnvironmentDefinition[] = [
 ]
 
 export const defaultEnvironmentId =
-  environmentLibrary.find((item) => item.proceduralId !== 'empty')?.id ?? environmentLibrary[0].id
+  environmentLibrary.find((item) => item.proceduralId === 'empty')?.id ?? environmentLibrary[0].id
 
 export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
   environmentLibrary.find((item) => item.id === environmentId) ??
@@ -99,12 +99,74 @@ export const findEnvironment = (environmentId: string): EnvironmentDefinition =>
 
 export const defaultCameraPose = (): CameraPose => ({ position: [7, 5.5, 8], target: [0, 0.7, 0] })
 
+/**
+ * A volume the WHEN→DO runtime tests occupancy against, to turn "someone walked
+ * in here" into an event. Zones are spatial, so they belong to a scene; rules,
+ * which reference them, belong to the project.
+ */
+export type ZoneShape =
+  | { kind: 'box'; size: [number, number, number] }
+  | { kind: 'sphere'; radius: number }
+
+export interface ZoneDefinition {
+  id: string
+  name: string
+  shape: ZoneShape
+  position: [number, number, number]
+}
+
+/**
+ * One DO action a rule asks for. `params` carries arguments a bare kind string
+ * could not — a componentId for showPanel, an assetId for playAudio.
+ */
+export interface ActionSpec {
+  kind: string
+  params?: Record<string, unknown>
+}
+
+/**
+ * An authored WHEN→DO rule. Field names mirror the backend's interaction_rules
+ * columns so the record round-trips without translation; objectId is optional
+ * for the same reason its column is nullable — a sceneStart rule names no object.
+ */
+export interface InteractionRule {
+  id: string
+  objectId?: string
+  zoneId?: string
+  triggers: string[]
+  actions: ActionSpec[]
+  priority?: number
+}
+
 export interface SceneData {
   id: string
   name: string
   objects: SceneObject[]
   environmentId: string
   startCamera: CameraPose
+  // absent in files written before zones existed; the serializer backfills to []
+  zones?: ZoneDefinition[]
+}
+
+/** A mix group with its own volume and mute. The four below always exist; a project may add custom ids. */
+export type ChannelId = 'bgm' | 'sfx' | 'narration' | 'ambient' | (string & {})
+
+/**
+ * Authored presettings for one audio asset, stored on the project. Core
+ * playback fields only — see docs/code/subsystems/audio-system.md for the
+ * full field set (spatial, captions, loop points, etc.) not yet implemented.
+ */
+export interface AudioAssetMeta {
+  assetId: string
+  name: string
+  channel: ChannelId
+  volume: number
+  loop: boolean
+}
+
+export interface AudioSettings {
+  master: number
+  channels: Record<ChannelId, { volume: number; muted: boolean }>
 }
 
 export interface ProjectData {
@@ -113,7 +175,23 @@ export interface ProjectData {
   name: string
   scenes: SceneData[]
   activeSceneId: string
+  // absent in files written before rules existed; the serializer backfills to []
+  rules?: InteractionRule[]
+  // absent in files written before audio existed; the serializer backfills to []
+  audioAssets?: AudioAssetMeta[]
+  // absent in files written before audio existed; the serializer backfills to defaultAudioSettings()
+  audioSettings?: AudioSettings
 }
+
+export const defaultAudioSettings = (): AudioSettings => ({
+  master: 1,
+  channels: {
+    bgm: { volume: 1, muted: false },
+    sfx: { volume: 1, muted: false },
+    narration: { volume: 1, muted: false },
+    ambient: { volume: 1, muted: false },
+  },
+})
 
 export const makeScene = (id: string, name: string): SceneData => ({
   id,
@@ -134,13 +212,15 @@ export const defaultProject = (): ProjectData => ({
 export const cloneProject = (project: ProjectData): ProjectData =>
   JSON.parse(JSON.stringify(project)) as ProjectData
 
-// half the height of each primitive's geometry, so a freshly placed object rests on the floor
-const restingHeight: Record<AssetKind, number> = { cube: 0.55, sphere: 0.65, cylinder: 0.6 }
+// half the height of each primitive's geometry, so a freshly placed object rests on the
+// floor. GLB models carry no known height here — 0 assumes the source model's own pivot
+// sits at its base; the author repositions it via the transform gizmo if that's not true.
+const restingHeight: Record<AssetKind, number> = { cube: 0.55, sphere: 0.65, cylinder: 0.6, model: 0 }
 
-export const makeObject = (assetKind: AssetKind, index: number): SceneObject => ({
+export const makeObject = (assetKind: AssetKind, index: number, assetId?: string): SceneObject => ({
   id: `${assetKind}-${Date.now()}-${index}`,
   name: `${assetKind[0].toUpperCase()}${assetKind.slice(1)} ${index}`,
-  assetId: `primitive-${assetKind}`,
+  assetId: assetId ?? `primitive-${assetKind}`,
   assetKind,
   visible: true,
   enabled: true,
@@ -162,6 +242,12 @@ export const makeObject = (assetKind: AssetKind, index: number): SceneObject => 
  *   owns project identity, schemaVersion, scene ordering, and active scene ID
  *   contains every authored SceneObject exactly once
  *   is safe to clone, serialize, migrate, validate, and restore
+ *   owns InteractionRule[] (WHEN→DO rules); zones live on SceneData because
+ *   they are spatial. Both were added by additive migration — optional and
+ *   backfilled to [], so schemaVersion stayed 1, as with parentId. Because they
+ *   are ProjectData fields, undo/redo covers them with no extra work.
+ *   Runtime state is deliberately NOT here: see
+ *   docs/05-subsystems/when-do-dispatch-engine.md
  *
  * SceneObject:
  *   owns persistent object identity, display name, asset identity, asset kind,
