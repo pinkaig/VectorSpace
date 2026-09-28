@@ -50,7 +50,33 @@ export const matchFaceView = (direction: THREE.Vector3): number | null => {
   return null
 }
 
-export type NudgeDirection = 'up' | 'down' | 'left' | 'right'
+// Label order within an edge name: vertical faces first, then sides, then front/back
+// (TOP-FRONT, LEFT-BACK, BOTTOM-RIGHT).
+const EDGE_LABEL_PRIORITY = ['TOP', 'BOTTOM', 'LEFT', 'RIGHT', 'FRONT', 'BACK']
+
+// The 12 edges of the imagined view cube: every pair of faces that aren't opposite,
+// looking along the diagonal between them.
+export const EDGE_VIEWS: FaceView[] = FACE_VIEWS.flatMap((a, i) =>
+  FACE_VIEWS.slice(i + 1)
+    .filter((b) => a.direction.dot(b.direction) === 0)
+    .map((b) => {
+      const [first, second] = EDGE_LABEL_PRIORITY.indexOf(a.label) < EDGE_LABEL_PRIORITY.indexOf(b.label) ? [a, b] : [b, a]
+      return {
+        direction: a.direction.clone().add(b.direction).normalize(),
+        label: `${first.label}-${second.label}`,
+      }
+    }),
+)
+
+// Same as matchFaceView, but for the 12 edge views.
+export const matchEdgeView = (direction: THREE.Vector3): number | null => {
+  for (let i = 0; i < EDGE_VIEWS.length; i++) {
+    if (direction.dot(EDGE_VIEWS[i].direction) > FACE_ALIGN_EPSILON) return i
+  }
+  return null
+}
+
+export type NudgeDirection ='up' | 'down' | 'left' | 'right'
 export type RollDirection = 'left' | 'right'
 
 // Pivots the view 90 degrees so the side that was previously up/down/left/right on

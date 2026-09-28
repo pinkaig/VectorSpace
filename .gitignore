@@ -3,6 +3,8 @@ node_modules/
 .venv/
 venv/
 env/
+# ...but not the app's bundled 3D environment models
+!VThere Spatial Experience Builder/src/env/
 
 # Build and test output
 dist/
@@ -45,11 +47,6 @@ Desktop.ini
 .vscode/
 *.swp
 *.swo
-
-# Claude Code local session state and machine-local settings
-# (slash commands live in "Agent Skills/commands/"; copy them into .claude/commands/
-# locally to enable them for this session — see Agent Skills/CLAUDE.md)
-.claude/
 
 # Generated archives and local exports
 *.zip

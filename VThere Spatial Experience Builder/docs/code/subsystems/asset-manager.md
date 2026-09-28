@@ -2,8 +2,6 @@
 
 **Baseline phase:** Stage 4a (build) + Stage 6 (wire into frontend). See [8-stage baseline overview](../baseline-phases.md).
 
-**See also:** [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) for which attachment types (image, text, video, audio, 3D) can be loaded today and what is proposed, [`attachment-integration.md`](attachment-integration.md) for the proposed resolver chain, asset kinds and attachment model, and the type designs [`audio-system.md`](audio-system.md), [`image-system.md`](image-system.md), [`text-system.md`](text-system.md) and [`video-system.md`](video-system.md).
-
 ## Purpose
 
 Give every part of the app — editor, runtime, and (once it exists) the backend — one way to

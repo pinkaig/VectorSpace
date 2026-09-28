@@ -1,6 +1,13 @@
+/// <reference types="vite/client" />
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { EnvironmentDefinition, findEnvironment } from './model'
+
+// Environment models shipped with the app. Vite bundles every src/env/*.glb and maps its
+// path to the built (hashed) URL, so catalog entries can refer to 'env/room_1.glb'.
+const bundledEnvironmentUrls = import.meta.glob<string>('./env/*.glb', { query: '?url', import: 'default', eager: true })
+
+export const resolveEnvironmentUrl = (url: string): string => bundledEnvironmentUrls[`./${url}`] ?? url
 
 export interface LoadedEnvironment {
   group: THREE.Group
@@ -14,53 +21,12 @@ export interface EnvironmentLoadHandlers {
   onProgress?: (ratio: number) => void
 }
 
-const wallMaterial = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.02, side: THREE.DoubleSide })
-const floorMaterial = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0 })
-
-const box = (width: number, height: number, depth: number, material: THREE.Material, position: [number, number, number]) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material)
-  mesh.position.set(...position)
-  return mesh
-}
-
 /**
- * placeholder environments used
- * environments:
- * a floor, enclosing walls and a distinguishing feature, so the
- * loader / orbit / walk pipeline
+ * Procedural environments are built in code rather than loaded from a file.
+ * Only 'empty' is left now that the placeholder rooms were replaced by the real
+ * GLB environments in src/env.
  */
 const proceduralBuilders: Record<string, () => THREE.Group> = {
-  'gallery-hall': () => {
-    const group = new THREE.Group()
-    group.name = 'env-gallery-hall'
-    const walls = wallMaterial(0x1c2a30)
-    group.add(box(16, 0.2, 12, floorMaterial(0x121b20), [0, -0.1, 0]))
-    group.add(box(16, 4, 0.2, walls, [0, 2, -6]))
-    group.add(box(0.2, 4, 12, walls, [-8, 2, 0]))
-    group.add(box(0.2, 4, 12, walls, [8, 2, 0]))
-    //group.add(box(16, 4, 0.2, walls, [0, 2, 6]))
-    const skylight = new THREE.Mesh(new THREE.BoxGeometry(14, 0.15, 14), new THREE.MeshStandardMaterial({ color: 0xdfe9e2, emissive: 0x223a34, emissiveIntensity: 0.6 }))
-    skylight.position.set(0, 7, 0)
-    group.add(skylight)
-    return group
-  },
-  'riverside-warehouse': () => {
-    const group = new THREE.Group()
-    group.name = 'env-riverside-warehouse'
-    const walls = wallMaterial(0x2a2118)
-    group.add(box(18, 0.2, 14, floorMaterial(0x1a1510), [0, -0.1, 0]))
-    group.add(box(18, 5, 0.2, walls, [0, 2.5, -7]))
-    group.add(box(0.2, 5, 14, walls, [-9, 2.5, 0]))
-    group.add(box(0.2, 5, 14, walls, [9, 2.5, 0]))
-    for (let index = -1; index <= 1; index += 1) {
-      group.add(box(1.2, 5, 0.2, wallMaterial(0x3a2f22), [index * 5, 2.5, -6.9]))
-    }
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(18, 6), new THREE.MeshStandardMaterial({ color: 0x1c3b46, roughness: 0.25, metalness: 0.1 }))
-    water.rotation.x = -Math.PI / 2
-    water.position.set(0, -0.05, 9)
-    group.add(water)
-    return group
-  },
   empty: () => {
     const group = new THREE.Group()
     group.name = 'env-empty'
@@ -91,7 +57,7 @@ const loadGlb = (definition: EnvironmentDefinition, handlers: EnvironmentLoadHan
   new Promise((resolve, reject) => {
     if (!definition.url) { reject(new Error(`Environment "${definition.id}" has no source URL`)); return }
     new GLTFLoader().load(
-      definition.url,
+      resolveEnvironmentUrl(definition.url),
       (gltf) => {
         const group = new THREE.Group()
         group.add(gltf.scene)
