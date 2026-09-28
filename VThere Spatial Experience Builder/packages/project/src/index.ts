@@ -17,7 +17,8 @@
  *
  * @members
  * AssetKind, TransformData, SceneObject, SceneData, ProjectData,
- * defaultProject, cloneProject, and makeObject.
+ * MediaKind, AssetRefKind, Attachment (audio/text), TextAssetMeta,
+ * TextPresentation, defaultProject, cloneProject, and makeObject.
  *
  * @documentation
  * Larger system guide: docs/05-subsystems/project-serialization.md
@@ -40,6 +41,10 @@ export interface SceneObject {
   // absent = top-level object; must reference an object in the same scene, no cycles
   parentId?: string
   transform: TransformData
+  // absent in files written before attachments existed; left undefined (not
+  // backfilled) to keep files small — attachments live on their host so
+  // delete/duplicate/undo carry them automatically
+  attachments?: Attachment[]
 }
 
 /**
@@ -113,6 +118,9 @@ export interface ZoneDefinition {
   name: string
   shape: ZoneShape
   position: [number, number, number]
+  // same contract as SceneObject.attachments; a zone attachment has no
+  // transform of its own — the zone's position and shape apply
+  attachments?: Attachment[]
 }
 
 /**
@@ -169,6 +177,75 @@ export interface AudioSettings {
   channels: Record<ChannelId, { volume: number; muted: boolean }>
 }
 
+/**
+ * The media kinds the attachment model can bind to a host. All four names are
+ * reserved now so `MEDIA_KIND_SPECS` and the serializer allowlist stay
+ * table-driven, but only `audio` and `text` have Attachment shapes yet —
+ * image and video join the union when their design docs' presentation types
+ * are approved (docs/code/subsystems/attachment-integration.md section 3).
+ */
+export type MediaKind = 'audio' | 'image' | 'video' | 'text'
+
+/** What AssetRef.kind widens to: a placeable primitive/model or a media kind. */
+export type AssetRefKind = AssetKind | MediaKind
+
+export type TextFormat = 'plain' | 'markdown-lite'
+
+/**
+ * fontFamily names a role, never a font file or URL, so an author cannot pull
+ * in remote type; the app maps roles to real fonts. Colours are validated as
+ * hex so styling cannot smuggle a css url() (text-system.md section 4).
+ */
+export interface TextStyle {
+  fontFamily?: 'body' | 'heading' | 'mono'
+  sizePx?: number
+  color?: string
+  background?: string
+  align?: 'left' | 'center' | 'right'
+}
+
+export interface TextPresentation {
+  mode: 'panel' | 'label' | 'surface' | 'dialogue'
+  title?: string
+  anchor?: 'center' | 'top' | 'bottom' | 'left' | 'right'
+  size?: [number, number]
+  offset?: [number, number, number]
+  style?: TextStyle
+  modal?: boolean
+  autoCloseMs?: number
+  paging?: 'none' | 'auto'
+}
+
+/**
+ * Author text stored inline in the project — there is no file-backed text
+ * kind and no network fetch for text content, by decision (text-system.md
+ * section 1). Size is bounded by the serializer's 64 KB per-asset and 512 KB
+ * per-project caps instead of a storage tier.
+ */
+export interface TextAssetMeta {
+  assetId: string
+  name: string
+  format: TextFormat
+  lang: string                       // BCP 47, e.g. 'en'
+  content: string
+  variants?: Record<string, string>  // T2: content by language
+  maxLength?: number                 // author-set cap, never above the system limit
+  title?: string
+}
+
+/**
+ * A binding of one asset to one host. Behaviour is not here: an attachment
+ * declares that content belongs to a host; a WHEN→DO rule says when it happens
+ * (attachment-integration.md section 2).
+ */
+export interface AttachmentBase {
+  id: string        // unique across the whole project, objects and zones alike
+  name?: string
+}
+export interface AudioAttachment extends AttachmentBase { kind: 'audio'; assetId: string }
+export interface TextAttachment extends AttachmentBase { kind: 'text'; assetId: string; presentation: TextPresentation }
+export type Attachment = AudioAttachment | TextAttachment
+
 export interface ProjectData {
   schemaVersion: 1
   id: string
@@ -181,6 +258,8 @@ export interface ProjectData {
   audioAssets?: AudioAssetMeta[]
   // absent in files written before audio existed; the serializer backfills to defaultAudioSettings()
   audioSettings?: AudioSettings
+  // absent in files written before text existed; the serializer backfills to []
+  textAssets?: TextAssetMeta[]
 }
 
 export const defaultAudioSettings = (): AudioSettings => ({
