@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { composeWorldTransform, createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, reparentObject, setObjectEnabled, setObjectVisible, updateObjectTransform } from './index'
-import { defaultProject, ProjectData } from '@vthere/project'
+import { defaultProject, InteractionRule, ProjectData } from '@vthere/project'
 
 describe('command timeline', () => {
   it('restores committed snapshots without sharing mutable state', () => {
@@ -173,6 +173,37 @@ describe('parent-child hierarchy', () => {
     expect(rootCopy?.parentId).toBeUndefined()
     expect(objects(result.project).filter((item) => item.parentId === result.objectId)).toHaveLength(2)
     expect(objects(project)).toHaveLength(3)
+  })
+
+  it('drops rules referencing a removed object, keeps unrelated and surviving-object rules', () => {
+    const { project } = buildFamily()
+    const rules: InteractionRule[] = [
+      { id: 'rule-target', objectId: 'obj-1', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-other', objectId: 'obj-2', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-scene-start', triggers: ['sceneStart'], actions: [{ kind: 'playAudio' }] },
+    ]
+    const withRules = { ...project, rules }
+
+    const result = removeObject(withRules, { sceneId: 'scene-gallery', objectId: 'obj-1' })
+
+    expect(result.project.rules?.map((rule) => rule.id)).toEqual(['rule-other', 'rule-scene-start'])
+    expect(result.removedRules?.map((rule) => rule.id)).toEqual(['rule-target'])
+    expect(withRules.rules).toHaveLength(3)
+  })
+
+  it('drops rules for every descendant when removing a parent', () => {
+    const { project } = buildFamily()
+    const rules: InteractionRule[] = [
+      { id: 'rule-parent', objectId: 'obj-0', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-child-1', objectId: 'obj-1', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+      { id: 'rule-child-2', objectId: 'obj-2', triggers: ['onClick'], actions: [{ kind: 'playAudio' }] },
+    ]
+    const withRules = { ...project, rules }
+
+    const result = removeObject(withRules, { sceneId: 'scene-gallery', objectId: 'obj-0' })
+
+    expect(result.project.rules).toEqual([])
+    expect(result.removedRules?.map((rule) => rule.id).sort()).toEqual(['rule-child-1', 'rule-child-2', 'rule-parent'])
   })
 
   it('removes a parent together with its whole subtree', () => {

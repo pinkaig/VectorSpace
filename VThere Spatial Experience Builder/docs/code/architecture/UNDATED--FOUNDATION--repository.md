@@ -67,3 +67,5 @@ src/
 ## Architectural component rule
 
 A new top-level directory, protocol, external service, or canonical subsystem is an architectural change. Stop, document the conflict, and obtain a decision. A new private implementation file inside an existing boundary is not an architectural component.
+
+**Proposed, not built.** [`attachment-integration.md`](../subsystems/attachment-integration.md) treats `packages/audio`, `packages/image`, `packages/text`, and `packages/video` as new canonical subsystems and applies this rule to them: each is a decision to make before any code lands, not an implementation detail. None of those four packages exist on disk today; they are awaiting that architecture decision, and the `packages/` tree in Classification above lists only what is actually implemented.
