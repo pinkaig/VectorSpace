@@ -31,6 +31,12 @@ export interface AssetDescriptor {
   errorMessage?: string
   /** Unix ms when this descriptor should no longer be served from cache. Absent = does not expire. */
   expiresAt?: number
+  /** Known before download when the source (catalog entry, backend record) carries it. */
+  sizeBytes?: number
+  /** Media dimensions/duration, when known — image layout and scrub bars before any decode. */
+  width?: number
+  height?: number
+  durationMs?: number
 }
 
 export const idleAssetDescriptor = (ref: AssetRef): AssetDescriptor => ({ ref, status: 'idle' })
@@ -39,7 +45,7 @@ export const loadingAssetDescriptor = (ref: AssetRef): AssetDescriptor => ({ ref
 
 export const readyAssetDescriptor = (
   ref: AssetRef,
-  fields: { contentType: string; url?: string; blob?: Blob; expiresAt?: number },
+  fields: { contentType: string; url?: string; blob?: Blob; expiresAt?: number; sizeBytes?: number; width?: number; height?: number; durationMs?: number },
 ): AssetDescriptor => ({ ref, status: 'ready', ...fields })
 
 export const errorAssetDescriptor = (ref: AssetRef, errorMessage: string): AssetDescriptor => ({

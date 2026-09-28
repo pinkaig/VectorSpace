@@ -1,6 +1,6 @@
 # Text System
 
-**Status:** Design specification (2026-09-21). Nothing in this doc is implemented yet. It becomes a description of built code as each build-sequence step lands.
+**Status:** Partially implemented (2026-09-28). Build-sequence steps 2–5 are built: the shared attachment work, the `packages/text` core (parser, `UrlPolicy`, `TextLibrary`, `TextLayout`+`FakeTextMeasurer`, `PanelManager`, `TextStateStore`, `TextSystem`), the `TextPanelHost` overlay, and the runtime wiring (`registerTextActions`, `TextEventBridge`, `Viewport.tsx` hookup, `textAssets` prop, `modalOpen` read by `interactionController`). `showPanel`/`hidePanel`/`advancePanel` are live, dispatchable actions with `componentId` accepted as an alias. Step 6's dev surface is the seeded demo project `tests/e2e/fixtures/text-demo-project.json` (also human-importable via Import JSON) driven by `tests/e2e/textPanels.spec.ts`, which automates the hostile-input, modal-stacking and Escape-order manual checks in a real browser. Not yet built: `wait: true` on `showPanel` (needs a sequencer wait-for-close primitive; the executor warns), the `label` presentation's anchored rendering, and every T2 row (surface, dialogue queue, paging UI, localisation, DOM mirror, link confirmation, fonts).
 **Baseline phase:** Post-baseline subsystem. Builds on the attachment model and the When-Do action registry. See [8-stage baseline overview](../baseline-phases.md).
 **Companions:** [`attachment-integration.md`](attachment-integration.md) defines the attachment, the host relationship and the resolver chain this system relies on. [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) is the status map. Sibling designs: [`audio-system.md`](audio-system.md), [`image-system.md`](image-system.md), [`video-system.md`](video-system.md).
 **Architecture decision:** [`repository.md`](../architecture/UNDATED--FOUNDATION--repository.md) L67-69 treats a new canonical subsystem as an architectural change. This doc is the proposal for `packages/text`; the package is created only after approval.
@@ -15,11 +15,11 @@ Text is the smallest attachment type and the one with the most security weight, 
 displayed to other people. The whole design leans on one rule: **the system never produces HTML.** Text becomes a node
 tree, and React or a canvas draws the tree.
 
-Today there is nothing. `showPanel` appears only in a doc comment (`packages/project/src/index.ts:119-121`) and in
-tests (`packages/interaction/src/actions/registry.test.ts:15`); no executor is registered (`Viewport.tsx:278` creates
-the registry and registers nothing). There is no text asset kind. Text does not need the backend `media_assets.kind`
-to have a `text` value (section 1: text is project data, not media storage), so this is not a blocker the way it is
-for a genuinely file-backed kind.
+*(Historical note, superseded 2026-09-28: this paragraph originally recorded that no `showPanel` executor existed.
+That gap is closed — `registerTextActions` registers `showPanel`/`hidePanel`/`advancePanel` in `src/Viewport.tsx`
+beside `registerAudioActions`, and `ProjectData.textAssets` is the text asset source.)* Text still does not need the
+backend `media_assets.kind` to have a `text` value (section 1: text is project data, not media storage), so Stage 3
+remains a non-blocker for this system.
 
 ## Boundary
 

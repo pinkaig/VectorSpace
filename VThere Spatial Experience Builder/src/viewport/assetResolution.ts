@@ -3,10 +3,11 @@
  * @brief       App-level Asset Manager wiring: one resolver chain, shared status cache.
  *
  * @responsibility
- * Builds the resolver chain (primitives, then a local dev catalog, wrapped in
- * caching and placeholder-on-failure behavior) and exposes a small store that
+ * Builds the resolver chain — Placeholder(Caching(ContentGuard(KindRouter(
+ * primitives | inline text | catalog)))) — and exposes a small store that
  * lets the viewport and interaction layer read/observe the resolution status
- * of any SceneObject by id, keyed off its AssetRef (assetId + assetKind).
+ * of any SceneObject by object id or any Attachment by attachment id, in one
+ * prefixed key space so the two id spaces cannot collide.
  *
  * @ownership
  * Owns the resolver chain and an in-memory status-by-object-id cache. Does
@@ -17,41 +18,56 @@
  */
 import {
   CachingAssetResolver,
+  ContentGuardResolver,
+  InlineTextResolver,
+  KindRouterResolver,
   LocalCatalogResolver,
   PlaceholderAssetResolver,
   PrimitiveResolver,
   isPlaceholderDescriptor,
   type AssetDescriptor,
   type AssetRef,
-  type AssetResolver,
 } from '../../packages/assets/src/index'
-import type { SceneObject } from '../model'
-
-/**
- * Every AssetKind happens to also be a primitive kind, so PrimitiveResolver
- * alone would resolve any object "ready" regardless of assetId, and a broken
- * assetId could never be observed. Only assetIds shaped like the canonical
- * `primitive-<kind>` (see makeObject in packages/project) are treated as
- * primitives; anything else — including a deliberately broken id — falls
- * through to the local dev catalog, which is empty until real GLB assets
- * exist, so it fails as a genuine, visible error.
- */
-class FallbackResolver implements AssetResolver {
-  constructor(private readonly primary: AssetResolver, private readonly secondary: AssetResolver) {}
-
-  async resolve(ref: AssetRef): Promise<AssetDescriptor> {
-    if (ref.assetId === `primitive-${ref.kind}`) return this.primary.resolve(ref)
-    return this.secondary.resolve(ref)
-  }
-}
+import { assetRefForAttachment, type Attachment, type SceneObject, type TextAssetMeta } from '../model'
 
 // The dev/local GLB catalog: built-in models (assets.ts) and models imported through
 // the UI (userAssets.ts) register here via registerLocalAsset. An assetId that was
 // never registered still fails as a genuine, visible error.
 const localCatalog = new Map<string, { url: string; contentType?: string }>()
 
+/**
+ * Inline text resolves from ProjectData.textAssets, which lives in React
+ * state, not here — the app feeds the current list in via
+ * setProjectTextAssets whenever the project changes (the same pattern as
+ * AudioSystem.setProjectAudioAssets).
+ */
+let textAssetsById = new Map<string, TextAssetMeta>()
+
+export const setProjectTextAssets = (textAssets: readonly TextAssetMeta[] | undefined): void => {
+  const next = new Map((textAssets ?? []).map((meta) => [meta.assetId, meta]))
+  // a descriptor cached from the previous project state would serve stale
+  // content after an edit, so every id that appeared or changed is dropped
+  for (const assetId of new Set([...textAssetsById.keys(), ...next.keys()])) {
+    cachingResolver.invalidate({ assetId, kind: 'text' })
+  }
+  textAssetsById = next
+}
+
+/**
+ * KindRouterResolver keeps the old FallbackResolver rule: every AssetKind is
+ * also a primitive kind, so only the canonical `primitive-<kind>` assetId is
+ * treated as a primitive and a broken id still fails as a visible error via
+ * the catalog. The guard turns a wrong content type or over-cap size on any
+ * media kind into an error descriptor before it is cached.
+ */
 const cachingResolver = new CachingAssetResolver(
-  new FallbackResolver(new PrimitiveResolver(), new LocalCatalogResolver(localCatalog)),
+  new ContentGuardResolver(
+    new KindRouterResolver({
+      primitives: new PrimitiveResolver(),
+      inlineText: new InlineTextResolver((assetId) => textAssetsById.get(assetId)),
+      catalog: new LocalCatalogResolver(localCatalog),
+    }),
+  ),
 )
 const resolver = new PlaceholderAssetResolver(cachingResolver)
 
@@ -60,40 +76,62 @@ export const assetRefFor = (object: SceneObject): AssetRef => ({ assetId: object
 export type AssetResolutionListener = (descriptor: AssetDescriptor) => void
 
 /**
- * Per-object descriptor cache plus subscriber list. A React component calls
- * `resolveAsset` on selection and re-renders from the listener callback; the
- * viewport reads `getAssetStatus` every frame to decide what's pickable.
+ * Per-id descriptor cache plus subscriber list. A React component calls
+ * `resolveAsset`/`resolveAttachment` and re-renders from the listener
+ * callback; the viewport reads `getAssetStatus` every frame to decide what's
+ * pickable. One store serves both id spaces: keys are prefixed so an object
+ * id and an attachment id can never collide.
  */
 const descriptors = new Map<string, AssetDescriptor>()
 const listeners = new Map<string, Set<AssetResolutionListener>>()
 
-const notify = (objectId: string, descriptor: AssetDescriptor) => {
-  descriptors.set(objectId, descriptor)
-  listeners.get(objectId)?.forEach((listener) => listener(descriptor))
+const keyForObject = (objectId: string) => `object:${objectId}`
+const keyForAttachment = (attachmentId: string) => `attachment:${attachmentId}`
+
+const notify = (key: string, descriptor: AssetDescriptor) => {
+  descriptors.set(key, descriptor)
+  listeners.get(key)?.forEach((listener) => listener(descriptor))
 }
 
-export const getAssetDescriptor = (objectId: string): AssetDescriptor | undefined => descriptors.get(objectId)
-
-export const getAssetStatus = (objectId: string): AssetDescriptor['status'] | undefined => descriptors.get(objectId)?.status
-
-export const subscribeAssetResolution = (objectId: string, listener: AssetResolutionListener): (() => void) => {
-  const set = listeners.get(objectId) ?? new Set()
+const subscribeKey = (key: string, listener: AssetResolutionListener): (() => void) => {
+  const set = listeners.get(key) ?? new Set()
   set.add(listener)
-  listeners.set(objectId, set)
+  listeners.set(key, set)
   return () => {
     set.delete(listener)
-    if (set.size === 0) listeners.delete(objectId)
+    if (set.size === 0) listeners.delete(key)
   }
 }
 
-const resolveRef = async (objectId: string, ref: AssetRef): Promise<AssetDescriptor> => {
-  notify(objectId, { ref, status: 'loading' })
+export const getAssetDescriptor = (objectId: string): AssetDescriptor | undefined => descriptors.get(keyForObject(objectId))
+
+export const getAssetStatus = (objectId: string): AssetDescriptor['status'] | undefined => getAssetDescriptor(objectId)?.status
+
+export const subscribeAssetResolution = (objectId: string, listener: AssetResolutionListener): (() => void) =>
+  subscribeKey(keyForObject(objectId), listener)
+
+export const getAttachmentDescriptor = (attachmentId: string): AssetDescriptor | undefined =>
+  descriptors.get(keyForAttachment(attachmentId))
+
+export const subscribeAttachmentResolution = (attachmentId: string, listener: AssetResolutionListener): (() => void) =>
+  subscribeKey(keyForAttachment(attachmentId), listener)
+
+const resolveRef = async (key: string, ref: AssetRef): Promise<AssetDescriptor> => {
+  notify(key, { ref, status: 'loading' })
   const descriptor = await resolver.resolve(ref)
-  notify(objectId, descriptor)
+  notify(key, descriptor)
   return descriptor
 }
 
-export const resolveAsset = (object: SceneObject): Promise<AssetDescriptor> => resolveRef(object.id, assetRefFor(object))
+export const resolveAsset = (object: SceneObject): Promise<AssetDescriptor> => resolveRef(keyForObject(object.id), assetRefFor(object))
+
+export const resolveAttachment = (attachment: Attachment): Promise<AssetDescriptor> =>
+  resolveRef(keyForAttachment(attachment.id), assetRefForAttachment(attachment))
+
+export const retryAttachment = (attachment: Attachment): Promise<AssetDescriptor> => {
+  cachingResolver.invalidate(assetRefForAttachment(attachment))
+  return resolveAttachment(attachment)
+}
 
 /**
  * Adds (or replaces) a catalog entry. Imported assets load asynchronously, so an
@@ -103,10 +141,10 @@ export const resolveAsset = (object: SceneObject): Promise<AssetDescriptor> => r
  */
 export const registerLocalAsset = (assetId: string, entry: { url: string; contentType?: string }): void => {
   localCatalog.set(assetId, entry)
-  descriptors.forEach((descriptor, objectId) => {
+  descriptors.forEach((descriptor, key) => {
     if (descriptor.status === 'error' && descriptor.ref.assetId === assetId) {
       cachingResolver.invalidate(descriptor.ref)
-      void resolveRef(objectId, descriptor.ref)
+      void resolveRef(key, descriptor.ref)
     }
   })
 }

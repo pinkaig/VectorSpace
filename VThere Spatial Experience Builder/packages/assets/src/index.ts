@@ -24,12 +24,22 @@ export type { AssetResolver } from './AssetResolver'
 
 export { AssetCache } from './AssetCache'
 export { CachingAssetResolver } from './CachingAssetResolver'
+export { ContentGuardResolver } from './ContentGuardResolver'
 export {
   PlaceholderAssetResolver,
   isPlaceholderDescriptor,
   type PlaceholderAssetDescriptor,
 } from './PlaceholderAssetResolver'
+export {
+  MEDIA_KIND_SPECS,
+  isAllowedContentType,
+  isMediaKind,
+  kindForContentType,
+  type MediaKindSpec,
+} from './mediaKinds'
 
 export { PrimitiveResolver } from './resolvers/PrimitiveResolver'
 export { LocalCatalogResolver, type LocalCatalogEntry } from './resolvers/LocalCatalogResolver'
 export { RemoteMediaResolver, type RemoteMediaResolverOptions } from './resolvers/RemoteMediaResolver'
+export { KindRouterResolver, type KindRoutes } from './resolvers/KindRouterResolver'
+export { InlineTextResolver, type TextAssetLookup } from './resolvers/InlineTextResolver'

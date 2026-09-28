@@ -185,3 +185,100 @@ describe('deserializeProject rules and zones', () => {
     expect(restored.rules).toEqual([])
   })
 })
+
+describe('deserializeProject attachments and text assets', () => {
+  const objectJson = (id: string, attachments?: unknown) => ({
+    id,
+    name: 'Cube',
+    assetId: 'primitive-cube',
+    assetKind: 'cube',
+    transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    ...(attachments === undefined ? {} : { attachments }),
+  })
+  const textAttachment = (id: string, presentation: Record<string, unknown> = { mode: 'panel' }) =>
+    ({ id, kind: 'text', assetId: 'text-1', presentation })
+  const projectJson = (objects: unknown[], extra: Record<string, unknown> = {}, sceneExtra: Record<string, unknown> = {}) =>
+    JSON.stringify({
+      schemaVersion: 1,
+      id: 'project-attachments',
+      name: 'Attachments Draft',
+      activeSceneId: 'scene-a',
+      scenes: [{ id: 'scene-a', name: 'Room', objects, ...sceneExtra }],
+      ...extra,
+    })
+
+  it('round-trips audio and text attachments on objects and zones', () => {
+    const original = deserializeProject(projectJson(
+      [objectJson('cube-1', [{ id: 'att-1', kind: 'audio', assetId: 'creak' }, textAttachment('att-2', { mode: 'panel', title: 'Info', modal: true, style: { color: '#ffcc00' } })])],
+      {},
+      { zones: [{ id: 'zone-a', name: 'Z', shape: { kind: 'box', size: [1, 1, 1] }, position: [0, 0, 0], attachments: [textAttachment('att-3', { mode: 'dialogue' })] }] },
+    ))
+    const restored = deserializeProject(serializeProject(original))
+    expect(restored.scenes[0].objects[0].attachments).toEqual(original.scenes[0].objects[0].attachments)
+    expect(restored.scenes[0].zones?.[0].attachments).toHaveLength(1)
+  })
+
+  it('accepts an attachment whose assetId is in no catalog', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'audio', assetId: 'missing-forever' }])]))).not.toThrow()
+  })
+
+  it('leaves attachments undefined and backfills textAssets to empty for older files', () => {
+    const project = deserializeProject(projectJson([objectJson('cube-1')]))
+    expect(project.scenes[0].objects[0].attachments).toBeUndefined()
+    expect(project.textAssets).toEqual([])
+  })
+
+  it('rejects duplicate attachment IDs even across different hosts', () => {
+    expect(() => deserializeProject(projectJson([
+      objectJson('cube-1', [{ id: 'att-1', kind: 'audio', assetId: 'a' }]),
+      objectJson('cube-2', [{ id: 'att-1', kind: 'audio', assetId: 'b' }]),
+    ]))).toThrow(/duplicate attachment/)
+  })
+
+  it('rejects unknown attachment kinds', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'hologram', assetId: 'a' }])]))).toThrow(/unknown kind/)
+  })
+
+  it('rejects a host with more than 16 attachments', () => {
+    const attachments = Array.from({ length: 17 }, (_, index) => ({ id: `att-${index}`, kind: 'audio', assetId: 'a' }))
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', attachments)]))).toThrow(/too many attachments/)
+  })
+
+  it('rejects a text attachment with an invalid presentation mode or colour', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [textAttachment('att-1', { mode: 'hud' })])]))).toThrow(/invalid presentation/)
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [textAttachment('att-1', { mode: 'panel', style: { color: 'url(evil)' } })])]))).toThrow(/invalid colour/)
+  })
+
+  const textAsset = (assetId: string, content: string, extra: Record<string, unknown> = {}) =>
+    ({ assetId, name: assetId, format: 'plain', lang: 'en', content, ...extra })
+
+  it('keeps a valid text asset and strips control characters from its content', () => {
+    const project = deserializeProject(projectJson([objectJson('cube-1')], {
+      textAssets: [textAsset('text-1', 'Hello world\nline two\ttabbed')],
+    }))
+    expect(project.textAssets?.[0].content).toBe('Hello world\nline two\ttabbed')
+  })
+
+  it('rejects duplicate text asset IDs and unknown formats', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1')], {
+      textAssets: [textAsset('text-1', 'a'), textAsset('text-1', 'b')],
+    }))).toThrow(/duplicate text asset/)
+    expect(() => deserializeProject(projectJson([objectJson('cube-1')], {
+      textAssets: [textAsset('text-1', 'a', { format: 'html' })],
+    }))).toThrow(/invalid text asset/)
+  })
+
+  it('rejects a text asset over 64 KB, counting variants toward the cap', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1')], {
+      textAssets: [textAsset('text-1', 'x'.repeat(65_537))],
+    }))).toThrow(/64 KB/)
+    expect(() => deserializeProject(projectJson([objectJson('cube-1')], {
+      textAssets: [textAsset('text-1', 'x'.repeat(40_000), { variants: { fr: 'y'.repeat(40_000) } })],
+    }))).toThrow(/64 KB/)
+  })
+
+  it('rejects project text totalling over 512 KB', () => {
+    const textAssets = Array.from({ length: 9 }, (_, index) => textAsset(`text-${index}`, 'x'.repeat(60_000)))
+    expect(() => deserializeProject(projectJson([objectJson('cube-1')], { textAssets }))).toThrow(/512 KB/)
+  })
+})
