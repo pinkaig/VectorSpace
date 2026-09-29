@@ -494,7 +494,7 @@ export default function App() {
                           </div>
                         ))}</div>
                       : <div className="tree-list">
-                          {item.objects.length === 0---
+                          {item.objects.length === 0
                             ? <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div>
                             : item.objects.map((object) => <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}
                         </div>)}
