@@ -412,7 +412,7 @@ export default function App() {
                   <div className="scene-row"> 
                     <button className="scene-tab" 
                             title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} 
-                            onClick={() => { if (!isActive) { setProject({ ...project, activeSceneId: item.id }); setSelectedId(null) } }}>
+                            onClick={() => { if (!isActive) { commit('Switch scene', selectEditorScene(project, item.id).project); setSelectedId(null) } }}>
                             {item.name}<span className="scene-count">[{item.objects.length}]</span>
                     </button>
                     <button className="scene-chevron" 
