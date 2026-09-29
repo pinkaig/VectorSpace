@@ -57,11 +57,12 @@ import { createZoneVisuals } from './viewport/zoneVisuals'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from './viewport/ViewportOverlay'
 import { syncGizmo } from './viewport/syncGizmo'
 import { loadEnvironmentIntoGroup } from './viewport/environmentController'
-import { applyCameraPose, applyViewOrientation, getCameraPose, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
+import { applyCameraPose, applyViewOrientation, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from './viewport/cameraController'
 import { createViewportInteractionController } from './viewport/interactionController'
 import { EYE_HEIGHT } from './viewport/viewportTypes'
+import { EDGE_VIEWS, FACE_VIEWS, matchEdgeView, matchFaceView } from './gizmo/viewSnap'
 import { createGizmoSet } from './viewport/createGizmoSet'
-import { createViewportOverlays } from './viewport/overlayWidgets'
+import { createViewportOverlays, overlayDims } from './viewport/overlayWidgets'
 import type { EnvStatus } from './viewport/renderTypes'
 import {
   getAssetDescriptor,
@@ -84,7 +85,8 @@ interface ViewportProps {
   onSelect: (id: string | null) => void
   onMove: (id: string, position: [number, number, number]) => void
   onScale?: (id: string, scale: [number, number, number]) => void
-  onRotate?: (id: string, rotation: [number, number, number]) => void
+  /** `position` is present when the rotation pivoted about the object's centre, which also moves its origin. */
+  onRotate?: (id: string, rotation: [number, number, number], position?: [number, number, number]) => void
   gizmoMode?: GizmoMode
   scaleSpace?: 'world' | 'local'
   rotateSpace?: 'world' | 'local'
@@ -121,6 +123,8 @@ interface ViewportProps {
   onOrthographicChange?: (value: boolean) => void
   showOctaOrb?: boolean
   showAxisIndicator?: boolean
+  // Shrinks the OctaOrb / axis indicator, e.g. when this is one pane of the quad layout.
+  compactOverlays?: boolean
 }
 
 export interface ViewportHandle {
@@ -130,6 +134,15 @@ export interface ViewportHandle {
    * "Exit simulation" gets the same teardown via unmount.
    */
   restartRuntime: () => void
+}
+
+// 'TOP', 'FRONT', … when `direction` (target -> camera) is flat against a face,
+// 'TOP-FRONT', … when it looks along a cube edge, else null.
+const faceLabelFor = (direction: THREE.Vector3): string | null => {
+  const index = matchFaceView(direction)
+  if (index !== null) return FACE_VIEWS[index].label
+  const edgeIndex = matchEdgeView(direction)
+  return edgeIndex === null ? null : EDGE_VIEWS[edgeIndex].label
 }
 
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
@@ -154,6 +167,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     onOrthographicChange,
     showOctaOrb = true,
     showAxisIndicator = true,
+    compactOverlays = false,
   },
   ref,
 ) {
@@ -161,8 +175,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
@@ -186,6 +200,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const requestRenderRef = useRef<() => void>(() => {})
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
+  // Name of the OctaOrb face the camera is snapped to ('TOP', 'FRONT', …), shown as a
+  // header; null once the user orbits away or the view is reset.
+  const [faceLabel, setFaceLabel] = useState<string | null>(null)
   // Tracks every object currently loading/erroring so the interaction controller
   // can skip them at pick time; see requirement 2 in the Stage 6 plan section.
   const unpickableAssetIdsRef = useRef<Set<string>>(new Set())
@@ -256,6 +273,20 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // regardless of how the camera got there, so any tighter cap here would clamp that snap
     // back to near-horizontal on the very next frame.
     controls.maxPolarAngle = Math.PI
+    // OctaOrb views can leave camera.up off world Y, which OrbitControls can't rotate
+    // around — hand it back a Y-up camera whenever a rotate drag begins (pan/zoom keep the
+    // current up, so a rolled view survives them). State is set before 'start' fires;
+    // 0 / 3 / 6 are OrbitControls' ROTATE / TOUCH_ROTATE / TOUCH_DOLLY_ROTATE.
+    controls.addEventListener('start', () => {
+      const { state } = controls as unknown as { state: number } // runtime field, missing from @types/three
+      if (state === 0 || state === 3 || state === 6) {
+        realignOrbitUp(camera, controls)
+        // Orbiting leaves the snapped face, and orthographic only belongs to face views
+        // (the OctaOrb switches it on) — drop back to perspective for free orbiting.
+        setFaceLabel(null)
+        if (dataRef.current.orthographic) dataRef.current.onOrthographicChange?.(false)
+      }
+    })
     controlsRef.current = controls
 
     // Orthographic camera mirrors the perspective camera's position/rotation every frame
@@ -272,6 +303,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       pitchRef.current = orientation.pitch
       walkHeightRef.current = camera.position.y
       orbitPoseRef.current = null
+      setFaceLabel(null)
     }
     applyPoseRef.current(dataRef.current.startCamera)
 
@@ -451,23 +483,26 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
+          compactOverlays: dataRef.current.compactOverlays,
           unpickableAssetIds: unpickableAssetIdsRef.current,
           runtimeActive: dataRef.current.runtimeMode === 'play',
         }),
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
         commitScale: (id, scale) => dataRef.current.onScale?.(id, scale),
-        commitRotate: (id, rotation) => dataRef.current.onRotate?.(id, rotation),
+        commitRotate: (id, rotation, position) => dataRef.current.onRotate?.(id, rotation, position),
         applyStartPose: () => applyPoseRef.current(dataRef.current.startCamera),
         applyOrientation: (direction, up) => {
           const orientation = applyViewOrientation(camera, controls, direction, up)
           yawRef.current = orientation.yaw
           pitchRef.current = orientation.pitch
+          setFaceLabel(faceLabelFor(direction))
         },
         snapTo: (direction) => {
           const orientation = snapCameraTo(camera, controls, direction)
           yawRef.current = orientation.yaw
           pitchRef.current = orientation.pitch
+          setFaceLabel(faceLabelFor(direction))
         },
         setOrthographic: (value) => dataRef.current.onOrthographicChange?.(value),
         showOctaOrbTooltip: overlays.showOctaOrbTooltip,
@@ -512,6 +547,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // Edit mode falls straight past this block, so authoring runs exactly the
       // frame loop it ran before this subsystem existed.
       const playing = dataRef.current.runtimeMode === 'play'
+      // The floor grid only appears in edit mode
+      grid.visible = !playing
       if (playing && !runtimeState) {
         startRun()
       } else if (!playing && runtimeState) {
@@ -580,6 +617,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           height,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
+          compact: dataRef.current.compactOverlays,
         })
       }
     }
@@ -727,14 +765,21 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
             ? 'Drag a ring to rotate around that axis'
             : 'Click to select · Drag to move'
 
+  const dims = overlayDims(compactOverlays)
+
   return (
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
       {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
-      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" />}
-      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" />}
-      {cameraMode === 'orbit' && orthographic && <div className="viewport-projection-badge">Orthographic</div>}
+      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" style={{ width: dims.octaOrb, height: dims.octaOrb }} />}
+      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" style={{ width: dims.axisIndicator, height: dims.axisIndicator }} />}
+      {cameraMode === 'orbit' && faceLabel && (
+        <div className="viewport-face-header" key={faceLabel}>
+          <span className="viewport-face-header-name">{faceLabel}</span>
+          <span className="viewport-face-header-projection">{orthographic ? 'Orthographic' : 'Perspective'}</span>
+        </div>
+      )}
       <AssetStatusBadge descriptor={selectedAssetDescriptor} onRetry={retrySelectedAsset} />
     </div>
   )
