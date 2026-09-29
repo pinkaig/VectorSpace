@@ -116,6 +116,34 @@ export const createRotateCommand = (
   rotation: Vector3Tuple,
 ): ProjectCommand => createTransformCommand(project, target, 'rotation', 'Rotate object', rotation)
 
+/**
+ * Rotation about a point other than the object's own origin (e.g. the gizmo's
+ * visual centre) also moves the origin, so both channels change together. One
+ * command keeps that a single undo step instead of a rotate followed by a move.
+ */
+export const createRotateAboutPivotCommand = (
+  project: ProjectData,
+  target: ObjectTargetInput,
+  rotation: Vector3Tuple,
+  position: Vector3Tuple,
+): ProjectCommand => {
+  const { object } = requireObject(project, target)
+  const after = { rotation: requireFiniteTriple('rotation', rotation), position: requireFiniteTriple('position', position) }
+  const before = { rotation: [...object.transform.rotation] as Vector3Tuple, position: [...object.transform.position] as Vector3Tuple }
+  const write = (values: typeof after) => (item: SceneObject) =>
+    writeChannel(writeChannel(item, 'rotation', values.rotation), 'position', values.position)
+
+  return {
+    label: 'Rotate object',
+    execute: (current) => writeObject(current, target, write(after)),
+    undo: (current) => writeObject(current, target, write(before)),
+    isNoop: (current) => {
+      const { transform } = requireObject(current, target).object
+      return sameTriple(transform.rotation, after.rotation) && sameTriple(transform.position, after.position)
+    },
+  }
+}
+
 export const createScaleCommand = (
   project: ProjectData,
   target: ObjectTargetInput,

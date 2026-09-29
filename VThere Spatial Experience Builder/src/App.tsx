@@ -22,7 +22,7 @@
  * @documentation
  * Larger system guide: docs/02-architecture/UNDATED--FOUNDATION--architecture.md
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 import {
   collectSubtreeIds,
   createCommandTimeline,
@@ -49,8 +49,8 @@ import {
   subscribeProjectSync,
   type ProjectSyncStatus,
 } from './sync/projectSync'
-import { AssetDefinition, assetCatalog, filterAssets } from './assets'
-import { addUserAsset, isUserAsset, loadUserAssets, removeUserAsset } from './userAssets'
+import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './assets'
+import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from './userAssets'
 import {
   createEditorObject,
   createEditorScene,
@@ -59,6 +59,7 @@ import {
   removeEditorObject,
   renameEditorObject,
   reparentEditorObject,
+  rotateEditorObjectAboutPivotCommand,
   rotateEditorObjectCommand,
   scaleEditorObjectCommand,
   selectEditorScene,
@@ -115,8 +116,12 @@ export default function App() {
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
-  const [assetImportError, setAssetImportError] = useState<string | null>(null)
+  // Outcome of the last import. `info` is shown while an import is still running;
+  // `optimised` lists imports that were shrunk to fit the real-time budget, each offering
+  // to keep the original instead.
+  const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[]; optimised?: OptimisedImport[] } | null>(null)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)
+  const assetDragDepthRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
@@ -132,27 +137,73 @@ export default function App() {
         // instance skipped by an earlier sync needs the viewport to retry now.
         setSyncToken((value) => value + 1)
       })
-      .catch((error) => setAssetImportError(error instanceof Error ? error.message : 'Could not load imported assets'))
+      .catch((error) => setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not load imported assets'] }))
+  }, [])
+
+  // A file dropped just outside the library would otherwise make the browser navigate
+  // away to open it, discarding the editor. Only file drags are affected.
+  useEffect(() => {
+    const blockFileDrop = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('Files')) event.preventDefault()
+    }
+    window.addEventListener('dragover', blockFileDrop)
+    window.addEventListener('drop', blockFileDrop)
+    return () => {
+      window.removeEventListener('dragover', blockFileDrop)
+      window.removeEventListener('drop', blockFileDrop)
+    }
   }, [])
 
   const importModelFiles = async (files: FileList | null | undefined) => {
     if (!files || files.length === 0) return
     try {
-      // A .glb is one file; a .gltf needs its .bin/texture files selected or dropped
-      // alongside it — addUserAsset() picks the .glb/.gltf out of the batch as the entry
-      // point and keeps the rest as that asset's supporting files.
-      const asset = await addUserAsset(Array.from(files))
-      setUserAssets((prev) => [...prev, asset])
-      setAssetImportError(null)
+      // Any number of .glb files, and .gltf files with their .bin/texture files, in one go.
+      // Names already in the library (built-in or imported) and repeat content are skipped.
+      // Models over the real-time budget are optimised on import
+      const { added, skipped, optimised, unoptimised } = await addUserAssets(
+        Array.from(files),
+        visibleAssets.map((asset) => asset.label),
+        assetCatalog.flatMap((asset) => (asset.modelUrl ? [{ label: asset.label, url: asset.modelUrl }] : [])),
+        (message) => setAssetNotice({ tone: 'info', lines: [message] }),
+      )
+      if (added.length > 0) setUserAssets((prev) => [...prev, ...added])
+      const lines = [
+        ...(added.length > 0 ? [`Added ${added.map((asset) => asset.label).join(', ')}`] : []),
+        ...unoptimised.map((item) => `Imported ${item.fileName} as-is, over the real-time budget: ${item.reason}`),
+        ...skipped.map((item) => `Skipped ${item.fileName}: ${item.reason}`),
+      ]
+      setAssetNotice({ tone: skipped.length > 0 || unoptimised.length > 0 ? 'error' : 'success', lines, optimised })
     } catch (error) {
-      setAssetImportError(error instanceof Error ? error.message : 'Could not import this file')
+      setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not import these files'] })
     }
   }
-  const deleteUserAsset = async (assetId: string) => {
-    // Any already-placed objects using this asset are left as-is and will simply stop
-    // rendering next reload — removing them from existing scenes isn't handled here.
-    await removeUserAsset(assetId)
-    setUserAssets((prev) => prev.filter((asset) => asset.assetId !== assetId))
+  // Replaces an optimised import with its original files. Only offered in the import
+  // notice: the original is held in memory until then, not stored alongside.
+  const keepOriginalModel = async (item: OptimisedImport) => {
+    try {
+      const original = await item.keepOriginal()
+      setUserAssets((prev) => prev.map((asset) => (asset.assetId === original.assetId ? original : asset)))
+      setSyncToken((value) => value + 1)
+      setAssetNotice((notice) => notice && {
+        ...notice,
+        lines: [...notice.lines, `Kept the original ${original.label}`],
+        optimised: notice.optimised?.filter((entry) => entry !== item),
+      })
+    } catch (error) {
+      setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : `Could not restore the original ${item.asset.label}`] })
+    }
+  }
+  const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
+  const deleteUserAsset = async (asset: AssetDefinition) => {
+    // Removing an asset that placed objects still use would leave them with no model
+    // ("Asset unavailable"), so it is refused until those objects are deleted.
+    const uses = countAssetUses(project, asset.assetId)
+    if (uses > 0) {
+      setAssetNotice({ tone: 'error', lines: [`Can't remove ${asset.label}: ${uses} object${uses === 1 ? '' : 's'} in the project use${uses === 1 ? 's' : ''} it. Delete ${uses === 1 ? 'that object' : 'those objects'} first.`] })
+      return
+    }
+    await removeUserAsset(asset.assetId)
+    setUserAssets((prev) => prev.filter((item) => item.assetId !== asset.assetId))
   }
 
   const toggleSceneExpanded = (id: string) => {
@@ -214,8 +265,10 @@ export default function App() {
   const scaleObject = (id: string, scale: [number, number, number]) => {
     runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
-  const rotateObject = (id: string, rotation: [number, number, number]) => {
-    runCommand(rotateEditorObjectCommand(scene.id, id, rotation))
+  const rotateObject = (id: string, rotation: [number, number, number], position?: [number, number, number]) => {
+    runCommand(position
+      ? rotateEditorObjectAboutPivotCommand(scene.id, id, rotation, position)
+      : rotateEditorObjectCommand(scene.id, id, rotation))
   }
   const renameSelected = (name: string) => {
     if (!selected) return
@@ -407,30 +460,47 @@ export default function App() {
           {LeftTabs === 'scenes' && (
             <div className="rail-tab-panel">
               <div className="rail-heading"><div><span className="eyebrow">Build</span><h2>Scene</h2></div><button className="icon-button" title="Create scene" onClick={addScene}>+</button></div>
-              <div className="scene-dropdown">{project.scenes.map((item)=>{const isExpanded=expandedSceneIds.has(item.id); const isActive = item.id === scene.id; return (
-                <div className="scene-group" key={item.id}>
-                  <div className="scene-row"> 
-                    <button className="scene-tab" 
-                            title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`} 
-                            onClick={() => { if (!isActive) { commit('Switch scene', selectEditorScene(project, item.id).project); setSelectedId(null) } }}>
-                            {item.name}<span className="scene-count">[{item.objects.length}]</span>
-                    </button>
-                    <button className="scene-chevron" 
-                            title={isExpanded? 'Collapse object list': 'Expand object list'} 
-                            onClick={()=>toggleSceneExpanded(item.id)}>
-                            {isExpanded? 'v':'>'}
-                    </button>
+              <div className="scene-dropdown">{project.scenes.map((item) => {
+                const isExpanded = expandedSceneIds.has(item.id)
+                const isActive = item.id === scene.id
+                return (
+                  <div className="scene-group" key={item.id}>
+                    <div className="scene-row">
+                      {/* Switch through commit so the command timeline agrees on the active
+                          scene; setting React state alone is overwritten by the next edit. */}
+                      <button className={isActive ? 'scene-tab active' : 'scene-tab'}
+                              title={isActive ? 'Currently editing' : `Switch to editing ${item.name}`}
+                              onClick={() => { if (!isActive) { commit('Select scene', selectEditorScene(project, item.id).project); setSelectedId(null) } }}>
+                              {item.name}<span className="scene-count">[{item.objects.length}]</span>
+                      </button>
+                      <button className="scene-chevron"
+                              title={isExpanded ? 'Collapse object list' : 'Expand object list'}
+                              onClick={() => toggleSceneExpanded(item.id)}>
+                              {isExpanded ? 'v' : '>'}
+                      </button>
+                    </div>
+                    {/* The active scene gets the full hierarchy with indent/outdent controls;
+                        other scenes list their objects for reference only. */}
+                    {isExpanded && (isActive
+                      ? <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
+                          <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
+                            <div className="tree-indent-controls">
+                              <button className="tree-indent-btn" title="Outdent" disabled={row.object.parentId === undefined} onClick={() => outdentObject(row.object.id)}>⇤</button>
+                              <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
+                            </div>
+                            <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
+                              <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+                            </button>
+                          </div>
+                        ))}</div>
+                      : <div className="tree-list">
+                          {item.objects.length === 0
+                            ? <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div>
+                            : item.objects.map((object) => <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}
+                        </div>)}
                   </div>
-                  {isExpanded && <div className="tree-list">
-                    {item.objects.length === 0 ? /*check for any objects */
-                      <div className="empty-state">Your scene is empty.<br /><span>Place an asset to begin.</span></div>
-                      : item.objects.map((object) => isActive ? /* If there are objects, check if this room/scene is active */
-                        <button key={object.id} className={object.id === selectedId ? 'tree-item selected' : 'tree-item'} 
-                                onClick={() => setSelectedId(object.id)}>
-                                  <span className={`object-dot ${object.assetKind}`} />{object.name}<span className="tree-chevron">›</span></button> /* chevron to indicate active list objects*/
-                        : <div key={object.id} className="tree-item reference-only" title="Switch to this room to select or edit">{object.name}</div>)}</div>}
-                </div>
-              )})}</div>
+                )
+              })}</div>
             </div>
           )}
           {/* ── Scenes tab end ─────────────────────────────────────── */}
@@ -438,11 +508,37 @@ export default function App() {
           {/* ── Assets tab ─────────────────────────────────────────── */}
           {LeftTabs === 'assets' && (
             <div className="rail-tab-panel">
-              <section className="panel">
+              {/* The whole Library panel is the drop target, not just the card list, so the
+                  hint can't shift the target out from under the pointer mid-drag. */}
+              <section
+                className={isDraggingAsset ? 'panel asset-library drag-over' : 'panel asset-library'}
+                onDragEnter={(event) => {
+                  if (!isFileDrag(event)) return
+                  event.preventDefault()
+                  assetDragDepthRef.current += 1
+                  setIsDraggingAsset(true)
+                }}
+                onDragOver={(event) => {
+                  if (!isFileDrag(event)) return
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = 'copy'
+                }}
+                onDragLeave={() => {
+                  assetDragDepthRef.current = Math.max(0, assetDragDepthRef.current - 1)
+                  if (assetDragDepthRef.current === 0) setIsDraggingAsset(false)
+                }}
+                onDrop={(event) => {
+                  if (!isFileDrag(event)) return
+                  event.preventDefault()
+                  assetDragDepthRef.current = 0
+                  setIsDraggingAsset(false)
+                  void importModelFiles(event.dataTransfer.files)
+                }}
+              >
                 <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
                 <div className="asset-tools">
-                  <input placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
-                  <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select a .glb, or a .gltf together with its .bin/texture files">Import GLB / glTF</button>
+                  <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                  <button className="button ghost" onClick={() => modelFileInputRef.current?.click()} title="Select one or more .glb files, or .gltf files together with their .bin/texture files">Import GLB / glTF</button>
                   <input
                     ref={modelFileInputRef}
                     className="hidden-file-input"
@@ -452,29 +548,42 @@ export default function App() {
                     onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
                   />
                 </div>
-                <div
-                  className={isDraggingAsset ? 'asset-list drag-over' : 'asset-list'}
-                  onDragOver={(event) => { event.preventDefault(); setIsDraggingAsset(true) }}
-                  onDragLeave={() => setIsDraggingAsset(false)}
-                  onDrop={(event) => {
-                    event.preventDefault()
-                    setIsDraggingAsset(false)
-                    void importModelFiles(event.dataTransfer.files)
-                  }}
-                >
+                <div className="asset-list">
                   {filterAssets(assetQuery, visibleAssets).map((asset) => (
                     <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
                       <span className={`asset-preview ${asset.kind}`}><span /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
-                        ? <span className="icon-button" title="Remove imported asset" onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset.assetId) }}>×</span>
+                        ? (() => {
+                            const uses = countAssetUses(project, asset.assetId)
+                            return (
+                              <span
+                                className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
+                                aria-disabled={uses > 0}
+                                title={uses > 0 ? `In use by ${uses} object${uses === 1 ? '' : 's'} - delete ${uses === 1 ? 'it' : 'them'} to remove this asset` : 'Remove imported asset'}
+                                onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset) }}
+                              >×</span>
+                            )
+                          })()
                         : <span className="add-symbol">+</span>}
                     </button>
                   ))}
                   {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
-                  {isDraggingAsset && <div className="asset-drop-hint">Drop a .glb, or a .gltf with its .bin/texture files, to import it</div>}
                 </div>
-                {assetImportError && <div className="asset-import-error">{assetImportError}</div>}
+                {assetNotice && (
+                  <div className={`asset-import-notice ${assetNotice.tone}`}>
+                    {assetNotice.lines.map((line) => <div key={line}>{line}</div>)}
+                    {assetNotice.optimised?.map((item) => (
+                      <div key={item.asset.assetId} className="asset-optimised">
+                        <span>Optimised {item.asset.label} for real-time: {item.summary}</span>
+                        <button className="asset-keep-original" title="Use the file exactly as imported instead. Heavy models can make the editor and visitor view slow." onClick={() => void keepOriginalModel(item)}>Keep original</button>
+                      </div>
+                    ))}
+                    <button className="asset-notice-close" title="Dismiss" onClick={() => setAssetNotice(null)}>×</button>
+                  </div>
+                )}
+                {/* Overlay rather than an inline block, so showing it never changes the layout. */}
+                {isDraggingAsset && <div className="asset-drop-hint">Drop .glb files, or .gltf files with their .bin/texture files, to import them</div>}
               </section>
             </div>
           )}
@@ -564,6 +673,7 @@ export default function App() {
               onOrthographicChange={layoutMode === 'quad' ? undefined : setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
+              compactOverlays={layoutMode === 'quad'}
             />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
