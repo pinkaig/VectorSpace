@@ -182,8 +182,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, textAssets, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, textAssets, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -204,7 +204,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   useEffect(() => {
     textLibraryRef.current?.setTextAssets(textAssets)
   }, [textAssets])
-
+  
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const applyPoseRef = useRef<(pose: CameraPose) => void>(() => {})
@@ -401,6 +401,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     registerTextActions(actions, text, { findAttachment: findTextAttachment })
 
+    
     actions.register(CHANGE_COLOR_KIND, createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
     
     let zoneTracker = createZoneTracker(dataRef.current.zones)
