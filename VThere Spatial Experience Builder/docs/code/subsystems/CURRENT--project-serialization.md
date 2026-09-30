@@ -1,6 +1,6 @@
 # Project Serialization
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 ## Contents
 
@@ -27,7 +27,7 @@ This module (Tier 1) uses `localStorage` and remains the authoritative, synchron
 path — reads and the "is my edit saved" status always come from here. Stage 8 added a Tier 2
 background sync path on top (not a replacement): `App.tsx`'s `persist()` calls
 `saveProject` (this module) first, and only after that succeeds does it also stage the same
-project through `packages/sync` (`stageProjectSync`, see [`sync-engine.md`](sync-engine.md)) for
+project through `packages/sync` (`stageProjectSync`, see [`sync-engine.md`](CURRENT--sync-engine.md)) for
 eventual delivery to a backend. There is still no real HTTP transport — `packages/sync`'s stub
 transport always succeeds — so a server-backed versioned API remains planned, but the dual-write
 seam that will carry it is already wired end to end.
@@ -260,9 +260,9 @@ The test should assert both behaviour and user-visible persistence status. A log
 - [Project model](../../packages/project/src/index.ts)
 - [Application coordinator](../../src/App.tsx)
 - [Debugging logger](../../packages/debugging/src/index.ts)
-- [Sync engine (Tier 2 background sync)](sync-engine.md)
-- [Testing strategy](../../archive/delivery/UNDATED--FOUNDATION--testing-strategy.md)
-- [Architecture contract](../architecture/UNDATED--FOUNDATION--architecture.md)
+- [Sync engine (Tier 2 background sync)](CURRENT--sync-engine.md)
+- [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
+- [Architecture contract](../architecture/FOUNDATION--architecture.md)
 
 ## Change history
 

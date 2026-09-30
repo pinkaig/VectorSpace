@@ -1,6 +1,6 @@
 # Sync Engine
 
-**Baseline phase:** Stage 4c (build) + Stage 8 (wire into autosave). See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Stage 4c (build) + Stage 8 (wire into autosave). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## Purpose
 

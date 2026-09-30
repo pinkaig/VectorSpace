@@ -1,9 +1,9 @@
 # Media Policy and Cloud Download Control
 
 **Baseline phase:** built alongside the attachment slice; the cloud half is reserved for Stage 3
-(backend media). See [8-stage baseline overview](../baseline-phases.md).
+(backend media). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
-**See also:** [`asset-manager.md`](asset-manager.md) for the resolver chain this policy layer sits
+**See also:** [`asset-manager.md`](CURRENT--asset-manager.md) for the resolver chain this policy layer sits
 inside, [`attachment-integration.md`](attachment-integration.md) sections 5–6 for the attachment
 model, and [`audio-system.md`](audio-system.md) for the one kind that deliberately resolves
 outside this chain today.

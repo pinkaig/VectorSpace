@@ -4,7 +4,7 @@
 This file is the subsystem's contract; the design rationale behind it lives in
 [`2026-09-17--DESIGN--when-do-runtime-architecture.md`](../../archive/research-and-history/2026-09-17--DESIGN--when-do-runtime-architecture.md).
 
-**Baseline phase:** Stage 4b (build) + Stage 7 (wire into runtime). See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Stage 4b (build) + Stage 7 (wire into runtime). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## What this subsystem is
 

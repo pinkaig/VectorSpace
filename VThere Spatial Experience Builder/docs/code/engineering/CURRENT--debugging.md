@@ -1,6 +1,6 @@
 ﻿# Debugging and Logging
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 VThere uses small, explicit logging tools so failures can be diagnosed without scattering permanent `console.log` calls through business logic.
 
@@ -85,8 +85,8 @@ python -m uvicorn app.main:app --reload --port 8000
 
 ## Related ownership guides
 
-- [Development guide](UNDATED--CURRENT--development-guide.md)
-- [Engineering practices](UNDATED--FOUNDATION--engineering-practices.md)
-- [Architecture boundaries](../architecture/UNDATED--FOUNDATION--architecture.md)
-- [Baseline stage overview](../baseline-phases.md)
-- [Authoring engine design](../subsystems/authoring-engine.md)
+- [Development guide](CURRENT--development-guide.md)
+- [Engineering practices](FOUNDATION--engineering-practices.md)
+- [Architecture boundaries](../architecture/FOUNDATION--architecture.md)
+- [Baseline stage overview](../FOUNDATION--baseline-phases.md)
+- [Authoring engine design](../subsystems/FOUNDATION--authoring-engine.md)

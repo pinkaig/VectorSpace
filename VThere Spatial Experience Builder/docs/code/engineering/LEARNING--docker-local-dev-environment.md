@@ -1,9 +1,9 @@
 # Learning: Docker & the Local Dev Environment
 
 **Category:** Learning notes (concept explainer, not a spec or plan)
-**Related:** [environment-setup.md](UNDATED--CURRENT--environment-setup.md), `docker-compose.yml`, `apps/api/app/config.py`, `apps/api/app/db.py`
+**Related:** [environment-setup.md](CURRENT--environment-setup.md), `docker-compose.yml`, `apps/api/app/config.py`, `apps/api/app/db.py`
 
-**Baseline phase:** Not stage-specific, with ties to Stage 1 (local dev environment). See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Not stage-specific, with ties to Stage 1 (local dev environment). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ---
 

@@ -1,6 +1,6 @@
 # Build System
 
-**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## Current client commands
 
@@ -50,4 +50,4 @@ docker compose up -d postgres minio
 
 Fresh checkout -> install Node.js 22 LTS and Python 3.12 -> `npm install` at the repo root -> `pip install -r apps/api/requirements.txt` -> `docker compose up -d postgres minio` -> `alembic upgrade head` (from `apps/api/`) -> `npm run build` -> `npm test` (Vitest) -> `python -m pytest apps/api/tests` (from the repo root) -> `npm run test:e2e` (Playwright) -> `npm run dev` and `uvicorn app.main:app --reload` (from `apps/api/`) for manual verification.
 
-Note: the FastAPI routers exist and are wired into `app.main:app`, but most route handlers (`projects.py`, `publish.py`, `media.py`, `analytics.py`, `rules.py`) still return HTTP 501 — only `GET /health` and JWT validation (`auth.py`) are real end-to-end behavior today. See [contracts.md](UNDATED--FOUNDATION--contracts.md) for the per-route status.
+Note: the FastAPI routers exist and are wired into `app.main:app`, but most route handlers (`projects.py`, `publish.py`, `media.py`, `analytics.py`, `rules.py`) still return HTTP 501 — only `GET /health` and JWT validation (`auth.py`) are real end-to-end behavior today. See [contracts.md](FOUNDATION--contracts.md) for the per-route status.

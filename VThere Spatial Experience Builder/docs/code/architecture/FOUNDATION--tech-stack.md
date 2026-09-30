@@ -1,6 +1,6 @@
 # VThere Spatial Experience Builder — Technology Stack
 
-**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 **Status note:** this document was originally written as a pre-implementation proposal ("Stage 2 of 5", "Resolved proposal for human approval", closing status `BLOCKED`, Node/npm "unavailable"). All 8 baseline stages are now complete, `npm install`/`npm run build`/`npm test` run successfully in this environment, and the stack below is running code, not a proposal. Sections are corrected in place with confirmed versions and status; where a claim (cloud provider config, CI wiring, browser matrix) could not be verified against source in this repo, it is left as originally written and marked accordingly.
 
@@ -10,7 +10,7 @@ The stack is a browser-first TypeScript application using React for authoring UI
 
 - **CONFIRMED — Browser client:** authoring editor (`src/App.tsx`) and visitor runtime (`src/RuntimeView.tsx`), exposed through transitional `apps/editor`/`apps/runtime` boundaries.
 - **CONFIRMED — Shared TypeScript domain packages:** `packages/project` (canonical model), `packages/authoring-engine`, `packages/assets`, `packages/interaction`, `packages/sync`, `packages/debugging`. There is no single monolithic "shared domain package" — responsibilities are split across these six packages plus `src/serializer.ts` for serialization.
-- **PARTIAL — Backend services:** FastAPI routing, SQLAlchemy models, Auth0 JWT validation, and boto3 presigned-URL generation are implemented; persistence, publishing, access control enforcement, and analytics ingestion are not — the routes exist but return HTTP 501 (see [contracts.md](UNDATED--FOUNDATION--contracts.md)).
+- **PARTIAL — Backend services:** FastAPI routing, SQLAlchemy models, Auth0 JWT validation, and boto3 presigned-URL generation are implemented; persistence, publishing, access control enforcement, and analytics ingestion are not — the routes exist but return HTTP 501 (see [contracts.md](FOUNDATION--contracts.md)).
 - **CONFIRMED — Custom authoring systems:** selection/raycasting (`src/viewport/`), transform manipulation (`src/gizmo/`, `packages/authoring-engine/src/transformMath.ts`), serialization (`src/serializer.ts`), interaction dispatch (`packages/interaction`), and undo/redo (`packages/authoring-engine`'s `createCommandTimeline`). No ready-made editor framework supplies these.
 - **CONFIRMED — Persistence as a build factor:** command history correctness and undo/redo are tested (`packages/authoring-engine/src/index.test.ts`); canonical serialization and autosave are implemented (`src/serializer.ts`, `src/serializer.test.ts`); backup recovery exists in the serializer; revision safety and immutable published versions are modeled in `apps/api/app/models.py` (`ProjectVersion`) but not yet enforced end-to-end since publish routes are unimplemented.
 
@@ -47,7 +47,7 @@ The stack is a browser-first TypeScript application using React for authoring UI
 
 - **CONFIRMED — Vite:** `npm run dev` / `npm run build` (`tsc -b && vite build`) / `npm run preview`.
 - **CONFIRMED — TypeScript compiler:** `tsc -b` (project references: `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`) plus `npm run typecheck` (`tsc --noEmit`).
-- **CONFIRMED — npm scripts:** `npm install`, `npm run dev`, `npm run build`, `npm test` (Vitest), `npm run test:e2e` (Playwright), `npm run check:environment`, all defined in the root `package.json`. See [build-system.md](UNDATED--FOUNDATION--build-system.md) for the full command list.
+- **CONFIRMED — npm scripts:** `npm install`, `npm run dev`, `npm run build`, `npm test` (Vitest), `npm run test:e2e` (Playwright), `npm run check:environment`, all defined in the root `package.json`. See [build-system.md](FOUNDATION--build-system.md) for the full command list.
 - **CONFIRMED — Backend build:** `pytest` (from `apps/api/`) and `uvicorn app.main:app --reload` for local API development; `alembic upgrade head` applies migrations.
 
 ## 7. Package / Dependency Management
@@ -68,7 +68,7 @@ The stack is a browser-first TypeScript application using React for authoring UI
 
 ## 9. Backend Stack
 
-- **PARTIAL — HTTP API:** routing for project creation/open/save, asset metadata, publishing, access checks, and analytics ingestion exists (`apps/api/app/routers/`), but every handler beyond `GET /health` raises HTTP 501 (`_skeleton.py`'s `not_implemented`). See [contracts.md](UNDATED--FOUNDATION--contracts.md) for the per-route table.
+- **PARTIAL — HTTP API:** routing for project creation/open/save, asset metadata, publishing, access checks, and analytics ingestion exists (`apps/api/app/routers/`), but every handler beyond `GET /health` raises HTTP 501 (`_skeleton.py`'s `not_implemented`). See [contracts.md](FOUNDATION--contracts.md) for the per-route table.
 - **PARTIAL — Authentication/access boundary:** Auth0 JWT validation is real and implemented (`apps/api/app/auth.py`: JWKS fetch/cache, RS256 decode, audience/issuer checks, `get_current_token` FastAPI dependency) — this is not a skeleton. It is not yet wired as a `Depends(...)` into any router, so no route currently enforces authentication or organisation/project ownership. OIDC Authorization Code + PKCE browser login flow itself is not present in this repo (frontend-side login UI is not implemented).
 - **CONFIRMED — API framework:** FastAPI with Pydantic v2 request/response models, one router module per resource.
 - **CONFIRMED — API deployment model:** containerized (`apps/api/Dockerfile`), deployed behind Caddy in `docker-compose.prod.yml`; local Postgres/MinIO via root `docker-compose.yml`.
@@ -88,8 +88,8 @@ The stack is a browser-first TypeScript application using React for authoring UI
 
 - **REQUIRED — HTTPS:** all deployed editor, API, asset, and published-runtime communication (enforced at the Caddy layer in production, per `deploy/Caddyfile`).
 - **CONFIRMED — JSON over HTTP:** `ProjectData` and all router request/response models are JSON via Pydantic.
-- **PARTIAL — Versioned project schema:** `ProjectData.schemaVersion` exists (currently always `1`); there is no explicit migration framework beyond additive-field backfill in the serializer (see [contracts.md](UNDATED--FOUNDATION--contracts.md)).
-- **CONFIRMED — REST route shape:** resource-oriented HTTPS JSON, mounted at repo root (not `/api/v1/`) — see [contracts.md](UNDATED--FOUNDATION--contracts.md) for exact paths.
+- **PARTIAL — Versioned project schema:** `ProjectData.schemaVersion` exists (currently always `1`); there is no explicit migration framework beyond additive-field backfill in the serializer (see [contracts.md](FOUNDATION--contracts.md)).
+- **CONFIRMED — REST route shape:** resource-oriented HTTPS JSON, mounted at repo root (not `/api/v1/`) — see [contracts.md](FOUNDATION--contracts.md) for exact paths.
 - **UNDEFINED — Real-time transport:** still no WebSocket/WebRTC in the repo; collaboration remains out of scope.
 - **FORBIDDEN — Client trust of authorisation:** holds structurally (auth validation lives server-side in `auth.py`), though no route currently calls it, so this is enforced nowhere yet rather than violated somewhere.
 
@@ -148,7 +148,7 @@ The stack is a browser-first TypeScript application using React for authoring UI
 - **CONFIRMED — Vite and its React plugin:** Vite 6.3.5 with `@vitejs/plugin-react` 4.4.1.
 - **CONFIRMED — Three.js and type declarations:** three 0.177.0 with `@types/three` 0.177.0.
 - **CONFIRMED — Lockfile:** `package-lock.json` committed.
-- **RESOLVED — the original BLOCKER no longer applies.** Node/npm are available in this environment; `npm install`, `npm run build`, and `npm test` run successfully (see [build-system.md](UNDATED--FOUNDATION--build-system.md)).
+- **RESOLVED — the original BLOCKER no longer applies.** Node/npm are available in this environment; `npm install`, `npm run build`, and `npm test` run successfully (see [build-system.md](FOUNDATION--build-system.md)).
 
 ## 18. Dependency Constraints
 
@@ -193,7 +193,7 @@ The stack is a browser-first TypeScript application using React for authoring UI
 
 - **UNDEFINED — Exact CI provider and deployment pipeline implementation:** partially resolved — `.github/workflows/ci.yml` and `.github/workflows/deploy.yml` exist at the monorepo root (outside this project folder); whether they build/deploy this specific project was not verified in this pass.
 - **REQUIRED — Browser baseline:** unchanged from original (Chromium current-2 for authoring; Safari iOS 17+/Chromium Android current-2 for visitor viewing; WebGL2 target, no WebGPU requirement).
-- **RESOLVED — Trigger/action vocabulary:** `packages/interaction` implements this as an open, extensible string vocabulary rather than a fixed closed set — see [contracts.md](UNDATED--FOUNDATION--contracts.md)'s Interaction contract section. The originally proposed six-trigger/six-action list is the default/intended vocabulary, not an enum enforced in code.
+- **RESOLVED — Trigger/action vocabulary:** `packages/interaction` implements this as an open, extensible string vocabulary rather than a fixed closed set — see [contracts.md](FOUNDATION--contracts.md)'s Interaction contract section. The originally proposed six-trigger/six-action list is the default/intended vocabulary, not an enum enforced in code.
 - **RESOLVED — Dependency lockfile generation:** `package-lock.json` is committed and `npm install` succeeds in this environment.
 
 ## 23. Build & Verification Command
@@ -228,7 +228,7 @@ Verified:  yes, re-run during this documentation pass — Python 3.12.10, 1 pass
            fails with ModuleNotFoundError: No module named 'apps'. Always invoke from the repo root.
 ```
 
-See [build-system.md](UNDATED--FOUNDATION--build-system.md) for the complete command reference, including Docker Compose and Alembic steps.
+See [build-system.md](FOUNDATION--build-system.md) for the complete command reference, including Docker Compose and Alembic steps.
 
 ## Usage
 

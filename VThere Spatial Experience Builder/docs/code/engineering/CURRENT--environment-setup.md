@@ -1,6 +1,6 @@
 # Environment Setup
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 The project uses a preflight check to tell contributors exactly why development cannot start.
 
@@ -54,7 +54,7 @@ docker compose up -d
 
 `docker-compose.yml` starts `postgres` (port 5432) and `minio` (ports 9000/9001) with health
 checks and named volumes; see
-[docker-local-dev-environment.md](UNDATED--LEARNING--docker-local-dev-environment.md) for
+[docker-local-dev-environment.md](LEARNING--docker-local-dev-environment.md) for
 details. `.env.example` documents every variable `apps/api/app/config.py` reads (Postgres
 credentials, `DATABASE_URL`, MinIO credentials/endpoint/bucket, `APP_ENV`, `CORS_ORIGINS`,
 `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`); copy it to `.env` before running the API.

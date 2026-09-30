@@ -39,7 +39,7 @@ resolver interface is the seam that keeps that a one-place change.
   - `PrimitiveResolver` — hardcoded cube/sphere/cylinder, mirrors the current `AssetKind` set
     in `packages/project/src/index.ts`.
   - `LocalCatalogResolver` — dev-time GLB catalog, satisfies the existing
-    `docs/05-subsystems/UNDATED--CURRENT--asset-library-contract.md` contract.
+    `docs/05-subsystems/CURRENT--asset-library-contract.md` contract.
   - `RemoteMediaResolver` — calls the backend `/projects/{id}/media` endpoint + signed URLs.
     Stays a skeleton (throws or returns a not-implemented descriptor) until Stage 3's
     `MediaRepository` exists on the backend; the interface and call shape are still real.

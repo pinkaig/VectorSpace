@@ -2,13 +2,13 @@
 
 **Status:** Outstanding approval artifact
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 ## Implementation status
 
 Nothing in this file is built yet. There is no curated 20–30 asset inventory, no thumbnail or
 licensing registry, and no import/upload path anywhere in the app. What exists today in
-`packages/assets/src` (see [`asset-manager.md`](asset-manager.md)) is the resolver
+`packages/assets/src` (see [`asset-manager.md`](CURRENT--asset-manager.md)) is the resolver
 *infrastructure* this contract's assets would eventually flow through, not the contract itself:
 
 - [`resolvers/LocalCatalogResolver.ts`](../../packages/assets/src/resolvers/LocalCatalogResolver.ts)

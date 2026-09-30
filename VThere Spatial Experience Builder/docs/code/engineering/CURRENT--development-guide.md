@@ -1,12 +1,12 @@
 ﻿# VThere Development Guide
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 This is the practical map for navigating the VThere Spatial Experience Builder and starting business-logic work without breaking persistence, editing history, or editor/runtime parity.
 
 ## Current reality
 
-All 8 baseline stages are complete (see [8-stage baseline overview](../baseline-phases.md)).
+All 8 baseline stages are complete (see [8-stage baseline overview](../FOUNDATION--baseline-phases.md)).
 The editor still runs from the root `src/` surface rather than `apps/editor/`, but every
 planned shared package and the backend HTTP/persistence surface now exist and are wired
 into the running app.
@@ -65,8 +65,8 @@ python -m uvicorn app.main:app --reload --port 8000
 ```
 
 The API health check is `http://localhost:8000/health`. See
-[docker-local-dev-environment.md](UNDATED--LEARNING--docker-local-dev-environment.md) for the
-`docker-compose.yml` services and [environment-setup.md](UNDATED--CURRENT--environment-setup.md)
+[docker-local-dev-environment.md](LEARNING--docker-local-dev-environment.md) for the
+`docker-compose.yml` services and [environment-setup.md](CURRENT--environment-setup.md)
 for `.env` setup. Run `python -m pytest apps/api/tests` (from
 `VThere Spatial Experience Builder/`, using the `apps.api.app.main` import path baked into the
 tests) to check the API in isolation.
@@ -79,16 +79,16 @@ PowerShell may block `npm.ps1`; use `npm.cmd` as shown above.
 |---|---|---|
 | Add or change project data | [`packages/project/src/index.ts`](../../../packages/project/src/index.ts) | [`src/model.ts`](../../../src/model.ts), [`src/serializer.ts`](../../../src/serializer.ts) |
 | Add an editor action | [`src/App.tsx`](../../../src/App.tsx) | [`packages/authoring-engine/src/index.ts`](../../../packages/authoring-engine/src/index.ts) |
-| Change viewport behavior | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | [`architecture`](../architecture/UNDATED--FOUNDATION--architecture.md), [`viewport subsystem`](../subsystems/viewport.md) |
-| Change save, recovery, or export | [`src/serializer.ts`](../../../src/serializer.ts) | [`contracts`](../architecture/UNDATED--FOUNDATION--contracts.md), [`sync engine`](../subsystems/sync-engine.md) |
+| Change viewport behavior | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | [`architecture`](../architecture/FOUNDATION--architecture.md), [`viewport subsystem`](../subsystems/CURRENT--viewport.md) |
+| Change save, recovery, or export | [`src/serializer.ts`](../../../src/serializer.ts) | [`contracts`](../architecture/FOUNDATION--contracts.md), [`sync engine`](../subsystems/CURRENT--sync-engine.md) |
 | Add undo/redo behavior | [`packages/authoring-engine/src/index.ts`](../../../packages/authoring-engine/src/index.ts) | [`packages/authoring-engine/src/index.test.ts`](../../../packages/authoring-engine/src/index.test.ts) |
-| Add or change WHEN->DO rules | [`packages/interaction/src/dispatcher.ts`](../../../packages/interaction/src/dispatcher.ts) | [`when-do dispatch engine`](../subsystems/when-do-dispatch-engine.md) |
-| Add or change asset resolution | [`packages/assets/src/index.ts`](../../../packages/assets/src/index.ts) | [`asset manager`](../subsystems/asset-manager.md) |
-| Add API behavior | [`apps/api/app/main.py`](../../../apps/api/app/main.py) | [`apps/api/tests/test_health.py`](../../../apps/api/tests/test_health.py), [`contracts`](../architecture/UNDATED--FOUNDATION--contracts.md) |
+| Add or change WHEN->DO rules | [`packages/interaction/src/dispatcher.ts`](../../../packages/interaction/src/dispatcher.ts) | [`when-do dispatch engine`](../subsystems/CURRENT--when-do-dispatch-engine.md) |
+| Add or change asset resolution | [`packages/assets/src/index.ts`](../../../packages/assets/src/index.ts) | [`asset manager`](../subsystems/CURRENT--asset-manager.md) |
+| Add API behavior | [`apps/api/app/main.py`](../../../apps/api/app/main.py) | [`apps/api/tests/test_health.py`](../../../apps/api/tests/test_health.py), [`contracts`](../architecture/FOUNDATION--contracts.md) |
 | Change visual layout | [`src/styles.css`](../../../src/styles.css) | [`src/App.tsx`](../../../src/App.tsx) |
-| Add diagnostic logging | [`packages/debugging/src/index.ts`](../../../packages/debugging/src/index.ts) | [`debugging`](UNDATED--CURRENT--debugging.md) |
-| Understand intended ownership | [`architecture`](../architecture/UNDATED--FOUNDATION--architecture.md) | [`repository boundaries`](../architecture/UNDATED--FOUNDATION--repository.md) |
-| Check phase order | [`baseline-phases`](../baseline-phases.md) | [`pre-baseline validation`](../../archive/delivery/UNDATED--CURRENT--pre-baseline-validation.md) |
+| Add diagnostic logging | [`packages/debugging/src/index.ts`](../../../packages/debugging/src/index.ts) | [`debugging`](CURRENT--debugging.md) |
+| Understand intended ownership | [`architecture`](../architecture/FOUNDATION--architecture.md) | [`repository boundaries`](../architecture/FOUNDATION--repository.md) |
+| Check phase order | [`FOUNDATION--baseline-phases`](../FOUNDATION--baseline-phases.md) | [`pre-baseline validation`](../../archive/delivery/CURRENT--pre-baseline-validation.md) |
 
 ## Business-logic implementation order
 
@@ -125,7 +125,7 @@ The command should:
 4. Have an inverse or an equivalent previous snapshot for undo.
 5. Clear the redo branch after a new edit.
 
-Editor snapshot history in [`src/App.tsx`](../../../src/App.tsx) and [`src/editor/`](../../../src/editor/) is wired to [`packages/authoring-engine/`](../../../packages/authoring-engine/), as specified in [`authoring-engine.md`](../subsystems/authoring-engine.md).
+Editor snapshot history in [`src/App.tsx`](../../../src/App.tsx) and [`src/editor/`](../../../src/editor/) is wired to [`packages/authoring-engine/`](../../../packages/authoring-engine/), as specified in [`authoring-engine.md`](../subsystems/FOUNDATION--authoring-engine.md).
 
 ### 4. Connect persistence through one adapter
 
@@ -138,7 +138,7 @@ Autosave and explicit save must use the same persistence path. Keep these states
 
 Recovery order is current draft, backup, server revision, then a clean project. Export JSON remains the emergency fallback. Never silently overwrite a newer server revision.
 
-The local implementation is in [`src/serializer.ts`](../../../src/serializer.ts), now dual-writing through the Sync engine (`packages/sync`, see [`sync-engine.md`](../subsystems/sync-engine.md)) to `apps/api` when the API is reachable. Preserve this contract rather than letting API calls spread through UI components.
+The local implementation is in [`src/serializer.ts`](../../../src/serializer.ts), now dual-writing through the Sync engine (`packages/sync`, see [`sync-engine.md`](../subsystems/CURRENT--sync-engine.md)) to `apps/api` when the API is reachable. Preserve this contract rather than letting API calls spread through UI components.
 
 ### 5. Connect the UI last
 
@@ -156,8 +156,8 @@ project state -> viewport renderer
 
 Before changing a shared model or public contract:
 
-- Read [`project context`](../../archive/product/UNDATED--CURRENT--project-context.md).
-- Check the ownership table in [`architecture`](../architecture/UNDATED--FOUNDATION--architecture.md).
+- Read [`project context`](../../archive/product/CURRENT--project-context.md).
+- Check the ownership table in [`architecture`](../architecture/FOUNDATION--architecture.md).
 - Search for all references to the type or function being changed.
 - Add or update a focused test first when the behavior is persistence, history, serialization, validation, or interaction related.
 - Run the build and the narrowest relevant test.
@@ -198,16 +198,16 @@ called out in the [CI/CD guide](CURRENT--CI-CD-build-and-test-guide.md).
 
 ## Reference documents
 
-- [Project context and drift rules](../../archive/product/UNDATED--CURRENT--project-context.md)
-- [Architecture ownership and interfaces](../architecture/UNDATED--FOUNDATION--architecture.md)
-- [Repository boundaries](../architecture/UNDATED--FOUNDATION--repository.md)
-- [Data and API contracts](../architecture/UNDATED--FOUNDATION--contracts.md)
-- [Build and test commands](../architecture/UNDATED--FOUNDATION--build-system.md)
-- [Baseline stage overview](../baseline-phases.md)
-- [Testing strategy](../../archive/delivery/UNDATED--FOUNDATION--testing-strategy.md)
+- [Project context and drift rules](../../archive/product/CURRENT--project-context.md)
+- [Architecture ownership and interfaces](../architecture/FOUNDATION--architecture.md)
+- [Repository boundaries](../architecture/FOUNDATION--repository.md)
+- [Data and API contracts](../architecture/FOUNDATION--contracts.md)
+- [Build and test commands](../architecture/FOUNDATION--build-system.md)
+- [Baseline stage overview](../FOUNDATION--baseline-phases.md)
+- [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
 - [CI/CD, build, and test guide](CURRENT--CI-CD-build-and-test-guide.md)
-- [Debugging and logging](UNDATED--CURRENT--debugging.md)
-- [Engineering practices](UNDATED--FOUNDATION--engineering-practices.md)
-- [Pre-baseline validation](../../archive/delivery/UNDATED--CURRENT--pre-baseline-validation.md)
-- [Authoring-engine design](../subsystems/authoring-engine.md)
+- [Debugging and logging](CURRENT--debugging.md)
+- [Engineering practices](FOUNDATION--engineering-practices.md)
+- [Pre-baseline validation](../../archive/delivery/CURRENT--pre-baseline-validation.md)
+- [Authoring-engine design](../subsystems/FOUNDATION--authoring-engine.md)
 - [Session handoff](../../../SESSION.md)

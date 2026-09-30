@@ -55,7 +55,7 @@ An author can create a multi-scene interactive exhibition from curated assets, a
 
 ## Source of truth
 
-This document summarizes the proposal for implementation traceability. The detailed requirement baseline remains in [`project scope`](UNDATED--FOUNDATION--project-scope.md). The technical design is in [`architecture`](../02-architecture/UNDATED--FOUNDATION--architecture.md), and implementation ownership is in [`deliverables`](../03-delivery/2026-09-10--CURRENT--deliverables.md).
+This document summarizes the proposal for implementation traceability. The detailed requirement baseline remains in [`project scope`](FOUNDATION--project-scope.md). The technical design is in [`architecture`](../02-architecture/FOUNDATION--architecture.md), and implementation ownership is in [`deliverables`](../03-delivery/2026-09-10--CURRENT--deliverables.md).
 
 ## Open decisions before M2
 

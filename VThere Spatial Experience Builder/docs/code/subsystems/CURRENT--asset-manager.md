@@ -1,8 +1,8 @@
 # Asset Manager
 
-**Baseline phase:** Stage 4a (build) + Stage 6 (wire into frontend). See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Stage 4a (build) + Stage 6 (wire into frontend). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
-**See also:** [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) for which attachment types (image, text, video, audio, 3D) can be loaded today and what is proposed, [`attachment-integration.md`](attachment-integration.md) for the proposed resolver chain, asset kinds and attachment model, [`media-policy-and-cloud-download.md`](media-policy-and-cloud-download.md) for the per-kind content-type allowlist, size caps and the mechanisms that control cloud download of large assets, and the type designs [`audio-system.md`](audio-system.md), [`image-system.md`](image-system.md), [`text-system.md`](text-system.md) and [`video-system.md`](video-system.md).
+**See also:** [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) for which attachment types (image, text, video, audio, 3D) can be loaded today and what is proposed, [`attachment-integration.md`](attachment-integration.md) for the proposed resolver chain, asset kinds and attachment model, [`media-policy-and-cloud-download.md`](CURRENT--media-policy-and-cloud-download.md) for the per-kind content-type allowlist, size caps and the mechanisms that control cloud download of large assets, and the type designs [`audio-system.md`](audio-system.md), [`image-system.md`](image-system.md), [`text-system.md`](text-system.md) and [`video-system.md`](video-system.md).
 
 ## Purpose
 
@@ -194,7 +194,7 @@ void retryAsset(sceneObject)
   (`apps/api/app/storage.py`, `/projects/{id}/media`); `RemoteMediaResolver` only reserves the
   call shape
 - Licensing/attribution/inventory metadata for approved assets — that is
-  [`asset-library-contract.md`](UNDATED--CURRENT--asset-library-contract.md), a separate
+  [`asset-library-contract.md`](CURRENT--asset-library-contract.md), a separate
   approval artifact this package does not enforce
 - Persisted disk/browser cache — `AssetCache` is process-memory only and does not survive a
   reload (see Limits)

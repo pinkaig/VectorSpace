@@ -1,6 +1,6 @@
 # Source File Header Standard
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 ## Purpose
 
@@ -29,7 +29,7 @@ Use file-level documentation as the implementation reference for each source fil
  * Current technical-spike implementation.
  *
  * @documentation
- * See docs/code/subsystems/viewport.md
+ * See docs/code/subsystems/CURRENT--viewport.md
  */
 ```
 

@@ -23,6 +23,10 @@ The current implementation is the technical spike and editor foundation. Interac
 
 ## Development guide
 
-See [`docs/README.md`](docs/README.md) for the documentation map. For development workflow, folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands, read [`docs/04-engineering/UNDATED--CURRENT--development-guide.md`](docs/04-engineering/UNDATED--CURRENT--development-guide.md).
+See [`docs/README.md`](docs/README.md) for the documentation map. For development workflow, folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands, read [`docs/code/engineering/CURRENT--development-guide.md`](docs/code/engineering/CURRENT--development-guide.md).
 
-For first-time machine setup and missing-tool diagnostics, see [`docs/04-engineering/UNDATED--CURRENT--environment-setup.md`](docs/04-engineering/UNDATED--CURRENT--environment-setup.md).
+For first-time machine setup and missing-tool diagnostics, see [`docs/code/engineering/CURRENT--environment-setup.md`](docs/code/engineering/CURRENT--environment-setup.md).
+
+## Wiki
+
+Finished M1 deliverables (Toolchain Decision Document, Architecture v0.1, etc.) live on the project's [GitHub wiki](../../wiki), not in this repo — `docs/` stays working notes and reference material tied to current code.

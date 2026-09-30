@@ -6,11 +6,11 @@
 
 | Check | Status | Evidence / blocker |
 |---|---|---|
-| Scope | PASS | `../product/UNDATED--FOUNDATION--project-scope.md` defines required, optional, future, undefined, and forbidden scope. |
-| Technology | PASS | `../../code/architecture/UNDATED--FOUNDATION--tech-stack.md` selects the browser, API, database, storage, auth, CDN, and test tools; Node.js, npm, and Python are now installed and verified. |
-| Architecture | PASS WITH APPROVAL GATE | `../../code/architecture/UNDATED--FOUNDATION--architecture.md` defines Editor, Shared, Runtime, Infrastructure, persistence invariants, and standalone `AuthoringEngine`. |
-| Repository | PASS | `../../code/architecture/UNDATED--FOUNDATION--repository.md` classifies fixed, extensible, generated, and optional boundaries. |
-| Integrations | PASS | `../../code/architecture/UNDATED--FOUNDATION--contracts.md` and `../../code/architecture/UNDATED--FOUNDATION--architecture.md` define client/API, storage, CDN, auth, analytics, and project-data flow. |
+| Scope | PASS | `../product/FOUNDATION--project-scope.md` defines required, optional, future, undefined, and forbidden scope. |
+| Technology | PASS | `../../code/architecture/FOUNDATION--tech-stack.md` selects the browser, API, database, storage, auth, CDN, and test tools; Node.js, npm, and Python are now installed and verified. |
+| Architecture | PASS WITH APPROVAL GATE | `../../code/architecture/FOUNDATION--architecture.md` defines Editor, Shared, Runtime, Infrastructure, persistence invariants, and standalone `AuthoringEngine`. |
+| Repository | PASS | `../../code/architecture/FOUNDATION--repository.md` classifies fixed, extensible, generated, and optional boundaries. |
+| Integrations | PASS | `../../code/architecture/FOUNDATION--contracts.md` and `../../code/architecture/FOUNDATION--architecture.md` define client/API, storage, CDN, auth, analytics, and project-data flow. |
 | Contracts | PASS | Versioned project JSON, API resources, interaction events/actions, errors, and signed asset URLs are documented. |
 | Dependencies | PASS | Direction is UI/apps -> shared packages; shared packages do not import UI/API/database concerns. Verified still true post-baseline: `packages/assets`, `packages/interaction`, and `packages/sync` remain framework-free and are consumed by `src/` and `apps/*`, not the reverse. |
 | Build | PASS WITH WARNING | `npm install` and `npm run build` pass; Vite reports a large production chunk warning. |

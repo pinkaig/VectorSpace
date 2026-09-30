@@ -1,6 +1,6 @@
 # Authoring Engine
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 ## Purpose
 
@@ -111,7 +111,7 @@ for its new parent's transform. That is slice 5, deliberately separate.
 `syncArtefacts.ts`, world-space gizmo placement in `syncGizmo.ts`, and the
 `pick()`/drag conversion in `interactionController.ts`) were ported from
 the baseline in full — see
-[`DEFERRED--parent-child-rendering.md`](DEFERRED--parent-child-rendering.md)
+[`CURRENT--parent-child-rendering.md`](CURRENT--parent-child-rendering.md)
 for the completed work log and the verification checklist. The renderer nests
 meshes under their parent mesh via `Object3D`, and `SceneObject.transform` is
 local-space for any object with a `parentId`, world-space for a top-level
@@ -254,7 +254,7 @@ re-exporting everything below from `packages/authoring-engine/src/index.ts`.
 
 The gizmo hit-testing, ray/plane constraint solving, and screen-space handle math described
 earlier in "Owns" live in `src/gizmo/` and `src/viewport/interactionMath.ts` (framework-free,
-documented in [`viewport.md`](viewport.md)), not inside this package — this package owns the
+documented in [`viewport.md`](CURRENT--viewport.md)), not inside this package — this package owns the
 project-mutation side of an edit (commands, history, transform validity, hierarchy), not pointer
 math or Three.js hit testing. The `AuthoringEngine` / `TransformManipulator` / `GizmoHitTest` /
 `ConstraintSolver` / `CommandHistory` interface names that previously appeared in this section

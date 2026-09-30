@@ -1,6 +1,6 @@
 # VThere CI/CD, Build, and Test Guide
 
-**Baseline phase:** Not stage-specific, with ties to Stage 5 (production deploy). See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Not stage-specific, with ties to Stage 5 (production deploy). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## Purpose
 
@@ -322,10 +322,10 @@ then run the full local sequence before requesting review. Keep generated
 
 ## Related documents
 
-- [Development guide](UNDATED--CURRENT--development-guide.md)
-- [Testing strategy](../../archive/delivery/UNDATED--FOUNDATION--testing-strategy.md)
-- [Build system](../architecture/UNDATED--FOUNDATION--build-system.md)
-- [Technology stack](../architecture/UNDATED--FOUNDATION--tech-stack.md)
+- [Development guide](CURRENT--development-guide.md)
+- [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
+- [Build system](../architecture/FOUNDATION--build-system.md)
+- [Technology stack](../architecture/FOUNDATION--tech-stack.md)
 - [Production deploy](../../../deploy/README.md)
 - [Session handoff](../../../SESSION.md)
 - [Git and handoff conventions](../../../../Agent%20Skills/GIT_AND_HANDOFF_CONVENTIONS.md)

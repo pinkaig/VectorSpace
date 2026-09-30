@@ -1,7 +1,7 @@
 ﻿# Source Brief Audit
 
 **Source:** `VThere_DigiPen_Spatial_Experience_Builder_Project_5.docx`
-**Audited documents:** `UNDATED--FOUNDATION--project-scope.md`, `UNDATED--FOUNDATION--tech-stack.md`, Stage 3 architecture documents
+**Audited documents:** `FOUNDATION--project-scope.md`, `FOUNDATION--tech-stack.md`, Stage 3 architecture documents
 **Audit date:** 2026-09-06
 
 **Baseline phase:** Not stage-specific — see [8-stage baseline overview](../../code/baseline-phases.md) for the full sequence.
@@ -82,10 +82,10 @@ Replace relative phase names with the official DigiPen calendar, confirm the Mil
 
 ## Required follow-up artifacts
 
-- `../05-subsystems/UNDATED--CURRENT--asset-library-contract.md` for environment/asset inventory and licensing.
-- `../03-delivery/UNDATED--GOVERNANCE--roles-and-delivery.md` for UXGD/IMGD/RTIS/BFA ownership, Jira evidence, milestones, and handoff.
-- `../07-research-and-history/UNDATED--GOVERNANCE--pilot-and-conduct.md` for usability testing, safeguarding, confidentiality, IP, and data handling.
-- `../02-architecture/UNDATED--FOUNDATION--contracts.md` for final trigger/action vocabulary, camera/navigation behavior, project lifecycle states, and loading states.
+- `../05-subsystems/CURRENT--asset-library-contract.md` for environment/asset inventory and licensing.
+- `../03-delivery/GOVERNANCE--roles-and-delivery.md` for UXGD/IMGD/RTIS/BFA ownership, Jira evidence, milestones, and handoff.
+- `../07-research-and-history/GOVERNANCE--pilot-and-conduct.md` for usability testing, safeguarding, confidentiality, IP, and data handling.
+- `../02-architecture/FOUNDATION--contracts.md` for final trigger/action vocabulary, camera/navigation behavior, project lifecycle states, and loading states.
 
 ## Audit conclusion
 

@@ -1,6 +1,6 @@
 # Architecture Skeleton
 
-**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## System boundary
 
@@ -40,7 +40,7 @@ This table is now grounded in the actual source tree. `apps/editor/src/EditorApp
 | Publishing / Analytics / Media / Rules routers | Declare the resource-oriented route surface for versions, analytics, media, and rules | route signatures, Pydantic request/response models | handler business logic (currently `raise not_implemented(...)`, HTTP 501) | FastAPI | `apps/api/app/routers/publish.py`, `analytics.py`, `media.py`, `rules.py` |
 | Auth/AccessControl | Validate Auth0-issued JWTs against tenant JWKS | JWKS fetch/cache, token decode, `get_current_token` dependency | client-only permissions, route authorization decisions (not yet wired into routers) | Auth0 OIDC, `python-jose`, `httpx` | `apps/api/app/auth.py` |
 
-Note: the project/publish/media/analytics/rules routers are real FastAPI routing with typed Pydantic models, but every handler body currently raises `not_implemented(...)` (HTTP 501) per `apps/api/app/routers/_skeleton.py`. Do not treat route existence as evidence that CRUD, publishing, or analytics ingestion is implemented — see [contracts.md](UNDATED--FOUNDATION--contracts.md) for the per-route status.
+Note: the project/publish/media/analytics/rules routers are real FastAPI routing with typed Pydantic models, but every handler body currently raises `not_implemented(...)` (HTTP 501) per `apps/api/app/routers/_skeleton.py`. Do not treat route existence as evidence that CRUD, publishing, or analytics ingestion is implemented — see [contracts.md](FOUNDATION--contracts.md) for the per-route status.
 
 ## Canonical interfaces
 
@@ -146,7 +146,7 @@ const result = dispatch(
 // result.actions is the ordered ActionSpec[] to execute; result.nextState replaces runtimeState.
 ```
 
-See [contracts.md](UNDATED--FOUNDATION--contracts.md) for the full API resource list and its 501-skeleton status, and [../subsystems/when-do-dispatch-engine.md](../subsystems/when-do-dispatch-engine.md) / [../subsystems/authoring-engine.md](../subsystems/authoring-engine.md) for deeper subsystem detail.
+See [contracts.md](FOUNDATION--contracts.md) for the full API resource list and its 501-skeleton status, and [../subsystems/CURRENT--when-do-dispatch-engine.md](../subsystems/CURRENT--when-do-dispatch-engine.md) / [../subsystems/FOUNDATION--authoring-engine.md](../subsystems/FOUNDATION--authoring-engine.md) for deeper subsystem detail.
 
 ## Persistence invariants
 
@@ -186,4 +186,4 @@ The engine must not own React state, persistence providers, HTTP, authentication
 
 Allowed direction is UI/apps -> shared packages -> no app dependencies. API services may depend on shared schema definitions but shared packages must not import React, FastAPI, database code, or Three.js UI adapters. No dependency cycle is permitted.
 
-As implemented, the shared TypeScript packages are `packages/project`, `packages/authoring-engine`, `packages/assets`, `packages/interaction`, `packages/sync`, and `packages/debugging` (see `packages/*/package.json` for their declared `dependencies`; only `authoring-engine`, `assets`, and `interaction` depend on `@vthere/project`, and none depend on each other or on React/Three.js). There is no `packages/spatial/`, `packages/serialization/`, `packages/commands/`, or `packages/validation/` — those planned boundaries have not been split out; their responsibilities currently live inside `src/viewport/`, `src/gizmo/`, `src/serializer.ts`, and `packages/authoring-engine`.
+As implemented, the shared TypeScript packages are `packages/project`, `packages/authoring-engine`, `packages/assets`, `packages/interaction`, `packages/sync`, `packages/debugging`, `packages/text`, and `packages/audio` (see `packages/*/package.json` for their declared `dependencies`). `authoring-engine`, `assets`, `interaction`, `text`, and `audio` all depend on `@vthere/project`; none depend on each other or on React/Three.js in production. `text` and `audio` each accept an `ActionRegistry`-shaped value from `@vthere/interaction` as a runtime parameter (wired by the app layer in `src/Viewport.tsx`, which itself depends on `interaction`) but only reference its type via `import type`, and only their test suites import `@vthere/interaction`'s runtime helpers (`createActionRegistry`, `createEffectRegistry`, `createRuntimeState`) to build a harness — so `@vthere/interaction` is declared as a `devDependency`, not a `dependency`, for both. There is no `packages/spatial/`, `packages/serialization/`, `packages/commands/`, or `packages/validation/` — those planned boundaries have not been split out; their responsibilities currently live inside `src/viewport/`, `src/gizmo/`, `src/serializer.ts`, and `packages/authoring-engine`.

@@ -1,6 +1,6 @@
 # 3D Viewport
 
-**Baseline phase:** Stage 6 + 7 (asset and event wiring into the viewport). See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Stage 6 + 7 (asset and event wiring into the viewport). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## Contents
 
@@ -45,7 +45,7 @@ Use this table as the first stop when changing viewport or rendering behaviour.
 | Three.js compatibility wrappers for gizmo math | [`src/gizmo/math.ts`](../../src/gizmo/math.ts) | Three.js vectors need adapting to the pure math contract |
 | Gizmo geometry and colours | [`src/gizmo/`](../../src/gizmo/) | Handle meshes, dimensions, colours, or material behaviour change |
 | Keyboard movement constants and input helpers | [`src/viewport/viewportTypes.ts`](../../src/viewport/viewportTypes.ts) | Walk controls, speeds, key mappings, or asset colours change |
-| Asset Manager resolver composition and resolution status store | [`src/viewport/assetResolution.ts`](../../src/viewport/assetResolution.ts) | Which resolver an assetId routes through, or how status is cached/observed, changes — see [`asset-manager.md`](asset-manager.md) |
+| Asset Manager resolver composition and resolution status store | [`src/viewport/assetResolution.ts`](../../src/viewport/assetResolution.ts) | Which resolver an assetId routes through, or how status is cached/observed, changes — see [`asset-manager.md`](CURRENT--asset-manager.md) |
 | Asset resolution status UI (loading/error badge, retry) | [`src/viewport/AssetStatusBadge.tsx`](../../src/viewport/AssetStatusBadge.tsx) | Loading/error presentation for the selected object's asset changes |
 | Authoritative project objects and transforms | [`packages/project/src/index.ts`](../../packages/project/src/index.ts) | Persisted object shape or defaults change |
 | Authoring commands and history | [`packages/authoring-engine/src/index.ts`](../../packages/authoring-engine/src/index.ts) | An edit must be immutable, undoable, or shared by editor controls |
@@ -189,13 +189,13 @@ if (item.id === selectedId) {
 following `parentId`, and `transform` is local-space for any parented object,
 world-space for a top-level one — the two-pass build described below is the
 live code. See
-[`DEFERRED--parent-child-rendering.md`](DEFERRED--parent-child-rendering.md)
+[`CURRENT--parent-child-rendering.md`](CURRENT--parent-child-rendering.md)
 for the completed work log and verification checklist.
 
 Meshes are built in two passes: every mesh is created first, then attached to its parent mesh (or
 the root `objectsGroup`) in a second pass, keyed by `SceneObject.parentId` — this is what lets
 Three.js's own `Object3D` hierarchy compose world transforms for nested objects (see the parent-child
-slice 5 notes in [`authoring-engine.md`](authoring-engine.md)). `transform` on a parented object is
+slice 5 notes in [`authoring-engine.md`](FOUNDATION--authoring-engine.md)). `transform` on a parented object is
 therefore local, not world, space.
 
 The serialized object is the source of truth. The mesh is a temporary, disposable renderer
@@ -204,7 +204,7 @@ and disposes every mesh's geometry and material(s) before a rebuild.
 
 Geometry does **not** yet vary by a resolved `AssetDescriptor`'s actual content (GLB, image,
 etc.) — every object still renders as one of the three hardcoded primitive shapes regardless of
-what the Asset Manager resolves. See [`asset-manager.md`](asset-manager.md)'s Limits section.
+what the Asset Manager resolves. See [`asset-manager.md`](CURRENT--asset-manager.md)'s Limits section.
 
 ## Render and synchronization flow
 
@@ -230,7 +230,7 @@ All pointer, drag, gizmo-picking, and keyboard listeners are owned by
 renderer lifecycle with the scene's camera/controls/raycaster/pointer, the objects and gizmo
 groups, an `interactive` flag, and a `callbacks` object (`getData`, `select`, `commitMove`,
 `commitScale`, `commitRotate`, camera-orientation callbacks, and `onRuntimeEvent` for WHEN→DO
-Tier 1 input — see [`when-do-dispatch-engine.md`](when-do-dispatch-engine.md)).
+Tier 1 input — see [`when-do-dispatch-engine.md`](CURRENT--when-do-dispatch-engine.md)).
 
 ### Selection
 
@@ -259,13 +259,13 @@ A drag previews renderer-side state on every `pointermove`, but commits exactly 
 `pointerup` — by calling `callbacks.commitMove` / `commitScale` / `commitRotate`, which
 `Viewport.tsx` wires to `dataRef.current.onMove` / `onScale` / `onRotate`. `App.tsx` routes those
 into `executeCommand` against the authoring engine's transform commands (see
-[`authoring-engine.md`](authoring-engine.md)'s "The transform command path"), so one pointer
+[`authoring-engine.md`](FOUNDATION--authoring-engine.md)'s "The transform command path"), so one pointer
 gesture produces exactly one undo entry, never one per `pointermove` event.
 
 For a parented object, a drag's result is world-space math (rays and planes are inherently
 world-space) converted back to parent-local space via `Object3D.worldToLocal` / a
 parent-quaternion inverse (`toLocalPosition` / `toLocalQuaternion` in `interactionController.ts`)
-before it is committed — see the slice 5 notes in [`authoring-engine.md`](authoring-engine.md).
+before it is committed — see the slice 5 notes in [`authoring-engine.md`](FOUNDATION--authoring-engine.md).
 For a top-level object this conversion is the identity, so drag behavior there is unchanged.
 
 ## Runtime mode
@@ -294,7 +294,7 @@ editing disabled and the WHEN→DO runtime turned on:
 Runtime still uses Three.js for 3D rendering; React renders the surrounding visitor chrome
 (top bar, "Restart scene" / "Exit simulation" buttons, both driven through the `ViewportHandle`
 ref's `restartRuntime()` and through unmounting, respectively — see
-[`when-do-dispatch-engine.md`](when-do-dispatch-engine.md) for what each teardown does).
+[`when-do-dispatch-engine.md`](CURRENT--when-do-dispatch-engine.md) for what each teardown does).
 `interactive={false}` prevents editor pointer/gizmo handlers from being registered;
 `runtimeMode="play"` is the separate flag that turns on WHEN→DO dispatch — the two are
 deliberately independent so a future in-editor Preview can run rules with gizmo interactivity
@@ -399,8 +399,8 @@ A canvas visibility check is useful, but it should also have a non-zero bounding
 - [Editor coordinator](../../src/App.tsx)
 - [Runtime view](../../src/RuntimeView.tsx)
 - [Project model](../../packages/project/src/index.ts)
-- [Authoring engine contract](authoring-engine.md)
-- [Technology stack](../architecture/UNDATED--FOUNDATION--tech-stack.md)
+- [Authoring engine contract](FOUNDATION--authoring-engine.md)
+- [Technology stack](../architecture/FOUNDATION--tech-stack.md)
 
 ## Change history
 

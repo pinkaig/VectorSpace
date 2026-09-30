@@ -1,6 +1,6 @@
 ﻿# Engineering Practices
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
 These practices are deliberately practical for the current VThere stack: React, TypeScript, Three.js, FastAPI, PostgreSQL, local draft storage, and a shared project document.
 
@@ -101,7 +101,7 @@ The UI can then show a truthful recovery path, and tests can assert the exact fa
 
 Use the shared logger in [`packages/debugging/src/index.ts`](../../../packages/debugging/src/index.ts) when an operation starts, completes, recovers, or fails. Include stable IDs, operation names, durations, and request IDs.
 
-Do not log full project documents, credentials, access tokens, or binary assets. See [`UNDATED--CURRENT--debugging.md`](UNDATED--CURRENT--debugging.md) for the redaction and investigation rules.
+Do not log full project documents, credentials, access tokens, or binary assets. See [`CURRENT--debugging.md`](CURRENT--debugging.md) for the redaction and investigation rules.
 
 ### 8. Keep adapters at the edges
 
@@ -122,7 +122,7 @@ It also prevents a future API or storage change from forcing a rewrite of author
 For each new feature:
 
 1. Write the user-visible behavior and failure behavior in one short note.
-2. Identify the owning boundary in [`architecture`](../architecture/UNDATED--FOUNDATION--architecture.md).
+2. Identify the owning boundary in [`architecture`](../architecture/FOUNDATION--architecture.md).
 3. Extend the canonical model only if the feature needs persistent data.
 4. Implement pure domain logic and its focused tests.
 5. Wrap it in a command if it changes authored state.
@@ -191,8 +191,8 @@ These are the highest-value follow-ups for the current repository:
 
 ## Related documents
 
-- [Development guide](UNDATED--CURRENT--development-guide.md)
-- [Debugging and logging](UNDATED--CURRENT--debugging.md)
-- [Testing strategy](../../archive/delivery/UNDATED--FOUNDATION--testing-strategy.md)
-- [Architecture boundaries](../architecture/UNDATED--FOUNDATION--architecture.md)
-- [Baseline stage overview](../baseline-phases.md)
+- [Development guide](CURRENT--development-guide.md)
+- [Debugging and logging](CURRENT--debugging.md)
+- [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
+- [Architecture boundaries](../architecture/FOUNDATION--architecture.md)
+- [Baseline stage overview](../FOUNDATION--baseline-phases.md)

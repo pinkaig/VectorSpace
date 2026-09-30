@@ -1,9 +1,9 @@
 # Attachment Integration
 
 **Status:** Design specification (2026-09-21). Nothing in this doc is implemented yet. Statements about current code were checked against the source on that date and cite the file.
-**Baseline phase:** Post-baseline. Builds on the project model (Stage 1), the Asset Manager (Stage 4a/6) and the When-Do runtime (Stage 4b/7). See [8-stage baseline overview](../baseline-phases.md).
-**Companions:** [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) is the status map of each content type. [`media-policy-and-cloud-download.md`](media-policy-and-cloud-download.md) documents the parts of sections 5–6 that were built: the `MEDIA_KIND_SPECS` table, `ContentGuardResolver`, and how cloud download of large assets is controlled. The four type designs are [`audio-system.md`](audio-system.md), [`image-system.md`](image-system.md), [`text-system.md`](text-system.md) and [`video-system.md`](video-system.md). This doc is the part they share: how an attachment is stored in the project, how it hangs off a scene object, what kind of asset it points at, how that asset is resolved, and which libraries load each kind.
-**Architecture decision:** [`repository.md`](../architecture/UNDATED--FOUNDATION--repository.md) L67-69 treats a new canonical subsystem as an architectural change. The four type docs each propose one; this doc is the shared proposal they depend on.
+**Baseline phase:** Post-baseline. Builds on the project model (Stage 1), the Asset Manager (Stage 4a/6) and the When-Do runtime (Stage 4b/7). See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
+**Companions:** [`attachment-types-and-asset-manager.md`](attachment-types-and-asset-manager.md) is the status map of each content type. [`media-policy-and-cloud-download.md`](CURRENT--media-policy-and-cloud-download.md) documents the parts of sections 5–6 that were built: the `MEDIA_KIND_SPECS` table, `ContentGuardResolver`, and how cloud download of large assets is controlled. The four type designs are [`audio-system.md`](audio-system.md), [`image-system.md`](image-system.md), [`text-system.md`](text-system.md) and [`video-system.md`](video-system.md). This doc is the part they share: how an attachment is stored in the project, how it hangs off a scene object, what kind of asset it points at, how that asset is resolved, and which libraries load each kind.
+**Architecture decision:** [`repository.md`](../architecture/FOUNDATION--repository.md) L67-69 treats a new canonical subsystem as an architectural change. The four type docs each propose one; this doc is the shared proposal they depend on.
 
 ## Purpose
 
@@ -63,7 +63,7 @@ a `VideoTexture`) lives in `src/viewport/`, fed by the type package's state.
 
 ## 1. How this fits the architecture
 
-The current module table is [`architecture.md`](../architecture/UNDATED--FOUNDATION--architecture.md) L20-41. What
+The current module table is [`architecture.md`](../architecture/FOUNDATION--architecture.md) L20-41. What
 changes, and what does not:
 
 | Module | Change |
@@ -332,7 +332,7 @@ fetched for a host in another scene.
 
 ## 7. Libraries by attachment type
 
-Policy from [`tech-stack.md`](../architecture/UNDATED--FOUNDATION--tech-stack.md): dependencies are pinned to exact
+Policy from [`tech-stack.md`](../architecture/FOUNDATION--tech-stack.md): dependencies are pinned to exact
 versions, recorded in the lockfile, and license-compatible; unreviewed convenience dependencies are forbidden; packages
 must not import React, Three.js or FastAPI (L155-158). So the default is **browser-native APIs behind an interface**, and
 a library is added only when it removes real work.
@@ -400,9 +400,9 @@ Two naming points to settle:
 
 - How any one type is decoded, mixed, laid out or played (each type doc)
 - Rendering and overlay UI (`src/`)
-- The resolver contract itself ([`asset-manager.md`](asset-manager.md))
+- The resolver contract itself ([`asset-manager.md`](CURRENT--asset-manager.md))
 - Backend media storage and the upload flow (Stage 3)
-- The curated 3D asset inventory (`UNDATED--CURRENT--asset-library-contract.md`)
+- The curated 3D asset inventory (`CURRENT--asset-library-contract.md`)
 
 ## Considerations and limits
 

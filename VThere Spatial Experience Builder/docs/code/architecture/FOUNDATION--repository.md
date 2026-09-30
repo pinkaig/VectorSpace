@@ -1,6 +1,6 @@
 # Repository Skeleton
 
-**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../baseline-phases.md).
+**Baseline phase:** Not stage-specific — describes the system the 8 stages implement. See [8-stage baseline overview](../FOUNDATION--baseline-phases.md).
 
 ## Classification
 

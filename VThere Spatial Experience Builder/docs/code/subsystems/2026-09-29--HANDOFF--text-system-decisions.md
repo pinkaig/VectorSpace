@@ -124,7 +124,7 @@ considered limit.
 **Decision (2026-09-22): `showPanel` takes `attachmentId`; `componentId` is accepted as an alias** so
 existing example rules keep working. Also accepts a bare `assetId` for a hostless panel.
 
-Recorded in [`contracts.md`](../architecture/UNDATED--FOUNDATION--contracts.md). Note that during the
+Recorded in [`contracts.md`](../architecture/FOUNDATION--contracts.md). Note that during the
 2026-09-29 merge, `Working` had reverted a related naming correction (`playAudio` →
 `playAudioOrVideo`); `playAudio` is what is actually registered, and `playAudioOrVideo` appears
 nowhere in code. If that drift reappears, the code is right and the doc is wrong.
