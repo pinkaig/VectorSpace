@@ -7,6 +7,11 @@
   background: #f5f5f5;
   font-synthesis: none;
   --border-edge1:#5C3705;
+  --primary-main1:#E2A845;
+  --primary-ghost1:#F7E3C3;
+  --secondary-main1:#4294E2;
+  --secondary-main2:#B0E0F6;   /*/Mainly for assets and storage? /*/
+
 }
 
 h1,
@@ -78,7 +83,7 @@ button:disabled {
 }
 .brand div span {
   display: block;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 10px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -92,7 +97,7 @@ button:disabled {
 }
 .eyebrow {
   display: block;
-  color: #E2A845;
+  color: var(--primary-main1);
   font-family: "DM Mono", monospace;
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -103,7 +108,7 @@ button:disabled {
   font-weight: 600;
 }
 .save-state {
-  color: #E2A845;
+  color: var(--primary-main1);
   font-size: 11px;
   padding-left: 4px;
 }
@@ -116,22 +121,22 @@ button:disabled {
   border: 1px solid transparent;
   padding: 9px 13px;
   border-radius: 3px;
-  color: #E2A845;
+  color: var(--primary-main1);
   background: transparent;
   font-size: 11px;
   font-weight: 700;
 }
 .button.subtle {
-  color: #E2A845;
+  color: var(--primary-main1);
   padding-inline: 8px;
 }
 .button.ghost {
-  border-color: #F7E3C3;
+  border-color: var(--primary-ghost1);
 }
 .button.primary {
-  background: #E2A845;
-  color: #5C3705;
-  border-color: #E2A845;
+  background: var(--primary-main1);
+  color: var(--border-edge1);
+  border-color: var(--primary-main1);
 }
 .workspace {
   display: grid;
@@ -141,7 +146,7 @@ button:disabled {
 }
 .left-rail,
 .right-rail {
-  background: rgba(2, 2, 2, 0.38);
+  background: rgba(2, 2, 2, 1);
 }
 .left-rail {
   border-right: 1px solid var(--border-edge1);
@@ -205,9 +210,9 @@ button:disabled {
 .icon-button {
   width: 26px;
   height: 26px;
-  border: 1px solid #F7E3C3;
-  background: #E2A845;
-  color: #5C3705;
+  border: 1px solid var(--primary-ghost1);
+  background: var(--primary-main1);
+  color: var(--border-edge1);
   border-radius: 3px;
   font-size: 18px;
   line-height: 1;
@@ -222,7 +227,7 @@ button:disabled {
   border-left: 2px solid transparent;
   border-bottom: 1px solid #BA8128;
   background: transparent;
-  color: #F7E3C3;
+  color: var(--primary-ghost1);
   text-align: left;
   font-size: 11px;
 }
@@ -248,11 +253,11 @@ button:disabled {
 
 .scene-tab.active {
   border-left-color: #d7b577;
-  background: #5C3705;
-  color: #E2A845;
+  background: var(--border-edge1);
+  color: var(--primary-main1);
 }
 .scene-tab span {
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-family: "DM Mono", monospace;
 }
 
@@ -290,8 +295,8 @@ button:disabled {
   font-size: 11px;
 }
 .tree-item.selected {
-  background: #5C3705;
-  color: #E2A845;
+  background: var(--border-edge1);
+  color: var(--primary-main1);
 }
 .tree-indent-controls {
   display: flex;
@@ -305,14 +310,14 @@ button:disabled {
   border-radius: 4px;
   padding: 0;
   background: transparent;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
 }
 .tree-indent-btn:hover:not(:disabled) {
-  background: #5C3705;
-  color: #F7E3C3;
+  background: var(--border-edge1);
+  color: var(--primary-ghost1);
 }
 .tree-indent-btn:disabled {
   opacity: 0.25;
@@ -354,21 +359,21 @@ button:disabled {
   border: 0;
   background: transparent;
   margin-left: auto;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 17px;
 }
 .empty-state {
   padding: 44px 15px;
-  color: #E2A845;
+  color: var(--primary-main1);
   font-size: 12px;
   line-height: 1.7;
 }
 .empty-state span {
-  color: #F7E3C3;
+  color: var(--primary-ghost1);
 }
 .rail-footer {
   margin-top: auto; /*push footer to the bottom*/
-  border-top: 1px solid #5C3705;
+  border-top: 1px solid var(--border-edge1);
   padding: 14px 17px;
   color: #8294fd;
 
@@ -398,7 +403,7 @@ button:disabled {
   margin-left: auto;
   border: 0;
   background: transparent;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 10px;
   padding: 0;
 }
@@ -423,14 +428,14 @@ button:disabled {
 .mode {
   border: 1px solid transparent;
   background: transparent;
-  color: #F7E3C3;
+  color: var(--primary-ghost1);
   padding: 7px 9px;
   font-size: 10px;
 }
 .mode.active {
-  border-color: #F7E3C3;
-  color: #E2A845;
-  background: #5C3705;
+  border-color: var(--primary-ghost1);
+  color: var(--primary-main1);
+  background: var(--border-edge1);
 }
 .stage-meta {
   color: #8294fd;
@@ -443,14 +448,14 @@ button:disabled {
 .divider {
   width: 1px;
   height: 13px;
-  background: #F7E3C3;
+  background: var(--primary-ghost1);
   margin: 0 3px;
 }
 /* .stage-toolbar and .runtime-topbar have no opaque background of their own, so this
    divider sits directly over whatever body background shows through — lighten it here
    without touching the shared .divider rule other panels (with an opaque backing) use. */
 .stage-meta .divider {
-  background: #F7E3C3;
+  background: var(--primary-ghost1);
 }
 .viewport {
   flex: 1;
@@ -470,7 +475,7 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 2px;
-  background: #4294E2;
+  background: var(--secondary-main1);
 }
 .quad-viewport .viewport {
   min-width: 0;
@@ -487,22 +492,22 @@ button:disabled {
   position: absolute;
   top: 8px;
   left: 8px;
-  color: #E2A845;
+  color: var(--primary-main1);
   font-family: "DM Mono", monospace;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 3px 7px;
-  border: 1px solid #F7E3C3;
+  border: 1px solid var(--primary-ghost1);
   border-radius: 3px;
-  background: #5C3705;
+  background: var(--border-edge1);
   pointer-events: none;
 }
 .viewport-hint {
   position: absolute;
   right: 16px;
   bottom: 16px;
-  color: #E2A845;
+  color: var(--primary-main1);
   font-family: "DM Mono", monospace;
   font-size: 9px;
   pointer-events: none;
@@ -542,15 +547,15 @@ button:disabled {
   display: flex;
   gap: 22px;
   padding: 12px 18px;
-  color: #4294E2;
-  border-top: 1px solid #5C3705;
+  color: var(--secondary-main1);
+  border-top: 1px solid var(--border-edge1);
   font-family: "DM Mono", monospace;
   font-size: 9px;
 }
 .stage-footer kbd {
-  color: #E2A845;
-  background: #5C3705;
-  border: 1px solid #F7E3C3;
+  color: var(--primary-main1);
+  background: var(--border-edge1);
+  border: 1px solid var(--primary-ghost1);
   padding: 3px 5px;
   border-radius: 2px;
   margin-right: 5px;
@@ -564,12 +569,12 @@ button:disabled {
 .count,
 .selection-badge {
   font-family: "DM Mono", monospace;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 10px;
   padding-top: 3px;
 }
 .selection-badge {
-  color: #4294E2;
+  color: var(--secondary-main1);
 }
 .asset-list {
   /* Card = 38px preview + 2 x 7px padding + 2 x 1px border = 54px. Four cards and
@@ -585,12 +590,12 @@ button:disabled {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #5C3705 transparent;
+  scrollbar-color: var(--border-edge1) transparent;
 }
 .asset-card {
-  border: 1px solid #F7E3C3;
-  background: #5C3705;
-  color: #E2A845;
+  border: 1px solid var(--primary-ghost1);
+  background: var(--border-edge1);
+  color: var(--primary-main1);
   padding: 7px;
   display: flex;
   align-items: center;
@@ -599,16 +604,16 @@ button:disabled {
   border-radius: 3px;
 }
 .asset-card:hover {
-  /*border-color: #4294E2;*/
-  border: 1px dashed #4294E2;
-  background: #5C3705;
+  /*border-color: var(--secondary-main1);*/
+  border: 1px dashed var(--secondary-main1);
+  background: var(--border-edge1);
 }
 .asset-preview {
   width: 38px;
   height: 38px;
   display: grid;
   place-items: center;
-  background: #5C3705;
+  background: var(--border-edge1);
 }
 /*---placeholder---*/
 .asset-preview span {
@@ -643,11 +648,11 @@ button:disabled {
 }
 .asset-copy small {
   font-size: 9px;
-  color: #F7E3C3;
+  color: var(--primary-ghost1);
 }
 .add-symbol {
   margin-left: auto;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 17px;
 }
 .inspector-content {
@@ -657,15 +662,15 @@ button:disabled {
   display: grid;
   gap: 7px;
   margin-bottom: 18px;
-  color: #4294E2;
+  color: var(--secondary-main1);
   font-size: 10px;
 }
 .field-group input {
   width: 100%;
-  border: 1px solid #F7E3C3;
+  border: 1px solid var(--primary-ghost1);
   border-radius: 2px;
   background: #4D5D53;
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   padding: 9px 10px;
   outline: none;
   font-size: 11px;
@@ -678,7 +683,7 @@ button:disabled {
   border: 1px solid #2a444a;
   border-radius: 2px;
   background: #4D5D53;
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   padding: 9px 10px;
   outline: none;
   font-size: 11px;
@@ -692,8 +697,8 @@ button:disabled {
   gap: 7px;
   padding: 10px;
   margin-bottom: 20px;
-  background: #F7E3C3;
-  color: #4294E2;
+  background: var(--primary-ghost1);
+  color: var(--secondary-main1);
   font-family: "DM Mono", monospace;
   font-size: 9px;
 }
@@ -715,7 +720,7 @@ button:disabled {
   cursor: pointer;
 }
 .toggle-row input {
-  accent-color: #E2A845;
+  accent-color: var(--primary-main1);
 }
 .inspector-actions {
   display: grid;
@@ -723,7 +728,7 @@ button:disabled {
   gap: 8px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #E2A845;
+  border-top: 1px solid var(--primary-main1);
 }
 .inspector-actions .button {
   text-align: center;
@@ -753,12 +758,12 @@ button:disabled {
 .inspector-empty {
   padding: 25px 18px 40px;
   text-align: center;
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   font-size: 11px;
 }
 .inspector-empty p {
   margin: 11px 0 5px;
-  color: #4294E2;
+  color: var(--secondary-main1);
 }
 .inspector-empty span {
   font-size: 10px;
@@ -786,16 +791,16 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #E2A845;
+  color: var(--primary-main1);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .env-select select {
-  border: 1px solid #F7E3C3;
+  border: 1px solid var(--primary-ghost1);
   border-radius: 2px;
-  background: #5C3705;
-  color: #E2A845;
+  background: var(--border-edge1);
+  color: var(--primary-main1);
   padding: 6px 8px;
   font-size: 11px;
   outline: none;
@@ -811,7 +816,7 @@ button:disabled {
   /* Border only - the dark rounded fill is drawn in WebGL (overlayWidgets.ts, PANEL_RADIUS
      must match this radius), since a tint here would sit on top of and dim the widget. */
   border-radius: 6px;
-  border: 1px solid #4294E2;
+  border: 1px solid var(--secondary-main1);
   pointer-events: none;
 }
 .octaorb-backdrop {
@@ -874,7 +879,7 @@ button:disabled {
   align-items: baseline;
   gap: 8px;
   padding: 5px 12px;
-  border: 1px solid #4294E2;
+  border: 1px solid var(--secondary-main1);
   border-radius: 5px;
   background: rgba(9, 15, 19, 0.8);
   font-family: "DM Mono", monospace;
@@ -967,7 +972,7 @@ button:disabled {
 }
 .storage-note {
   flex-basis: 100%;
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   font-family: "DM Mono", monospace;
   font-size: 8px;
 }
@@ -1054,15 +1059,15 @@ button:disabled {
   gap: 7px;
 }
 .asset-tools input::placeholder {
-    color: #B0E0F6;
+    color: var(--secondary-main2);
     opacity: 0.6;
 }
 .asset-tools input {
   width: 100%;
-  border: 1px solid #E2A845;
+  border: 1px solid var(--primary-main1);
   border-radius: 2px;
   background: #4D5D53;
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   padding: 8px 9px;
   outline: none;
   font-size: 10px;
@@ -1071,7 +1076,7 @@ button:disabled {
   border-color: #8294fd;
 }
 .asset-empty {
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   font-size: 10px;
   padding: 10px 4px;
 }
@@ -1090,14 +1095,14 @@ button:disabled {
 }
 .asset-card .icon-button:not(.in-use):hover {
   background: #C0392B;
-  border-color: #F7E3C3;
+  border-color: var(--primary-ghost1);
   color: #FFF;
 }
 .asset-library {
   position: relative;
 }
 .asset-library.drag-over {
-  outline: 2px dashed #B0E0F6;
+  outline: 2px dashed var(--secondary-main2);
   outline-offset: -4px;
   border-radius: 4px;
 }
@@ -1111,7 +1116,7 @@ button:disabled {
   padding: 16px;
   border-radius: 4px;
   background: rgba(8, 20, 30, 0.88);
-  color: #B0E0F6;
+  color: var(--secondary-main2);
   font-size: 11px;
   text-align: center;
   pointer-events: none;
@@ -1139,7 +1144,7 @@ button:disabled {
 .asset-import-notice.info {
   border-color: #2d4d6b;
   background: #0f1c28;
-  color: #B0E0F6;
+  color: var(--secondary-main2);
 }
 .asset-optimised {
   display: grid;
@@ -1237,7 +1242,7 @@ button:disabled {
   height: 10px;
   margin-left: 6px;
   vertical-align: middle;
-  border: 1px solid #F7E3C3;
+  border: 1px solid var(--primary-ghost1);
   border-radius: 2px;
 }
 
@@ -1251,7 +1256,7 @@ button:disabled {
   border-radius: 2px;
   padding: 0;
   background: transparent;
-  color: #E2A845;
+  color: var(--primary-main1);
   font-size: 18px;
   line-height: 1;
 }
@@ -1270,7 +1275,7 @@ button:disabled {
 
 /* the rule's place in the run order, gold like the other labels but quieter than the sentence */
 .rule-number {
-  color: #E2A845;
+  color: var(--primary-main1);
   font-family: "DM Mono", monospace;
   font-size: 10px;
 }
