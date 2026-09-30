@@ -325,7 +325,7 @@ then run the full local sequence before requesting review. Keep generated
 - [Development guide](CURRENT--development-guide.md)
 - [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
 - [Build system](../architecture/FOUNDATION--build-system.md)
-- [Technology stack](../architecture/FOUNDATION--tech-stack.md)
+- [Technology stack](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Toolchain-Decision-Document)
 - [Production deploy](../../../deploy/README.md)
 - [Session handoff](../../../SESSION.md)
 - [Git and handoff conventions](../../../../Agent%20Skills/GIT_AND_HANDOFF_CONVENTIONS.md)

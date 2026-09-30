@@ -87,6 +87,6 @@ python -m uvicorn app.main:app --reload --port 8000
 
 - [Development guide](CURRENT--development-guide.md)
 - [Engineering practices](FOUNDATION--engineering-practices.md)
-- [Architecture boundaries](../architecture/FOUNDATION--architecture.md)
+- [Architecture boundaries](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1)
 - [Baseline stage overview](../FOUNDATION--baseline-phases.md)
 - [Authoring engine design](../subsystems/FOUNDATION--authoring-engine.md)

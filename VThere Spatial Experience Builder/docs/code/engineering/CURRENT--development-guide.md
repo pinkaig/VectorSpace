@@ -79,7 +79,7 @@ PowerShell may block `npm.ps1`; use `npm.cmd` as shown above.
 |---|---|---|
 | Add or change project data | [`packages/project/src/index.ts`](../../../packages/project/src/index.ts) | [`src/model.ts`](../../../src/model.ts), [`src/serializer.ts`](../../../src/serializer.ts) |
 | Add an editor action | [`src/App.tsx`](../../../src/App.tsx) | [`packages/authoring-engine/src/index.ts`](../../../packages/authoring-engine/src/index.ts) |
-| Change viewport behavior | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | [`architecture`](../architecture/FOUNDATION--architecture.md), [`viewport subsystem`](../subsystems/CURRENT--viewport.md) |
+| Change viewport behavior | [`src/Viewport.tsx`](../../../src/Viewport.tsx) | [`architecture`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1), [`viewport subsystem`](../subsystems/CURRENT--viewport.md) |
 | Change save, recovery, or export | [`src/serializer.ts`](../../../src/serializer.ts) | [`contracts`](../architecture/FOUNDATION--contracts.md), [`sync engine`](../subsystems/CURRENT--sync-engine.md) |
 | Add undo/redo behavior | [`packages/authoring-engine/src/index.ts`](../../../packages/authoring-engine/src/index.ts) | [`packages/authoring-engine/src/index.test.ts`](../../../packages/authoring-engine/src/index.test.ts) |
 | Add or change WHEN->DO rules | [`packages/interaction/src/dispatcher.ts`](../../../packages/interaction/src/dispatcher.ts) | [`when-do dispatch engine`](../subsystems/CURRENT--when-do-dispatch-engine.md) |
@@ -87,7 +87,7 @@ PowerShell may block `npm.ps1`; use `npm.cmd` as shown above.
 | Add API behavior | [`apps/api/app/main.py`](../../../apps/api/app/main.py) | [`apps/api/tests/test_health.py`](../../../apps/api/tests/test_health.py), [`contracts`](../architecture/FOUNDATION--contracts.md) |
 | Change visual layout | [`src/styles.css`](../../../src/styles.css) | [`src/App.tsx`](../../../src/App.tsx) |
 | Add diagnostic logging | [`packages/debugging/src/index.ts`](../../../packages/debugging/src/index.ts) | [`debugging`](CURRENT--debugging.md) |
-| Understand intended ownership | [`architecture`](../architecture/FOUNDATION--architecture.md) | [`repository boundaries`](../architecture/FOUNDATION--repository.md) |
+| Understand intended ownership | [`architecture`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1) | [`repository boundaries`](../architecture/FOUNDATION--repository.md) |
 | Check phase order | [`FOUNDATION--baseline-phases`](../FOUNDATION--baseline-phases.md) | [`pre-baseline validation`](../../archive/delivery/CURRENT--pre-baseline-validation.md) |
 
 ## Business-logic implementation order
@@ -157,7 +157,7 @@ project state -> viewport renderer
 Before changing a shared model or public contract:
 
 - Read [`project context`](../../archive/product/CURRENT--project-context.md).
-- Check the ownership table in [`architecture`](../architecture/FOUNDATION--architecture.md).
+- Check the ownership table in [`architecture`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1).
 - Search for all references to the type or function being changed.
 - Add or update a focused test first when the behavior is persistence, history, serialization, validation, or interaction related.
 - Run the build and the narrowest relevant test.
@@ -199,7 +199,7 @@ called out in the [CI/CD guide](CURRENT--CI-CD-build-and-test-guide.md).
 ## Reference documents
 
 - [Project context and drift rules](../../archive/product/CURRENT--project-context.md)
-- [Architecture ownership and interfaces](../architecture/FOUNDATION--architecture.md)
+- [Architecture ownership and interfaces](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1)
 - [Repository boundaries](../architecture/FOUNDATION--repository.md)
 - [Data and API contracts](../architecture/FOUNDATION--contracts.md)
 - [Build and test commands](../architecture/FOUNDATION--build-system.md)

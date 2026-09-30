@@ -122,7 +122,7 @@ It also prevents a future API or storage change from forcing a rewrite of author
 For each new feature:
 
 1. Write the user-visible behavior and failure behavior in one short note.
-2. Identify the owning boundary in [`architecture`](../architecture/FOUNDATION--architecture.md).
+2. Identify the owning boundary in [`architecture`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1).
 3. Extend the canonical model only if the feature needs persistent data.
 4. Implement pure domain logic and its focused tests.
 5. Wrap it in a command if it changes authored state.
@@ -194,5 +194,5 @@ These are the highest-value follow-ups for the current repository:
 - [Development guide](CURRENT--development-guide.md)
 - [Debugging and logging](CURRENT--debugging.md)
 - [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
-- [Architecture boundaries](../architecture/FOUNDATION--architecture.md)
+- [Architecture boundaries](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1)
 - [Baseline stage overview](../FOUNDATION--baseline-phases.md)

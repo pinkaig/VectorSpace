@@ -400,7 +400,7 @@ A canvas visibility check is useful, but it should also have a non-zero bounding
 - [Runtime view](../../src/RuntimeView.tsx)
 - [Project model](../../packages/project/src/index.ts)
 - [Authoring engine contract](FOUNDATION--authoring-engine.md)
-- [Technology stack](../architecture/FOUNDATION--tech-stack.md)
+- [Technology stack](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Toolchain-Decision-Document)
 
 ## Change history
 

@@ -262,7 +262,7 @@ The test should assert both behaviour and user-visible persistence status. A log
 - [Debugging logger](../../packages/debugging/src/index.ts)
 - [Sync engine (Tier 2 background sync)](CURRENT--sync-engine.md)
 - [Testing strategy](../../archive/delivery/FOUNDATION--testing-strategy.md)
-- [Architecture contract](../architecture/FOUNDATION--architecture.md)
+- [Architecture contract](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1)
 
 ## Change history
 

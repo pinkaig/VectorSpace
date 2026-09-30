@@ -12,7 +12,7 @@ Finished, audit-grade M1 deliverables (Toolchain Decision Document, Architecture
 
 | Need | Folder | Start with |
 |---|---|---|
-| Architecture, boundaries, contracts, tech stack, build system | [`code/architecture/`](code/architecture/) | [`architecture`](code/architecture/FOUNDATION--architecture.md), [`contracts`](code/architecture/FOUNDATION--contracts.md) |
+| Architecture, boundaries, contracts, tech stack, build system | [`code/architecture/`](code/architecture/) | [`architecture`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1) (wiki), [`tech stack`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Toolchain-Decision-Document) (wiki), [`contracts`](code/architecture/FOUNDATION--contracts.md) |
 | Coding workflow, setup, debugging, CI/CD, engineering rules | [`code/engineering/`](code/engineering/) | [`development guide`](code/engineering/CURRENT--development-guide.md), [`CI/CD and build/test guide`](code/engineering/CURRENT--CI-CD-build-and-test-guide.md), [`environment setup`](code/engineering/CURRENT--environment-setup.md) |
 | A subsystem's technical contract | [`code/subsystems/`](code/subsystems/) | [`authoring engine`](code/subsystems/FOUNDATION--authoring-engine.md), [`project serialization`](code/subsystems/CURRENT--project-serialization.md), [`viewport`](code/subsystems/CURRENT--viewport.md), [`asset library`](code/subsystems/CURRENT--asset-library-contract.md) |
 

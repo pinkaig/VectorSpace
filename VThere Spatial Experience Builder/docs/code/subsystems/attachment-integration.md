@@ -63,7 +63,7 @@ a `VideoTexture`) lives in `src/viewport/`, fed by the type package's state.
 
 ## 1. How this fits the architecture
 
-The current module table is [`architecture.md`](../architecture/FOUNDATION--architecture.md) L20-41. What
+The current module boundaries are described in [Architecture v0.1](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1) (wiki). What
 changes, and what does not:
 
 | Module | Change |
@@ -79,7 +79,7 @@ changes, and what does not:
 | API | No change until Stage 3, except a `text` kind and media dimensions (section 5). |
 
 **Dependency direction** (must stay acyclic): `apps and src -> type packages -> assets -> project`. Today no package
-depends on another except on `@vthere/project` (`architecture.md` L189). This design adds `type package -> assets`
+depends on another except on `@vthere/project` (see [Architecture v0.1](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1), wiki). This design adds `type package -> assets`
 as a runtime import (for `DecodedCache` and the kind specs), in one direction only.
 
 **Shared code rule.** Code needed by two type packages goes in `packages/assets` if it is about assets and memory, or
@@ -332,7 +332,7 @@ fetched for a host in another scene.
 
 ## 7. Libraries by attachment type
 
-Policy from [`tech-stack.md`](../architecture/FOUNDATION--tech-stack.md): dependencies are pinned to exact
+Policy from the [Toolchain Decision Document](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Toolchain-Decision-Document) (wiki): dependencies are pinned to exact
 versions, recorded in the lockfile, and license-compatible; unreviewed convenience dependencies are forbidden; packages
 must not import React, Three.js or FastAPI (L155-158). So the default is **browser-native APIs behind an interface**, and
 a library is added only when it removes real work.
