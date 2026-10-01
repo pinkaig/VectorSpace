@@ -2,7 +2,7 @@
 
 **Baseline phase:** Not stage-specific — see [8-stage baseline overview](../FOUNDATION--baseline-phases.md) for the full sequence.
 
-The project uses a preflight check to tell contributors exactly why development cannot start.
+Quick reference for this repo's preflight scripts. For the full walkthrough (frontend-only vs. full-stack, failure modes, what's actually implemented), see [Getting the Project Running](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Getting-the-Project-Running) on the wiki.
 
 ## Windows
 
@@ -32,45 +32,24 @@ npm run dev
 
 ## What the checks verify
 
-- Node.js 22 or newer.
-- npm availability.
-- Installed `node_modules` dependencies.
-- A clear non-zero exit code when setup is incomplete.
+Node.js 22+, npm, and `node_modules` presence — frontend only. They do not validate Python, Docker, or `.env` variables.
 
-The npm `predev` and `prebuild` hooks run the Node check automatically once npm itself is available. The standalone PowerShell/Bash scripts are necessary because npm cannot run when Node.js is missing.
-
-These checks cover the frontend only. They do not validate Python, Docker, or environment
-variables — see below for the backend setup.
+The npm `predev`/`prebuild` hooks run the Node check automatically once npm is available. The standalone PowerShell/Bash scripts exist because npm can't run when Node.js itself is missing.
 
 ## Backend and local services (apps/api)
-
-The API needs Python 3.12+, plus Postgres and MinIO running locally. From
-`VThere Spatial Experience Builder/`:
 
 ```powershell
 copy .env.example .env
 docker compose up -d
-```
-
-`docker-compose.yml` starts `postgres` (port 5432) and `minio` (ports 9000/9001) with health
-checks and named volumes; see
-[docker-local-dev-environment.md](LEARNING--docker-local-dev-environment.md) for
-details. `.env.example` documents every variable `apps/api/app/config.py` reads (Postgres
-credentials, `DATABASE_URL`, MinIO credentials/endpoint/bucket, `APP_ENV`, `CORS_ORIGINS`,
-`AUTH0_DOMAIN`, `AUTH0_AUDIENCE`); copy it to `.env` before running the API.
-
-Install the API's Python dependencies and run migrations:
-
-```powershell
 cd apps/api
 pip install -r requirements.txt
 python -m alembic upgrade head
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Verify with `curl http://localhost:8000/health`. Run the API test suite from
-`VThere Spatial Experience Builder/` (not from `apps/api/`, since the tests import
-`apps.api.app.main`):
+Needs Python 3.12+, Docker Desktop running. `docker-compose.yml` starts `postgres` (5432) and `minio` (9000/9001) — see [docker-local-dev-environment.md](LEARNING--docker-local-dev-environment.md). `.env.example` documents every variable `apps/api/app/config.py` reads; copy it to `.env`, never edit the example itself.
+
+Verify with `curl http://localhost:8000/health`. Run the test suite from `VThere Spatial Experience Builder/`, not `apps/api/` (tests import `apps.api.app.main`):
 
 ```powershell
 python -m pytest apps/api/tests -q
