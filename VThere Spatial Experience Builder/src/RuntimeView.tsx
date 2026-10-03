@@ -88,6 +88,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
           zones={scene.zones ?? []}
           audioAssets={project.audioAssets ?? []}
           audioSettings={project.audioSettings}
+          textAssets={project.textAssets ?? []}
         />
       </section>
     </main>

@@ -1,7 +1,7 @@
 ﻿# VThere Spatial Experience Builder â€” Technology Stack
 
 **Stage:** 2 of 5
-**Reads:** `UNDATED--FOUNDATION--project-scope.md`, existing Vite/React/Three.js scaffold
+**Reads:** `FOUNDATION--project-scope.md`, existing Vite/React/Three.js scaffold
 **Status:** Resolved proposal for human approval
 
 **Baseline phase:** Not stage-specific — see [8-stage baseline overview](../../code/baseline-phases.md) for the full sequence.
@@ -91,7 +91,7 @@ The proposed stack is a browser-first TypeScript application using React for aut
 - **REQUIRED â€” HTTPS:** all deployed editor, API, asset, and published-runtime communication.
 - **REQUIRED â€” JSON over HTTP:** project DTOs, API requests/responses, publishing metadata, and analytics event payloads.
 - **REQUIRED â€” Versioned project schema:** the canonical project document must include a schema version and migration policy.
-- **REQUIRED â€” REST route shape:** resource-oriented HTTPS JSON API documented by FastAPI OpenAPI; exact paths belong in `UNDATED--FOUNDATION--contracts.md` in this folder.
+- **REQUIRED â€” REST route shape:** resource-oriented HTTPS JSON API documented by FastAPI OpenAPI; exact paths belong in `FOUNDATION--contracts.md` in this folder.
 - **UNDEFINED â€” Real-time transport:** no current requirement for collaboration, so WebSocket/WebRTC is not part of baseline.
 - **FORBIDDEN â€” Client trust of authorisation:** the browser must not be the authority for project ownership or access control.
 

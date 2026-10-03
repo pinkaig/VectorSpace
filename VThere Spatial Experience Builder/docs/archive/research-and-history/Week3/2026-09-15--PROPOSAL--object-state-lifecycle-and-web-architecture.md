@@ -481,5 +481,5 @@ This focused proposal is ready for implementation when:
 - [Current viewport](../../../src/Viewport.tsx)
 - [Authoring engine contract](../../05-subsystems/authoring-engine.md)
 - [Project serialization contract](../../05-subsystems/project-serialization.md)
-- [Engineering practices](../../04-engineering/UNDATED--FOUNDATION--engineering-practices.md)
+- [Engineering practices](../../04-engineering/FOUNDATION--engineering-practices.md)
 - [Broader object/entity and hybrid ECS proposal](2026-09-15--PROPOSAL--object-entity-and-ecs-architecture.md)

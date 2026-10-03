@@ -1,6 +1,6 @@
 ﻿# VThere Spatial Experience Builder
 
-Initial Phase 1 and Phase 2 implementation for the browser-based spatial authoring tool.
+A browser-based spatial authoring tool: a Three.js/React editor for placing and arranging objects in a scene, with a Python/FastAPI backend for persistence.
 
 ## Current slice
 
@@ -8,21 +8,21 @@ Initial Phase 1 and Phase 2 implementation for the browser-based spatial authori
 - Three.js editor viewport with selection and floor-plane drag movement
 - Scene tree and primitive asset browser
 - Transform inspector for position, rotation, and scale
-- Local save/load through `localStorage`
-- JSON export
+- Local save/load through `localStorage`, plus JSON export
 - Undo/redo snapshots
 
-## Run
+Interaction definitions, content components, preview/runtime parity, publishing, and full backend persistence are still in progress — see [Getting the Project Running](../../wiki/Getting-the-Project-Running) on the wiki for exactly what's wired up today.
+
+## Run it
 
 ```bash
 npm install
 npm run dev
 ```
 
-The current implementation is the technical spike and editor foundation. Interaction definitions, content components, preview/runtime parity, publishing, and backend persistence follow in later phases.
+Open `http://localhost:5173`. This starts the editor only — no Python/Docker needed. For the full stack (API + Postgres + MinIO) and troubleshooting, see [Getting the Project Running](../../wiki/Getting-the-Project-Running).
 
-## Development guide
+## Docs
 
-See [`docs/README.md`](docs/README.md) for the documentation map. For development workflow, folder navigation, file ownership, business-logic implementation order, persistence/history rules, and verification commands, read [`docs/04-engineering/UNDATED--CURRENT--development-guide.md`](docs/04-engineering/UNDATED--CURRENT--development-guide.md).
-
-For first-time machine setup and missing-tool diagnostics, see [`docs/04-engineering/UNDATED--CURRENT--environment-setup.md`](docs/04-engineering/UNDATED--CURRENT--environment-setup.md).
+- [GitHub wiki](../../wiki) — M1 deliverables: architecture, tech stack, build/CI pipeline, project setup, testbed spec
+- [`docs/README.md`](docs/README.md) — in-repo reference docs (subsystem contracts, engineering practices) tied to current code

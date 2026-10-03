@@ -24,7 +24,7 @@ and the existing infrastructure plan against what's actually true in the repo ri
 - No asset loader exists. [Viewport.tsx](../../src/Viewport.tsx) builds three hardcoded
   Three.js primitives directly; `SceneObject.assetId` is an unresolvable bare string.
   Real GLB/media loading is speced but not implemented — see
-  [UNDATED--CURRENT--asset-library-contract.md](../05-subsystems/UNDATED--CURRENT--asset-library-contract.md).
+  [CURRENT--asset-library-contract.md](../05-subsystems/CURRENT--asset-library-contract.md).
 - Local persistence is [serializer.ts](../../src/serializer.ts): `localStorage` primary
   + backup key, debounced autosave, manual export. No IndexedDB, no server save yet — see
   [project-serialization.md](../05-subsystems/project-serialization.md).

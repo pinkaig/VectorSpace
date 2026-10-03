@@ -18,6 +18,7 @@
  * @members
  * HistoryEntry, CommandTimeline, createCommandTimeline, object operations
  * (create, duplicate, remove, reparent, transform, rename, visible, enabled),
+ * attachment operations (add, remove, update, reorder — host-addressed),
  * scene operations, commit, undo, and redo, plus the re-exported command path
  * (executeCommand, transform commands, and the shared object access helpers).
  *
@@ -32,9 +33,14 @@
  */
 import {
   AssetKind,
+  Attachment,
+  AudioAttachment,
   InteractionRule,
   ProjectData,
   SceneObject,
+  TextAttachment,
+  TextPresentation,
+  ZoneDefinition,
   cloneProject,
   makeObject,
 } from '@vthere/project'
@@ -121,6 +127,9 @@ export const createCommandTimeline = <T>(
 
 export interface ObjectIdFactory {
   nextId: (project: ProjectData, sceneId: string) => string
+  // attachment ids share one project-wide id space (objects and zones alike),
+  // so they come from the same injected factory as object ids
+  nextAttachmentId: (project: ProjectData, sceneId: string) => string
 }
 
 export interface CreateObjectInput {
@@ -138,6 +147,8 @@ export interface ObjectOperationResult {
   removedObject?: SceneObject
   originalIndex?: number
   removedRules?: InteractionRule[]
+  attachmentId?: string
+  removedAttachment?: Attachment
 }
 
 export interface UpdateObjectInput extends ObjectTargetInput {
@@ -209,6 +220,14 @@ export const duplicateObject = (
     } else if (item.parentId !== undefined) {
       // descendants follow their copied parent, not the original one
       copy.parentId = idMap.get(item.parentId) ?? item.parentId
+    }
+    if (item.attachments !== undefined) {
+      // the { ...item } spread shares the attachments array by reference and
+      // would collide ids project-wide; every copy needs its own records
+      copy.attachments = item.attachments.map((attachment) => ({
+        ...cloneValue(attachment),
+        id: idFactory.nextAttachmentId(next, input.sceneId),
+      }))
     }
     copies.push(copy)
   }
@@ -348,6 +367,8 @@ export const createScene = (
         rotation: [...object.transform.rotation],
         scale: [...object.transform.scale],
       },
+      // never share an attachments array with the caller's scene value
+      ...(object.attachments === undefined ? {} : { attachments: cloneValue(object.attachments) }),
     })),
   })
   next.activeSceneId = scene.id
@@ -361,5 +382,119 @@ export const setActiveScene = (
   const next = cloneProject(project)
   requireScene(next, sceneId)
   next.activeSceneId = sceneId
+  return { project: next }
+}
+
+// ---- attachment operations -------------------------------------------------
+// An attachment lives on its host (SceneObject or ZoneDefinition), so these
+// ops address a host rather than duplicating four functions per host type.
+// See docs/code/subsystems/attachment-integration.md section 4.
+
+export interface AttachmentHost {
+  kind: 'object' | 'zone'
+  id: string
+}
+
+/** An attachment before it has an id — the factory assigns one on add. */
+export type AttachmentDraft = Omit<AudioAttachment, 'id'> | Omit<TextAttachment, 'id'>
+
+export interface AddAttachmentInput {
+  sceneId: string
+  host: AttachmentHost
+  attachment: AttachmentDraft
+}
+
+export interface AttachmentTargetInput {
+  sceneId: string
+  host: AttachmentHost
+  attachmentId: string
+}
+
+export interface UpdateAttachmentInput extends AttachmentTargetInput {
+  // id and kind are immutable; presentation applies to text attachments only
+  changes: { name?: string; assetId?: string; presentation?: TextPresentation }
+}
+
+export interface ReorderAttachmentsInput {
+  sceneId: string
+  host: AttachmentHost
+  orderedIds: string[]
+}
+
+const cloneValue = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+const requireHost = (project: ProjectData, sceneId: string, host: AttachmentHost): SceneObject | ZoneDefinition => {
+  const scene = requireScene(project, sceneId)
+  if (host.kind === 'object') {
+    const object = scene.objects.find((item) => item.id === host.id)
+    if (!object) throw new ObjectOperationError(`Object "${host.id}" was not found`)
+    return object
+  }
+  const zone = scene.zones?.find((item) => item.id === host.id)
+  if (!zone) throw new ObjectOperationError(`Zone "${host.id}" was not found`)
+  return zone
+}
+
+const requireAttachment = (record: SceneObject | ZoneDefinition, attachmentId: string): { list: Attachment[]; index: number } => {
+  const list = record.attachments ?? []
+  const index = list.findIndex((item) => item.id === attachmentId)
+  if (index < 0) throw new ObjectOperationError(`Attachment "${attachmentId}" was not found`)
+  return { list, index }
+}
+
+export const addAttachment = (
+  project: ProjectData,
+  input: AddAttachmentInput,
+  idFactory: ObjectIdFactory,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const record = requireHost(next, input.sceneId, input.host)
+  const attachment = { ...cloneValue(input.attachment), id: idFactory.nextAttachmentId(next, input.sceneId) } as Attachment
+  record.attachments = [...(record.attachments ?? []), attachment]
+  return { project: next, attachmentId: attachment.id }
+}
+
+export const removeAttachment = (
+  project: ProjectData,
+  input: AttachmentTargetInput,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const record = requireHost(next, input.sceneId, input.host)
+  const { list, index } = requireAttachment(record, input.attachmentId)
+  const [removed] = list.splice(index, 1)
+  // back to "absent when none", so an untouched-looking host serialises small
+  if (list.length === 0) delete record.attachments
+  return { project: next, removedAttachment: removed }
+}
+
+export const updateAttachment = (
+  project: ProjectData,
+  input: UpdateAttachmentInput,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const record = requireHost(next, input.sceneId, input.host)
+  const { list, index } = requireAttachment(record, input.attachmentId)
+  const attachment = list[index]
+  if (input.changes.name !== undefined) attachment.name = input.changes.name
+  if (input.changes.assetId !== undefined) attachment.assetId = input.changes.assetId
+  if (input.changes.presentation !== undefined) {
+    if (attachment.kind !== 'text') throw new ObjectOperationError(`Attachment "${attachment.id}" is not a text attachment and has no presentation`)
+    attachment.presentation = cloneValue(input.changes.presentation)
+  }
+  return { project: next, attachmentId: attachment.id }
+}
+
+export const reorderAttachments = (
+  project: ProjectData,
+  input: ReorderAttachmentsInput,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const record = requireHost(next, input.sceneId, input.host)
+  const list = record.attachments ?? []
+  const byId = new Map(list.map((item) => [item.id, item]))
+  if (input.orderedIds.length !== list.length || new Set(input.orderedIds).size !== input.orderedIds.length || !input.orderedIds.every((id) => byId.has(id))) {
+    throw new ObjectOperationError('reorderAttachments requires a permutation of the host\'s attachment ids')
+  }
+  record.attachments = input.orderedIds.map((id) => byId.get(id) as Attachment)
   return { project: next }
 }

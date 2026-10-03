@@ -1,18 +1,22 @@
 # VThere Documentation Map
 
-**Baseline phase:** All 8 stages complete. See [8-stage baseline overview](code/baseline-phases.md).
+**Baseline phase:** All 8 stages complete. See [8-stage baseline overview](code/FOUNDATION--baseline-phases.md).
 
 This folder is code documentation first: reference material tied to real files, modules, and contracts. Start in [`code/`](code/). Everything else is archived background, not authority.
+
+## GitHub wiki
+
+Finished, audit-grade M1 deliverables (Toolchain Decision Document, Architecture v0.1, etc.) live on the project's [GitHub wiki](../../../wiki), not in this folder — team feedback flagged dense agent-produced analysis docs sitting in the repo as unwanted evidence of AI use. This `docs/` folder stays working notes and source-of-truth reference material tied to real code; finished/reviewed docs get vetted and moved to the wiki instead of accumulating here.
 
 ## code/ — reference docs (start here)
 
 | Need | Folder | Start with |
 |---|---|---|
-| Architecture, boundaries, contracts, tech stack, build system | [`code/architecture/`](code/architecture/) | [`architecture`](code/architecture/UNDATED--FOUNDATION--architecture.md), [`contracts`](code/architecture/UNDATED--FOUNDATION--contracts.md) |
-| Coding workflow, setup, debugging, CI/CD, engineering rules | [`code/engineering/`](code/engineering/) | [`development guide`](code/engineering/UNDATED--CURRENT--development-guide.md), [`CI/CD and build/test guide`](code/engineering/CURRENT--CI-CD-build-and-test-guide.md), [`environment setup`](code/engineering/UNDATED--CURRENT--environment-setup.md) |
-| A subsystem's technical contract | [`code/subsystems/`](code/subsystems/) | [`authoring engine`](code/subsystems/authoring-engine.md), [`project serialization`](code/subsystems/project-serialization.md), [`viewport`](code/subsystems/viewport.md), [`asset library`](code/subsystems/UNDATED--CURRENT--asset-library-contract.md) |
+| Architecture, boundaries, contracts, tech stack, build system | [`code/architecture/`](code/architecture/) | [`architecture`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1) (wiki), [`tech stack`](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Toolchain-Decision-Document) (wiki), [`contracts`](code/architecture/FOUNDATION--contracts.md) |
+| Coding workflow, setup, debugging, CI/CD, engineering rules | [`code/engineering/`](code/engineering/) | [`development guide`](code/engineering/CURRENT--development-guide.md), [`CI/CD and build/test guide`](code/engineering/CURRENT--CI-CD-build-and-test-guide.md), [`environment setup`](code/engineering/CURRENT--environment-setup.md) |
+| A subsystem's technical contract | [`code/subsystems/`](code/subsystems/) | [`authoring engine`](code/subsystems/FOUNDATION--authoring-engine.md), [`project serialization`](code/subsystems/CURRENT--project-serialization.md), [`viewport`](code/subsystems/CURRENT--viewport.md), [`asset library`](code/subsystems/CURRENT--asset-library-contract.md) |
 
-**Known stale content:** [`asset-manager.md`](code/subsystems/asset-manager.md), [`sync-engine.md`](code/subsystems/sync-engine.md), and [`when-do-dispatch-engine.md`](code/subsystems/when-do-dispatch-engine.md) describe themselves as "planned, not yet implemented." That's no longer true — `packages/assets`, `packages/sync`, and `packages/interaction` (dispatcher) all have real source now. Treat these three docs as needing a rewrite against the current code before trusting them; don't take their status claims at face value.
+**Known stale content:** [`asset-manager.md`](code/subsystems/CURRENT--asset-manager.md), [`sync-engine.md`](code/subsystems/CURRENT--sync-engine.md), and [`when-do-dispatch-engine.md`](code/subsystems/CURRENT--when-do-dispatch-engine.md) describe themselves as "planned, not yet implemented." That's no longer true — `packages/assets`, `packages/sync`, and `packages/interaction` (dispatcher) all have real source now. Treat these three docs as needing a rewrite against the current code before trusting them; don't take their status claims at face value.
 
 ## Authority order (within code/)
 

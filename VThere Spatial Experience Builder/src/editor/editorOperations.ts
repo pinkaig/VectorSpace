@@ -53,6 +53,7 @@ export type EditorCommandBuilder = (project: ProjectData) => ProjectCommand
 
 export const createObjectIdFactory = () => ({
   nextId: (_project: ProjectData, sceneId: string) => `${sceneId}-object-${crypto.randomUUID()}`,
+  nextAttachmentId: (_project: ProjectData, sceneId: string) => `${sceneId}-attachment-${crypto.randomUUID()}`,
 })
 
 export const createEditorObject = (project: ProjectData, sceneId: string, assetKind: AssetKind, assetId?: string): ObjectOperationResult =>

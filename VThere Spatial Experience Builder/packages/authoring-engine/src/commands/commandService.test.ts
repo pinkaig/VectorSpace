@@ -8,7 +8,7 @@ const SCENE = 'scene-gallery'
 const target = { sceneId: SCENE, objectId: 'obj-0' }
 
 const buildProject = (): ProjectData =>
-  createObject(defaultProject(), { sceneId: SCENE, assetKind: 'cube' }, { nextId: () => 'obj-0' }).project
+  createObject(defaultProject(), { sceneId: SCENE, assetKind: 'cube' }, { nextId: () => 'obj-0', nextAttachmentId: () => 'att-0' }).project
 
 const buildTimeline = (project = buildProject()) =>
   createCommandTimeline(project, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
