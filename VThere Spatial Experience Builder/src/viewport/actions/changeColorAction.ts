@@ -2,15 +2,17 @@
  * @file        changeColorAction.ts
  * @project     Spatial Experience Builder
  * @author      Chloe Lau Rey En
- * @brief       WHEN->DO action executor for changeColor. Finds the target object in the scene by ID and
- *              recolours every mesh inside it, so it works for primitives and imported models. Uses material
- *              copies and registers an effect that restores the original materials when the runtime resets.
+ * @brief       WHEN->DO action executor for changeColor. Finds the target mesh in the scene
+ *              by ID and sets its material color directly. Purely a Three.js scene 
+ *              mutation, never writes ProjectData, so the color reverts for free when the
+ *              runtime resets.
  * 
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
  /******************************************************************************/
+
  import * as THREE from 'three'
  import type { ActionSpec } from '@vthere/project'
  import type { ActionExecutor } from '../../../packages/interaction/src/index'
@@ -20,21 +22,7 @@
     color: number
  }
 
-// copies a material and sets the copy's colour, so the original stays untouched and can be put back later
-const recolourCopy = (material: THREE.Material, color: number): THREE.Material => {
-  const copy = material.clone()
-  // only materials that have a colour can be recoloured, others are copied unchanged
-  if ('color' in copy && copy.color instanceof THREE.Color) copy.color.setHex(color)
-  return copy
-}
-
-// frees the GPU memory of material copies once they are no longer shown
-const disposeMaterials = (material: THREE.Material | THREE.Material[]) => {
-  if (Array.isArray(material)) material.forEach((item) => item.dispose())
-  else material.dispose()
-}
-
-// creates the executor, given the scene's objectsGroup so it can find the target object by name
+// creates the executor, given the scene's objectsGroup so it can find the target mesh by name
 export const createChangeColorExecutor = (objectsGroup: THREE.Group): ActionExecutor => {
   return (action, context) => {
     const params = action.params as ChangeColorParams | undefined
