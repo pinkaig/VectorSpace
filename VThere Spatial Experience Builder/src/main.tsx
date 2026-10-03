@@ -23,6 +23,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '../apps/editor/src/EditorApplication'
+import { validateAudioCatalog } from './audioAssets'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -30,3 +31,8 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// Not awaited: the UI renders immediately with the full catalog, which then
+// shrinks in place (see audioAssets.ts) if any bundled file turns out not to
+// actually be decodable audio.
+void validateAudioCatalog()

@@ -82,17 +82,19 @@ export const demoAudioZones: ZoneDefinition[] = [
   { id: 'zone-vehicle', name: 'Vehicle ambience', shape: { kind: 'sphere', radius: 6 }, position: [4, 0, 4] },
 ]
 
+// Values are audioAssets.ts's auto-derived assetIds (the bundled file's name minus
+// extension) — must stay in sync with the actual filenames under public/audio/.
 const SEC_BGM_BY_ZONE: Record<string, string> = {
-  'zone-museum': 'sec-bgm-museum',
-  'zone-fire': 'sec-bgm-fire',
-  'zone-musical': 'sec-bgm-musical',
-  'zone-vehicle': 'sec-bgm-vehicle',
+  'zone-museum': 'sec-bgm-ambience-museum',
+  'zone-fire': 'sec-bgm-fire-burning',
+  'zone-musical': 'sec-bgm-musical-voice',
+  'zone-vehicle': 'sec-bgm-vehicle-sounds',
 }
 
 /** One playAudio on sceneStart, one enter/exit pair per zone, one click per SFX object. */
 export const demoAudioRules: InteractionRule[] = [
   audioRule({ id: 'rule-main-bgm-start', triggers: ['sceneStart'] }, [
-    playAudioAction('main-bgm', { channel: 'bgm', loop: true }),
+    playAudioAction('main-bgm-crowd-galley', { channel: 'bgm', loop: true }),
   ]),
   ...demoAudioZones.flatMap((zone): InteractionRule[] => {
     const assetId = SEC_BGM_BY_ZONE[zone.id]
@@ -127,11 +129,11 @@ export const demoAudioRules: InteractionRule[] = [
  * nothing here needs a mixer UI.
  */
 export const demoAudioAssets: AudioAssetMeta[] = [
-  { assetId: 'main-bgm', name: 'Crowd Galley (Main BGM)', channel: 'bgm', volume: 0.8, loop: true },
-  { assetId: 'sec-bgm-museum', name: 'Ambience Museum (Sec BGM)', channel: 'secBgm', volume: 0.25, loop: true },
-  { assetId: 'sec-bgm-fire', name: 'Fire Burning (Sec BGM)', channel: 'secBgm', volume: 0.7, loop: true },
-  { assetId: 'sec-bgm-musical', name: 'Musical With Voice (Sec BGM)', channel: 'secBgm', volume: 0.35, loop: true },
-  { assetId: 'sec-bgm-vehicle', name: 'Vehicle Sounds (Sec BGM)', channel: 'secBgm', volume: 0.35, loop: true },
+  { assetId: 'main-bgm-crowd-galley', name: 'Crowd Galley (Main BGM)', channel: 'bgm', volume: 0.8, loop: true },
+  { assetId: 'sec-bgm-ambience-museum', name: 'Ambience Museum (Sec BGM)', channel: 'secBgm', volume: 0.25, loop: true },
+  { assetId: 'sec-bgm-fire-burning', name: 'Fire Burning (Sec BGM)', channel: 'secBgm', volume: 0.7, loop: true },
+  { assetId: 'sec-bgm-musical-voice', name: 'Musical With Voice (Sec BGM)', channel: 'secBgm', volume: 0.35, loop: true },
+  { assetId: 'sec-bgm-vehicle-sounds', name: 'Vehicle Sounds (Sec BGM)', channel: 'secBgm', volume: 0.35, loop: true },
   { assetId: 'sfx-cartoon-comedy-sad', name: 'Cartoon Comedy Sad (SFX)', channel: 'sfx', volume: 1, loop: false },
   { assetId: 'sfx-cartoon-sneaky', name: 'Cartoon Sneaky (SFX)', channel: 'sfx', volume: 1, loop: false },
   { assetId: 'sfx-rock-debris', name: 'Rock Debris (SFX)', channel: 'sfx', volume: 1, loop: false },

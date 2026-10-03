@@ -632,7 +632,21 @@ button:disabled {
   height: 21px;
   background: #d66d75;
 }
+.asset-preview.audio span {
+  border-radius: 50% / 40%;
+  width: 21px;
+  height: 14px;
+  background: #9b5de5;
+}
 /*---placeholder---*/
+.audio-heading {
+  margin-top: 6px;
+  padding-top: 13px;
+  border-top: 1px solid #F7E3C3;
+}
+.audio-card {
+  cursor: default;
+}
 .asset-copy {
   display: grid;
   gap: 3px;
