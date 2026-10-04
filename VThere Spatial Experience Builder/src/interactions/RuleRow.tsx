@@ -26,6 +26,7 @@ const actionText: Record<string, string> = {
   [CHANGE_COLOR_KIND]: 'change colour',
   playAudio: 'play',
   stopAudio: 'stop',
+  showPanel: 'show message',
 }
 
 // turns a saved colour number back into "#rrggbb" text, or null if the action has no colour
