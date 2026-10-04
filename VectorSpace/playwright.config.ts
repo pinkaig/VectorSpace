@@ -13,6 +13,8 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      // Timing-sensitive; runs serially in its own project (npm run test:perf).
+      testIgnore: /perf\//,
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
@@ -24,10 +26,36 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'perf',
+      testMatch: /perf\/.*\.spec\.ts/,
+      workers: 1,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
+        },
+      },
+    },
+    {
+      // Local only (npm run test:perf:gpu): headed Chromium on the real GPU.
+      // The spec treats this project as report-only, nothing is asserted.
+      name: 'perf-gpu',
+      testMatch: /perf\/.*\.spec\.ts/,
+      workers: 1,
+      use: {
+        ...devices['Desktop Chrome'],
+        headless: false,
+        launchOptions: {
+          args: ['--enable-webgl', '--ignore-gpu-blocklist', '--disable-frame-rate-limit'],
+        },
+      },
+    },
   ],
   webServer: {
     command: 'npm run dev -- --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
 })

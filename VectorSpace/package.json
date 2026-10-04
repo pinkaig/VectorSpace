@@ -20,7 +20,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --project=chromium",
+    "test:perf": "playwright test --project=perf --workers=1 --reporter=list",
+    "test:perf:gpu": "playwright test --project=perf-gpu --workers=1 --reporter=list"
   },
   "dependencies": {
     "@gltf-transform/core": "4.5.0",
