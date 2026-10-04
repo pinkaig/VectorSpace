@@ -131,6 +131,17 @@ interface ViewportProps {
   showAxisIndicator?: boolean
   // Shrinks the OctaOrb / axis indicator, e.g. when this is one pane of the quad layout.
   compactOverlays?: boolean
+  /** Shows the FPS / object count readout. Forces continuous drawing while on. */
+  showStats?: boolean
+}
+
+interface ViewportStats {
+  fps: number
+  frameMs: number
+  objects: number
+  meshes: number
+  drawCalls: number
+  triangles: number
 }
 
 export interface ViewportHandle {
@@ -175,15 +186,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     showOctaOrb = true,
     showAxisIndicator = true,
     compactOverlays = false,
+    showStats = false,
   },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null)
+  const [stats, setStats] = useState<ViewportStats | null>(null)
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -586,6 +599,32 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     renderer.domElement.addEventListener('pointerdown', onGestureUnlock)
     window.addEventListener('keydown', onGestureUnlock)
 
+    // Stats readout: frames are counted only when actually drawn, and sampled
+    // twice a second so the React state update stays off the per-frame path.
+    let statsFrames = 0
+    let statsWindowStart = performance.now()
+    let statsWasOn = false
+    const sampleStats = (now: number) => {
+      // Read straight after the main scene draw — overlays.render() issues more
+      // renderer.render() calls, and each one resets renderer.info.
+      const { calls, triangles } = renderer.info.render
+      statsFrames += 1
+      const elapsed = now - statsWindowStart
+      if (elapsed < 500) return
+      let meshes = 0
+      objectsGroup.traverseVisible((child) => { if ((child as THREE.Mesh).isMesh) meshes += 1 })
+      setStats({
+        fps: (statsFrames * 1000) / elapsed,
+        frameMs: elapsed / statsFrames,
+        objects: dataRef.current.objects.length,
+        meshes,
+        drawCalls: calls,
+        triangles,
+      })
+      statsFrames = 0
+      statsWindowStart = now
+    }
+
     let frame = 0
     let lastTime = performance.now()
     const animate = () => {
@@ -654,7 +693,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
       // Play mode always draws: action executors (e.g. changeColor) mutate the
       // scene asynchronously with no render hook, and a walkthrough is rarely idle.
-      if (!playing && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
+      // The stats readout also forces drawing, or an idle editor would read ~0 FPS.
+      const statsOn = dataRef.current.showStats
+      if (statsOn !== statsWasOn) {
+        statsWasOn = statsOn
+        statsFrames = 0
+        statsWindowStart = now
+        if (!statsOn) setStats(null)
+      }
+      if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
 
       const width = mount.clientWidth
@@ -662,6 +709,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.setScissorTest(false)
       renderer.setViewport(0, 0, width, height)
       renderer.render(scene, activeCameraRef.current)
+      if (statsOn) sampleStats(now)
 
       if (dataRef.current.cameraMode === 'orbit') {
         overlays.render(renderer, {
@@ -835,6 +883,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           <span className="viewport-face-header-name">{faceLabel}</span>
           <span className="viewport-face-header-projection">{orthographic ? 'Orthographic' : 'Perspective'}</span>
         </div>
+      )}
+      {showStats && stats && (
+      <div className="viewport-stats">
+        <span><b>{stats.fps.toFixed(0)}</b> FPS</span>  
+        <span>FT: {stats.frameMs.toFixed(1)} ms</span> {/* frame time */}
+        <span>Objects: <b>{stats.objects}</b></span>
+        <span>Meshes: <b>{stats.meshes}</b></span>
+        <span>Draw Calls: <b>{stats.drawCalls}</b></span>
+        <span>Primitives: <b>{stats.triangles.toLocaleString()}</b></span>
+      </div>
       )}
       <AssetStatusBadge descriptor={selectedAssetDescriptor} onRetry={retrySelectedAsset} />
       <TextPanelHost text={text} />
