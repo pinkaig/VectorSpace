@@ -80,6 +80,7 @@ import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
 import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from './demoAudioScene'
 import { resolveLocalAudioUrl } from './viewport/audioResolution'
+import { useStressTestKey } from './debug/stressTest' // STRESS TEST — comment out with the call below
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
@@ -99,6 +100,7 @@ export default function App() {
   const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
   const [showOctaOrb, setShowOctaOrb] = useState(true)
   const [showAxisIndicator, setShowAxisIndicator] = useState(true)
+  const [showStats, setShowStats] = useState(false)
   const [resetToken, setResetToken] = useState(0)
   // Bumped when an edit is rejected, to pull the viewport's preview meshes back
   // to ProjectData. See runCommand.
@@ -407,6 +409,7 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [project])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
+  useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const syncStatusLabel: Record<ProjectSyncStatus, string> = {
     idle: 'Synced',
     pending: 'Syncing to server…',
@@ -773,6 +776,7 @@ export default function App() {
             <div className="mode-switch">
               <button className={showOctaOrb ? 'mode active' : 'mode'} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">OctaOrb</button>
               <button className={showAxisIndicator ? 'mode active' : 'mode'} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
+              <button className={showStats ? 'mode active' : 'mode'} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
             </div>
             <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
           </div>
@@ -805,6 +809,7 @@ export default function App() {
               onOrthographicChange={layoutMode === 'quad' ? undefined : setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
+              showStats={showStats}
               textAssets={project.textAssets ?? []}
               compactOverlays={layoutMode === 'quad'}
             />
