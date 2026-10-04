@@ -1,3 +1,38 @@
+/**
+ * @file        viewportTypes.ts
+ * @author      Goh Pin Kai
+ * @date        2026-10-04
+ * @brief       Shared viewport constants: navigation, gizmo sizing, and colours.
+ *
+ * @responsibility
+ * Single home for the tuning values the viewport modules share, so camera,
+ * gizmo, and interaction code agree on speeds, key bindings, eye height, and
+ * handle dimensions without importing each other.
+ *
+ * @inputs
+ * None. Constants only, plus two small pure helpers.
+ *
+ * @outputs
+ * Movement and look constants, key maps, gizmo dimensions, asset colours.
+ *
+ * @members
+ * WALK_SPEED, SPRINT_MULTIPLIER, SPRINT_KEYS, MOVE_KEYS, VERTICAL_KEYS,
+ * MIN_FLY_HEIGHT, EYE_HEIGHT, LOOK_SENSITIVITY, GIZMO_GAP, ARROW_LENGTH,
+ * colorFor, isTypingTarget.
+ *
+ * @boundary
+ * Values only. This file holds no state and performs no rendering.
+ *
+ * @dependencies
+ * ../model (SceneObject, for the asset-colour lookup).
+ *
+ * @status
+ * Current implementation, used by the M1 build.
+ *
+ * @documentation
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
+ */
 import type { SceneObject } from '../model'
 
 export const WALK_SPEED = 3.6

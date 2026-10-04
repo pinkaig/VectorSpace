@@ -1,4 +1,39 @@
 /// <reference types="vite/client" />
+/**
+ * @file        environments.ts
+ * @author      Goh Pin Kai
+ * @date        2026-10-04
+ * @brief       Environment (room) loading, from glTF files and procedural builders.
+ *
+ * @responsibility
+ * Resolves an environment id to either a bundled glTF/GLB file loaded via
+ * GLTFLoader or a procedurally built scene, and reports progress and failure
+ * through the supplied handlers.
+ *
+ * @inputs
+ * An environment id and optional load handlers.
+ *
+ * @outputs
+ * A LoadedEnvironment containing the Three.js object to add to the scene.
+ *
+ * @members
+ * resolveEnvironmentUrl, LoadedEnvironment, EnvironmentLoadHandlers,
+ * listProceduralIds, loadEnvironment.
+ *
+ * @boundary
+ * Owns environment loading only. Scene composition and lifecycle belong to
+ * viewport/environmentController.ts.
+ *
+ * @dependencies
+ * three, three GLTFLoader, ./model.
+ *
+ * @status
+ * Current implementation, used by the M1 build.
+ *
+ * @documentation
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
+ */
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { EnvironmentDefinition, findEnvironment } from './model'

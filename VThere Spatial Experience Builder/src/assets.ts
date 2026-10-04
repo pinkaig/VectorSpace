@@ -1,3 +1,38 @@
+/**
+ * @file        assets.ts
+ * @author      Goh Pin Kai
+ * @date        2026-10-04
+ * @brief       Bundled model catalogue and asset URL resolution.
+ *
+ * @responsibility
+ * Builds the catalogue of bundled 3D models from Vite's glob import, resolves
+ * an asset id to a loadable URL, and provides catalogue search and usage
+ * counting for the editor's asset panel.
+ *
+ * @inputs
+ * Asset ids, a search query, and ProjectData when counting uses.
+ *
+ * @outputs
+ * AssetDefinition values, resolved URLs, URL modifiers, and use counts.
+ *
+ * @members
+ * AssetDefinition, assetCatalog, resolveModelUrl, resolveModelUrlModifier,
+ * countAssetUses, filterAssets.
+ *
+ * @boundary
+ * Owns the bundled catalogue only. User-imported assets belong to
+ * userAssets.ts, and URL registration to viewport/assetResolution.ts.
+ *
+ * @dependencies
+ * ./model, ./userAssets, ./viewport/assetResolution.
+ *
+ * @status
+ * Current implementation, used by the M1 build.
+ *
+ * @documentation
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager
+ * Links point at the project wiki; migration is still in progress.
+ */
 import { AssetKind, type ProjectData } from './model'
 import { getUserModelUrlModifier } from './userAssets'
 import { registerLocalAsset, resolveLocalAssetUrl } from './viewport/assetResolution'

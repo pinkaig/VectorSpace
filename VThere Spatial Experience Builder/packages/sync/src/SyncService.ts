@@ -10,6 +10,14 @@
  * product decision out of scope for this stage. `resolveConflict()` exists
  * as the seam that decision will plug into and throws until it's made.
  *
+ *
+ * @status
+ * NOT PART OF M1. Cloud sync is deferred to a later milestone. This logic is
+ * implemented and unit-tested, but no server exists to sync against: the editor
+ * wires the package to a StubSyncTransport (src/sync/projectSync.ts) that reports
+ * success without sending anything. Durable save for M1 is localStorage, via
+ * src/serializer.ts.
+ *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine
  * Links point at the project wiki; migration is still in progress.

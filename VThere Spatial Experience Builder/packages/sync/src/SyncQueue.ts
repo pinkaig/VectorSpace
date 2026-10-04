@@ -9,6 +9,14 @@
  * an injected storage adapter (localStorage/IndexedDB in real use, an
  * in-memory stub in tests).
  *
+ *
+ * @status
+ * NOT PART OF M1. Cloud sync is deferred to a later milestone. This logic is
+ * implemented and unit-tested, but no server exists to sync against: the editor
+ * wires the package to a StubSyncTransport (src/sync/projectSync.ts) that reports
+ * success without sending anything. Durable save for M1 is localStorage, via
+ * src/serializer.ts.
+ *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine
  * Links point at the project wiki; migration is still in progress.

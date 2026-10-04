@@ -1,3 +1,14 @@
+"""FastAPI application entry point.
+
+NOT PART OF M1. The M1 deliverable is the frontend editor, which runs entirely
+in the browser and saves to localStorage. This service is scaffolding for a
+later milestone: the route handlers under app/routers/ return HTTP 501, and
+nothing in the M1 build calls it. The /health route and the request-id
+middleware below are real and tested; the business routes are not implemented.
+
+Documentation: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
+"""
+
 import logging
 import time
 from uuid import uuid4
