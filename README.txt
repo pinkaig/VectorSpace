@@ -14,9 +14,13 @@ The actual project lives in VectorSpace:
 a browser-based spatial authoring tool 
 (Vite/React/TypeScript frontend, Python/FastAPI backend(not in used)).
 
+GitHub repository:
+https://github.com/gsherman01/Project5_Team17_DoReMi-yaki
+M1 submission branch: M1-Submission
 
 Github Wiki + M1 deliverable:
 https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
+
 Jira board:
 https://doremiyaki.atlassian.net/jira/software/projects/PROJ5/summary
 Active front-end website via Render,
