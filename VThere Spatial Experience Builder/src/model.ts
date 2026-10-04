@@ -20,25 +20,48 @@
  * Re-export declarations only; this file does not own project state.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/project-serialization.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Project-Serialization
+ * Links point at the project wiki; migration is still in progress.
  */
 export {
+  assetRefForAttachment,
   cloneProject,
+  collectAttachments,
+  defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
   defaultProject,
   environmentLibrary,
+  findAttachment,
   findEnvironment,
   makeObject,
   makeScene,
 } from '../packages/project/src/index'
 export type {
+  ActionSpec,
   AssetKind,
+  AssetRefKind,
+  Attachment,
+  AttachmentHostRef,
+  AttachmentLocation,
+  AudioAssetMeta,
+  AudioAttachment,
+  AudioSettings,
   CameraPose,
+  ChannelId,
   EnvironmentDefinition,
   EnvironmentKind,
+  InteractionRule,
+  MediaKind,
   ProjectData,
   SceneData,
   SceneObject,
+  TextAssetMeta,
+  TextAttachment,
+  TextFormat,
+  TextPresentation,
+  TextStyle,
   TransformData,
+  ZoneDefinition,
+  ZoneShape,
 } from '../packages/project/src/index'

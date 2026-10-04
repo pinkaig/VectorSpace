@@ -19,8 +19,15 @@
  * LogLevel, LogEvent, LogSink, LoggerOptions, createLogger, and
  * createMemorySink.
  *
+ *
+ * @status
+ * NOT PART OF M1. Implemented and unit-tested, but imported by nothing: no
+ * production code calls createLogger yet. Kept because it is the logging surface
+ * the architecture declares, and wiring it up is a later milestone.
+ *
  * @documentation
- * Larger system guide: docs/04-engineering/UNDATED--CURRENT--debugging.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Debugging-and-Logging
+ * Links point at the project wiki; migration is still in progress.
  */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

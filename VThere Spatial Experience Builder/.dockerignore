@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.env
+apps/api
+test-results
+playwright-report
+.pytest_cache

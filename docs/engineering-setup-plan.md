@@ -7,10 +7,13 @@
 
 ## 1. Purpose and planning decision
 
-This repository currently contains two application projects:
+This repository contains one application project:
 
 - **VThere Spatial Experience Builder:** a browser-based spatial authoring and visitor-runtime product.
-- **ChargedUp Cross-Site Energy & Sustainability Simulator:** a browser-based simulation and decision-support product.
+
+A sibling ChargedUp Cross-Site Energy & Sustainability Simulator project was once
+committed here and has been removed. Rows below marked ChargedUp are retained as
+the original planning record only; they describe no code in this repository.
 
 This document is the repository-level plan for turning the team's proposal into traceable implementation work. Each project retains its own detailed scope, architecture, contracts, tests, and setup documentation in its project directory. The root repository provides shared governance, contribution rules, CI expectations, and a single index into the work.
 
@@ -26,44 +29,51 @@ No native mobile application is currently in either approved scope. Mobile work 
 
 | Project | Proposal / scope | Architecture | Current implementation anchor |
 |---|---|---|---|
-| VThere | [`VThere Spatial Experience Builder/docs/UNDATED--FOUNDATION--project-scope.md`](../VThere%20Spatial%20Experience%20Builder/docs/UNDATED--FOUNDATION--project-scope.md) | [`VThere Spatial Experience Builder/docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md`](../VThere%20Spatial%20Experience%20Builder/docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md) | [`VThere Spatial Experience Builder/README.md`](../VThere%20Spatial%20Experience%20Builder/README.md) |
-| ChargedUp | [`ChargedUp Cross-Site Energy & Sustainability Simulator/UNDATED--FOUNDATION--project-scope.md`](../ChargedUp%20Cross-Site%20Energy%20%26%20Sustainability%20Simulator/UNDATED--FOUNDATION--project-scope.md) | [`ChargedUp Cross-Site Energy & Sustainability Simulator/docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md`](../ChargedUp%20Cross-Site%20Energy%20%26%20Sustainability%20Simulator/docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md) | [`ChargedUp Cross-Site Energy & Sustainability Simulator/README.md`](../ChargedUp%20Cross-Site%20Energy%20%26%20Sustainability%20Simulator/README.md) |
+| VThere | [Architecture v0.1](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1) (wiki) | [Contracts](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts) (wiki) | [`VThere Spatial Experience Builder/README.md`](<../VThere Spatial Experience Builder/README.md>) |
 
 Before implementation expands, each project should add or maintain these local documents where applicable:
 
-- `docs/2026-09-10--FOUNDATION--2026-09-10--FOUNDATION--proposal.md` or a clear link to the approved proposal/scope.
-- `docs/design/product-design.md`.
-- `docs/design/ui-ux/` for flows, wireframes, and approved mockups.
-- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--architecture.md`.
-- `docs/2026-09-10--CURRENT--2026-09-10--CURRENT--deliverables.md`.
-- `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--contracts.md` and `docs/UNDATED--FOUNDATION--UNDATED--FOUNDATION--testing-strategy.md` for cross-boundary behavior.
+These now live on the project wiki rather than in the repository:
+
+- [Toolchain Decision Document](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Toolchain-Decision-Document) — approved tech stack and the reasoning.
+- [Architecture v0.1](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1) — system map.
+- [Contracts](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts) — cross-boundary behavior.
+- [Testbed Spec](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Testbed-Spec) — what is tested and how.
+- [M1 Capability Audit](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/M1-Capability-Audit) — source-verified status against each claimed capability.
+
+Product design and UI/UX flows have no page yet.
 
 ## 3. Repository structure
 
-The existing layout is retained because it already separates the two products and their technology stacks. The target structure is:
+The app keeps its own subdirectory so the repository root stays reserved for governance files and the entry-point scripts. The structure is:
 
 ```text
-Project5_DoReMi-yaki/
-â”œâ”€â”€ README.md
-â”œâ”€â”€ docs/
-â”‚   â””â”€â”€ engineering-setup-plan.md
-â”œâ”€â”€ Agent Skills/
-â”œâ”€â”€ VThere Spatial Experience Builder/
-â”‚   â”œâ”€â”€ apps/
-â”‚   â”œâ”€â”€ packages/
-â”‚   â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ tests/
-â”‚   â””â”€â”€ .github/workflows/
-â”œâ”€â”€ ChargedUp Cross-Site Energy & Sustainability Simulator/
-â”‚   â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ shared/
-â”‚   â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ tests/
-â”‚   â””â”€â”€ .github/workflows/
-â”œâ”€â”€ .github/workflows/
-â””â”€â”€ .gitignore
+Project5_Team17_DoReMi-yaki/
+|-- README.md
+|-- run.sh / run.bat          one-command setup, build, test, run
+|-- clean.sh / clean.bat      remove generated and local-only files
+|-- docs/
+|   `-- engineering-setup-plan.md
+|-- VThere Spatial Experience Builder/
+|   |-- AI-DECLARATION.md     required AI-use declaration
+|   |-- CODEBASE_GUIDE.md     orientation for reading the source
+|   |-- apps/                 editor, runtime, api (api is M2 scaffolding)
+|   |-- packages/             authoring-engine, assets, audio, text,
+|   |                         interaction, project, sync, debugging
+|   |-- src/
+|   |-- docs/                 pointer to the wiki only
+|   |-- tests/
+|   `-- scripts/
+|-- .github/workflows/
+|-- .gitattributes
+`-- .gitignore
 ```
+
+The sibling `ChargedUp Cross-Site Energy & Sustainability Simulator/` project and
+the `Agent Skills/` directory were removed for the M1 submission; this repository
+now holds one product. Reference documentation moved to the
+[project wiki](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki),
+so the app's `docs/` folder is now only a pointer to it.
 
 The root `.gitignore` already excludes Node/Python dependencies, build output, caches, IDE files, logs, local databases, archives, and environment secrets. Keep using `.env.example` files for non-secret configuration and never commit credentials or generated artifacts.
 
@@ -180,9 +190,9 @@ Recommended CI matrix:
 
 ## 9. Decisions and suggestions to adopt
 
-1. **Keep the two products explicitly separated.** Shared root governance is useful; shared runtime code should only be introduced after a real common contract is identified.
+1. **Keep the app separated from root governance.** Root-level governance files and entry-point scripts are useful; app code stays inside its own directory.
 2. **Use vertical slices for milestones.** A working author-to-runtime path and scenario-to-dashboard path reveal integration problems earlier than isolated component completion.
-3. **Treat contracts as first-class artifacts.** Version the VThere project document and ChargedUp API/domain contracts, and test round trips or schema compatibility.
+3. **Treat contracts as first-class artifacts.** Version the VThere project document format and test save/load round trips for schema compatibility.
 4. **Make evidence part of completion.** A Jira ticket is incomplete until its repository path, tests, CI result, and reviewer are recorded.
 5. **Add mobile validation without expanding scope.** Test responsive browser experiences on phone-sized viewports; do not create a native mobile app unless the approved proposal changes.
 6. **Use an architecture conflict rule.** If a change crosses a documented boundary, update the architecture and obtain a recorded decision before implementation continues.
