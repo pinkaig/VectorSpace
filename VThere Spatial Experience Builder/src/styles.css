@@ -853,6 +853,27 @@ button:disabled {
   white-space: nowrap;
   z-index: 5;
 }
+.viewport-stats {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border: 1px solid #4294E2;
+  border-radius: 6px;
+  background: rgba(9, 15, 19, 0.8);
+  color: #cdddd9;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.viewport-stats b {
+  color: #f4c94f;
+  font-weight: 500;
+}
 .asset-status-badge {
   position: absolute;
   top: 16px;
