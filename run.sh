@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# VThere Spatial Experience Builder — one-command setup, build, test, and run.
+# VectorSpace — one-command setup, build, test, and run.
 #
 # Usage:
 #   ./run.sh              full pipeline, then serve the app
@@ -12,7 +12,7 @@
 
 set -uo pipefail
 
-APP_DIR="VThere Spatial Experience Builder"
+APP_DIR=VectorSpace
 MIN_NODE_MAJOR=22
 MIN_NPM_MAJOR=10
 RUN_E2E=1
@@ -44,7 +44,7 @@ TOTAL=5
 [[ $RUN_E2E -eq 1 ]] && TOTAL=$((TOTAL + 1))
 [[ $SERVE -eq 1 ]] && TOTAL=$((TOTAL + 1))
 
-echo "VThere Spatial Experience Builder"
+echo VectorSpace
 echo "================================"
 
 # ---------------------------------------------------------------- environment

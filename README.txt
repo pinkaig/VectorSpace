@@ -10,7 +10,7 @@ Programmer		Wei An CHING	     2202589	(weian.ching@digipen.edu)
 
 			
 Description:
-The actual project lives in VThere Spatial Experience Builder: 
+The actual project lives in VectorSpace: 
 a browser-based spatial authoring tool 
 (Vite/React/TypeScript frontend, Python/FastAPI backend(not in used)).
 
@@ -20,7 +20,7 @@ https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
 Jira board:
 https://doremiyaki.atlassian.net/jira/software/projects/PROJ5/summary
 Active front-end website via Render,
-https://vthere-spatial-experience-builder.onrender.com/
+https://vectorspace.onrender.com/
 
 One-command build, test, and run
 ./run.sh          # macOS/Linux
