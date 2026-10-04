@@ -10,7 +10,7 @@ Programmer		Wei An CHING	     2202589	(weian.ching@digipen.edu)
 
 			
 Description:
-The actual project lives in VThere Spatial Experience Builder: 
+The actual project lives in VectorSpace: 
 a browser-based spatial authoring tool 
 (Vite/React/TypeScript frontend, Python/FastAPI backend(not in used)).
 

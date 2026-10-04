@@ -33,7 +33,7 @@ exit /b 0
 
 cd /d "%~dp0"
 
-set "APP_DIR=VThere Spatial Experience Builder"
+set "APP_DIR=VectorSpace"
 set /a FOUND=0
 set /a REMOVED=0
 

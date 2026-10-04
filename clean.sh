@@ -26,7 +26,7 @@ done
 
 cd "$(dirname "$0")"
 
-APP_DIR="VThere Spatial Experience Builder"
+APP_DIR=VectorSpace
 
 # Build-output and cache directories, relative to the app folder.
 TARGETS=(

@@ -47,7 +47,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-app = FastAPI(title="VThere Spatial Experience Builder API", version="0.1.0")
+app = FastAPI(title="VectorSpace API", version="0.1.0")
 app.add_middleware(RequestLoggingMiddleware)
 
 app.include_router(projects.router)

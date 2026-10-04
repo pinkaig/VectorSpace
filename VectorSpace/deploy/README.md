@@ -105,7 +105,7 @@ manager commands for a different distro). Run as a user with `sudo`.
 8. **First manual bring-up** (verifies the stack before wiring CI to it):
 
    ```bash
-   cd /srv/vthere/"VThere Spatial Experience Builder"
+   cd /srv/vthere/VectorSpace
    sudo -u deploy docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
    sudo -u deploy docker compose -f docker-compose.prod.yml ps
    curl -fsS https://app.example.com/health
@@ -128,6 +128,6 @@ manager commands for a different distro). Run as a user with `sudo`.
 ssh deploy@<vm-host>
 cd /srv/vthere && git log --oneline -5   # find the last known-good commit
 git checkout <sha> -- .
-cd "VThere Spatial Experience Builder"
+cd VectorSpace
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```

@@ -1,5 +1,5 @@
 @echo off
-REM VThere Spatial Experience Builder - one-command setup, build, test, and run.
+REM VectorSpace - one-command setup, build, test, and run.
 REM
 REM Usage:
 REM   run.bat             full pipeline, then serve the app
@@ -11,7 +11,7 @@ REM or database to start. See README.md for why.
 
 setlocal EnableDelayedExpansion
 
-set "APP_DIR=VThere Spatial Experience Builder"
+set "APP_DIR=VectorSpace"
 set "MIN_NODE_MAJOR=22"
 set "MIN_NPM_MAJOR=10"
 set "RUN_E2E=1"
@@ -42,7 +42,7 @@ if "%RUN_E2E%"=="1" set /a TOTAL+=1
 if "%SERVE%"=="1" set /a TOTAL+=1
 set /a STEP=0
 
-echo VThere Spatial Experience Builder
+echo VectorSpace
 echo ================================
 
 REM ---------------------------------------------------------------- environment
