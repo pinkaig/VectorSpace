@@ -5,7 +5,7 @@
 **Date:** 2026-09-13  
 **Status:** Ongoing verification record
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](code/FOUNDATION--baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Baseline-Implementation-8-Stages) for the full sequence.
 
 ## AI tools used
 

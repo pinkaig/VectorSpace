@@ -18,7 +18,8 @@
  * StrictMode wrapper and createRoot mounting call.
  *
  * @documentation
- * Larger system guide: docs/archive/product/CURRENT--project-context.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1
+ * Links point at the project wiki; migration is still in progress.
  */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

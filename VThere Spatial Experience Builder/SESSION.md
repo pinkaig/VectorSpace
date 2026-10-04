@@ -1,5 +1,12 @@
 ﻿# VThere Spatial Experience Builder - Session Handoff
 
+> **Historical record.** Paths quoted below were correct when each entry was
+> written. Reference documentation has since moved to the
+> [project wiki](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki),
+> and `docs/code/**` and `docs/archive/**` were removed from the repository, so
+> `docs/` paths in older entries no longer resolve. They are left as written
+> rather than rewritten, because this file is a log of what happened.
+
 ## Objective / topic
 
 Document the VThere implementation and establish the team workflow for documentation, CI, CD, and smoke testing. The current implementation slice also includes the Wk2 persistence/import/runtime work described below.
@@ -31,7 +38,7 @@ Document the VThere implementation and establish the team workflow for documenta
 - Implemented file-level headers in the core application and package boundaries: `src/main.tsx`, `src/App.tsx`, `src/RuntimeView.tsx`, `src/Viewport.tsx`, `src/model.ts`, `src/serializer.ts`, `packages/project/src/index.ts`, `packages/debugging/src/index.ts`, and `packages/authoring-engine/src/index.ts`.
 - Implemented verbose subsystem guides: `docs/05-subsystems/project-serialization.md` and `docs/05-subsystems/viewport.md`.
 - Implemented documentation standard: `docs/04-engineering/source-file-header-standard.md`.
-- Implemented AI declaration: `docs/ai-declaration.md`; verification is deliberately marked ongoing and must be updated only with completed checks.
+- Implemented AI declaration: `AI-DECLARATION.md`; verification is deliberately marked ongoing and must be updated only with completed checks.
 - Updated `docs/README.md` to link the new documentation pages.
 - Repository-level `.github/workflows/ci.yml` now runs the VThere checks on pull requests and pushes to the existing case-sensitive `Working` integration branch and `main`.
 - Architecture remains intentionally unchanged. The root `src/` editor is still the current implementation surface; `apps/runtime` remains a placeholder and backend/API publishing is not wired.
@@ -93,7 +100,7 @@ The current `package.json` includes `typecheck` and `test:e2e`; Playwright is lo
 - `docs/04-engineering/source-file-header-standard.md`
 - `docs/05-subsystems/project-serialization.md`
 - `docs/05-subsystems/viewport.md`
-- `docs/ai-declaration.md`
+- `AI-DECLARATION.md`
 - `docs/README.md`
 - `src/main.tsx`
 - `src/App.tsx`

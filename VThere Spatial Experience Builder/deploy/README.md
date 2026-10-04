@@ -1,6 +1,6 @@
 # Production deploy
 
-**Baseline phase:** Stage 5 (production deploy). See [8-stage baseline overview](../docs/code/baseline-phases.md).
+**Baseline phase:** Stage 5 (production deploy). See [8-stage baseline overview](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Baseline-Implementation-8-Stages).
 
 Docker Compose stack (Caddy reverse proxy + frontend + API + Postgres) fronting
 one VM, deployed by `.github/workflows/deploy.yml`.

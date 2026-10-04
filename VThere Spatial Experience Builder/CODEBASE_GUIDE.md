@@ -41,9 +41,11 @@ The plans also require preview/published parity, browser and API integration
 tests, persistence tests, and device/performance verification. These are goals,
 not all current capabilities.
 
-Primary planning references include `docs/PROJECT_CONTEXT.md`,
-`docs/architecture.md`, `docs/contracts.md`, `docs/repository.md`,
-`docs/implementation-plan.md`, and `docs/testing-strategy.md`.
+Primary planning references live on the project wiki:
+[Architecture v0.1](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Architecture-v0.1),
+[Contracts](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts),
+[Repository Skeleton](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Repository-Skeleton),
+and [Testbed Spec](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Testbed-Spec).
 
 ## 3. Implemented Source Inventory
 
@@ -62,7 +64,7 @@ surface:
   recovery, autosave, and export.
 - `src/styles.css` owns the prototype presentation.
 
-For viewport work, start with [`docs/05-subsystems/viewport.md`](docs/05-subsystems/viewport.md).
+For viewport work, start with the [Viewport](https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport) wiki page.
 Its “Where to Find Things” table maps rendering ownership to the current files.
 The most important local rendering modules are:
 
@@ -181,7 +183,7 @@ Recommended reading order for a new engineer:
 7. `src/App.tsx` - editor orchestration and UI state.
 8. `apps/api/` - independent HTTP service boundary and health verification.
 9. `apps/runtime/` - planned visitor boundary, currently placeholder-only.
-10. `docs/` and planning files - intended future boundaries and acceptance criteria.
+10. The project wiki - intended future boundaries and acceptance criteria.
 
 The planned dependency direction is shared data and math first, then
 serialization and validation, then commands and authoring, then editor/runtime

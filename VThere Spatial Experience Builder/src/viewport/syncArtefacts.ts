@@ -20,7 +20,8 @@
  * @documentation
  * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
  * Links point at the project wiki; migration is still in progress.
- * Rendering plan: docs/archive/research-and-history/Week3/Wk2_3--PLAN--future-proof-rendering-system.md
+ * The future-proof-rendering-system plan this file was built against was
+ * archived and removed from the repository; it is in git history only.
  */
 import * as THREE from 'three'
 import type { SceneObject } from '../model'
