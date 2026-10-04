@@ -2,7 +2,7 @@
 
 > **M1 scope:** **Process / reference.** Tech-lead deliverable #1.
 
-*Baseline stack and platform decisions for `{AppName}`. Any change to this document requires instructor approval.*
+*Baseline stack and platform decisions for `VectorSpace`. Any change to this document requires instructor approval.*
 
 > **Note on scope:** backend and cloud infrastructure choices (see [Backend / Cloud](#backend--cloud), below) are provisional defaults, not committed decisions — the team has not yet split up ownership of that area for M1.
 
@@ -39,9 +39,9 @@
 
 ## File & Data Formats
 
-- **JSON (ProjectData)** — the project's save format.
-- **glTF/GLB** — 3D model format.
-- Static audio files.
+- **JSON (ProjectData)** — the project's save format. Human-readable and native to the browser, so it serves both `localStorage` saves and export/import files.
+- **glTF/GLB** — 3D model format. Three.js loads it directly, and it is the format the @gltf-transform optimization pipeline works on.
+- Static audio files (MP3, OGG, WAV) — common web audio formats that the browser decodes itself.
 - Inline-JSON text content — confirmed design (see Data/Content Pipeline doc).
 - Image, video, and URL-linked content — anticipated, **not yet confirmed or tested**.
 
@@ -49,7 +49,7 @@
 
 ## Target Devices / Platforms
 
-- **Desktop browser** — primary target for M1.
+- **Desktop browser** — primary target for M1. The editor relies on mouse and keyboard (transform gizmos, WASD walk mode), and running in the browser means nothing to install.
 - **Tablet/iPad** — Post-M1 primary target (recent change, not yet implemented).
 - Mobile and tablet runtime, including older/lower-spec devices — secondary target.
 - Native apps and WebXR — explicitly out of scope.
