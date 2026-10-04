@@ -18,7 +18,7 @@
  * StrictMode wrapper and createRoot mounting call.
  *
  * @documentation
- * Larger system guide: docs/01-product/UNDATED--CURRENT--project-context.md
+ * Larger system guide: docs/archive/product/CURRENT--project-context.md
  */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

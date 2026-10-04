@@ -12,7 +12,8 @@
  * (color/opacity) on every zoneEnter/zoneExit transition.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/when-do-dispatch-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 import * as THREE from 'three'
 import type { ZoneDefinition } from '../../packages/project/src/index'

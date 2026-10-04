@@ -15,7 +15,8 @@
  * empty panel.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md sections 4, 12 and 14
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System sections 4, 12 and 14
+ * Links point at the project wiki; migration is still in progress.
  */
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { InlineNode, PanelStatus, TextNode, TextSnapshot, TextSystem } from '../packages/text/src/index'

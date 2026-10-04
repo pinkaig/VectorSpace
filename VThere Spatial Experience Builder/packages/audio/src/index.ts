@@ -9,7 +9,8 @@
  * not resolve. Anything consumers need must be re-exported here.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
+ * Links point at the project wiki; migration is still in progress.
  */
 export { AudioSystem, type PlayRequest, type VoiceSelector, type AudioSystemOptions } from './AudioSystem'
 export { AudioAssetLibrary, type ResolvedPlaySettings, type PlayOverrides } from './AudioAssetLibrary'

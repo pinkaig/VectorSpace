@@ -21,7 +21,7 @@
  * TextPresentation, defaultProject, cloneProject, and makeObject.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/project-serialization.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Project-Serialization
  */
 // Single-entry package (package.json "exports" is one string), so the
 // attachment lookup helpers must be re-exported here to be importable.
@@ -186,7 +186,7 @@ export type ChannelId = 'bgm' | 'sfx' | 'narration' | 'ambient' | (string & {})
 
 /**
  * Authored presettings for one audio asset, stored on the project. Core
- * playback fields only — see docs/code/subsystems/audio-system.md for the
+ * playback fields only — see https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System for the
  * full field set (spatial, captions, loop points, etc.) not yet implemented.
  */
 export interface AudioAssetMeta {
@@ -207,7 +207,7 @@ export interface AudioSettings {
  * reserved now so `MEDIA_KIND_SPECS` and the serializer allowlist stay
  * table-driven, but only `audio` and `text` have Attachment shapes yet —
  * image and video join the union when their design docs' presentation types
- * are approved (docs/code/subsystems/attachment-integration.md section 3).
+ * are approved (https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Attachment-Integration section 3).
  */
 export type MediaKind = 'audio' | 'image' | 'video' | 'text'
 
@@ -351,7 +351,8 @@ export const makeObject = (assetKind: AssetKind, index: number, assetId?: string
  *   backfilled to [], so schemaVersion stayed 1, as with parentId. Because they
  *   are ProjectData fields, undo/redo covers them with no extra work.
  *   Runtime state is deliberately NOT here: see
- *   docs/05-subsystems/when-do-dispatch-engine.md
+ *   https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
+ * Links point at the project wiki; migration is still in progress.
  *
  * SceneObject:
  *   owns persistent object identity, display name, asset identity, asset kind,

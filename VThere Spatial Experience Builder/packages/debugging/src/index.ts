@@ -20,7 +20,8 @@
  * createMemorySink.
  *
  * @documentation
- * Larger system guide: docs/04-engineering/UNDATED--CURRENT--debugging.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Debugging-and-Logging
+ * Links point at the project wiki; migration is still in progress.
  */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

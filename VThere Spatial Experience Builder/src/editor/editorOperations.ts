@@ -19,7 +19,8 @@
  * remains beyond direct delegation.
  *
  * @documentation
- * Authoring boundary: docs/05-subsystems/authoring-engine.md
+ * Authoring boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 import {
   createMoveCommand,

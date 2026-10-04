@@ -8,7 +8,8 @@
  * practice, so scenes can always place *something* even offline.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/asset-manager.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { AssetRefKind } from '@vthere/project'
 import { errorAssetDescriptor, readyAssetDescriptor, type AssetDescriptor } from '../AssetDescriptor'

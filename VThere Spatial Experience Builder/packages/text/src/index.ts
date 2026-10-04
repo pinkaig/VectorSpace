@@ -11,7 +11,8 @@
  * with the runtime-wiring build step, not this core.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System
+ * Links point at the project wiki; migration is still in progress.
  */
 export { TextSystem, type PanelHandle, type TextStats, type TextSystemOptions } from './TextSystem'
 export { registerTextActions, type RegisterTextActionsOptions } from './actions/registerTextActions'

@@ -15,7 +15,8 @@
  * leaves the state at 'conflict' for a higher layer (SyncService) to decide.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/sync-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { QueuedChange, QueueStorage } from './SyncQueue'
 import { SyncQueue } from './SyncQueue'

@@ -10,7 +10,8 @@
  * lands, with no caller-side change.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/asset-manager.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager
+ * Links point at the project wiki; migration is still in progress.
  */
 import { errorAssetDescriptor, type AssetDescriptor } from '../AssetDescriptor'
 import type { AssetRef } from '../AssetRef'

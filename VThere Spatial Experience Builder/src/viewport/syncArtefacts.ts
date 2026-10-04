@@ -18,8 +18,9 @@
  * projection and GPU resources represented by the supplied group.
  *
  * @documentation
- * Rendering map: docs/05-subsystems/viewport.md
- * Rendering plan: docs/07-research-and-history/Week3/Wk2_3--PLAN--future-proof-rendering-system.md
+ * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
+ * Rendering plan: docs/archive/research-and-history/Week3/Wk2_3--PLAN--future-proof-rendering-system.md
  */
 import * as THREE from 'three'
 import type { SceneObject } from '../model'

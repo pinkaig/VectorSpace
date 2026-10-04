@@ -12,7 +12,8 @@
  * read on tick(), so it is testable without timers.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md section 7
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 7
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { TextPresentation } from '@vthere/project'
 import type { PanelStatus, TextStateStore } from './TextStateStore'

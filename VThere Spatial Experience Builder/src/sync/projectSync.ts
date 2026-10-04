@@ -17,7 +17,7 @@
  * truth for what's on disk.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/sync-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine
  */
 import {
   InMemoryLocalStore,
@@ -56,7 +56,8 @@ class LocalStorageQueueStorage implements QueueStorage {
 
 /**
  * No backend write endpoint exists yet (Stage 3's routes are still 501 —
- * see docs/05-subsystems/sync-engine.md). This stub always succeeds so the
+ * see https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine). This stub always succeeds so the
+ * Links point at the project wiki; migration is still in progress.
  * client-side queue/dual-write/retry machinery can be exercised end-to-end;
  * swapping in a real HTTP transport requires no change to ProjectSync below.
  */

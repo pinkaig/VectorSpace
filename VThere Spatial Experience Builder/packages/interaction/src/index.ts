@@ -11,7 +11,8 @@
  * be re-exported here.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/when-do-dispatch-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 export type { RuntimeEvent } from './RuntimeEvent'
 

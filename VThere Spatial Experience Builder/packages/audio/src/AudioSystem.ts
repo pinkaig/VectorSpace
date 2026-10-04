@@ -3,7 +3,7 @@
  * @brief       The only audio object other code holds: buses, voices, resolution, state store.
  *
  * @responsibility
- * Core playback slice of the design in docs/code/subsystems/audio-system.md:
+ * Core playback slice of the design in https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System:
  * master + four channels, play/pause/resume/stop/setVolume, autoplay unlock
  * with a queue, and a queryable state store. Deliberately does not implement
  * spatial audio, captions, LRU/budget cache eviction, ducking, retrigger
@@ -11,7 +11,8 @@
  * "Feature tiers" table for what is deferred and why.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { AudioSettings, ChannelId } from '@vthere/project'
 import type { AudioBackend, BackendBuffer } from './backend/AudioBackend'

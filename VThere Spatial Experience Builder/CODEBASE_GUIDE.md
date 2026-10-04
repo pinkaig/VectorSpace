@@ -8,10 +8,12 @@
 - Scope: planning documents, workspace configuration, `src/`, `apps/`, `packages/`, API tests, and verification documentation
 - Current phase: Stage 4, Phase 0 baseline in progress
 
-This guide describes the VThere project only. It does not combine the sibling
-ChargedUp project or the parent `Agent Skills/` directory with this architecture.
-The repository on disk is authoritative; planning-only structures are labeled
-PLANNED or MISSING.
+This guide describes the VThere project only. The repository on disk is
+authoritative; planning-only structures are labeled PLANNED or MISSING.
+
+Written when this repository also held a sibling ChargedUp project and an
+`Agent Skills/` directory. Both were removed for the M1 submission, so the
+repository root now contains this project only.
 
 ## 2. Intended Architecture
 

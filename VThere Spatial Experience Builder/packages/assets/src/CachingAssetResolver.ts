@@ -10,7 +10,8 @@
  * same swap-without-caller-change guarantee AssetResolver exists to provide.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/asset-manager.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager
+ * Links point at the project wiki; migration is still in progress.
  */
 import { AssetCache } from './AssetCache'
 import type { AssetDescriptor } from './AssetDescriptor'

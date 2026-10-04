@@ -14,7 +14,7 @@
  * not own SceneObject/ProjectData; a SceneObject's assetId is the only input.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/asset-manager.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager
  */
 import {
   CachingAssetResolver,
@@ -47,7 +47,8 @@ const localCatalog = new Map<string, { url: string; contentType?: string }>()
  * this map (and swapping InlineTextResolver for the remote resolver) is the
  * migration, not a rewrite.
  *
- * docs/code/subsystems/media-policy-and-cloud-download.md
+ * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Media-Policy-and-Cloud-Download
+ * Links point at the project wiki; migration is still in progress.
  */
 let textAssetsById = new Map<string, TextAssetMeta>()
 

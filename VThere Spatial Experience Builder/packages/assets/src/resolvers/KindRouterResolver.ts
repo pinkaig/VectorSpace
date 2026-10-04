@@ -12,7 +12,8 @@
  * and remote media without touching this router.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/attachment-integration.md section 6.1
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Attachment-Integration section 6.1
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { AssetDescriptor } from '../AssetDescriptor'
 import type { AssetRef } from '../AssetRef'

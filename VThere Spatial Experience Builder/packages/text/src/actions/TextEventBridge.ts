@@ -11,7 +11,8 @@
  * internal — they are UI state, not rule triggers.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md section 9
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 9
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { TextStateStore } from '../TextStateStore'
 

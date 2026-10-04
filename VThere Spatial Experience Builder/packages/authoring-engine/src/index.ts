@@ -29,7 +29,7 @@
  * must be re-exported here.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/authoring-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
  */
 import {
   AssetKind,
@@ -388,7 +388,8 @@ export const setActiveScene = (
 // ---- attachment operations -------------------------------------------------
 // An attachment lives on its host (SceneObject or ZoneDefinition), so these
 // ops address a host rather than duplicating four functions per host type.
-// See docs/code/subsystems/attachment-integration.md section 4.
+// See https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Attachment-Integration section 4.
+// Links point at the project wiki; migration is still in progress.
 
 export interface AttachmentHost {
   kind: 'object' | 'zone'

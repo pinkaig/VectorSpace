@@ -20,7 +20,7 @@
  * synchronisation helpers, ResizeObserver, and animation frame.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/viewport.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
  */
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -200,7 +200,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // sync, and the chain's copy had no reader. When text gains a non-inline
   // origin (a document drive or a signed URL) the chain becomes the right
   // home for it, because only a descriptor can express loading/error — see
-  // docs/code/subsystems/media-policy-and-cloud-download.md.
+  // https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Media-Policy-and-Cloud-Download.
+  // Links point at the project wiki; migration is still in progress.
   useEffect(() => {
     textLibraryRef.current?.setTextAssets(textAssets)
   }, [textAssets])

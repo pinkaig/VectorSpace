@@ -9,7 +9,8 @@
  * no attachment model exists on SceneObject/ZoneDefinition yet.)
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { AudioAssetMeta, ChannelId } from '@vthere/project'
 

@@ -7,7 +7,8 @@
  * and stable rotation-angle calculation without a browser or WebGL context.
  *
  * @documentation
- * Rendering map: docs/05-subsystems/viewport.md
+ * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
  */
 import { describe, expect, it } from 'vitest'
 import { angleAroundAxis, closestPointOnAxis, normalizeAngle } from './interactionMath'

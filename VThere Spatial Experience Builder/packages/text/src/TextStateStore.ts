@@ -10,7 +10,8 @@
  * PanelManager writes here; everything public is read-only.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md sections 8 and "Modal input boundary"
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System sections 8 and "Modal input boundary"
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { TextPresentation } from '@vthere/project'
 

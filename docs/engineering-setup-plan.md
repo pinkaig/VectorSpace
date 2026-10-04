@@ -40,30 +40,31 @@ Before implementation expands, each project should add or maintain these local d
 
 ## 3. Repository structure
 
-The existing layout is retained because it already separates the two products and their technology stacks. The target structure is:
+The app keeps its own subdirectory so the repository root stays reserved for governance files and the entry-point scripts. The structure is:
 
 ```text
-Project5_DoReMi-yaki/
-â”œâ”€â”€ README.md
-â”œâ”€â”€ docs/
-â”‚   â””â”€â”€ engineering-setup-plan.md
-â”œâ”€â”€ Agent Skills/
-â”œâ”€â”€ VThere Spatial Experience Builder/
-â”‚   â”œâ”€â”€ apps/
-â”‚   â”œâ”€â”€ packages/
-â”‚   â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ tests/
-â”‚   â””â”€â”€ .github/workflows/
-â”œâ”€â”€ ChargedUp Cross-Site Energy & Sustainability Simulator/
-â”‚   â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ shared/
-â”‚   â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ tests/
-â”‚   â””â”€â”€ .github/workflows/
-â”œâ”€â”€ .github/workflows/
-â””â”€â”€ .gitignore
+Project5_Team17_DoReMi-yaki/
+|-- README.md
+|-- run.sh / run.bat          one-command setup, build, test, run
+|-- clean.sh / clean.bat      remove generated and local-only files
+|-- docs/
+|   `-- engineering-setup-plan.md
+|-- VThere Spatial Experience Builder/
+|   |-- apps/                 editor, runtime, api (api is M2 scaffolding)
+|   |-- packages/             authoring-engine, assets, audio, text,
+|   |                         interaction, project, sync, debugging
+|   |-- src/
+|   |-- docs/
+|   |-- tests/
+|   `-- scripts/
+|-- .github/workflows/
+|-- .gitattributes
+`-- .gitignore
 ```
+
+The sibling `ChargedUp Cross-Site Energy & Sustainability Simulator/` project and
+the `Agent Skills/` directory were removed for the M1 submission; this repository
+now holds one product.
 
 The root `.gitignore` already excludes Node/Python dependencies, build output, caches, IDE files, logs, local databases, archives, and environment secrets. Keep using `.env.example` files for non-secret configuration and never commit credentials or generated artifacts.
 
@@ -180,9 +181,9 @@ Recommended CI matrix:
 
 ## 9. Decisions and suggestions to adopt
 
-1. **Keep the two products explicitly separated.** Shared root governance is useful; shared runtime code should only be introduced after a real common contract is identified.
+1. **Keep the app separated from root governance.** Root-level governance files and entry-point scripts are useful; app code stays inside its own directory.
 2. **Use vertical slices for milestones.** A working author-to-runtime path and scenario-to-dashboard path reveal integration problems earlier than isolated component completion.
-3. **Treat contracts as first-class artifacts.** Version the VThere project document and ChargedUp API/domain contracts, and test round trips or schema compatibility.
+3. **Treat contracts as first-class artifacts.** Version the VThere project document format and test save/load round trips for schema compatibility.
 4. **Make evidence part of completion.** A Jira ticket is incomplete until its repository path, tests, CI result, and reviewer are recorded.
 5. **Add mobile validation without expanding scope.** Test responsive browser experiences on phone-sized viewports; do not create a native mobile app unless the approved proposal changes.
 6. **Use an architecture conflict rule.** If a change crosses a documented boundary, update the architecture and obtain a recorded decision before implementation continues.

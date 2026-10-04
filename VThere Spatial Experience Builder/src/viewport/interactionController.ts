@@ -20,8 +20,8 @@
  * persistence. The editor callback decides how a committed action is recorded.
  *
  * @documentation
- * Rendering map: docs/05-subsystems/viewport.md
- * Authoring boundary: docs/05-subsystems/authoring-engine.md
+ * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Authoring boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
  */
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -64,7 +64,8 @@ export interface ViewportInteractionData {
   compactOverlays: boolean
   // Object ids whose asset is still resolving or failed to resolve. Raycasting
   // skips these so a click can't select or drag an object with no confirmed
-  // visual representation yet — see docs/05-subsystems/asset-manager.md.
+  // visual representation yet — see https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager.
+  // Links point at the project wiki; migration is still in progress.
   unpickableAssetIds: ReadonlySet<string>
   // True only while the WHEN→DO runtime is live. Gates the extra picking these
   // listeners do for Tier 1 events, so authoring pays nothing for them.

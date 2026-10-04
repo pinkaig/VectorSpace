@@ -18,7 +18,8 @@
  * through @vthere/authoring-engine's reparentObject via editorOperations.
  *
  * @documentation
- * Authoring boundary: docs/05-subsystems/authoring-engine.md
+ * Authoring boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { SceneObject } from '../model'
 

@@ -12,7 +12,8 @@
  * dispatcher. Pure TypeScript: no React, no Three.js, no browser.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md "Class design"
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System "Class design"
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { TextAttachment } from '@vthere/project'
 import { PanelManager, type PanelSelector } from './PanelManager'

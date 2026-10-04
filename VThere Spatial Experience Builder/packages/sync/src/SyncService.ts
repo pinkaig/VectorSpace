@@ -11,7 +11,8 @@
  * as the seam that decision will plug into and throws until it's made.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/sync-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { SyncClient } from './SyncClient'
 import type { SyncResult } from './SyncResult'

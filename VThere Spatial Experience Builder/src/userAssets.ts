@@ -13,7 +13,8 @@
  *              Storage is local to the current browser and device only. There is no
  *              server-side or shared storage yet; this acts as the temporary
  *              implementation for the shared-storage contract described in
- *              docs/05-subsystems/UNDATED--CURRENT--asset-library-contract.md.
+ *              https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Library-Contract.
+ * Links point at the project wiki; migration is still in progress.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the

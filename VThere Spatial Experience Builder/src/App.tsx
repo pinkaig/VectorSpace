@@ -20,7 +20,8 @@
  * updateScene, addObject, updateSelected, moveObject, undo, redo, persist.
  *
  * @documentation
- * Larger system guide: docs/02-architecture/UNDATED--FOUNDATION--architecture.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts
+ * Links point at the project wiki; migration is still in progress.
  */
 import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 import {

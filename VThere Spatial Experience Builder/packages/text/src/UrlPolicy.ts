@@ -9,7 +9,8 @@
  * or malformed input) is rejected and the construct renders as plain text.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md section 3
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 3
+ * Links point at the project wiki; migration is still in progress.
  */
 const ALLOWED_PROTOCOLS = new Set(['https:', 'mailto:'])
 

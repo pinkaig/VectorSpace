@@ -13,7 +13,8 @@
  * design this implements the Tier B half of.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
+ * Links point at the project wiki; migration is still in progress.
  */
 const DB_NAME = 'vthere-audio-cache'
 const STORE_NAME = 'clips'

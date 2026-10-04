@@ -10,7 +10,8 @@
  * The current read-only RuntimeView component.
  *
  * @documentation
- * Application boundary: docs/02-architecture/UNDATED--FOUNDATION--architecture.md
+ * Application boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts
+ * Links point at the project wiki; migration is still in progress.
  */
 import RuntimeView from '../../../src/RuntimeView'
 

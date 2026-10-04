@@ -26,7 +26,8 @@
  *   Incremental append is not implemented.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md section 6
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 6
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { InlineNode, TextNode } from '../parse/nodes'
 import type { FontSpec, TextMeasurer } from './TextMeasurer'

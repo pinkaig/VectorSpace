@@ -71,7 +71,8 @@ const loadGlb = (definition: EnvironmentDefinition, handlers: EnvironmentLoadHan
 /**
  * Loads an environment by id, reporting progress and surfacing a recoverable
  * error rather than throwing into the render loop. Required states per
- * docs/asset-library-contract.md: loading, progress, error, retry, missing-asset.
+ * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Library-Contract: loading, progress, error, retry, missing-asset.
+ * Links point at the project wiki; migration is still in progress.
  */
 export const loadEnvironment = async (environmentId: string, handlers: EnvironmentLoadHandlers = {}): Promise<LoadedEnvironment> => {
   const definition = findEnvironment(environmentId)

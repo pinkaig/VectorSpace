@@ -9,7 +9,8 @@
  * and a parser bug can produce wrong formatting but not script.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md section 2
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 2
+ * Links point at the project wiki; migration is still in progress.
  */
 export type TextNode =
   | { type: 'paragraph'; children: InlineNode[] }

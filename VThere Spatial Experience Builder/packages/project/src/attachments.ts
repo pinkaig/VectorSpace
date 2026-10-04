@@ -9,7 +9,8 @@
  * to packages/authoring-engine; resolution belongs to the app's asset layer.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/attachment-integration.md section 6.3
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Attachment-Integration section 6.3
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { Attachment, MediaKind, ProjectData, SceneData } from './index'
 

@@ -5,7 +5,7 @@
 **Date:** 2026-09-13  
 **Status:** Ongoing verification record
 
-**Baseline phase:** Not stage-specific — see [8-stage baseline overview](../code/baseline-phases.md) for the full sequence.
+**Baseline phase:** Not stage-specific — see [8-stage baseline overview](code/FOUNDATION--baseline-phases.md) for the full sequence.
 
 ## AI tools used
 

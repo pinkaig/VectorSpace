@@ -14,7 +14,8 @@
  * Updated editor-only Three.js gizmo transforms and visibility.
  *
  * @documentation
- * Rendering map: docs/05-subsystems/viewport.md
+ * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
  */
 import * as THREE from "three";
 import type { SceneObject } from "../model";

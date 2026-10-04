@@ -15,7 +15,8 @@
  * occupy a cache entry, and an approved one should not be re-checked on a hit.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/media-policy-and-cloud-download.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Media-Policy-and-Cloud-Download
+ * Links point at the project wiki; migration is still in progress.
  */
 import { errorAssetDescriptor, type AssetDescriptor } from './AssetDescriptor'
 import type { AssetRef } from './AssetRef'

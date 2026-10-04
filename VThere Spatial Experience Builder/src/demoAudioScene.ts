@@ -19,8 +19,9 @@
  * polyphonic 'sfx' channel.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md,
- * docs/code/subsystems/when-do-dispatch-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System,
+ * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { AudioAssetMeta, AudioSettings, InteractionRule, SceneData, SceneObject, ZoneDefinition } from '../packages/project/src/index'
 import { audioRule, playAudioAction, stopAudioAction } from '../packages/audio/src/actions/audioActionBuilders'

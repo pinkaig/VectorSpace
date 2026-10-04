@@ -17,7 +17,8 @@
  * Covered by interactionMath.test.ts with parallel-ray and angle cases.
  *
  * @documentation
- * Rendering map: docs/05-subsystems/viewport.md
+ * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
  */
 export type Vector3Tuple = [number, number, number]
 

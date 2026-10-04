@@ -18,8 +18,9 @@
  * simple adapter task.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md
- * Chain-side policy: docs/code/subsystems/media-policy-and-cloud-download.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
+ * Chain-side policy: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Media-Policy-and-Cloud-Download
+ * Links point at the project wiki; migration is still in progress.
  */
 /**
  * Two forms a resolved asset can take. `url`: fetched by the backend at decode

@@ -23,11 +23,12 @@
  *     those same bytes so the first play doesn't pay for a second round-trip
  *     through AudioBackend.decode. For small/frequent clips (SFX, chimes).
  *
- * See docs/code/subsystems/audio-system.md's "Loading audio into the app"
+ * See https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System's "Loading audio into the app"
  * for the full two-tier design.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/audio-system.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
+ * Links point at the project wiki; migration is still in progress.
  */
 import type { AudioResolver, ResolvedAudio } from '../../packages/audio/src/index'
 import { readCachedClip, writeCachedClip } from './audioByteCache'

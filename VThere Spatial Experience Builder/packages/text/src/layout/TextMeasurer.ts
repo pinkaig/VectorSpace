@@ -10,7 +10,8 @@
  * are deterministic under vitest with no DOM.
  *
  * @documentation
- * Larger system guide: docs/code/subsystems/text-system.md section 6
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 6
+ * Links point at the project wiki; migration is still in progress.
  */
 export interface FontSpec {
   /** A resolved font family — the app maps roles (body/heading/mono) to this. */

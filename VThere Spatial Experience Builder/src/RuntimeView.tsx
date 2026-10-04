@@ -19,7 +19,8 @@
  * RuntimeViewProps, active-scene lookup, and Viewport interactive=false.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/viewport.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * Links point at the project wiki; migration is still in progress.
  */
 import { useEffect, useRef } from 'react'
 import Viewport, { type ViewportHandle } from './Viewport'

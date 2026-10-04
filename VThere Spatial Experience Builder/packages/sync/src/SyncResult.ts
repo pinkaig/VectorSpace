@@ -9,7 +9,8 @@
  * itself is out of scope here — see SyncService in @vthere/sync's Considerations.
  *
  * @documentation
- * Larger system guide: docs/05-subsystems/sync-engine.md
+ * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Sync-Engine
+ * Links point at the project wiki; migration is still in progress.
  */
 
 export interface SyncResult {
