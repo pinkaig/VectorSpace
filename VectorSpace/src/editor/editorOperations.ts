@@ -4,7 +4,7 @@
  *
  * @responsibility
  * Supplies browser ID generation and editor-oriented operation names while
- * delegating immutable project transitions to @vthere/authoring-engine.
+ * delegating immutable project transitions to @vectorspace/authoring-engine.
  *
  * @inputs
  * ProjectData snapshots, editor scene/object identifiers, asset kinds, and
@@ -42,7 +42,7 @@ import {
   type ObjectOperationResult,
   type ProjectCommand,
   type Vector3Tuple,
-} from '@vthere/authoring-engine'
+} from '@vectorspace/authoring-engine'
 import type { AssetKind, ProjectData, SceneObject } from '../model'
 
 /**

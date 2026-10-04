@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createActionRegistry, createEffectRegistry, createRuntimeState, type ActionContext } from '@vthere/interaction'
-import type { TextAssetMeta, TextAttachment } from '@vthere/project'
+import { createActionRegistry, createEffectRegistry, createRuntimeState, type ActionContext } from '@vectorspace/interaction'
+import type { TextAssetMeta, TextAttachment } from '@vectorspace/project'
 import { TextLibrary } from '../TextLibrary'
 import { TextSystem } from '../TextSystem'
 import { registerTextActions } from './registerTextActions'

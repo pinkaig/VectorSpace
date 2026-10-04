@@ -27,7 +27,7 @@ import { describeOptimisation, type ModelStats } from './assetPipeline/modelBudg
 import { optimiseInWorker } from './assetPipeline/optimiseInWorker'
 import { registerLocalAsset, resolveLocalAssetUrl, unregisterLocalAsset } from './viewport/assetResolution'
 
-const DB_NAME = 'vthere-user-assets'
+const DB_NAME = 'vectorspace-user-assets'
 const STORE_NAME = 'models'
 const ASSET_ID_PREFIX = 'user-model-'
 const ENTRY_FILE_PATTERN = /\.(glb|gltf)$/i

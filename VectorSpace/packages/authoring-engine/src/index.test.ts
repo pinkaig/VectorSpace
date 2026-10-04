@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addAttachment, composeWorldTransform, createCommandTimeline, createObject, createScene, duplicateObject, ObjectOperationError, removeAttachment, removeObject, reorderAttachments, reparentObject, setObjectEnabled, setObjectVisible, updateAttachment, updateObjectTransform } from './index'
-import { defaultProject, InteractionRule, ProjectData } from '@vthere/project'
+import { defaultProject, InteractionRule, ProjectData } from '@vectorspace/project'
 
 describe('command timeline', () => {
   it('restores committed snapshots without sharing mutable state', () => {

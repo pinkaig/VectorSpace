@@ -27,7 +27,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import type { ProjectData } from '@vthere/project'
+import type { ProjectData } from '@vectorspace/project'
 import type { ActionSpec } from './actions/types'
 import type { DispatchResult } from './DispatchResult'
 import type { InteractionRule } from './InteractionRule'

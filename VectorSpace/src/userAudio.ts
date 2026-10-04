@@ -18,7 +18,7 @@ import type { ChannelId } from '../packages/project/src/index'
 import { audioAssetCatalog, isDecodableAudioBytes, type AudioAssetDefinition } from './audioAssets'
 import { registerAudioAsset, unregisterAudioAsset } from './viewport/audioResolution'
 
-const DB_NAME = 'vthere-user-audio'
+const DB_NAME = 'vectorspace-user-audio'
 const STORE_NAME = 'clips'
 const ASSET_ID_PREFIX = 'user-audio-'
 const AUDIO_FILE_PATTERN = /\.(ogg|mp3|wav)$/i

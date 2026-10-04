@@ -7,7 +7,7 @@
  * registries, the zone tracker, the action sequencer, and resetRuntime(). This
  * file is the package's only entry point: package.json declares
  * `"exports": "./src/index.ts"` as a single string, so subpath imports such as
- * `@vthere/interaction/dispatcher` do not resolve. Anything consumers need must
+ * `@vectorspace/interaction/dispatcher` do not resolve. Anything consumers need must
  * be re-exported here.
  *
  * @documentation

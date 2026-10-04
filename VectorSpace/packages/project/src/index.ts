@@ -307,7 +307,7 @@ export const makeScene = (id: string, name: string): SceneData => ({
 
 export const defaultProject = (): ProjectData => ({
   schemaVersion: 1,
-  id: 'project-vthere-demo',
+  id: 'project-vectorspace-demo',
   name: 'Tide Lines Exhibition',
   activeSceneId: 'scene-gallery',
   scenes: [makeScene('scene-gallery', 'Gallery')],

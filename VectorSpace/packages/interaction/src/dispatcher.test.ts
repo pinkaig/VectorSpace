@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultProject, type ProjectData } from '@vthere/project'
+import { defaultProject, type ProjectData } from '@vectorspace/project'
 import { dispatch } from './dispatcher'
 import { createRuntimeState } from './RuntimeState'
 import type { InteractionRule } from './InteractionRule'

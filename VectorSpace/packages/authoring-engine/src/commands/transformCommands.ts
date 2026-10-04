@@ -27,7 +27,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import { ProjectData, SceneObject, cloneProject } from '@vthere/project'
+import { ProjectData, SceneObject, cloneProject } from '@vectorspace/project'
 import { ObjectTargetInput, requireObject } from '../objectAccess'
 import { ProjectCommand, TransformValidationError } from './types'
 

@@ -56,20 +56,20 @@ manager commands for a different distro). Run as a user with `sudo`.
    the public half:**
 
    ```bash
-   ssh-keygen -t ed25519 -C "vthere-deploy" -f ./vthere_deploy_key -N ""
-   # copy vthere_deploy_key.pub content into the VM:
-   ssh <admin-user>@<vm-host> "sudo tee -a /home/deploy/.ssh/authorized_keys" < vthere_deploy_key.pub
+   ssh-keygen -t ed25519 -C "vectorspace-deploy" -f ./vectorspace_deploy_key -N ""
+   # copy vectorspace_deploy_key.pub content into the VM:
+   ssh <admin-user>@<vm-host> "sudo tee -a /home/deploy/.ssh/authorized_keys" < vectorspace_deploy_key.pub
    ssh <admin-user>@<vm-host> "sudo chmod 600 /home/deploy/.ssh/authorized_keys && sudo chown -R deploy:deploy /home/deploy/.ssh"
    ```
 
-   Keep `vthere_deploy_key` (the private half) out of git. It goes into the
+   Keep `vectorspace_deploy_key` (the private half) out of git. It goes into the
    GitHub Actions secret `DEPLOY_SSH_KEY` (see below).
 
 4. **Create the deploy directory and clone the repo:**
 
    ```bash
-   sudo -u deploy mkdir -p /srv/vthere
-   sudo -u deploy git clone <repo-url> /srv/vthere
+   sudo -u deploy mkdir -p /srv/vectorspace
+   sudo -u deploy git clone <repo-url> /srv/vectorspace
    ```
 
 5. **Open firewall ports 80 and 443:**
@@ -84,28 +84,28 @@ manager commands for a different distro). Run as a user with `sudo`.
    IP. Caddy will not obtain a TLS certificate until this resolves.
 
 7. **Create the production env file** on the VM at
-   `/srv/vthere/.env.prod` (used by `docker compose --env-file`):
+   `/srv/vectorspace/.env.prod` (used by `docker compose --env-file`):
 
    ```bash
-   sudo -u deploy tee /srv/vthere/.env.prod > /dev/null <<'EOF'
+   sudo -u deploy tee /srv/vectorspace/.env.prod > /dev/null <<'EOF'
    DOMAIN=app.example.com
-   POSTGRES_DB=vthere
-   POSTGRES_USER=vthere_app
+   POSTGRES_DB=vectorspace
+   POSTGRES_USER=vectorspace_app
    POSTGRES_PASSWORD=<generate a strong password>
    MINIO_ENDPOINT_URL=https://<your-s3-compatible-endpoint>
    MINIO_ROOT_USER=<access key>
    MINIO_ROOT_PASSWORD=<secret key>
-   MINIO_BUCKET=vthere-media
+   MINIO_BUCKET=vectorspace-media
    AUTH0_DOMAIN=
    AUTH0_AUDIENCE=
    EOF
-   sudo chmod 600 /srv/vthere/.env.prod
+   sudo chmod 600 /srv/vectorspace/.env.prod
    ```
 
 8. **First manual bring-up** (verifies the stack before wiring CI to it):
 
    ```bash
-   cd /srv/vthere/VectorSpace
+   cd /srv/vectorspace/VectorSpace
    sudo -u deploy docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
    sudo -u deploy docker compose -f docker-compose.prod.yml ps
    curl -fsS https://app.example.com/health
@@ -118,7 +118,7 @@ manager commands for a different distro). Run as a user with `sudo`.
    - `DEPLOY_HOST` — the VM's public hostname/IP
    - `DEPLOY_USER` — `deploy`
    - `DEPLOY_SSH_KEY` — contents of the private key generated in step 3
-   - `DEPLOY_PATH` — `/srv/vthere`
+   - `DEPLOY_PATH` — `/srv/vectorspace`
 3. Run the `deploy` workflow manually from the Actions tab
    (`workflow_dispatch`) and approve it in the environment gate.
 
@@ -126,7 +126,7 @@ manager commands for a different distro). Run as a user with `sudo`.
 
 ```bash
 ssh deploy@<vm-host>
-cd /srv/vthere && git log --oneline -5   # find the last known-good commit
+cd /srv/vectorspace && git log --oneline -5   # find the last known-good commit
 git checkout <sha> -- .
 cd VectorSpace
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build

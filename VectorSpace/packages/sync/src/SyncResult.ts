@@ -6,7 +6,7 @@
  * A single shape callers switch on after a sync attempt: succeeded outright,
  * failed but worth retrying, failed permanently, or hit a conflict (server
  * revision moved past the change's base revision). Conflict resolution
- * itself is out of scope here — see SyncService in @vthere/sync's Considerations.
+ * itself is out of scope here — see SyncService in @vectorspace/sync's Considerations.
  *
  *
  * @status

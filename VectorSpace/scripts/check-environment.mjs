@@ -30,12 +30,12 @@ if (!existsSync('node_modules')) {
 }
 
 if (failures.length > 0) {
-  console.error('\nVThere environment check failed:\n')
+  console.error('\nVectorSpace environment check failed:\n')
   failures.forEach((failure) => console.error(`  [FAIL] ${failure}`))
   console.error('\nWindows: run scripts\\check-environment.ps1')
   console.error('macOS/Linux: run bash scripts/check-environment.sh')
   console.error('Then retry: npm.cmd run dev\n')
   process.exitCode = 1
 } else {
-  console.log(`VThere environment ready: Node ${process.version}; dependencies installed.`)
+  console.log(`VectorSpace environment ready: Node ${process.version}; dependencies installed.`)
 }

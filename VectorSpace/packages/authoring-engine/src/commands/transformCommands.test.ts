@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultProject, ProjectData, SceneObject } from '@vthere/project'
+import { defaultProject, ProjectData, SceneObject } from '@vectorspace/project'
 import { createObject } from '../index'
 import { ObjectOperationError } from '../objectAccess'
 import { TransformValidationError } from './types'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultProject, ProjectData } from '@vthere/project'
+import { defaultProject, ProjectData } from '@vectorspace/project'
 import { createCommandTimeline, createObject } from '../index'
 import { executeCommand } from './commandService'
 import { createMoveCommand, createScaleCommand, Vector3Tuple } from './transformCommands'

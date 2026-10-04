@@ -20,7 +20,7 @@ https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
 Jira board:
 https://doremiyaki.atlassian.net/jira/software/projects/PROJ5/summary
 Active front-end website via Render,
-https://vthere-spatial-experience-builder.onrender.com/
+https://vectorspace.onrender.com/
 
 One-command build, test, and run
 ./run.sh          # macOS/Linux

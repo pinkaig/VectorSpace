@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { InteractionRule, ProjectData, ZoneDefinition } from '@vthere/project'
+import type { InteractionRule, ProjectData, ZoneDefinition } from '@vectorspace/project'
 import {
   createActionRegistry,
   createActionSequencer,

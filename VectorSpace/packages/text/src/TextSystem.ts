@@ -15,7 +15,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System "Class design"
  * Links point at the project wiki; migration is still in progress.
  */
-import type { TextAttachment } from '@vthere/project'
+import type { TextAttachment } from '@vectorspace/project'
 import { PanelManager, type PanelSelector } from './PanelManager'
 import { RichTextParser } from './parse/RichTextParser'
 import { DEFAULT_TEXT_LIMITS, type TextLimits, type TextNode } from './parse/nodes'

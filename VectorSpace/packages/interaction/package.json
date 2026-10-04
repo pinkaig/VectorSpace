@@ -1,10 +1,10 @@
 {
-  "name": "@vthere/interaction",
+  "name": "@vectorspace/interaction",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "@vthere/project": "0.1.0"
+    "@vectorspace/project": "0.1.0"
   },
   "exports": "./src/index.ts"
 }

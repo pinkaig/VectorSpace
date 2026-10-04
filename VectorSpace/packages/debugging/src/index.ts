@@ -53,7 +53,7 @@ const validLevels = new Set<LogLevel>(['debug', 'info', 'warn', 'error'])
 
 const configuredLevel = (): LogLevel => {
   try {
-    const value = globalThis.localStorage?.getItem('vthere:log-level') as LogLevel | null
+    const value = globalThis.localStorage?.getItem('vectorspace:log-level') as LogLevel | null
     return value && validLevels.has(value) ? value : 'info'
   } catch {
     return 'info'

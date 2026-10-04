@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ZoneDefinition } from '@vthere/project'
+import type { ZoneDefinition } from '@vectorspace/project'
 import { createActionSequencer, type ActionGenerator } from './ActionSequencer'
 import { createEffectRegistry } from './actions/registry'
 import { createZoneTracker } from './zoneTracker'

@@ -19,7 +19,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Media-Policy-and-Cloud-Download
  * Links point at the project wiki; migration is still in progress.
  */
-import type { MediaKind } from '@vthere/project'
+import type { MediaKind } from '@vectorspace/project'
 
 export interface MediaKindSpec {
   kind: MediaKind

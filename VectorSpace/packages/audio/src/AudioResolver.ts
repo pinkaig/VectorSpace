@@ -1,11 +1,11 @@
 /**
  * @file        AudioResolver.ts
- * @brief       Turns an assetId into a playable URL, without depending on @vthere/assets.
+ * @brief       Turns an assetId into a playable URL, without depending on @vectorspace/assets.
  *
  * @responsibility
  * Audio does not resolve through the full Asset Manager chain. `AudioResolver`
  * is the minimal seam that lets the app supply a URL/bytes lookup while
- * packages/audio stays dependency-free of @vthere/assets.
+ * packages/audio stays dependency-free of @vectorspace/assets.
  *
  * The original reason was that AssetKind had not been widened past the 3D
  * primitives. That is no longer true — AssetRef.kind now accepts the media

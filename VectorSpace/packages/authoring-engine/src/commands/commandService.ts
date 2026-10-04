@@ -28,7 +28,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import { ProjectData } from '@vthere/project'
+import { ProjectData } from '@vectorspace/project'
 import type { CommandTimeline } from '../index'
 import { CommandExecutionResult, ProjectCommand } from './types'
 

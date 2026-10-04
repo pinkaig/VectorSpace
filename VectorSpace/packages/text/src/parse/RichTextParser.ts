@@ -15,7 +15,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 2
  * Links point at the project wiki; migration is still in progress.
  */
-import type { TextFormat } from '@vthere/project'
+import type { TextFormat } from '@vectorspace/project'
 import { DEFAULT_TEXT_LIMITS, type InlineNode, type TextLimits, type TextNode } from './nodes'
 import { UrlPolicy } from '../UrlPolicy'
 

@@ -3,7 +3,7 @@
  * @author      Sherman Goh Wee Hao
  * @date        2026-09-13
  * @reviewed    2026-09-13
- * @brief       Browser entry point for the VThere React application.
+ * @brief       Browser entry point for the VectorSpace React application.
  *
  * @responsibility
  * Finds the HTML root element and mounts the top-level App component.

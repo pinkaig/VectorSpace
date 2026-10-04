@@ -54,7 +54,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
         <div className="brand">
           <span className="brand-mark">V</span>
           <div>
-            <strong>VThere</strong>
+            <strong>VectorSpace</strong>
             <span>Visitor simulation</span>
           </div>
         </div>

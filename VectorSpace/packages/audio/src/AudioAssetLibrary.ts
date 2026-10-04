@@ -12,7 +12,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
  * Links point at the project wiki; migration is still in progress.
  */
-import type { AudioAssetMeta, ChannelId } from '@vthere/project'
+import type { AudioAssetMeta, ChannelId } from '@vectorspace/project'
 
 export interface ResolvedPlaySettings {
   channel: ChannelId

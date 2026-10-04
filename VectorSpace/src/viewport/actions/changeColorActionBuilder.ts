@@ -9,7 +9,7 @@
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
  /******************************************************************************/
-import type { ActionSpec } from '@vthere/project'
+import type { ActionSpec } from '@vectorspace/project'
 import type { ChangeColorParams } from './changeColorAction'
 
 // the action kind name, shared by the builder and the registration in Viewport.tsx so they can't drift apart

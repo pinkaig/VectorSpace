@@ -15,8 +15,8 @@
  * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import type { ActionRegistry } from '@vthere/interaction'
-import type { ChannelId } from '@vthere/project'
+import type { ActionRegistry } from '@vectorspace/interaction'
+import type { ChannelId } from '@vectorspace/project'
 import type { AudioSystem } from '../AudioSystem'
 
 const isChannelId = (value: unknown): value is ChannelId => typeof value === 'string' && value.length > 0

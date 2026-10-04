@@ -2,7 +2,7 @@
 set -u
 
 failures=()
-echo "VThere environment check"
+echo "VectorSpace environment check"
 
 if ! command -v node >/dev/null 2>&1; then
   failures+=("Node.js was not found. Install Node.js 22+ LTS from https://nodejs.org/")

@@ -3,7 +3,7 @@
  * @brief       App-level Sync Engine wiring: Tier 2 background sync for project saves.
  *
  * @responsibility
- * Adapts @vthere/sync's SyncClient/SyncQueue to the editor: a
+ * Adapts @vectorspace/sync's SyncClient/SyncQueue to the editor: a
  * localStorage-backed QueueStorage so the queue survives a reload, a stub
  * SyncTransport (no real backend endpoint exists yet — see Stage 3), and a
  * small status store the UI can subscribe to. Tier 1 (serializer.ts's
@@ -31,7 +31,7 @@ import {
 import type { ProjectData } from '../model'
 import { createLogger } from '../../packages/debugging/src/index'
 
-const QUEUE_STORAGE_KEY = 'vthere-sync-queue-v1'
+const QUEUE_STORAGE_KEY = 'vectorspace-sync-queue-v1'
 
 const logger = createLogger('editor.sync')
 

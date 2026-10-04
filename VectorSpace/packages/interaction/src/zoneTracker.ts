@@ -29,7 +29,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import type { ZoneDefinition } from '@vthere/project'
+import type { ZoneDefinition } from '@vectorspace/project'
 import type { RuntimeEvent } from './RuntimeEvent'
 
 export type Vector3Tuple = [number, number, number]

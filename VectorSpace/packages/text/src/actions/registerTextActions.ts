@@ -15,8 +15,8 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System "Action vocabulary"
  * Links point at the project wiki; migration is still in progress.
  */
-import type { ActionRegistry } from '@vthere/interaction'
-import type { TextAttachment } from '@vthere/project'
+import type { ActionRegistry } from '@vectorspace/interaction'
+import type { TextAttachment } from '@vectorspace/project'
 import type { TextSystem } from '../TextSystem'
 
 export interface RegisterTextActionsOptions {

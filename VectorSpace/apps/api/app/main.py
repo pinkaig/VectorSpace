@@ -20,7 +20,7 @@ from starlette.requests import Request
 from .routers import analytics, media, projects, publish, rules
 
 
-logger = logging.getLogger("vthere.api")
+logger = logging.getLogger("vectorspace.api")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -59,4 +59,4 @@ app.include_router(rules.router)
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "vthere-api"}
+    return {"status": "ok", "service": "vectorspace-api"}

@@ -23,7 +23,7 @@ test('rule-driven text panels render safely and close on Escape in order', async
     throw new Error(`hostile text executed script: ${dialog.message()}`)
   })
   await page.addInitScript((project) => {
-    localStorage.setItem('vthere-project-v1', JSON.stringify(project))
+    localStorage.setItem('vectorspace-project-v1', JSON.stringify(project))
   }, demoProject)
 
   await page.goto('/')

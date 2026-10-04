@@ -9,7 +9,7 @@
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /******************************************************************************/
-import type { ActionSpec, InteractionRule } from '@vthere/project'
+import type { ActionSpec, InteractionRule } from '@vectorspace/project'
 import { audioAssetCatalog } from '../audioAssets'
 import { CHANGE_COLOR_KIND } from '../viewport/actions/changeColorActionBuilder'
 

@@ -22,7 +22,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import { ProjectData, SceneObject } from '@vthere/project'
+import { ProjectData, SceneObject } from '@vectorspace/project'
 
 export interface ObjectTargetInput {
   sceneId: string

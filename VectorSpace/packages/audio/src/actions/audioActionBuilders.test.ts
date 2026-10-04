@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createActionRegistry, createEffectRegistry, createRuntimeState } from '@vthere/interaction'
-import type { ActionContext } from '@vthere/interaction'
+import { createActionRegistry, createEffectRegistry, createRuntimeState } from '@vectorspace/interaction'
+import type { ActionContext } from '@vectorspace/interaction'
 import { AudioSystem } from '../AudioSystem'
 import { FakeAudioBackend } from '../backend/FakeAudioBackend'
 import { registerAudioActions } from './registerAudioActions'

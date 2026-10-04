@@ -16,7 +16,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
  * Links point at the project wiki; migration is still in progress.
  */
-const DB_NAME = 'vthere-audio-cache'
+const DB_NAME = 'vectorspace-audio-cache'
 const STORE_NAME = 'clips'
 const DB_VERSION = 1
 

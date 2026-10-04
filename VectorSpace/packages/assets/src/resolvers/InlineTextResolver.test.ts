@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { InlineTextResolver } from './InlineTextResolver'
-import type { TextAssetMeta } from '@vthere/project'
+import type { TextAssetMeta } from '@vectorspace/project'
 
 const meta: TextAssetMeta = { assetId: 'text-1', name: 'Intro', format: 'plain', lang: 'en', content: 'Hello visitor' }
 

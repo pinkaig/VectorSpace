@@ -15,7 +15,7 @@
  *
  * @boundary
  * No React, no authoring-engine calls, no mutation. Reparenting itself goes
- * through @vthere/authoring-engine's reparentObject via editorOperations.
+ * through @vectorspace/authoring-engine's reparentObject via editorOperations.
  *
  * @documentation
  * Authoring boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine

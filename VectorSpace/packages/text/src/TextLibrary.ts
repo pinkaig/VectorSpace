@@ -13,7 +13,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System sections 1 and "Class design"
  * Links point at the project wiki; migration is still in progress.
  */
-import type { TextAssetMeta } from '@vthere/project'
+import type { TextAssetMeta } from '@vectorspace/project'
 
 export class TextLibrary {
   private byId = new Map<string, TextAssetMeta>()

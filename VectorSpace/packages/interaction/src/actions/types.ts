@@ -15,12 +15,12 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import type { ActionSpec } from '@vthere/project'
+import type { ActionSpec } from '@vectorspace/project'
 import type { RuntimeState } from '../RuntimeState'
 import type { EffectRegistry } from './registry'
 
 /**
- * One action a rule asks for: `{ kind, params? }`. Defined in @vthere/project
+ * One action a rule asks for: `{ kind, params? }`. Defined in @vectorspace/project
  * because rules are persisted data, and re-exported here so executors import it
  * from the subsystem that runs them.
  */

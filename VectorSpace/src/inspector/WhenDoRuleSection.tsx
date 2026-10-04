@@ -10,7 +10,7 @@
  */
 /******************************************************************************/
 import { useState } from 'react'
-import type { InteractionRule } from '@vthere/project'
+import type { InteractionRule } from '@vectorspace/project'
 import { RuleRow } from '../interactions/RuleRow'
 import { audioAssetCatalog } from '../audioAssets'
 import { MAX_MESSAGE_LENGTH, type ClickRuleChoice } from '../editor/ruleEditorOperations'

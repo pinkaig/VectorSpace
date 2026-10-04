@@ -24,7 +24,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import type { SceneObject, TransformData } from '@vthere/project'
+import type { SceneObject, TransformData } from '@vectorspace/project'
 
 export interface Vector3 {
   x: number

@@ -25,7 +25,7 @@
  * @boundary
  * This file is the package's only entry point: package.json declares
  * `"exports": "./src/index.ts"` as a single string, so subpath imports such as
- * `@vthere/authoring-engine/commands` do not resolve. Anything consumers need
+ * `@vectorspace/authoring-engine/commands` do not resolve. Anything consumers need
  * must be re-exported here.
  *
  * @documentation
@@ -43,7 +43,7 @@ import {
   ZoneDefinition,
   cloneProject,
   makeObject,
-} from '@vthere/project'
+} from '@vectorspace/project'
 import {
   ObjectOperationError,
   ObjectTargetInput,

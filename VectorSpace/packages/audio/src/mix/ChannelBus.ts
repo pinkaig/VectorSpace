@@ -12,7 +12,7 @@
  * Links point at the project wiki; migration is still in progress.
  */
 import type { AudioBackend, BackendGain } from '../backend/AudioBackend'
-import type { ChannelId } from '@vthere/project'
+import type { ChannelId } from '@vectorspace/project'
 
 export class ChannelBus {
   readonly gain: BackendGain

@@ -9,8 +9,8 @@
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /******************************************************************************/
-import type { ActionSpec, InteractionRule } from '@vthere/project'
-import { addObjectRule, removeRule, type RuleOperationResult } from '@vthere/authoring-engine'
+import type { ActionSpec, InteractionRule } from '@vectorspace/project'
+import { addObjectRule, removeRule, type RuleOperationResult } from '@vectorspace/authoring-engine'
 import { playAudioAction } from '../../packages/audio/src/index'
 import { cloneProject, type ProjectData } from '../model'
 import { audioAssetCatalog } from '../audioAssets'

@@ -7,8 +7,8 @@ services:
       - "443:443"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - vthere_caddy_data:/data
-      - vthere_caddy_config:/config
+      - vectorspace_caddy_data:/data
+      - vectorspace_caddy_config:/config
     depends_on:
       - frontend
       - api
@@ -32,12 +32,12 @@ services:
       - "8000"
     environment:
       APP_ENV: production
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vthere_app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vthere}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vectorspace_app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vectorspace}
       CORS_ORIGINS: https://${DOMAIN:?set DOMAIN}
       MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:?set MINIO_ENDPOINT_URL}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: ${MINIO_BUCKET:-vthere-media}
+      MINIO_BUCKET: ${MINIO_BUCKET:-vectorspace-media}
       AUTH0_DOMAIN: ${AUTH0_DOMAIN:-}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:-}
     depends_on:
@@ -48,18 +48,18 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vthere}
-      POSTGRES_USER: ${POSTGRES_USER:-vthere_app}
+      POSTGRES_DB: ${POSTGRES_DB:-vectorspace}
+      POSTGRES_USER: ${POSTGRES_USER:-vectorspace_app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     volumes:
-      - vthere_postgres_prod_data:/var/lib/postgresql/data
+      - vectorspace_postgres_prod_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vthere_app} -d ${POSTGRES_DB:-vthere}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vectorspace_app} -d ${POSTGRES_DB:-vectorspace}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  vthere_postgres_prod_data:
-  vthere_caddy_data:
-  vthere_caddy_config:
+  vectorspace_postgres_prod_data:
+  vectorspace_caddy_data:
+  vectorspace_caddy_config:

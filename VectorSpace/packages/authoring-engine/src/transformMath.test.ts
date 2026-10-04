@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { SceneObject } from '@vthere/project'
+import type { SceneObject } from '@vectorspace/project'
 import { composeWorldTransform, eulerToQuaternion, localTransformForNewParent, quaternionToEuler } from './transformMath'
 
 const transformOf = (position: [number, number, number], rotation: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => ({

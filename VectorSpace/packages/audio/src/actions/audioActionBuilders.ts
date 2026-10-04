@@ -21,7 +21,7 @@
  * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/When-Do-Dispatch-Engine
  * Links point at the project wiki; migration is still in progress.
  */
-import type { ActionSpec, ChannelId, InteractionRule } from '@vthere/project'
+import type { ActionSpec, ChannelId, InteractionRule } from '@vectorspace/project'
 
 export interface PlayAudioOptions {
   channel?: ChannelId

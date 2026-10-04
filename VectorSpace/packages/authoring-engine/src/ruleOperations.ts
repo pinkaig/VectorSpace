@@ -9,7 +9,7 @@
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /******************************************************************************/
-import { InteractionRule, ProjectData, cloneProject } from '@vthere/project'
+import { InteractionRule, ProjectData, cloneProject } from '@vectorspace/project'
 import { ObjectOperationError, ObjectTargetInput, requireObject } from './objectAccess'
 
 // what addObjectRule needs: which scene and object to target, plus the rule to add

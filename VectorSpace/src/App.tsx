@@ -28,7 +28,7 @@ import {
   collectSubtreeIds,
   createCommandTimeline,
   executeCommand,
-} from '@vthere/authoring-engine'
+} from '@vectorspace/authoring-engine'
 import { createLogger } from '../packages/debugging/src/index'
 import {
   ProjectData,
@@ -488,7 +488,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand"><span className="brand-mark">V</span><div><strong>VThere</strong><span>Spatial Experience Builder</span></div></div>
+        <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
         <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
         <div className="top-actions">
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>

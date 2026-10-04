@@ -11,17 +11,17 @@ class Settings(BaseSettings):
     app_env: str = "local"
     cors_origins: str = "http://localhost:5173"
 
-    postgres_db: str = "vthere"
-    postgres_user: str = "vthere_app"
-    postgres_password: str = "vthere_local"
+    postgres_db: str = "vectorspace"
+    postgres_user: str = "vectorspace_app"
+    postgres_password: str = "vectorspace_local"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     database_url: str | None = None
 
-    minio_root_user: str = "vthere_minio"
-    minio_root_password: str = "vthere_minio_local"
+    minio_root_user: str = "vectorspace_minio"
+    minio_root_password: str = "vectorspace_minio_local"
     minio_endpoint_url: str = "http://localhost:9000"
-    minio_bucket: str = "vthere-media"
+    minio_bucket: str = "vectorspace-media"
 
     auth0_domain: str = ""
     auth0_audience: str = ""

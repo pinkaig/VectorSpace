@@ -6,7 +6,7 @@ function Add-Failure($message) {
   Write-Host "  [FAIL] $message" -ForegroundColor Red
 }
 
-Write-Host "VThere environment check" -ForegroundColor Cyan
+Write-Host "VectorSpace environment check" -ForegroundColor Cyan
 
 $node = Get-Command node -ErrorAction SilentlyContinue
 if (-not $node) {

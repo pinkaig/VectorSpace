@@ -12,7 +12,7 @@
  */
  /******************************************************************************/
  import * as THREE from 'three'
- import type { ActionSpec } from '@vthere/project'
+ import type { ActionSpec } from '@vectorspace/project'
  import type { ActionExecutor } from '../../../packages/interaction/src/index'
  
  export interface ChangeColorParams {

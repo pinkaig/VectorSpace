@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { TextSystem } from './TextSystem'
 import { TextLibrary } from './TextLibrary'
 import { FakeTextMeasurer } from './layout/TextMeasurer'
-import type { TextAttachment, TextAssetMeta } from '@vthere/project'
+import type { TextAttachment, TextAssetMeta } from '@vectorspace/project'
 
 const meta: TextAssetMeta = {
   assetId: 'text-1',

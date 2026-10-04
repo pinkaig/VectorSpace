@@ -11,7 +11,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager
  * Links point at the project wiki; migration is still in progress.
  */
-import type { AssetRefKind } from '@vthere/project'
+import type { AssetRefKind } from '@vectorspace/project'
 
 export interface AssetRef {
   assetId: string

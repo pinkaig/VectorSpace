@@ -18,7 +18,7 @@ export const audioManifestPlugin = (): Plugin => {
     return fs.readdirSync(dir).filter((name) => AUDIO_EXTENSIONS.test(name)).sort()
   }
   return {
-    name: 'vthere-audio-manifest',
+    name: 'vectorspace-audio-manifest',
     resolveId: (id) => (id === virtualId ? resolvedId : undefined),
     load(id) {
       if (id !== resolvedId) return undefined
