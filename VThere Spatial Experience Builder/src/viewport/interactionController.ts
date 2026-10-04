@@ -177,7 +177,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     raycaster.setFromCamera(pointer, activeCamera.current)
     // An object whose asset is still resolving or has failed has no confirmed
     // visual representation yet, so it must not be selectable or draggable.
-    const unpickableAssetIds = callbacks.getData().unpickableAssetIds
+    const { unpickableAssetIds, runtimeActive } = callbacks.getData()
     // Recursive because objects nest (parentId) and a `model` artefact is a Group of
     // sub-meshes; each hit is walked up to the nearest ancestor stamped with
     // userData.entityId, then checked for pickability. Non-pickable hits are skipped
@@ -186,7 +186,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       let node: THREE.Object3D | null = hit.object
       while (node && node.userData.entityId === undefined) node = node.parent
       if (!node || !hit.object.visible) continue
-      if (!node.visible || node.userData.enabled === false) continue
+      // Disabled objects stay clickable while editing so they can be re-enabled or moved;
+      // they only become inert once the simulation is running.
+      if (!node.visible || (node.userData.enabled === false && runtimeActive)) continue
       if (unpickableAssetIds.has(node.userData.entityId as string)) continue
       return node
     }
