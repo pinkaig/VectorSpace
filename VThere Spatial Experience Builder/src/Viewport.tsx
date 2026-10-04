@@ -129,9 +129,9 @@ interface ViewportProps {
   onOrthographicChange?: (value: boolean) => void
   showOctaOrb?: boolean
   showAxisIndicator?: boolean
-  // Shrinks the OctaOrb / axis indicator, e.g. when this is one pane of the quad layout.
+  // Shrinks the OctaOrb / axis indicator
   compactOverlays?: boolean
-  /** Shows the FPS / object count readout. Forces continuous drawing while on. */
+  /** Shows the FPS / object count */
   showStats?: boolean
 }
 
@@ -599,8 +599,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     renderer.domElement.addEventListener('pointerdown', onGestureUnlock)
     window.addEventListener('keydown', onGestureUnlock)
 
-    // Stats readout: frames are counted only when actually drawn, and sampled
-    // twice a second so the React state update stays off the per-frame path.
+    // Update the FPS display twice per second.
     let statsFrames = 0
     let statsWindowStart = performance.now()
     let statsWasOn = false

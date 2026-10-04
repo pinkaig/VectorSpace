@@ -409,7 +409,7 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [project])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
-  useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 cubes; comment out with the import above
+  useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const syncStatusLabel: Record<ProjectSyncStatus, string> = {
     idle: 'Synced',
     pending: 'Syncing to server…',

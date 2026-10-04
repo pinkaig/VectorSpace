@@ -1,22 +1,28 @@
 /**
- * @file        stressTest.ts
- * @brief       DEBUG ONLY — press F8 to spawn 100 objects for frame-rate testing.
+ * @file       stressTest.ts
+ * @project    Spatial Experience Builder
+ * @author     Goh Pin Kai
+ * @brief      Provides a debug-only F8 shortcut to spawn 100 objects for
+ *             frame-rate testing. Each press adds a 10×10 block behind
+ *             the previous block as a single undo step.
  *
- * Enabled by a single `useStressTestKey(...)` line in App.tsx; comment that line
- * out to disable it. Pair with the viewport's Stats toggle to read FPS against
- * object count. Each press adds one 10×10 block behind the last, as one undo step.
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/********************************************************************************************/
 import { useEffect } from 'react'
 import { createEditorObject, updateEditorTransform } from '../editor/editorOperations'
 import type { AssetKind, ProjectData } from '../model'
 
 const STRESS_KEY = 'F8'
 const GRID = 10
-// What to spawn. Bundled models use `bundled-model-<file name>` (see assets.ts).
+// What to spawn. Bundled models use `bundled-model-<file name>`
 const STRESS_ASSET: { kind: AssetKind; assetId?: string } = { kind: 'model', assetId: 'bundled-model-pedestal' }
-// const STRESS_ASSET: { kind: AssetKind; assetId?: string } = { kind: 'cube' }
-// Gap between object origins; widen if the model's footprint makes them overlap.
-const SPACING = 2.5
+// const STRESS_ASSET: { kind: AssetKind; assetId?: string } = { kind: 'bundled-model-pedestal' }
+
+
+const SPACING = 2.5 // Gap between object origins
 
 export const useStressTestKey = (project: ProjectData, commit: (label: string, next: ProjectData) => void) => {
   useEffect(() => {
