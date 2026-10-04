@@ -27,7 +27,6 @@ import {
   collectSubtreeIds,
   createCommandTimeline,
   executeCommand,
-  removeRule,
 } from '@vthere/authoring-engine'
 import { createLogger } from '../packages/debugging/src/index'
 import {
@@ -72,7 +71,7 @@ import {
   updateEditorScene,
   type EditorCommandBuilder,
 } from './editor/editorOperations'
-import { addEditorClickRule, type ClickRuleChoice } from './editor/ruleEditorOperations'
+import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from './editor/ruleEditorOperations'
 import { WhenDoRuleSection } from './inspector/WhenDoRuleSection'
 import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTree'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
@@ -367,7 +366,7 @@ export default function App() {
 
   // removes one interaction rule by its id as one undoable step
   const removeRuleById = (ruleId: string) => {
-    commit('Remove interaction rule', removeRule(project, { ruleId }).project)
+    commit('Remove interaction rule', removeEditorRule(project, ruleId).project)
   }
 
   const setSelectedEnabled = (value: boolean) => {

@@ -6,9 +6,10 @@
  * The only place a TextNode tree becomes React elements. Subscribes to
  * TextSystem.store and renders every open `panel`-mode entry as a
  * role="dialog" card: labelled heading, visible keyboard-reachable close
- * control, focus moved in on open and returned on close, Escape closing the
- * focused panel (consumed there so it never doubles as exit-simulation or
- * clear-selection), lang set on the container, links opening in a new tab
+ * control, focus moved in on open and returned on close, any click or key
+ * press anywhere closing every open panel (Escape on the focused panel is
+ * consumed there so it never doubles as exit-simulation or clear-selection),
+ * lang set on the container, links opening in a new tab
  * with rel="noopener noreferrer". No HTML ever: text renders as React children,
  * so author content cannot become markup. An error panel shows
  * "Content unavailable"; an empty text renders nothing rather than an
@@ -116,7 +117,24 @@ export default function TextPanelHost({ text }: { text: TextSystem }) {
     return true
   })
 
-  if (overlayPanels.length === 0) return null
+  const hasOverlay = overlayPanels.length > 0
+  useEffect(() => {
+    if (!hasOverlay) return
+    // a popup is a message to dismiss, so any press closes it. Listening for the press (not the
+    // click) means the click that opened the popup, which is already over, cannot close it again
+    const dismiss = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.repeat) return
+      text.closeAll()
+    }
+    window.addEventListener('pointerdown', dismiss)
+    window.addEventListener('keydown', dismiss)
+    return () => {
+      window.removeEventListener('pointerdown', dismiss)
+      window.removeEventListener('keydown', dismiss)
+    }
+  }, [hasOverlay, text])
+
+  if (!hasOverlay) return null
   return (
     <div className="text-panel-layer">
       {snapshot.modalOpen && <div className="text-panel-backdrop" />}

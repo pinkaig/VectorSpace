@@ -687,7 +687,8 @@ button:disabled {
 .field-group input:focus {
   border-color: #8294fd;
 }
-.field-group select {
+.field-group select,
+.field-group textarea {
   width: 100%;
   border: 1px solid #2a444a;
   border-radius: 2px;
@@ -697,7 +698,12 @@ button:disabled {
   outline: none;
   font-size: 11px;
 }
-.field-group select:focus {
+.field-group textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+.field-group select:focus,
+.field-group textarea:focus {
   border-color: #8294fd;
 }
 .asset-id {
