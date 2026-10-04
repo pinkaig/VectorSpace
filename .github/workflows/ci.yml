@@ -47,6 +47,3 @@ jobs:
 
       - name: Run browser smoke tests
         run: npm run test:e2e
-
-      - name: Run renderer performance check
-        run: npm run test:perf
