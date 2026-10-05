@@ -446,4 +446,4 @@ runtime preview using one stable entity/component contract.
 - [Current viewport](../../../src/Viewport.tsx)
 - [Project serialization contract](../../05-subsystems/project-serialization.md)
 - [Authoring engine contract](../../05-subsystems/authoring-engine.md)
-- [Current architecture guide](../../02-architecture/UNDATED--FOUNDATION--architecture.md)
+- [Current architecture guide](../../02-architecture/FOUNDATION--architecture.md)

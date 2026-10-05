@@ -10,12 +10,12 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/asset-manager.md
  */
-import type { AssetKind } from '@vthere/project'
+import type { AssetRefKind } from '@vthere/project'
 import { errorAssetDescriptor, readyAssetDescriptor, type AssetDescriptor } from '../AssetDescriptor'
 import type { AssetRef } from '../AssetRef'
 import type { AssetResolver } from '../AssetResolver'
 
-const PRIMITIVE_KINDS: readonly AssetKind[] = ['cube', 'sphere', 'cylinder']
+const PRIMITIVE_KINDS: readonly AssetRefKind[] = ['cube', 'sphere', 'cylinder']
 
 export class PrimitiveResolver implements AssetResolver {
   async resolve(ref: AssetRef): Promise<AssetDescriptor> {

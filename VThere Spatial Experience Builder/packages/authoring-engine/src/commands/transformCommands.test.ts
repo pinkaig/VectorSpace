@@ -15,7 +15,7 @@ import {
 } from './transformCommands'
 
 const SCENE = 'scene-gallery'
-const ids = { nextId: () => 'obj-0' }
+const ids = { nextId: () => 'obj-0', nextAttachmentId: () => 'att-0' }
 
 /** A project holding one cube at obj-0 with a deliberately non-default transform. */
 const buildProject = (): ProjectData => {
@@ -176,7 +176,7 @@ describe('transform command execution and inversion', () => {
 
   it('touches only its own target, leaving sibling objects identical', () => {
     let project = buildProject()
-    project = createObject(project, { sceneId: SCENE, assetKind: 'sphere' }, { nextId: () => 'obj-1' }).project
+    project = createObject(project, { sceneId: SCENE, assetKind: 'sphere' }, { nextId: () => 'obj-1', nextAttachmentId: () => 'att-1' }).project
     const sibling = project.scenes[0].objects[1]
 
     const applied = createMoveCommand(project, target, [9, 8, 7]).execute(project)

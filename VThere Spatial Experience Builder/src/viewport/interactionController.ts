@@ -69,6 +69,11 @@ export interface ViewportInteractionData {
   // True only while the WHEN→DO runtime is live. Gates the extra picking these
   // listeners do for Tier 1 events, so authoring pays nothing for them.
   runtimeActive: boolean
+  // True while a modal text panel is open. The text system only reports this
+  // (one one-way boolean, per its modal-input-boundary decision); what it means
+  // for input is decided here: pointer picking, look, drags, runtime key
+  // triggers, and walk movement all pause until the panel closes.
+  modalOpen: boolean
 }
 
 export interface ViewportInteractionCallbacks {
@@ -345,6 +350,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
 
   const onPointerDown = (event: PointerEvent) => {
     const data = callbacks.getData()
+    if (data.modalOpen) return
     if (event.button === 0) pointerDownAt = { x: event.clientX, y: event.clientY }
     if (data.cameraMode === 'walk') {
       if (event.button !== 0) return
@@ -437,6 +443,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     element.setPointerCapture(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent) => {
+    if (callbacks.getData().modalOpen) return
     // Run simulation, pointer locked: look follows raw mouse delta every frame, no
     // button held - this is what lets hover/click below keep raycasting from the
     // crosshair as the camera turns
@@ -479,6 +486,11 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   }
 
   const onPointerUp = (event: PointerEvent) => {
+    if (callbacks.getData().modalOpen) {
+      // a click that opened the modal must not also select behind it
+      pointerDownAt = null
+      return
+    }
     // Tier 1 click, emitted before any editor handling below so it fires in both
     // orbit and walk mode. A pointer that travelled is a drag or a look-around,
     // not a click — same 4px rule selection already uses.
@@ -503,6 +515,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     controls.enabled = callbacks.getData().cameraMode === 'orbit'
   }
   const onKeyDown = (event: KeyboardEvent) => {
+    // Behind a modal panel, keys neither trigger rules nor move the walker;
+    // onKeyUp stays ungated so a key held across the open still releases.
+    if (callbacks.getData().modalOpen) return
     // Tier 1 key, emitted before the movement-key filter below: a rule may bind
     // any key, not only the ones that drive the camera. Typing in a field is
     // never a runtime trigger. `repeat` is dropped so holding a key fires once.

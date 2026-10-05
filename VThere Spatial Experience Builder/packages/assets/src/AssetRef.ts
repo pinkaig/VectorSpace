@@ -10,9 +10,11 @@
  * @documentation
  * Larger system guide: docs/05-subsystems/asset-manager.md
  */
-import type { AssetKind } from '@vthere/project'
+import type { AssetRefKind } from '@vthere/project'
 
 export interface AssetRef {
   assetId: string
-  kind: AssetKind
+  // widened from AssetKind so media attachments (audio/image/video/text)
+  // resolve through the same chain as placeable primitives and models
+  kind: AssetRefKind
 }

@@ -51,6 +51,8 @@ import {
 } from './sync/projectSync'
 import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './assets'
 import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from './userAssets'
+import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets, type AudioAssetDefinition } from './audioAssets'
+import { addUserAudio, isUserAudioAsset, loadUserAudio, removeUserAudio, type AudioImportResult } from './userAudio'
 import {
   createEditorObject,
   createEditorScene,
@@ -76,7 +78,9 @@ import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTr
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
 import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
 import ReferenceViewport from './ReferenceViewport'
-import { applyDemoAudioScene } from './demoAudioScene'
+import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from './demoAudioScene'
+import { resolveLocalAudioUrl } from './viewport/audioResolution'
+import { useStressTestKey } from './debug/stressTest' // STRESS TEST — comment out with the call below
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
@@ -96,6 +100,7 @@ export default function App() {
   const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
   const [showOctaOrb, setShowOctaOrb] = useState(true)
   const [showAxisIndicator, setShowAxisIndicator] = useState(true)
+  const [showStats, setShowStats] = useState(false)
   const [resetToken, setResetToken] = useState(0)
   // Bumped when an edit is rejected, to pull the viewport's preview meshes back
   // to ProjectData. See runCommand.
@@ -116,14 +121,20 @@ export default function App() {
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
+  // Bumped whenever userAudio.ts's IndexedDB-backed catalog changes (load, import,
+  // delete) — audioAssetCatalog is mutated in place (see userAudio.ts), so this just
+  // forces the audio sub-list and rule-authoring dropdown to re-render against it.
+  const [audioCatalogToken, setAudioCatalogToken] = useState(0)
   // Outcome of the last import. `info` is shown while an import is still running;
   // `optimised` lists imports that were shrunk to fit the real-time budget, each offering
   // to keep the original instead.
   const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[]; optimised?: OptimisedImport[] } | null>(null)
+  const [audioNotice, setAudioNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[] } | null>(null)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)
   const assetDragDepthRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelFileInputRef = useRef<HTMLInputElement>(null)
+  const audioFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
@@ -138,6 +149,9 @@ export default function App() {
         setSyncToken((value) => value + 1)
       })
       .catch((error) => setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not load imported assets'] }))
+    loadUserAudio()
+      .then(() => setAudioCatalogToken((value) => value + 1))
+      .catch((error) => setAudioNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not load imported audio'] }))
   }, [])
 
   // A file dropped just outside the library would otherwise make the browser navigate
@@ -204,6 +218,47 @@ export default function App() {
     }
     await removeUserAsset(asset.assetId)
     setUserAssets((prev) => prev.filter((item) => item.assetId !== asset.assetId))
+  }
+
+  /**
+   * Imports every .ogg/.mp3/.wav in `files` (selected via the Import Audio button or
+   * dropped into the Assets panel). addUserAudio() does the real work — existing-name
+   * and duplicate-content checks (mirroring importModelFiles' guards for models) plus
+   * a playability check (actually decoding the bytes with the Web Audio API) that has
+   * no model equivalent, since a GLB either parses or it doesn't at load time, while a
+   * corrupt or mislabelled audio file would otherwise sit in the library looking fine
+   * until a rule tries to play it. Accepted clips are stored in IndexedDB so they
+   * survive a reload; audioAssetCatalog is mutated in place by addUserAudio, so bumping
+   * audioCatalogToken is enough to make the dropdown and this panel pick them up.
+   */
+  const importAudioFiles = async (files: FileList | null | undefined) => {
+    if (!files || files.length === 0) return
+    try {
+      const { added, skipped } = await addUserAudio(
+        Array.from(files),
+        audioAssetCatalog.map((asset) => asset.label),
+        audioAssetCatalog.filter((asset) => !isUserAudioAsset(asset.assetId)).map((asset) => ({ label: asset.label, url: asset.url })),
+      )
+      if (added.length > 0) setAudioCatalogToken((value) => value + 1)
+      const lines = [
+        ...(added.length > 0 ? [`Added ${added.map((asset) => asset.label).join(', ')}`] : []),
+        ...skipped.map((item) => `Skipped ${item.fileName}: ${item.reason}`),
+      ]
+      setAudioNotice({ tone: skipped.length > 0 ? 'error' : 'success', lines })
+    } catch (error) {
+      setAudioNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not import these audio files'] })
+    }
+  }
+  const deleteUserAudio = async (asset: AudioAssetDefinition) => {
+    // Same reasoning as deleteUserAsset: removing a sound a rule still plays would
+    // leave that rule with nothing to play, so it's refused until the rule is removed.
+    const uses = countAudioAssetUses(project, asset.assetId)
+    if (uses > 0) {
+      setAudioNotice({ tone: 'error', lines: [`Can't remove ${asset.label}: ${uses} rule action${uses === 1 ? '' : 's'} still play${uses === 1 ? 's' : ''} it. Remove that interaction first.`] })
+      return
+    }
+    await removeUserAudio(asset.assetId)
+    setAudioCatalogToken((value) => value + 1)
   }
 
   const toggleSceneExpanded = (id: string) => {
@@ -345,7 +400,8 @@ export default function App() {
     const result = saveProject(nextProject)
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
-    setPersistenceState(result === 'saved' ? 'Primary + backup ready' : result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
+    setPersistenceState(result === 'saved' ? 'Primary + backup ready' : 
+      result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
     if (result !== 'failed') stageProjectSync(nextProject)
   }
   useEffect(() => {
@@ -353,6 +409,7 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [project])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
+  useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const syncStatusLabel: Record<ProjectSyncStatus, string> = {
     idle: 'Synced',
     pending: 'Syncing to server…',
@@ -388,13 +445,33 @@ export default function App() {
     setSavedAt('New local draft')
     setPersistenceState('Pending autosave to browser localStorage')
   }
+  // True once the demo's rules are present in the project, so the button becomes a
+  // no-op rather than appending a second copy (applyDemoAudioScene is additive and
+  // has no de-dupe of its own — see demoAudioScene.test.ts's note on that).
+  const isAudioDemoLoaded = demoAudioRules.every((rule) => project.rules?.some((existing) => existing.id === rule.id))
   /**
    * Appends the bundled audio demo (zones, SFX click targets, When-Do rules,
    * per-asset volume) into the active scene/project. Opt-in and additive — see
    * demoAudioScene.ts — rather than baked into defaultProject(), so it never
-   * surprises unrelated work.
+   * surprises unrelated work. Guarded to run once: the button disables itself
+   * once loaded (isAudioDemoLoaded) instead of relying on the user not to
+   * click twice.
+   *
+   * Before touching project state, every assetId the demo's rules/audioAssets
+   * reference is checked against the bundled audio catalog (resolveLocalAudioUrl,
+   * the same lookup playback uses) so a renamed or missing bundled file is caught
+   * right here with a clear message, instead of surfacing later as a silent
+   * no-op the first time a rule tries to play it.
    */
   const loadAudioDemo = () => {
+    if (isAudioDemoLoaded) return
+    const referencedAssetIds = new Set(demoAudioAssets.map((asset) => asset.assetId))
+    const missing = [...referencedAssetIds].filter((assetId) => !resolveLocalAudioUrl(assetId))
+    if (missing.length > 0) {
+      setSavedAt('Audio demo not loaded')
+      setPersistenceState(`Missing bundled audio for: ${missing.join(', ')} — check public/audio/ and audioAssets.ts`)
+      return
+    }
     const { project: nextProject, scene: nextScene } = applyDemoAudioScene(project, scene)
     const nextScenes = nextProject.scenes.map((item) => (item.id === nextScene.id ? nextScene : item))
     resetTimeline({ ...nextProject, scenes: nextScenes })
@@ -420,7 +497,7 @@ export default function App() {
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
-          <button className="button ghost" onClick={loadAudioDemo}>Load audio demo</button>
+          <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
           <button className="button ghost" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
           <input
             ref={fileInputRef}
@@ -532,7 +609,22 @@ export default function App() {
                   event.preventDefault()
                   assetDragDepthRef.current = 0
                   setIsDraggingAsset(false)
-                  void importModelFiles(event.dataTransfer.files)
+                  // Routed by extension so one drop target serves both libraries: audio
+                  // files go to importAudioFiles, everything else (glb/gltf/bin/textures)
+                  // goes through the existing model importer unchanged.
+                  const dropped = Array.from(event.dataTransfer.files)
+                  const audioFiles = dropped.filter((file) => /\.(ogg|mp3|wav)$/i.test(file.name))
+                  const modelFiles = dropped.filter((file) => !/\.(ogg|mp3|wav)$/i.test(file.name))
+                  if (audioFiles.length > 0) {
+                    const list = new DataTransfer()
+                    audioFiles.forEach((file) => list.items.add(file))
+                    void importAudioFiles(list.files)
+                  }
+                  if (modelFiles.length > 0) {
+                    const list = new DataTransfer()
+                    modelFiles.forEach((file) => list.items.add(file))
+                    void importModelFiles(list.files)
+                  }
                 }}
               >
                 <div className="panel-heading"><div><span className="eyebrow">Library</span><h2>Assets</h2></div><span className="count">{filterAssets(assetQuery, visibleAssets).length}/{visibleAssets.length}</span></div>
@@ -546,6 +638,15 @@ export default function App() {
                     multiple
                     accept=".glb,.gltf,.bin,image/*"
                     onChange={(event) => { void importModelFiles(event.target.files); event.target.value = '' }}
+                  />
+                  <button className="button ghost" onClick={() => audioFileInputRef.current?.click()} title="Select one or more .ogg, .mp3, or .wav files">Import Audio</button>
+                  <input
+                    ref={audioFileInputRef}
+                    className="hidden-file-input"
+                    type="file"
+                    multiple
+                    accept=".ogg,.mp3,.wav,audio/*"
+                    onChange={(event) => { void importAudioFiles(event.target.files); event.target.value = '' }}
                   />
                 </div>
                 <div className="asset-list">
@@ -582,8 +683,42 @@ export default function App() {
                     <button className="asset-notice-close" title="Dismiss" onClick={() => setAssetNotice(null)}>×</button>
                   </div>
                 )}
+                {/* ── Audio sub-section: same panel, same drop target, its own search/list.
+                    audioCatalogToken has no reader of its own — including it here is what
+                    forces this section to re-render after an import/delete mutates
+                    audioAssetCatalog in place (see userAudio.ts). */}
+                <div className="panel-heading audio-heading" key={audioCatalogToken}>
+                  <div><span className="eyebrow">Library</span><h2>Audio</h2></div>
+                  <span className="count">{filterAudioAssets(assetQuery, audioAssetCatalog).length}/{audioAssetCatalog.length}</span>
+                </div>
+                <div className="asset-list">
+                  {filterAudioAssets(assetQuery, audioAssetCatalog).map((asset) => {
+                    const uses = countAudioAssetUses(project, asset.assetId)
+                    return (
+                      <div className="asset-card audio-card" key={asset.assetId} title={asset.detail}>
+                        <span className="asset-preview audio"><span /></span>
+                        <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                        {isUserAudioAsset(asset.assetId) && (
+                          <span
+                            className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
+                            aria-disabled={uses > 0}
+                            title={uses > 0 ? `In use by ${uses} rule action${uses === 1 ? '' : 's'} - remove ${uses === 1 ? 'it' : 'them'} to remove this audio` : 'Remove imported audio'}
+                            onClick={() => void deleteUserAudio(asset)}
+                          >×</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {filterAudioAssets(assetQuery, audioAssetCatalog).length === 0 && <div className="asset-empty">No audio matches this search.</div>}
+                </div>
+                {audioNotice && (
+                  <div className={`asset-import-notice ${audioNotice.tone}`}>
+                    {audioNotice.lines.map((line) => <div key={line}>{line}</div>)}
+                    <button className="asset-notice-close" title="Dismiss" onClick={() => setAudioNotice(null)}>×</button>
+                  </div>
+                )}
                 {/* Overlay rather than an inline block, so showing it never changes the layout. */}
-                {isDraggingAsset && <div className="asset-drop-hint">Drop .glb files, or .gltf files with their .bin/texture files, to import them</div>}
+                {isDraggingAsset && <div className="asset-drop-hint">Drop .glb/.gltf files (with their .bin/texture files) or .ogg/.mp3/.wav audio files to import them</div>}
               </section>
             </div>
           )}
@@ -641,6 +776,7 @@ export default function App() {
             <div className="mode-switch">
               <button className={showOctaOrb ? 'mode active' : 'mode'} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">OctaOrb</button>
               <button className={showAxisIndicator ? 'mode active' : 'mode'} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
+              <button className={showStats ? 'mode active' : 'mode'} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
             </div>
             <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
           </div>
@@ -673,6 +809,8 @@ export default function App() {
               onOrthographicChange={layoutMode === 'quad' ? undefined : setSingleViewOrthographic}
               showOctaOrb={showOctaOrb}
               showAxisIndicator={showAxisIndicator}
+              showStats={showStats}
+              textAssets={project.textAssets ?? []}
               compactOverlays={layoutMode === 'quad'}
             />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />

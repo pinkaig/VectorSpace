@@ -637,7 +637,21 @@ button:disabled {
   height: 21px;
   background: #d66d75;
 }
+.asset-preview.audio span {
+  border-radius: 50% / 40%;
+  width: 21px;
+  height: 14px;
+  background: #9b5de5;
+}
 /*---placeholder---*/
+.audio-heading {
+  margin-top: 6px;
+  padding-top: 13px;
+  border-top: 1px solid #F7E3C3;
+}
+.audio-card {
+  cursor: default;
+}
 .asset-copy {
   display: grid;
   gap: 3px;
@@ -843,6 +857,27 @@ button:disabled {
   border-radius: 5px;
   white-space: nowrap;
   z-index: 5;
+}
+.viewport-stats {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border: 1px solid #4294E2;
+  border-radius: 6px;
+  background: rgba(9, 15, 19, 0.8);
+  color: #cdddd9;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.viewport-stats b {
+  color: #f4c94f;
+  font-weight: 500;
 }
 .asset-status-badge {
   position: absolute;
@@ -1278,4 +1313,107 @@ button:disabled {
   color: var(--primary-main1);
   font-family: "DM Mono", monospace;
   font-size: 10px;
+}
+
+/* ── Text panel overlay (TextPanelHost.tsx) ───────────────────────────────
+   The layer covers the viewport but stays click-through, so a non-modal panel
+   never blocks orbiting the scene underneath; each panel re-enables pointer
+   events for itself. Sits above the viewport's own stacking (max z-index 5
+   elsewhere in this file). */
+.text-panel-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+}
+/* Dims the scene behind a modal panel. Covers the viewport and takes pointer
+   events, so clicks can't reach the scene while a modal is open. */
+.text-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.62);
+  pointer-events: auto;
+}
+.text-panel {
+  position: relative;
+  pointer-events: auto;
+  width: min(560px, 100%);
+  max-height: min(70vh, 640px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #F7E3C3;
+  border-radius: 4px;
+  background: #5C3705;
+  color: #F7E3C3;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+/* Stacked panels offset slightly so a lower one stays visible behind the top
+   one; the modal (top) panel renders above the backdrop. */
+.text-panel + .text-panel {
+  margin-top: -16px;
+}
+.text-panel.modal {
+  z-index: 1;
+}
+.text-panel:focus-visible {
+  outline: 2px solid #4294E2;
+  outline-offset: 2px;
+}
+.text-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(247, 227, 195, 0.35);
+}
+.text-panel-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #E2A845;
+}
+.text-panel-close {
+  margin-left: auto;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: #F7E3C3;
+  font-size: 16px;
+  line-height: 1;
+}
+.text-panel-close:hover {
+  border-color: #F7E3C3;
+}
+.text-panel-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 13px;
+  line-height: 1.55;
+  /* author text can contain long unbroken strings; wrap rather than overflow */
+  overflow-wrap: anywhere;
+}
+.text-panel-body > :first-child {
+  margin-top: 0;
+}
+.text-panel-body > :last-child {
+  margin-bottom: 0;
+}
+.text-panel-body a {
+  color: #E2A845;
+}
+.text-panel-body code {
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+}
+.text-panel-error {
+  color: #E2A845;
+  font-style: italic;
 }

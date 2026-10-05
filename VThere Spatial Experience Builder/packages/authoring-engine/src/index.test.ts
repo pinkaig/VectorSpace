@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { composeWorldTransform, createCommandTimeline, createObject, duplicateObject, ObjectOperationError, removeObject, reparentObject, setObjectEnabled, setObjectVisible, updateObjectTransform } from './index'
+import { addAttachment, composeWorldTransform, createCommandTimeline, createObject, createScene, duplicateObject, ObjectOperationError, removeAttachment, removeObject, reorderAttachments, reparentObject, setObjectEnabled, setObjectVisible, updateAttachment, updateObjectTransform } from './index'
 import { defaultProject, InteractionRule, ProjectData } from '@vthere/project'
 
 describe('command timeline', () => {
@@ -32,7 +32,10 @@ describe('command timeline', () => {
 })
 
 describe('object operations', () => {
-  const ids = { nextId: (_project: ReturnType<typeof defaultProject>, sceneId: string) => `${sceneId}-created` }
+  const ids = {
+    nextId: (_project: ReturnType<typeof defaultProject>, sceneId: string) => `${sceneId}-created`,
+    nextAttachmentId: (_project: ReturnType<typeof defaultProject>, sceneId: string) => `${sceneId}-attachment`,
+  }
 
   it('creates an object in a new immutable project snapshot', () => {
     const project = defaultProject()
@@ -48,6 +51,7 @@ describe('object operations', () => {
     const source = project.scenes[0].objects[0]
     const result = duplicateObject(project, { sceneId: 'scene-gallery', objectId: source.id }, {
       nextId: () => 'sphere-copy',
+      nextAttachmentId: () => 'att-copy',
     })
 
     expect(result.objectId).toBe('sphere-copy')
@@ -103,7 +107,8 @@ describe('parent-child hierarchy', () => {
   // a table (obj-0) with two children: a vase (obj-1) and a lamp (obj-2)
   const buildFamily = () => {
     let n = 0
-    const ids = { nextId: () => `obj-${n++}` }
+    let a = 0
+    const ids = { nextId: () => `obj-${n++}`, nextAttachmentId: () => `att-${a++}` }
     let project = createObject(defaultProject(), { sceneId: 'scene-gallery', assetKind: 'cube' }, ids).project
     project = createObject(project, { sceneId: 'scene-gallery', assetKind: 'sphere' }, ids).project
     project = createObject(project, { sceneId: 'scene-gallery', assetKind: 'cylinder' }, ids).project
@@ -224,5 +229,93 @@ describe('parent-child hierarchy', () => {
     timeline.undo()
     expect(objects(timeline.current)).toHaveLength(3)
     expect(objects(timeline.current).find((item) => item.id === 'obj-2')?.parentId).toBe('obj-0')
+  })
+})
+
+describe('attachment operations', () => {
+  const SCENE = 'scene-gallery'
+  const makeIds = () => {
+    let n = 0
+    let a = 0
+    return { nextId: () => `obj-${n++}`, nextAttachmentId: () => `att-${a++}` }
+  }
+  const objectHost = { kind: 'object' as const, id: 'obj-0' }
+  const build = () => {
+    const ids = makeIds()
+    const project = createObject(defaultProject(), { sceneId: SCENE, assetKind: 'cube' }, ids).project
+    // zones have no authoring operation yet, so the test seeds one directly
+    project.scenes[0].zones = [{ id: 'zone-0', name: 'Zone', shape: { kind: 'box', size: [1, 1, 1] }, position: [0, 0, 0] }]
+    return { project, ids }
+  }
+
+  it('adds attachments to objects and zones with factory ids, immutably', () => {
+    const { project, ids } = build()
+    const onObject = addAttachment(project, { sceneId: SCENE, host: objectHost, attachment: { kind: 'audio', assetId: 'creak' } }, ids)
+    const onZone = addAttachment(onObject.project, { sceneId: SCENE, host: { kind: 'zone', id: 'zone-0' }, attachment: { kind: 'text', assetId: 'text-1', presentation: { mode: 'panel' } } }, ids)
+
+    expect(onObject.attachmentId).toBe('att-0')
+    expect(onZone.project.scenes[0].objects[0].attachments).toHaveLength(1)
+    expect(onZone.project.scenes[0].zones?.[0].attachments?.[0]).toMatchObject({ id: 'att-1', kind: 'text' })
+    expect(project.scenes[0].objects[0].attachments).toBeUndefined()
+  })
+
+  it('removes an attachment, returning it and clearing an emptied list', () => {
+    const { project, ids } = build()
+    const added = addAttachment(project, { sceneId: SCENE, host: objectHost, attachment: { kind: 'audio', assetId: 'creak' } }, ids)
+    const removed = removeAttachment(added.project, { sceneId: SCENE, host: objectHost, attachmentId: 'att-0' })
+
+    expect(removed.removedAttachment?.assetId).toBe('creak')
+    expect(removed.project.scenes[0].objects[0].attachments).toBeUndefined()
+    expect(() => removeAttachment(added.project, { sceneId: SCENE, host: objectHost, attachmentId: 'missing' })).toThrow(ObjectOperationError)
+  })
+
+  it('updates name and assetId, and rejects a presentation on a non-text attachment', () => {
+    const { project, ids } = build()
+    const added = addAttachment(project, { sceneId: SCENE, host: objectHost, attachment: { kind: 'audio', assetId: 'creak' } }, ids)
+    const renamed = updateAttachment(added.project, { sceneId: SCENE, host: objectHost, attachmentId: 'att-0', changes: { name: 'Door creak', assetId: 'creak-2' } })
+
+    expect(renamed.project.scenes[0].objects[0].attachments?.[0]).toMatchObject({ name: 'Door creak', assetId: 'creak-2' })
+    expect(() => updateAttachment(added.project, { sceneId: SCENE, host: objectHost, attachmentId: 'att-0', changes: { presentation: { mode: 'panel' } } })).toThrow(ObjectOperationError)
+  })
+
+  it('reorders attachments and rejects a list that is not a permutation', () => {
+    const { project, ids } = build()
+    let next = addAttachment(project, { sceneId: SCENE, host: objectHost, attachment: { kind: 'audio', assetId: 'a' } }, ids).project
+    next = addAttachment(next, { sceneId: SCENE, host: objectHost, attachment: { kind: 'audio', assetId: 'b' } }, ids).project
+    const reordered = reorderAttachments(next, { sceneId: SCENE, host: objectHost, orderedIds: ['att-1', 'att-0'] })
+
+    expect(reordered.project.scenes[0].objects[0].attachments?.map((item) => item.id)).toEqual(['att-1', 'att-0'])
+    expect(() => reorderAttachments(next, { sceneId: SCENE, host: objectHost, orderedIds: ['att-1'] })).toThrow(ObjectOperationError)
+    expect(() => reorderAttachments(next, { sceneId: SCENE, host: objectHost, orderedIds: ['att-1', 'att-1'] })).toThrow(ObjectOperationError)
+  })
+
+  it('duplicateObject gives copies fresh attachment ids and independent arrays', () => {
+    const { project, ids } = build()
+    const withAttachment = addAttachment(project, { sceneId: SCENE, host: objectHost, attachment: { kind: 'text', assetId: 'text-1', presentation: { mode: 'panel' } } }, ids).project
+    const result = duplicateObject(withAttachment, { sceneId: SCENE, objectId: 'obj-0' }, ids)
+    const original = result.project.scenes[0].objects[0]
+    const copy = result.project.scenes[0].objects[1]
+
+    expect(copy.attachments?.[0].id).not.toBe(original.attachments?.[0].id)
+    expect(copy.attachments).not.toBe(original.attachments)
+    copy.attachments?.[0] && (copy.attachments[0].assetId = 'mutated')
+    expect(original.attachments?.[0].assetId).toBe('text-1')
+  })
+
+  it('createScene deep-copies attachments instead of sharing the array', () => {
+    const { project, ids } = build()
+    const withAttachment = addAttachment(project, { sceneId: SCENE, host: objectHost, attachment: { kind: 'audio', assetId: 'creak' } }, ids).project
+    const sourceScene = { ...withAttachment.scenes[0], id: 'scene-2', name: 'Copy' }
+    const result = createScene(withAttachment, sourceScene)
+    const copiedObject = result.project.scenes[1].objects[0]
+
+    expect(copiedObject.attachments).toEqual(sourceScene.objects[0].attachments)
+    expect(copiedObject.attachments).not.toBe(sourceScene.objects[0].attachments)
+  })
+
+  it('rejects a missing host', () => {
+    const { project, ids } = build()
+    expect(() => addAttachment(project, { sceneId: SCENE, host: { kind: 'object', id: 'missing' }, attachment: { kind: 'audio', assetId: 'a' } }, ids)).toThrow(ObjectOperationError)
+    expect(() => addAttachment(project, { sceneId: SCENE, host: { kind: 'zone', id: 'missing' }, attachment: { kind: 'audio', assetId: 'a' } }, ids)).toThrow(ObjectOperationError)
   })
 })

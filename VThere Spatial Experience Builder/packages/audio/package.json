@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "@vthere/project": "0.1.0",
+    "@vthere/project": "0.1.0"
+  },
+  "devDependencies": {
     "@vthere/interaction": "0.1.0"
   },
   "exports": "./src/index.ts"
