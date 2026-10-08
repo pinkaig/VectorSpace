@@ -12,6 +12,10 @@
   --secondary-main1:#4294E2;
   --secondary-main2:#B0E0F6;   /*/Mainly for assets and storage? /*/
 
+
+  /*Standardised colours*/
+  --Black: #000;
+  --White: #FFF;
 }
 
 h1,
@@ -31,7 +35,7 @@ body {
     circle at 50% 0%,
     #464242 0,
     #050505 42%,
-    #050505 100%
+    var(--Black)
   );
 }
 button,
@@ -57,7 +61,7 @@ button:disabled {
   align-items: center;
   gap: 42px;
   border-bottom: 1px solid var(--border-edge1);
-  background: rgba(2, 2, 2, 0.38);
+  background: var(--Black);
 }
 .brand {
   display: flex;
@@ -193,7 +197,7 @@ button:disabled {
   font-size: 11px;
   font-weight: 600;
 }
-.rail-tab span { color: #557278; font-family: 'DM Mono', monospace; font-size: 9px; }
+.rail-tab span { color: #557278;}
 .rail-tab:hover { color: #b9ccc8; }
 .rail-tab.active { color: #e2eeea; border-bottom-color: #d7b577; background: #142328; }
 .rail-tab.active span { color: #a8d7ca; }
@@ -249,7 +253,7 @@ button:disabled {
   background: transparent;
 }
 .scene-row.active .scene-tab { color: #e2eeea; }
-.scene-count { color: #628086; font-family: "DM Mono", monospace; font-size: 10px; }
+.scene-count { color: #628086; font-size: 10px; }
 
 .scene-tab.active {
   border-left-color: #d7b577;
@@ -258,7 +262,6 @@ button:disabled {
 }
 .scene-tab span {
   color: var(--secondary-main1);
-  font-family: "DM Mono", monospace;
 }
 
 .scene-chevron {
@@ -527,7 +530,7 @@ button:disabled {
   content: "";
   position: absolute;
   background: #FF10F0;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 1px var(--Black);
 }
 .viewport-crosshair::before {
   left: 50%;
@@ -647,7 +650,7 @@ button:disabled {
 .audio-heading {
   margin-top: 6px;
   padding-top: 13px;
-  border-top: 1px solid #F7E3C3;
+  border-top: 1px solid var(--primary-ghost1);
 }
 .audio-card {
   cursor: default;
@@ -1015,7 +1018,7 @@ button:disabled {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #080d12;
+  background: var(--Black);
 }
 .runtime-topbar {
   height: 76px;
@@ -1131,7 +1134,7 @@ button:disabled {
 .asset-card .icon-button:not(.in-use):hover {
   background: #C0392B;
   border-color: var(--primary-ghost1);
-  color: #FFF;
+  color: var(--White);
 }
 .asset-library {
   position: relative;
@@ -1299,7 +1302,7 @@ button:disabled {
 /* turns red on hover */
 .rule-remove:hover {
   background: #C0392B;
-  color: #fff;
+  color: var(--White);
 }
 
 /* keep the add button compact instead of stretching across the whole section */
@@ -1344,10 +1347,10 @@ button:disabled {
   max-height: min(70vh, 640px);
   display: flex;
   flex-direction: column;
-  border: 1px solid #F7E3C3;
+  border: 1px solid var(--primary-ghost1);
   border-radius: 4px;
   background: #5C3705;
-  color: #F7E3C3;
+  color: var(--primary-ghost1);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
 }
 /* Stacked panels offset slightly so a lower one stays visible behind the top
@@ -1384,12 +1387,12 @@ button:disabled {
   border: 1px solid transparent;
   border-radius: 3px;
   background: none;
-  color: #F7E3C3;
+  color: var(--primary-ghost1);
   font-size: 16px;
   line-height: 1;
 }
 .text-panel-close:hover {
-  border-color: #F7E3C3;
+  border-color: var(--primary-ghost1);
 }
 .text-panel-body {
   padding: 14px 16px;
