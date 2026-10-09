@@ -13,7 +13,7 @@
 /********************************************************************************************/
 import { useEffect } from 'react'
 import { createEditorObject, updateEditorTransform } from '../editor/editorOperations'
-import type { AssetKind, ProjectData } from '../model'
+import type { AssetKind, ProjectData } from '../project/model'
 
 const STRESS_KEY = 'F8'
 const GRID = 10

@@ -24,10 +24,10 @@
  * archived and removed from the repository; it is in git history only.
  */
 import * as THREE from 'three'
-import type { SceneObject } from '../model'
+import type { SceneObject } from '../project/model'
 import { colorFor } from './viewportTypes'
-import { resolveModelUrl, resolveModelUrlModifier } from '../assets'
-import { cloneModel, getCachedModel, loadModel } from '../modelCache'
+import { resolveModelUrl, resolveModelUrlModifier } from '../content/assets'
+import { cloneModel, getCachedModel, loadModel } from '../content/modelCache'
 
 export interface ArtefactSyncInput {
   group: THREE.Group

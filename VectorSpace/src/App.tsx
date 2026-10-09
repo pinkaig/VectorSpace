@@ -36,23 +36,23 @@ import {
   defaultProject,
   environmentLibrary,
   makeScene,
-} from './model'
+} from './project/model'
 import {
   downloadProject,
   importProjectFile,
   loadProjectWithSource,
   saveProject,
-} from './serializer'
+} from './project/serializer'
 import {
   getProjectSyncStatus,
   stageProjectSync,
   subscribeProjectSync,
   type ProjectSyncStatus,
-} from './sync/projectSync'
-import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './assets'
-import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from './userAssets'
-import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets, type AudioAssetDefinition } from './audioAssets'
-import { addUserAudio, isUserAudioAsset, loadUserAudio, removeUserAudio, type AudioImportResult } from './userAudio'
+} from './project/projectSync'
+import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './content/assets'
+import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from './content/userAssets'
+import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets, type AudioAssetDefinition } from './content/audioAssets'
+import { addUserAudio, isUserAudioAsset, loadUserAudio, removeUserAudio, type AudioImportResult } from './content/userAudio'
 import {
   createEditorObject,
   createEditorScene,
@@ -73,13 +73,13 @@ import {
   type EditorCommandBuilder,
 } from './editor/editorOperations'
 import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from './editor/ruleEditorOperations'
-import { WhenDoRuleSection } from './inspector/WhenDoRuleSection'
+import { WhenDoRuleSection } from './sections/objectPanel/WhenDoRuleSection'
 import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTree'
 import RuntimeView from '../apps/runtime/src/RuntimeApplication'
-import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './Viewport'
-import ReferenceViewport from './ReferenceViewport'
-import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from './demoAudioScene'
-import { resolveLocalAudioUrl } from './viewport/audioResolution'
+import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './viewport/Viewport'
+import ReferenceViewport from './viewport/ReferenceViewport'
+import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from './content/demoAudioScene'
+import { resolveLocalAudioUrl } from './content/audioResolution'
 import { useStressTestKey } from './debug/stressTest' // STRESS TEST — comment out with the call below
 
 const initialLoad = loadProjectWithSource()

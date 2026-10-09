@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildSceneTree, grandparentId, previousSibling } from './sceneTree'
-import type { SceneObject } from '../model'
+import type { SceneObject } from '../project/model'
 
 const object = (id: string, parentId?: string): SceneObject => ({
   id,

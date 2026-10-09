@@ -23,7 +23,7 @@
  * Links point at the project wiki; migration is still in progress.
  */
 import * as THREE from 'three'
-import { loadEnvironment } from '../environments'
+import { loadEnvironment } from '../content/environments'
 import type { EnvStatus } from './renderTypes'
 
 export interface EnvironmentControllerInput {

@@ -43,7 +43,7 @@ import {
   type ProjectCommand,
   type Vector3Tuple,
 } from '@vectorspace/authoring-engine'
-import type { AssetKind, ProjectData, SceneObject } from '../model'
+import type { AssetKind, ProjectData, SceneObject } from '../project/model'
 
 /**
  * A builder rather than a finished command: the command service calls it with

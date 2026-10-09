@@ -33,7 +33,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
  * Links point at the project wiki; migration is still in progress.
  */
-import type { SceneObject } from '../model'
+import type { SceneObject } from '../project/model'
 
 export const WALK_SPEED = 3.6
 export const SPRINT_MULTIPLIER = 2.2

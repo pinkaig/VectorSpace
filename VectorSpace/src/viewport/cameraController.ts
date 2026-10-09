@@ -23,8 +23,8 @@
  */
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type { CameraPose } from '../model'
-import { upFor } from '../gizmo/viewSnap'
+import type { CameraPose } from '../project/model'
+import { upFor } from './editing/viewSnap'
 import { getVerticalDirection, getWalkDirection, MIN_FLY_HEIGHT, SPRINT_MULTIPLIER, WALK_SPEED } from './viewportTypes'
 
 export interface CameraOrientation {

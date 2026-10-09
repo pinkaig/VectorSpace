@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultProject, makeObject } from '../model'
+import { defaultProject, makeObject } from '../project/model'
 import { addEditorClickRule, removeEditorRule } from './ruleEditorOperations'
 
 const setup = () => {
