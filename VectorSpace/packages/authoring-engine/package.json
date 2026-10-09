@@ -1,0 +1,10 @@
+{
+  "name": "@vectorspace/authoring-engine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@vectorspace/project": "0.1.0"
+  },
+  "exports": "./src/index.ts"
+}

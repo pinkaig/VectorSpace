@@ -1,0 +1,47 @@
+{
+  "name": "vectorspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "check:environment": "node scripts/check-environment.mjs",
+    "predev": "node scripts/check-environment.mjs",
+    "prebuild": "node scripts/check-environment.mjs",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test --project=chromium",
+    "test:perf": "playwright test --project=perf --workers=1 --reporter=list",
+    "test:perf:gpu": "playwright test --project=perf-gpu --workers=1 --reporter=list"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "4.5.0",
+    "@gltf-transform/extensions": "4.5.0",
+    "@gltf-transform/functions": "4.5.0",
+    "@vitejs/plugin-react": "4.4.1",
+    "meshoptimizer": "1.3.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "three": "0.177.0",
+    "typescript": "5.8.3",
+    "vite": "6.3.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0",
+    "@types/node": "22.14.1",
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
+    "@types/three": "0.177.0",
+    "vitest": "3.1.2"
+  }
+}

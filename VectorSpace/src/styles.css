@@ -1,0 +1,1420 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap');
+
+:root {
+  font-family: "Manrope", sans-serif;
+  color: #e9f0ed;
+  background: #f5f5f5;
+  font-synthesis: none;
+  --border-edge1:#5C3705;
+}
+
+h1,
+h2,
+h3 {
+    font-family: "Titillium Web", sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 980px;
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at 50% 0%,
+    #464242 0,
+    #050505 42%,
+    #050505 100%
+  );
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+.app-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  height: 76px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 42px;
+  border-bottom: 1px solid var(--border-edge1);
+  background: rgba(2, 2, 2, 0.38);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 235px;
+}
+/*VectorSpace logo*/
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #6eb9ac;
+  color: #9fe4d7;
+  font-weight: 800;
+  letter-spacing: -0.08em;
+}
+.brand strong {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.brand div span {
+  display: block;
+  color: #4294E2;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.project-title {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex: 1;
+}
+.eyebrow {
+  display: block;
+  color: #E2A845;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.project-title strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.save-state {
+  color: #E2A845;
+  font-size: 11px;
+  padding-left: 4px;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.button {
+  border: 1px solid transparent;
+  padding: 9px 13px;
+  border-radius: 3px;
+  color: #E2A845;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+.button.subtle {
+  color: #E2A845;
+  padding-inline: 8px;
+}
+.button.ghost {
+  border-color: #F7E3C3;
+}
+.button.primary {
+  background: #E2A845;
+  color: #5C3705;
+  border-color: #E2A845;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 238px minmax(520px, 1fr) 286px;
+  flex: 1;
+  min-height: 0;
+}
+.left-rail,
+.right-rail {
+  background: rgba(2, 2, 2, 0.38);
+}
+.left-rail {
+  border-right: 1px solid var(--border-edge1);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.right-rail {
+  border-left: 1px solid var(--border-edge1);
+  overflow: auto;
+  min-height: 0;
+}
+.rail-heading,
+.panel-heading {
+  padding: 25px 18px 17px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.rail-heading h2,
+.panel-heading h2 {
+  font-size: 15px;
+  margin: 5px 0 0;
+  font-weight: 600;
+}
+
+.rail-tabs {
+  display: flex;
+  flex: 0 0 auto;     
+  border-bottom: 1px solid var(--border-edge1);
+}
+.rail-tab {
+  flex: 1;            
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 8px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #729097;
+  font-size: 11px;
+  font-weight: 600;
+}
+.rail-tab span { color: #557278; font-family: 'DM Mono', monospace; font-size: 9px; }
+.rail-tab:hover { color: #b9ccc8; }
+.rail-tab.active { color: #e2eeea; border-bottom-color: #d7b577; background: #142328; }
+.rail-tab.active span { color: #a8d7ca; }
+.rail-tab:focus-visible { outline: 1px solid #71b7aa; outline-offset: -3px; }
+
+.rail-tab-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.left-rail .rail-footer { flex: 0 0 auto; }
+
+.icon-button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #F7E3C3;
+  background: #E2A845;
+  color: #5C3705;
+  border-radius: 3px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.scene-tab {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px 13px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid #BA8128;
+  background: transparent;
+  color: #F7E3C3;
+  text-align: left;
+  font-size: 11px;
+}
+
+.scene-row {
+  display: flex;                  /* puts the two buttons side by side */
+  align-items: center;
+  border-left: 2px solid transparent;
+}
+.scene-row:hover { background: #111f24; }
+.scene-row.active { border-left-color: #d7b577; background: #142328; }
+
+.scene-row .scene-tab {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;   
+  gap: 5px;
+  border-left: 0;
+  background: transparent;
+}
+.scene-row.active .scene-tab { color: #e2eeea; }
+.scene-count { color: #628086; font-family: "DM Mono", monospace; font-size: 10px; }
+
+.scene-tab.active {
+  border-left-color: #d7b577;
+  background: #5C3705;
+  color: #E2A845;
+}
+.scene-tab span {
+  color: #4294E2;
+  font-family: "DM Mono", monospace;
+}
+
+.scene-chevron {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #557278;
+}
+.scene-chevron:hover { color: #a8d7ca; background: #1b3032; }
+
+
+
+
+.tree-list {
+  padding: 12px 10px;
+  flex: 0.4;
+  min-height: 0;
+  overflow: auto;
+}
+.tree-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  color: #91a5a5;
+  font-size: 11px;
+}
+.tree-item.selected {
+  background: #5C3705;
+  color: #E2A845;
+}
+.tree-indent-controls {
+  display: flex;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+.tree-indent-btn {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  color: #4294E2;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tree-indent-btn:hover:not(:disabled) {
+  background: #5C3705;
+  color: #F7E3C3;
+}
+.tree-indent-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.tree-item-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  padding: 9px 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 11px;
+}
+.object-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.object-dot.cube {
+  background: #5bb3aa;
+}
+.object-dot.sphere {
+  background: #e6ad5a;
+}
+.object-dot.cylinder {
+  background: #d66d75;
+}
+.object-dot.model {
+  background: #8294fd;
+}
+.tree-chevron {
+  border: 0;
+  background: transparent;
+  margin-left: auto;
+  color: #4294E2;
+  font-size: 17px;
+}
+.empty-state {
+  padding: 44px 15px;
+  color: #E2A845;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.empty-state span {
+  color: #F7E3C3;
+}
+.rail-footer {
+  margin-top: auto; /*push footer to the bottom*/
+  border-top: 1px solid #5C3705;
+  padding: 14px 17px;
+  color: #8294fd;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.status-dot,
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #2C6705;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-dot.pending {
+  background: #FFC000;
+}
+.status-dot.conflict,
+.status-dot.failed {
+  background: #E34234;
+}
+.text-button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #4294E2;
+  font-size: 10px;
+  padding: 0;
+}
+.center-stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.stage-toolbar {
+  height: 55px;
+  border-bottom: 1px solid var(--border-edge1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+}
+.mode-switch {
+  display: flex;
+  gap: 3px;
+}
+.mode {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #F7E3C3;
+  padding: 7px 9px;
+  font-size: 10px;
+}
+.mode.active {
+  border-color: #F7E3C3;
+  color: #E2A845;
+  background: #5C3705;
+}
+.stage-meta {
+  color: #8294fd;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.divider {
+  width: 1px;
+  height: 13px;
+  background: #F7E3C3;
+  margin: 0 3px;
+}
+/* .stage-toolbar and .runtime-topbar have no opaque background of their own, so this
+   divider sits directly over whatever body background shows through — lighten it here
+   without touching the shared .divider rule other panels (with an opaque backing) use. */
+.stage-meta .divider {
+  background: #F7E3C3;
+}
+.viewport {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.quad-viewport {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  background: #4294E2;
+}
+.quad-viewport .viewport {
+  min-width: 0;
+  min-height: 0;
+}
+.quad-viewport.single-mode {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+.quad-viewport.single-mode .reference-viewport {
+  display: none;
+}
+.reference-viewport-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  color: #E2A845;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  border: 1px solid #F7E3C3;
+  border-radius: 3px;
+  background: #5C3705;
+  pointer-events: none;
+}
+.viewport-hint {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  color: #E2A845;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  pointer-events: none;
+}
+.viewport-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  pointer-events: none;
+  z-index: 1;
+}
+.viewport-crosshair::before,
+.viewport-crosshair::after {
+  content: "";
+  position: absolute;
+  background: #FF10F0;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.7);
+}
+.viewport-crosshair::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  margin-left: -0.75px;
+}
+.viewport-crosshair::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  margin-top: -0.75px;
+}
+.stage-footer {
+  display: flex;
+  gap: 22px;
+  padding: 12px 18px;
+  color: #4294E2;
+  border-top: 1px solid #5C3705;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+}
+.stage-footer kbd {
+  color: #E2A845;
+  background: #5C3705;
+  border: 1px solid #F7E3C3;
+  padding: 3px 5px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+.panel {
+  border-bottom: 1px solid var(--border-edge1);
+}
+.panel-heading {
+  padding-inline: 18px;
+}
+.count,
+.selection-badge {
+  font-family: "DM Mono", monospace;
+  color: #4294E2;
+  font-size: 10px;
+  padding-top: 3px;
+}
+.selection-badge {
+  color: #4294E2;
+}
+.asset-list {
+  /* Card = 38px preview + 2 x 7px padding + 2 x 1px border = 54px. Four cards and
+     their three gaps show at once; the rest of the library scrolls. */
+  --asset-card-height: 54px;
+  --asset-list-gap: 7px;
+  padding: 0 13px;
+  margin-bottom: 17px;
+  display: grid;
+  gap: var(--asset-list-gap);
+  grid-auto-rows: var(--asset-card-height);
+  max-height: calc(4 * var(--asset-card-height) + 3 * var(--asset-list-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #5C3705 transparent;
+}
+.asset-card {
+  border: 1px solid #F7E3C3;
+  background: #5C3705;
+  color: #E2A845;
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  border-radius: 3px;
+}
+.asset-card:hover {
+  /*border-color: #4294E2;*/
+  border: 1px dashed #4294E2;
+  background: #5C3705;
+}
+.asset-preview {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: #5C3705;
+}
+/*---placeholder---*/
+.asset-preview span {
+  display: block;
+  width: 17px;
+  height: 17px;
+  background: #5bb3aa;
+}
+.asset-preview.sphere span {
+  border-radius: 50%;
+  background: #e6ad5a;
+}
+.asset-preview.model span {
+  border-radius: 3px;
+  width: 21px;
+  height: 12px;
+  background: #6382ff;
+}
+.asset-preview.cylinder span {
+  border-radius: 8px 8px 3px 3px;
+  height: 21px;
+  background: #d66d75;
+}
+.asset-preview.audio span {
+  border-radius: 50% / 40%;
+  width: 21px;
+  height: 14px;
+  background: #9b5de5;
+}
+/*---placeholder---*/
+.audio-heading {
+  margin-top: 6px;
+  padding-top: 13px;
+  border-top: 1px solid #F7E3C3;
+}
+.audio-card {
+  cursor: default;
+}
+.asset-copy {
+  display: grid;
+  gap: 3px;
+}
+.asset-copy strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+.asset-copy small {
+  font-size: 9px;
+  color: #F7E3C3;
+}
+.add-symbol {
+  margin-left: auto;
+  color: #4294E2;
+  font-size: 17px;
+}
+.inspector-content {
+  padding: 0 18px 24px;
+}
+.field-group {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 18px;
+  color: #4294E2;
+  font-size: 10px;
+}
+.field-group input {
+  width: 100%;
+  border: 1px solid #F7E3C3;
+  border-radius: 2px;
+  background: #4D5D53;
+  color: #B0E0F6;
+  padding: 9px 10px;
+  outline: none;
+  font-size: 11px;
+}
+.field-group input:focus {
+  border-color: #8294fd;
+}
+.field-group select,
+.field-group textarea {
+  width: 100%;
+  border: 1px solid #2a444a;
+  border-radius: 2px;
+  background: #4D5D53;
+  color: #B0E0F6;
+  padding: 9px 10px;
+  outline: none;
+  font-size: 11px;
+}
+.field-group textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+.field-group select:focus,
+.field-group textarea:focus {
+  border-color: #8294fd;
+}
+.asset-id {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  margin-bottom: 20px;
+  background: #F7E3C3;
+  color: #4294E2;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+}
+.asset-id span:last-child {
+  margin-left: auto;
+  color: #5d777c;
+}
+.toggle-row {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 20px;
+  color: #a4b9b7;
+  font-size: 11px;
+}
+.toggle-row label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.toggle-row input {
+  accent-color: #E2A845;
+}
+.inspector-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #E2A845;
+}
+.inspector-actions .button {
+  text-align: center;
+}
+.vector-fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.number-field {
+  position: relative;
+}
+.number-field span {
+  position: absolute;
+  left: 7px;
+  top: 9px;
+  color: #5c797d;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+}
+.number-field input {
+  padding-left: 20px;
+  padding-right: 3px;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
+.inspector-empty {
+  padding: 25px 18px 40px;
+  text-align: center;
+  color: #B0E0F6;
+  font-size: 11px;
+}
+.inspector-empty p {
+  margin: 11px 0 5px;
+  color: #4294E2;
+}
+.inspector-empty span {
+  font-size: 10px;
+}
+.crosshair {  /*inspector crosshair*/
+  width: 38px;
+  height: 38px;
+  border: 1px solid #3B1344;
+  display: grid;
+  place-items: center;
+  margin: auto;
+  color: #8294fd;
+  font-size: 22px;
+}
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border-edge1);
+  background: rgba(11, 18, 24, 0.5);
+  flex-wrap: wrap;
+}
+.env-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #E2A845;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.env-select select {
+  border: 1px solid #F7E3C3;
+  border-radius: 2px;
+  background: #5C3705;
+  color: #E2A845;
+  padding: 6px 8px;
+  font-size: 11px;
+  outline: none;
+}
+.view-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.octaorb-backdrop,
+.axis-indicator-backdrop {
+  position: absolute;
+  /* Border only - the dark rounded fill is drawn in WebGL (overlayWidgets.ts, PANEL_RADIUS
+     must match this radius), since a tint here would sit on top of and dim the widget. */
+  border-radius: 6px;
+  border: 1px solid #4294E2;
+  pointer-events: none;
+}
+.octaorb-backdrop {
+  /* width/height set inline from overlayDims (shrinks in the quad layout) */
+  top: 8px;
+  right: 8px;
+}
+.axis-indicator-backdrop {
+  left: 8px;
+  bottom: 8px;
+}
+.octaorb-tooltip {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -130%);
+  background: rgba(9, 15, 19, 0.92);
+  border: 1px solid #f4c94f;
+  color: #f4c94f;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+  z-index: 5;
+}
+.viewport-stats {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border: 1px solid #4294E2;
+  border-radius: 6px;
+  background: rgba(9, 15, 19, 0.8);
+  color: #cdddd9;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.viewport-stats b {
+  color: #f4c94f;
+  font-weight: 500;
+}
+.asset-status-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 220px;
+  padding: 10px 12px;
+  background: rgba(8, 13, 18, 0.9);
+  border: 1px solid #2a444a;
+  border-radius: 6px;
+  color: #cdddd9;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
+.asset-status-loading {
+  flex-direction: row;
+  align-items: center;
+}
+.asset-status-loading .spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+.viewport-face-header {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid #4294E2;
+  border-radius: 5px;
+  background: rgba(9, 15, 19, 0.8);
+  font-family: "DM Mono", monospace;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: viewport-face-header-in 160ms ease-out;
+}
+.viewport-face-header-name {
+  color: #f4c94f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.viewport-face-header-projection {
+  color: #9fe4d7;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+@keyframes viewport-face-header-in {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport-face-header { animation: none; }
+}
+.viewport-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(8, 13, 18, 0.82);
+  color: #cdddd9;
+  text-align: center;
+  padding: 20px;
+}
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #2a444a;
+  border-top-color: #9fe4d7;
+  animation: spin 0.9s linear infinite;
+}
+.progress-track {
+  width: 160px;
+  height: 4px;
+  border-radius: 2px;
+  background: #1c2b32;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #9fe4d7;
+  transition: width 0.15s ease;
+}
+.overlay-error {
+  color: #e8a3a3;
+  font-weight: 600;
+  margin: 0;
+}
+.overlay-detail {
+  color: #8a9ea0;
+  font-size: 10px;
+  margin: 0;
+  max-width: 320px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 1100px) {
+  body {
+    min-width: 0;
+  }
+  .workspace {
+    grid-template-columns: 210px minmax(450px, 1fr) 260px;
+  }
+  .topbar {
+    padding-inline: 17px;
+    gap: 18px;
+  }
+  .project-title {
+    display: none;
+  }
+}
+.storage-note {
+  flex-basis: 100%;
+  color: #B0E0F6;
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+}
+.runtime-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #080d12;
+}
+.runtime-topbar {
+  height: 76px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-bottom: 1px solid var(--border-edge1);
+  background: rgba(8, 13, 18, 0.92);
+}
+.runtime-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.runtime-actions span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #81989b;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
+.runtime-actions kbd {
+  color: #a4bbb7;
+  border: 1px solid #365158;
+  padding: 3px 6px;
+  border-radius: 2px;
+}
+.runtime-title {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex: 1;
+}
+.runtime-title strong {
+  font-size: 14px;
+}
+.runtime-title > span:last-child {
+  color: #81969a;
+  font-size: 11px;
+}
+.runtime-stage {
+  position: relative;
+  flex: 1;
+  min-height: calc(100vh - 76px);
+}
+/* A fixed height, not min-height: with only a minimum, the canvas's height: 100% has
+   nothing definite to resolve against, so the canvas falls back to its own aspect ratio
+   and drives the viewport's height instead. Any resize that passes through a narrow width
+   (minimise/maximise) then locks the viewport taller than the window, pushing the
+   crosshair and the camera's framing off-screen. */
+.runtime-stage .viewport {
+  height: calc(100vh - 76px);
+}
+.runtime-meta {
+  position: absolute;
+  z-index: 1;
+  top: 18px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9ab0ae;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  pointer-events: none;
+}
+.hidden-file-input {
+  display: none;
+}
+.asset-tools {
+  padding: 0 13px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.asset-tools input::placeholder {
+    color: #B0E0F6;
+    opacity: 0.6;
+}
+.asset-tools input {
+  width: 100%;
+  border: 1px solid #E2A845;
+  border-radius: 2px;
+  background: #4D5D53;
+  color: #B0E0F6;
+  padding: 8px 9px;
+  outline: none;
+  font-size: 10px;
+}
+.asset-tools input:focus {
+  border-color: #8294fd;
+}
+.asset-empty {
+  color: #B0E0F6;
+  font-size: 10px;
+  padding: 10px 4px;
+}
+.asset-card .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  flex: 0 0 auto;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.asset-card .icon-button.in-use {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.asset-card .icon-button:not(.in-use):hover {
+  background: #C0392B;
+  border-color: #F7E3C3;
+  color: #FFF;
+}
+.asset-library {
+  position: relative;
+}
+.asset-library.drag-over {
+  outline: 2px dashed #B0E0F6;
+  outline-offset: -4px;
+  border-radius: 4px;
+}
+/* Covers the panel while a file is dragged over it. pointer-events: none so it never
+   becomes a drag target itself, which would fire extra enter/leave events. */
+.asset-drop-hint {
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 4px;
+  background: rgba(8, 20, 30, 0.88);
+  color: #B0E0F6;
+  font-size: 11px;
+  text-align: center;
+  pointer-events: none;
+}
+.asset-import-notice {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  margin: 0 13px 13px;
+  padding: 8px 24px 8px 9px;
+  border: 1px solid;
+  font-size: 10px;
+  border-radius: 3px;
+}
+.asset-import-notice.error {
+  border-color: #7a3b3b;
+  background: #2a1414;
+  color: #f0b4b4;
+}
+.asset-import-notice.success {
+  border-color: #2f5f4a;
+  background: #102219;
+  color: #a8e0c4;
+}
+.asset-import-notice.info {
+  border-color: #2d4d6b;
+  background: #0f1c28;
+  color: #B0E0F6;
+}
+.asset-optimised {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.asset-keep-original {
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.asset-notice-close {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* When / Do inspector section: sentence text matches the Visible / Enabled labels, not the blue heading */
+.when-do-line,
+.when-do-color {
+  color: #a4b9b7;
+  font-size: 11px;
+}
+
+/* each line is one part of the sentence, text above its dropdown */
+.when-do-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* the "to" text and the colour picker sit side by side */
+.when-do-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* overrides .field-group input (full width, thick padding), which squashed the swatch into a thin line */
+.when-do-color input[type='color'] {
+  width: 48px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* remove the browser's inner spacing around the swatch in Chrome and Edge */
+.when-do-color input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+/* same for Firefox */
+.when-do-color input[type='color']::-moz-color-swatch {
+  border: none;
+}
+
+/* the interaction count is a quiet note, not a heading */
+.when-do-count {
+  color: #a4b9b7;
+  opacity: 0.7;
+}
+
+/* one interaction shown as a short sentence, with its remove button on the right */
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #2a444a;
+  border-radius: 2px;
+  color: #a4b9b7;
+  font-size: 11px;
+}
+
+/* the sentence takes the remaining space so the button stays on the right */
+.rule-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* small square showing the colour a change colour rule will apply */
+.rule-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border: 1px solid #F7E3C3;
+  border-radius: 2px;
+}
+
+/* the remove button is big enough to hit easily, and turns red when hovered like the asset remove button */
+.rule-remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  color: #E2A845;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* turns red on hover */
+.rule-remove:hover {
+  background: #C0392B;
+  color: #fff;
+}
+
+/* keep the add button compact instead of stretching across the whole section */
+.when-do-add {
+  justify-self: center;
+  padding: 6px 12px;
+}
+
+/* the rule's place in the run order, gold like the other labels but quieter than the sentence */
+.rule-number {
+  color: #E2A845;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+}
+
+/* ── Text panel overlay (TextPanelHost.tsx) ───────────────────────────────
+   The layer covers the viewport but stays click-through, so a non-modal panel
+   never blocks orbiting the scene underneath; each panel re-enables pointer
+   events for itself. Sits above the viewport's own stacking (max z-index 5
+   elsewhere in this file). */
+.text-panel-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+}
+/* Dims the scene behind a modal panel. Covers the viewport and takes pointer
+   events, so clicks can't reach the scene while a modal is open. */
+.text-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.62);
+  pointer-events: auto;
+}
+.text-panel {
+  position: relative;
+  pointer-events: auto;
+  width: min(560px, 100%);
+  max-height: min(70vh, 640px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #F7E3C3;
+  border-radius: 4px;
+  background: #5C3705;
+  color: #F7E3C3;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+/* Stacked panels offset slightly so a lower one stays visible behind the top
+   one; the modal (top) panel renders above the backdrop. */
+.text-panel + .text-panel {
+  margin-top: -16px;
+}
+.text-panel.modal {
+  z-index: 1;
+}
+.text-panel:focus-visible {
+  outline: 2px solid #4294E2;
+  outline-offset: 2px;
+}
+.text-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(247, 227, 195, 0.35);
+}
+.text-panel-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #E2A845;
+}
+.text-panel-close {
+  margin-left: auto;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: #F7E3C3;
+  font-size: 16px;
+  line-height: 1;
+}
+.text-panel-close:hover {
+  border-color: #F7E3C3;
+}
+.text-panel-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 13px;
+  line-height: 1.55;
+  /* author text can contain long unbroken strings; wrap rather than overflow */
+  overflow-wrap: anywhere;
+}
+.text-panel-body > :first-child {
+  margin-top: 0;
+}
+.text-panel-body > :last-child {
+  margin-bottom: 0;
+}
+.text-panel-body a {
+  color: #E2A845;
+}
+.text-panel-body code {
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+}
+.text-panel-error {
+  color: #E2A845;
+  font-style: italic;
+}

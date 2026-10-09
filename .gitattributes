@@ -1,0 +1,28 @@
+# Normalise line endings so a clone behaves the same on every machine.
+* text=auto
+
+# Shell scripts must keep LF endings: with CRLF, Linux and macOS fail to run
+# them at all ("bad interpreter: /usr/bin/env bash^M").
+*.sh text eol=lf
+
+# Batch files must keep CRLF endings, which cmd.exe requires.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets must never be line-ending converted.
+*.glb binary
+*.gltf binary
+*.ogg binary
+*.mp3 binary
+*.wav binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+*.zip binary
