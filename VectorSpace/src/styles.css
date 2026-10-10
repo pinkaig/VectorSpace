@@ -24,6 +24,13 @@
   /* curving radius for UI*/
   --radius:12px;
 
+  /*  Status colours*/
+  --State-On: #23905C; 
+  --State-Off:#D93A2B;
+
+  --Success: var(--State-On);
+  --Danger: var(--State-Off);
+
   /*Standardised colours*/
   --Black: #000000;
   --White: #FFFFFF;
