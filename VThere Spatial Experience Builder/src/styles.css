@@ -6,8 +6,8 @@
   color: #e9f0ed;
   background: #f5f5f5;
   font-synthesis: none;
-  --border-edge1:#5C3705;
-  --primary-main1:#E2A845;
+  --border-edge1: #1F1B3A;
+  --primary-main1:#F4F2FB;
   --primary-ghost1:#F7E3C3;
   --secondary-main1:#4294E2;
   --secondary-main2:#B0E0F6;   /*/Mainly for assets and storage? /*/
@@ -35,7 +35,7 @@ body {
     circle at 50% 0%,
     #464242 0,
     #050505 42%,
-    var(--Black)
+    var(--White)
   );
 }
 button,
@@ -61,7 +61,7 @@ button:disabled {
   align-items: center;
   gap: 42px;
   border-bottom: 1px solid var(--border-edge1);
-  background: var(--Black);
+  background: var(--White);
 }
 .brand {
   display: flex;
@@ -150,7 +150,7 @@ button:disabled {
 }
 .left-rail,
 .right-rail {
-  background: rgba(2, 2, 2, 1);
+  background: var(--White);
 }
 .left-rail {
   border-right: 1px solid var(--border-edge1);
@@ -199,7 +199,7 @@ button:disabled {
 }
 .rail-tab span { color: #557278;}
 .rail-tab:hover { color: #b9ccc8; }
-.rail-tab.active { color: #e2eeea; border-bottom-color: #d7b577; background: #142328; }
+.rail-tab.active { color: #e2eeea; border-bottom-color: #d7b577; background: var(--border-edge1); }
 .rail-tab.active span { color: #a8d7ca; }
 .rail-tab:focus-visible { outline: 1px solid #71b7aa; outline-offset: -3px; }
 
@@ -1018,7 +1018,7 @@ button:disabled {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--Black);
+  background: var(--White);
 }
 .runtime-topbar {
   height: 76px;
