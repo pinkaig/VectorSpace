@@ -3,7 +3,7 @@ name: deploy
 # Manual-only for now. This workflow is infrastructure scaffolding, not an
 # active deploy pipeline: it must not run against a real target until a
 # deployment provider/VM owner is confirmed (see
-# "VThere Spatial Experience Builder/SESSION.md" open question: "Which
+# "VectorSpace/SESSION.md" open question: "Which
 # approved deployment provider will own the protected production
 # environment?"). No `push` trigger is wired up on purpose.
 #
@@ -26,7 +26,7 @@ jobs:
     environment: production
     defaults:
       run:
-        working-directory: VThere Spatial Experience Builder
+        working-directory: VectorSpace
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
