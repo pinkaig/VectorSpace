@@ -25,6 +25,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '../apps/editor/src/EditorApplication'
 import { validateAudioCatalog } from './content/audioAssets'
+import './styles/tokens.css'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
