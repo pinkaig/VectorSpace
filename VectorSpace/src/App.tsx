@@ -501,7 +501,11 @@ export default function App() {
   }
 
   if (viewMode === 'login') {
-    return <LoginPage />
+    return (
+      <LoginPage
+        onSignIn={(role) => setViewMode(role === 'teacher' ? 'teacherHome' : 'studentHome')}
+      />
+    )
   }
 
   if (viewMode === 'teacherHome') {
