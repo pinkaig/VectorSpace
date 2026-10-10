@@ -13,7 +13,7 @@
  */
 /******************************************************************************/
 
-import './loginPage.css'
+import './LoginPage.css'
 
 type LoginPageProps = {
   onSignIn: (role: 'teacher' | 'student') => void
