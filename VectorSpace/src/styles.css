@@ -6,34 +6,6 @@
   color: var(--text-main);
   background: var(--bg-page);
   font-synthesis: none;
-
-  --bg-page: #F4F2FB;
-
-  --text-main: #1F1B3A;
-  --text-2: #3B3363;
-
-  --border: #E3DFF3; 
-  --accent: #5B4BD6;   
-
-  --border-edge1: #1F1B3A;
-  --primary-main1:#F4F2FB;
-  --primary-ghost1:#F7E3C3;
-  --secondary-main1:#4294E2;
-  --secondary-main2:#B0E0F6;   /*/Mainly for assets and storage? /*/
-
-  /* curving radius for UI*/
-  --radius:12px;
-
-  /*  Status colours*/
-  --State-On: #23905C; 
-  --State-Off:#D93A2B;
-
-  --Success: var(--State-On);
-  --Danger: var(--State-Off);
-
-  /*Standardised colours*/
-  --Black: #000000;
-  --White: #FFFFFF;
 }
 
 h1,
