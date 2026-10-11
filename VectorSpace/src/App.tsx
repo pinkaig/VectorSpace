@@ -509,7 +509,11 @@ export default function App() {
   }
 
   if (viewMode === 'teacherHome') {
-    return <TeacherHomePage />
+    return(
+    <TeacherHomePage
+      onCreateTemplate={() => setViewMode('templateSetup')}
+      onSignOut={() => setViewMode('login')}
+    />)
   }
 
   if (viewMode === 'templateSetup') {
