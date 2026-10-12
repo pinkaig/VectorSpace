@@ -1,3 +1,24 @@
+/* Shared colours and sizes will live here. */
+
 :root {
-  --color-primary: #5B4BD6;
+  --bg-page: #F4F2FB;
+
+  --text-main: #1F1B3A;
+  --text-2: #3B3363;
+
+  --border: #E3DFF3;
+  --accent: #5B4BD6;
+
+  --border-edge1: #1F1B3A;
+  --primary-main1: #F4F2FB;
+  --primary-ghost1: #F7E3C3;
+  --secondary-main1: #4294E2;
+  --secondary-main2: #B0E0F6;   /* Mainly for assets and storage? */
+
+  /* curving radius for UI */
+  --radius: 12px;
+
+  /* Standardised colours */
+  --Black: #000000;
+  --White: #FFFFFF;
 }

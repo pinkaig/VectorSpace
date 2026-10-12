@@ -81,10 +81,22 @@ import ReferenceViewport from './viewport/ReferenceViewport'
 import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from './content/demoAudioScene'
 import { resolveLocalAudioUrl } from './content/audioResolution'
 import { useStressTestKey } from './debug/stressTest' // STRESS TEST — comment out with the call below
+import LoginPage from './pages/LoginPage'
+import TeacherHomePage from './pages/TeacherHomePage'
+import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
+import StudentHomePage from './pages/StudentHomePage'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
 const logger = createLogger('editor.commands')
+
+type ViewMode =
+  | 'login'
+  | 'teacherHome'
+  | 'templateSetup'
+  | 'studentHome'
+  | 'editor'
+  | 'runtime'
 
 export default function App() {
   const [project, setProject] = useState<ProjectData>(initialProject)
@@ -116,7 +128,7 @@ export default function App() {
       : `Loaded from browser localStorage ${initialLoad.source}`,
   )
   const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
-  const [viewMode, setViewMode] = useState<'editor' | 'runtime'>('editor')
+  const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
@@ -488,12 +500,32 @@ export default function App() {
     )
   }
 
+  if (viewMode === 'login') {
+    return (
+      <LoginPage
+        onSignIn={(role) => setViewMode(role === 'teacher' ? 'teacherHome' : 'studentHome')}
+      />
+    )
+  }
+
+  if (viewMode === 'teacherHome') {
+    return <TeacherHomePage />
+  }
+
+  if (viewMode === 'templateSetup') {
+    return <TeacherTemplateSetupPage />
+  }
+
+  if (viewMode === 'studentHome') {
+    return <StudentHomePage />
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
         <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
-        <div className="top-actions">
+        <div className="top-actions"> {/**** Top bar buttons *****/}
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
