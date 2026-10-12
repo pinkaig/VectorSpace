@@ -38,6 +38,37 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
   await expect(page).toHaveURL(/#\/login$/)
 })
 
+test('an admin reaches every page and can switch the role it acts as', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sign in as an Admin' }).click()
+  await expect(page).toHaveURL(/#\/teacher$/)
+
+  // the strip lists every page, so no sign-out is needed to see another role's home
+  await page.getByRole('link', { name: 'student: Home' }).click()
+  await expect(page).toHaveURL(/#\/student$/)
+  await page.getByRole('link', { name: 'teacher: Template setup' }).click()
+  await expect(page).toHaveURL(/#\/teacher\/template$/)
+
+  // "Act as" goes to that role's home, and the admin controls stay
+  await page.getByLabel('Act as').selectOption('student')
+  await expect(page).toHaveURL(/#\/student$/)
+  await expect(page.getByLabel('Act as')).toHaveValue('student')
+
+  // an admin acting as a student still opens the editor
+  await page.getByRole('link', { name: 'teacher: Editor' }).click()
+  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+})
+
+test('a teacher gets no admin controls and cannot open the student home', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sign in as a Teacher' }).click()
+  await expect(page).toHaveURL(/#\/teacher$/)
+  await expect(page.getByLabel('Act as')).toHaveCount(0)
+
+  await page.goto('/#/student')
+  await expect(page).toHaveURL(/#\/teacher$/)
+})
+
 test('a student cannot open the editor and is sent to the student home', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Sign in as a Student' }).click()

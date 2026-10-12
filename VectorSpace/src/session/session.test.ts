@@ -15,4 +15,13 @@ describe('guardRedirect', () => {
     expect(guardRedirect('student', 'teacher')).toBe('/student')
     expect(guardRedirect('teacher', 'student')).toBe('/teacher')
   })
+
+  it('lets an admin stay on any page, whichever role it is acting as', () => {
+    expect(guardRedirect('student', 'teacher', true)).toBeNull()
+    expect(guardRedirect('teacher', 'student', true)).toBeNull()
+  })
+
+  it('still sends a signed-out visitor to login, admin flag or not', () => {
+    expect(guardRedirect(null, 'teacher', true)).toBe('/login')
+  })
 })

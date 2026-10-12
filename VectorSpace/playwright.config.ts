@@ -21,7 +21,7 @@ export default defineConfig({
           // Headless Chromium in CI has no GPU, so WebGL context creation
           // (new THREE.WebGLRenderer in Viewport.tsx) silently fails unless
           // software rendering is forced on. Without this, RuntimeView's
-          // setup effect throws on mount and "Exit simulation" never renders.
+          // setup effect throws on mount and the "Visitor view" screen never renders.
           args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
         },
       },
