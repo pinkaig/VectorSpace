@@ -2,8 +2,8 @@
  * @file        EditorPage.tsx
  * @author      Sherman Goh Wee Hao
  * @date        2026-09-13
- * @reviewed    2026-09-13
- * @brief       Editor coordinator and React application shell (moved from src/App.tsx).
+ * @reviewed    2026-10-12
+ * @brief       Editor coordinator, mounted at the /editor route (moved from src/App.tsx).
  *
  * @responsibility
  * Owns project editing state, selection, undo/redo, draft persistence,
@@ -19,11 +19,17 @@
  * project, history, future, selectedId, viewMode, assetQuery, commit,
  * updateScene, addObject, updateSelected, moveObject, undo, redo, persist.
  *
+ * @boundary
+ * Does not choose which page shows or who may open it: the route table in src/App.tsx
+ * and src/session/session.tsx do. This page loads its own project when it mounts and
+ * saves it again when it unmounts, so leaving and returning to /editor loses nothing.
+ *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts
  * Links point at the project wiki; migration is still in progress.
  */
 import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
+import { useNavigate } from 'react-router'
 import {
   collectSubtreeIds,
   createCommandTimeline,
@@ -81,22 +87,17 @@ import ReferenceViewport from '../viewport/ReferenceViewport'
 import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from '../content/demoAudioScene'
 import { resolveLocalAudioUrl } from '../content/audioResolution'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
-import LoginPage from './LoginPage'
-import TeacherHomePage from './TeacherHomePage'
-import TeacherTemplateSetupPage from './TeacherTemplateSetupPage'
-import StudentHomePage from './StudentHomePage'
 
 const logger = createLogger('editor.commands')
 
+// which page the visitor is on is the router's job (src/App.tsx); this is only whether
+// the editor or its simulation is showing
 type ViewMode =
-  | 'login'
-  | 'teacherHome'
-  | 'templateSetup'
-  | 'studentHome'
   | 'editor'
   | 'runtime'
 
 export default function EditorPage() {
+  const navigate = useNavigate()
   // Read the saved draft once per mount, not once at import. This page unmounts when the
   // visitor leaves /editor, and coming back must start from the latest autosave; a
   // module-level read would hand back the first visit's data and autosave would then
@@ -520,32 +521,13 @@ export default function EditorPage() {
     )
   }
 
-  if (viewMode === 'login') {
-    return (
-      <LoginPage
-        onSignIn={(role) => setViewMode(role === 'teacher' ? 'teacherHome' : 'studentHome')}
-      />
-    )
-  }
-
-  if (viewMode === 'teacherHome') {
-    return <TeacherHomePage />
-  }
-
-  if (viewMode === 'templateSetup') {
-    return <TeacherTemplateSetupPage />
-  }
-
-  if (viewMode === 'studentHome') {
-    return <StudentHomePage />
-  }
-
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
         <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
         <div className="top-actions"> {/**** Top bar buttons *****/}
+          <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>

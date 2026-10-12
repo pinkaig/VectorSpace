@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from '@playwright/test'
+import { openEditor } from '../openEditor'
 
 const demoProject = JSON.parse(
   readFileSync(fileURLToPath(new URL('./fixtures/text-demo-project.json', import.meta.url)), 'utf8'),
@@ -26,7 +27,7 @@ test('rule-driven text panels render safely and close on Escape in order', async
     localStorage.setItem('vectorspace-project-v1', JSON.stringify(project))
   }, demoProject)
 
-  await page.goto('/')
+  await openEditor(page)
   await page.getByRole('button', { name: 'Run simulation' }).click()
   await expect(page.getByText('Visitor view')).toBeVisible()
 

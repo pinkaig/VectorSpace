@@ -64,8 +64,15 @@ const openDb = (): Promise<IDBDatabase> =>
 // load rather than persisted — assets.ts's resolveModelUrl()/resolveModelUrlModifier() read them live.
 const userModelUrlModifiers: Record<string, (url: string) => string> = {}
 
+// What registerRecord already made this page load, by assetId. The editor page calls
+// loadUserAssets on every mount and can mount more than once per load (leave /editor, come
+// back), so a second registration must hand back the first rather than mint new blob URLs.
+const registeredAssets = new Map<string, AssetDefinition>()
+
 const registerRecord = (record: StoredUserModel): AssetDefinition => {
   const assetId = `${ASSET_ID_PREFIX}${record.id}`
+  const registered = registeredAssets.get(assetId)
+  if (registered) return registered
   const fileMap = new Map<string, string>()
   record.files.forEach((file) => fileMap.set(file.name, URL.createObjectURL(file.blob)))
   const entryUrl = fileMap.get(record.entryFileName)!
@@ -85,7 +92,7 @@ const registerRecord = (record: StoredUserModel): AssetDefinition => {
     }
   }
 
-  return {
+  const asset: AssetDefinition = {
     kind: 'model',
     assetId,
     label: record.name,
@@ -94,6 +101,8 @@ const registerRecord = (record: StoredUserModel): AssetDefinition => {
     searchableText: `${record.name} imported model glb gltf user`.toLowerCase(),
     modelUrl: entryUrl,
   }
+  registeredAssets.set(assetId, asset)
+  return asset
 }
 
 export const getUserModelUrlModifier = (assetId: string): ((url: string) => string) | undefined =>
@@ -177,6 +186,7 @@ const releaseRecordUrls = (assetId: string): void => {
   if (url) URL.revokeObjectURL(url)
   unregisterLocalAsset(assetId)
   delete userModelUrlModifiers[assetId]
+  registeredAssets.delete(assetId)
 }
 
 /**
