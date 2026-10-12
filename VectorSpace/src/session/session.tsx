@@ -22,6 +22,8 @@
  * Sign-in here is temporary: choosing a role is all it takes. Auth0 replaces the inside
  * of SessionProvider (the role then comes from the verified login); useSession() and
  * RequireRole, and so every page that uses them, stay as they are.
+ * This is page routing, not access control. The role sits in the browser, so anyone can
+ * set it; whatever must be protected has to be checked by the server on every request.
  *
  * @dependencies
  * React, react-router (Navigate).
