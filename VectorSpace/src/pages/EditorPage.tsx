@@ -86,8 +86,6 @@ import TeacherHomePage from './TeacherHomePage'
 import TeacherTemplateSetupPage from './TeacherTemplateSetupPage'
 import StudentHomePage from './StudentHomePage'
 
-const initialLoad = loadProjectWithSource()
-const initialProject = initialLoad.project
 const logger = createLogger('editor.commands')
 
 type ViewMode =
@@ -99,6 +97,12 @@ type ViewMode =
   | 'runtime'
 
 export default function EditorPage() {
+  // Read the saved draft once per mount, not once at import. This page unmounts when the
+  // visitor leaves /editor, and coming back must start from the latest autosave; a
+  // module-level read would hand back the first visit's data and autosave would then
+  // write that over the newer draft.
+  const [initialLoad] = useState(loadProjectWithSource)
+  const initialProject = initialLoad.project
   const [project, setProject] = useState<ProjectData>(initialProject)
   const timelineRef = useRef(createCommandTimeline(initialProject, (state) => JSON.parse(JSON.stringify(state)) as ProjectData))
   const [selectedId, setSelectedId] = useState<string | null>(null)
