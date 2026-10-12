@@ -23,6 +23,7 @@
  */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { LayoutTest } from './editorLayoutTest'
 import App from '../apps/editor/src/EditorApplication'
 import { validateAudioCatalog } from './content/audioAssets'
 import './styles/tokens.css'
