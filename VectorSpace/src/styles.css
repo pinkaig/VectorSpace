@@ -1429,3 +1429,17 @@ button:disabled {
   color: #E2A845;
   font-style: italic;
 }
+/* links above the placeholder pages (WithNav in App.tsx); goes when each page has its own */
+.page-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.page-nav a {
+  color: var(--accent);
+}
+.page-nav button {
+  margin-left: auto;
+}

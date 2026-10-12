@@ -20,6 +20,7 @@ import path from 'node:path'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { summarizeRuns, toPhases, type StartupPhases } from './phases'
 import { startupProbeInit, type RawTimeline, type StartupProbe } from './startupProbe'
+import { openEditor } from '../openEditor'
 
 const RUNS = Number(process.env.STARTUP_RUNS ?? 15)
 const SETTLE_MS = 300 // decode count must hold steady this long to count as done
@@ -58,7 +59,7 @@ const coldRun = async (browser: Browser): Promise<StartupPhases> => {
   try {
     const page = await context.newPage()
     await page.addInitScript(startupProbeInit)
-    await page.goto('/')
+    await openEditor(page)
     return await readPhases(page, await waitForSettled(page))
   } finally {
     await context.close()
@@ -70,7 +71,7 @@ const warmRun = async (browser: Browser): Promise<StartupPhases> => {
   try {
     const page = await context.newPage()
     await page.addInitScript(startupProbeInit)
-    await page.goto('/')
+    await openEditor(page)
     await waitForSettled(page) // priming load; its numbers are discarded
     await page.reload()
     return await readPhases(page, await waitForSettled(page))
