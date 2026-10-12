@@ -134,7 +134,7 @@ export const countAudioAssetUses = (project: ProjectData, assetId: string): numb
 // rendered immediately with the unvalidated list and shrank if needed. That
 // downloaded and decoded every bundled clip (about 6 MB) before anything was
 // asked to play, which is what made startup slow, so nothing calls it at launch
-// now: src/content/bundledAudio.test.ts checks the bundled files' headers
+// now: src/content/bundledAudio.test.ts checks each bundled file is whole and valid
 // instead. Call it from a lazy path (e.g. when the sound picker first opens) if a
 // runtime check is wanted again.
 export const validateAudioCatalog = async (
