@@ -86,8 +86,6 @@ import TeacherHomePage from './TeacherHomePage'
 import TeacherTemplateSetupPage from './TeacherTemplateSetupPage'
 import StudentHomePage from './StudentHomePage'
 
-const initialLoad = loadProjectWithSource()
-const initialProject = initialLoad.project
 const logger = createLogger('editor.commands')
 
 type ViewMode =
@@ -99,6 +97,12 @@ type ViewMode =
   | 'runtime'
 
 export default function EditorPage() {
+  // Read the saved draft once per mount, not once at import. This page unmounts when the
+  // visitor leaves /editor, and coming back must start from the latest autosave; a
+  // module-level read would hand back the first visit's data and autosave would then
+  // write that over the newer draft.
+  const [initialLoad] = useState(loadProjectWithSource)
+  const initialProject = initialLoad.project
   const [project, setProject] = useState<ProjectData>(initialProject)
   const timelineRef = useRef(createCommandTimeline(initialProject, (state) => JSON.parse(JSON.stringify(state)) as ProjectData))
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -416,10 +420,26 @@ export default function EditorPage() {
       result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
     if (result !== 'failed') stageProjectSync(nextProject)
   }
+  // true from the moment an autosave is scheduled until it runs
+  const savePendingRef = useRef(false)
   useEffect(() => {
-    const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
+    savePendingRef.current = true
+    const timer = window.setTimeout(() => {
+      savePendingRef.current = false
+      persist(project, 'Autosaved')
+    }, 750)
     return () => window.clearTimeout(timer)
   }, [project])
+  // The autosave above is cancelled when this page unmounts, so an edit made in the last
+  // 750 ms before leaving /editor would never reach storage. If one was still waiting,
+  // this writes the latest project on the way out; leaving with nothing pending writes
+  // and syncs nothing. persist only uses setters and module functions, so the first
+  // render's copy is safe to keep.
+  const latestProjectRef = useRef(project)
+  latestProjectRef.current = project
+  useEffect(() => () => {
+    if (savePendingRef.current) persist(latestProjectRef.current, 'Saved')
+  }, [])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const syncStatusLabel: Record<ProjectSyncStatus, string> = {
