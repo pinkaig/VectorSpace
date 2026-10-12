@@ -6,8 +6,9 @@
  * @brief       Editor coordinator, mounted at the /editor route (moved from src/App.tsx).
  *
  * @responsibility
- * Owns project editing state, selection, undo/redo, draft persistence,
- * editor/runtime mode selection, and composition of the editor panels.
+ * Composes the editor's hooks (src/editor/hooks), owns selection, editor/runtime mode
+ * selection and the panel UI state, and lays out the editor panels. The project value,
+ * undo/redo, autosave, imports and scene edits live in those hooks.
  *
  * @inputs
  * Initial project data from serializer.ts and user events from the editor UI.
@@ -16,8 +17,9 @@
  * Editor or RuntimeView JSX and project updates sent to child components.
  *
  * @members
- * project, history, future, selectedId, viewMode, assetQuery, commit,
- * updateScene, addObject, updateSelected, moveObject, undo, redo, persist.
+ * selectedId, viewMode, assetQuery, syncToken, expandedSceneIds, and the values the
+ * hooks return (project, commit, undo, redo, persist, addObject, updateSelected,
+ * moveObject and the rest).
  *
  * @boundary
  * Does not choose which page shows or who may open it: the route table in src/App.tsx
@@ -28,67 +30,31 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts
  * Links point at the project wiki; migration is still in progress.
  */
-import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
+import { useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
-import {
-  collectSubtreeIds,
-  createCommandTimeline,
-  executeCommand,
-} from '@vectorspace/authoring-engine'
-import { createLogger } from '../../packages/debugging/src/index'
-import {
-  ProjectData,
-  SceneObject,
-  defaultProject,
-  environmentLibrary,
-  makeScene,
-} from '../project/model'
-import {
-  downloadProject,
-  importProjectFile,
-  loadProjectWithSource,
-  saveProject,
-} from '../project/serializer'
-import {
-  getProjectSyncStatus,
-  stageProjectSync,
-  subscribeProjectSync,
-  type ProjectSyncStatus,
-} from '../project/projectSync'
-import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from '../content/assets'
-import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from '../content/userAssets'
-import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets, type AudioAssetDefinition } from '../content/audioAssets'
-import { addUserAudio, isUserAudioAsset, loadUserAudio, removeUserAudio, type AudioImportResult } from '../content/userAudio'
-import {
-  createEditorObject,
-  createEditorScene,
-  duplicateEditorObject,
-  moveEditorObjectCommand,
-  removeEditorObject,
-  renameEditorObject,
-  reparentEditorObject,
-  rotateEditorObjectAboutPivotCommand,
-  rotateEditorObjectCommand,
-  scaleEditorObjectCommand,
-  selectEditorScene,
-  setEditorObjectAssetId,
-  setEditorObjectEnabled,
-  setEditorObjectVisible,
-  transformEditorObjectCommand,
-  updateEditorScene,
-  type EditorCommandBuilder,
-} from '../editor/editorOperations'
-import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../editor/ruleEditorOperations'
+import { collectSubtreeIds } from '@vectorspace/authoring-engine'
+import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
+import { downloadProject, loadProjectWithSource } from '../project/serializer'
+import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
+import { isUserAsset } from '../content/userAssets'
+import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../content/audioAssets'
+import { isUserAudioAsset } from '../content/userAudio'
+import { selectEditorScene } from '../editor/editorOperations'
+import { type ClickRuleChoice } from '../editor/ruleEditorOperations'
 import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
-import { buildSceneTree, grandparentId, previousSibling } from '../editor/sceneTree'
+import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
-import Viewport, { CameraMode, GizmoMode, ViewportHandle } from '../viewport/Viewport'
+import Viewport, { ViewportHandle } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
-import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from '../content/demoAudioScene'
-import { resolveLocalAudioUrl } from '../content/audioResolution'
+import { useEditorHistory } from '../editor/hooks/useEditorHistory'
+import { useViewportSettings } from '../editor/hooks/useViewportSettings'
+import { useAutosave } from '../editor/hooks/useAutosave'
+import { useUserAssets } from '../editor/hooks/useUserAssets'
+import { useUserAudio } from '../editor/hooks/useUserAudio'
+import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
+import { useSceneEditing } from '../editor/hooks/useSceneEditing'
+import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
-
-const logger = createLogger('editor.commands')
 
 // which page the visitor is on is the router's job (src/App.tsx); this is only whether
 // the editor or its simulation is showing
@@ -104,49 +70,31 @@ export default function EditorPage() {
   // write that over the newer draft.
   const [initialLoad] = useState(loadProjectWithSource)
   const initialProject = initialLoad.project
-  const [project, setProject] = useState<ProjectData>(initialProject)
-  const timelineRef = useRef(createCommandTimeline(initialProject, (state) => JSON.parse(JSON.stringify(state)) as ProjectData))
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [gizmoMode, setGizmoMode] = useState<GizmoMode>('select')
-  const [scaleSpace, setScaleSpace] = useState<'world' | 'local'>('world')
-  const [rotateSpace, setRotateSpace] = useState<'world' | 'local'>('world')
-  const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
-  // 'single' (default) is one full-size perspective pane. 'quad' — entered via the
-  // Orthographic button — shows that same pane top-left plus Top/Front/Right references.
-  const [layoutMode, setLayoutMode] = useState<'quad' | 'single'>('single')
-  const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
-  const [showOctaOrb, setShowOctaOrb] = useState(true)
-  const [showAxisIndicator, setShowAxisIndicator] = useState(true)
-  const [showStats, setShowStats] = useState(false)
-  const [resetToken, setResetToken] = useState(0)
   // Bumped when an edit is rejected, to pull the viewport's preview meshes back
   // to ProjectData. See runCommand.
   const [syncToken, setSyncToken] = useState(0)
-  const [savedAt, setSavedAt] = useState(
-    initialLoad.source === 'default'
-      ? 'New local project'
-      : `Loaded ${initialLoad.source} from this browser`,
-  )
-  const [persistenceState, setPersistenceState] = useState(
-    initialLoad.source === 'default'
-      ? 'No local draft found; using clean project'
-      : `Loaded from browser localStorage ${initialLoad.source}`,
-  )
-  const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
+  const bumpSync = () => setSyncToken((value) => value + 1)
+  const { project, timelineRef, commit, runCommand, resetTimeline, undo, redo } = useEditorHistory(initialProject, bumpSync)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const {
+    gizmoMode, setGizmoMode,
+    scaleSpace, setScaleSpace,
+    rotateSpace, setRotateSpace,
+    cameraMode, setCameraMode,
+    layoutMode, setLayoutMode,
+    singleViewOrthographic, setSingleViewOrthographic,
+    showOctaOrb, setShowOctaOrb,
+    showAxisIndicator, setShowAxisIndicator,
+    showStats, setShowStats,
+    resetToken, setResetToken,
+  } = useViewportSettings()
+  const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
-  const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
-  // Bumped whenever userAudio.ts's IndexedDB-backed catalog changes (load, import,
-  // delete) — audioAssetCatalog is mutated in place (see userAudio.ts), so this just
-  // forces the audio sub-list and rule-authoring dropdown to re-render against it.
-  const [audioCatalogToken, setAudioCatalogToken] = useState(0)
-  // Outcome of the last import. `info` is shown while an import is still running;
-  // `optimised` lists imports that were shrunk to fit the real-time budget, each offering
-  // to keep the original instead.
-  const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[]; optimised?: OptimisedImport[] } | null>(null)
-  const [audioNotice, setAudioNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[] } | null>(null)
+  const { visibleAssets, assetNotice, setAssetNotice, importModelFiles, keepOriginalModel, deleteUserAsset } = useUserAssets(project, bumpSync)
+  const { audioCatalogToken, audioNotice, setAudioNotice, importAudioFiles, deleteUserAudio } = useUserAudio(project)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)
   const assetDragDepthRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -155,128 +103,9 @@ export default function EditorPage() {
   const viewportRef = useRef<ViewportHandle>(null)
   const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
-  const visibleAssets = [...assetCatalog, ...userAssets]
+  useBlockStrayFileDrop()
 
-  useEffect(() => {
-    loadUserAssets()
-      .then((assets) => {
-        setUserAssets(assets)
-        // Imported models only get a URL once registered here; any already-placed
-        // instance skipped by an earlier sync needs the viewport to retry now.
-        setSyncToken((value) => value + 1)
-      })
-      .catch((error) => setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not load imported assets'] }))
-    loadUserAudio()
-      .then(() => setAudioCatalogToken((value) => value + 1))
-      .catch((error) => setAudioNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not load imported audio'] }))
-  }, [])
-
-  // A file dropped just outside the library would otherwise make the browser navigate
-  // away to open it, discarding the editor. Only file drags are affected.
-  useEffect(() => {
-    const blockFileDrop = (event: DragEvent) => {
-      if (event.dataTransfer?.types.includes('Files')) event.preventDefault()
-    }
-    window.addEventListener('dragover', blockFileDrop)
-    window.addEventListener('drop', blockFileDrop)
-    return () => {
-      window.removeEventListener('dragover', blockFileDrop)
-      window.removeEventListener('drop', blockFileDrop)
-    }
-  }, [])
-
-  const importModelFiles = async (files: FileList | null | undefined) => {
-    if (!files || files.length === 0) return
-    try {
-      // Any number of .glb files, and .gltf files with their .bin/texture files, in one go.
-      // Names already in the library (built-in or imported) and repeat content are skipped.
-      // Models over the real-time budget are optimised on import
-      const { added, skipped, optimised, unoptimised } = await addUserAssets(
-        Array.from(files),
-        visibleAssets.map((asset) => asset.label),
-        assetCatalog.flatMap((asset) => (asset.modelUrl ? [{ label: asset.label, url: asset.modelUrl }] : [])),
-        (message) => setAssetNotice({ tone: 'info', lines: [message] }),
-      )
-      if (added.length > 0) setUserAssets((prev) => [...prev, ...added])
-      const lines = [
-        ...(added.length > 0 ? [`Added ${added.map((asset) => asset.label).join(', ')}`] : []),
-        ...unoptimised.map((item) => `Imported ${item.fileName} as-is, over the real-time budget: ${item.reason}`),
-        ...skipped.map((item) => `Skipped ${item.fileName}: ${item.reason}`),
-      ]
-      setAssetNotice({ tone: skipped.length > 0 || unoptimised.length > 0 ? 'error' : 'success', lines, optimised })
-    } catch (error) {
-      setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not import these files'] })
-    }
-  }
-  // Replaces an optimised import with its original files. Only offered in the import
-  // notice: the original is held in memory until then, not stored alongside.
-  const keepOriginalModel = async (item: OptimisedImport) => {
-    try {
-      const original = await item.keepOriginal()
-      setUserAssets((prev) => prev.map((asset) => (asset.assetId === original.assetId ? original : asset)))
-      setSyncToken((value) => value + 1)
-      setAssetNotice((notice) => notice && {
-        ...notice,
-        lines: [...notice.lines, `Kept the original ${original.label}`],
-        optimised: notice.optimised?.filter((entry) => entry !== item),
-      })
-    } catch (error) {
-      setAssetNotice({ tone: 'error', lines: [error instanceof Error ? error.message : `Could not restore the original ${item.asset.label}`] })
-    }
-  }
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
-  const deleteUserAsset = async (asset: AssetDefinition) => {
-    // Removing an asset that placed objects still use would leave them with no model
-    // ("Asset unavailable"), so it is refused until those objects are deleted.
-    const uses = countAssetUses(project, asset.assetId)
-    if (uses > 0) {
-      setAssetNotice({ tone: 'error', lines: [`Can't remove ${asset.label}: ${uses} object${uses === 1 ? '' : 's'} in the project use${uses === 1 ? 's' : ''} it. Delete ${uses === 1 ? 'that object' : 'those objects'} first.`] })
-      return
-    }
-    await removeUserAsset(asset.assetId)
-    setUserAssets((prev) => prev.filter((item) => item.assetId !== asset.assetId))
-  }
-
-  /**
-   * Imports every .ogg/.mp3/.wav in `files` (selected via the Import Audio button or
-   * dropped into the Assets panel). addUserAudio() does the real work — existing-name
-   * and duplicate-content checks (mirroring importModelFiles' guards for models) plus
-   * a playability check (actually decoding the bytes with the Web Audio API) that has
-   * no model equivalent, since a GLB either parses or it doesn't at load time, while a
-   * corrupt or mislabelled audio file would otherwise sit in the library looking fine
-   * until a rule tries to play it. Accepted clips are stored in IndexedDB so they
-   * survive a reload; audioAssetCatalog is mutated in place by addUserAudio, so bumping
-   * audioCatalogToken is enough to make the dropdown and this panel pick them up.
-   */
-  const importAudioFiles = async (files: FileList | null | undefined) => {
-    if (!files || files.length === 0) return
-    try {
-      const { added, skipped } = await addUserAudio(
-        Array.from(files),
-        audioAssetCatalog.map((asset) => asset.label),
-        audioAssetCatalog.filter((asset) => !isUserAudioAsset(asset.assetId)).map((asset) => ({ label: asset.label, url: asset.url })),
-      )
-      if (added.length > 0) setAudioCatalogToken((value) => value + 1)
-      const lines = [
-        ...(added.length > 0 ? [`Added ${added.map((asset) => asset.label).join(', ')}`] : []),
-        ...skipped.map((item) => `Skipped ${item.fileName}: ${item.reason}`),
-      ]
-      setAudioNotice({ tone: skipped.length > 0 ? 'error' : 'success', lines })
-    } catch (error) {
-      setAudioNotice({ tone: 'error', lines: [error instanceof Error ? error.message : 'Could not import these audio files'] })
-    }
-  }
-  const deleteUserAudio = async (asset: AudioAssetDefinition) => {
-    // Same reasoning as deleteUserAsset: removing a sound a rule still plays would
-    // leave that rule with nothing to play, so it's refused until the rule is removed.
-    const uses = countAudioAssetUses(project, asset.assetId)
-    if (uses > 0) {
-      setAudioNotice({ tone: 'error', lines: [`Can't remove ${asset.label}: ${uses} rule action${uses === 1 ? '' : 's'} still play${uses === 1 ? 's' : ''} it. Remove that interaction first.`] })
-      return
-    }
-    await removeUserAudio(asset.assetId)
-    setAudioCatalogToken((value) => value + 1)
-  }
 
   const toggleSceneExpanded = (id: string) => {
     setExpandedSceneIds((current) => {
@@ -287,230 +116,16 @@ export default function EditorPage() {
     })
   }
 
-  const commit = (label: string, next: ProjectData) => {
-    timelineRef.current.commit(label, next)
-    setProject(timelineRef.current.current)
-  }
-  /**
-   * The single entry point for transform edits. The command service owns whether
-   * an edit reaches history; this only reflects the outcome into React.
-   *
-   * A rejected edit leaves ProjectData untouched, so the viewport's render
-   * signature would not change and the previewed mesh would stay at the invalid
-   * pose. Bumping syncToken forces the viewport to rebuild from ProjectData.
-   * An 'unchanged' result needs no resync: the mesh is already correct.
-   */
-  const runCommand = (build: EditorCommandBuilder) => {
-    const result = executeCommand(timelineRef.current, build)
-    if (result.status === 'committed') setProject(timelineRef.current.current)
-    if (result.status === 'rejected') {
-      logger.warn('Transform rejected; no history entry was created', { error: result.error })
-      setSyncToken((value) => value + 1)
-    }
-    return result
-  }
-  const resetTimeline = (next: ProjectData) => {
-    timelineRef.current = createCommandTimeline(next, (state) => JSON.parse(JSON.stringify(state)) as ProjectData)
-    setProject(timelineRef.current.current)
-  }
-  const setEnvironment = (environmentId: string) => {
-    commit('Change environment', updateEditorScene(project, project.activeSceneId, { environmentId }).project)
-  }
-  const captureStartView = () => {
-    const pose = viewportRef.current?.getCameraPose()
-    if (!pose) return
-    commit('Set start view', updateEditorScene(project, project.activeSceneId, { startCamera: pose }).project)
-  }
-  const addObject = (asset: AssetDefinition) => {
-    const result = createEditorObject(project, scene.id, asset.kind, asset.assetId)
-    commit('Create object', result.project)
-    setSelectedId(result.objectId ?? null)
-  }
-  const updateSelected = (changes: Partial<SceneObject['transform']>) => {
-    if (!selected) return
-    const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
-    if (builder) runCommand(builder)
-  }
-  const moveObject = (id: string, position: [number, number, number]) => {
-    runCommand(moveEditorObjectCommand(scene.id, id, position))
-  }
-  const scaleObject = (id: string, scale: [number, number, number]) => {
-    runCommand(scaleEditorObjectCommand(scene.id, id, scale))
-  }
-  const rotateObject = (id: string, rotation: [number, number, number], position?: [number, number, number]) => {
-    runCommand(position
-      ? rotateEditorObjectAboutPivotCommand(scene.id, id, rotation, position)
-      : rotateEditorObjectCommand(scene.id, id, rotation))
-  }
-  const renameSelected = (name: string) => {
-    if (!selected) return
-    commit('Rename object', renameEditorObject(project, scene.id, selected.id, name).project)
-  }
-  const setSelectedAssetId = (assetId: string) => {
-    if (!selected) return
-    commit('Change asset ID', setEditorObjectAssetId(project, scene.id, selected.id, assetId).project)
-  }
-  const deleteSelected = () => {
-    if (!selected) return
-    commit('Delete object', removeEditorObject(project, scene.id, selected.id).project)
-    setSelectedId(null)
-  }
-  const duplicateSelected = () => {
-    if (!selected) return
-    const result = duplicateEditorObject(project, scene.id, selected.id)
-    commit('Duplicate object', result.project)
-    setSelectedId(result.objectId ?? null)
-  }
-  const reparentObjectTo = (objectId: string, parentId: string | null) => {
-    commit('Reparent object', reparentEditorObject(project, scene.id, objectId, parentId).project)
-  }
-  const indentObject = (objectId: string) => {
-    const target = previousSibling(scene.objects, objectId)
-    if (target) reparentObjectTo(objectId, target.id)
-  }
-  const outdentObject = (objectId: string) => {
-    const object = scene.objects.find((item) => item.id === objectId)
-    if (object?.parentId === undefined) return
-    reparentObjectTo(objectId, grandparentId(scene.objects, objectId))
-  }
-  const setSelectedVisible = (value: boolean) => {
-    if (!selected) return
-    commit('Set object visibility', setEditorObjectVisible(project, scene.id, selected.id, value).project)
-  }
-
-  // adds a "when clicked" rule with the chosen action to the selected object as one undoable step
-  const addSelectedClickRule = (choice: ClickRuleChoice) => {
-    if (!selected) return
-    commit('Add interaction rule', addEditorClickRule(project, scene.id, selected.id, choice).project)
-  }
-
-  // removes one interaction rule by its id as one undoable step
-  const removeRuleById = (ruleId: string) => {
-    commit('Remove interaction rule', removeEditorRule(project, ruleId).project)
-  }
-
-  const setSelectedEnabled = (value: boolean) => {
-    if (!selected) return
-    commit('Set object enabled state', setEditorObjectEnabled(project, scene.id, selected.id, value).project)
-  }
-  const addScene = () => {
-    const id = `scene-${project.scenes.length + 1}`
-    commit('Create scene', createEditorScene(project, makeScene(id, `Room ${project.scenes.length + 1}`)).project)
-  }
-  const undo = () => {
-    if (!timelineRef.current.canUndo) return
-    timelineRef.current.undo()
-    setProject(timelineRef.current.current)
-  }
-  const redo = () => {
-    if (!timelineRef.current.canRedo) return
-    timelineRef.current.redo()
-    setProject(timelineRef.current.current)
-  }
-  /**
-   * Dual write: Tier 1 (serializer.ts's localStorage save) happens synchronously
-   * first so a reload never loses an edit even if sync never completes; Tier 2
-   * (packages/sync's queue) is then staged for background delivery. Save status
-   * text reflects Tier 1; sync status is tracked separately via syncStatus.
-   */
-  const persist = (nextProject: ProjectData, label: string) => {
-    const result = saveProject(nextProject)
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
-    setPersistenceState(result === 'saved' ? 'Primary + backup ready' : 
-      result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
-    if (result !== 'failed') stageProjectSync(nextProject)
-  }
-  // true from the moment an autosave is scheduled until it runs
-  const savePendingRef = useRef(false)
-  useEffect(() => {
-    savePendingRef.current = true
-    const timer = window.setTimeout(() => {
-      savePendingRef.current = false
-      persist(project, 'Autosaved')
-    }, 750)
-    return () => window.clearTimeout(timer)
-  }, [project])
-  // The autosave above is cancelled when this page unmounts, so an edit made in the last
-  // 750 ms before leaving /editor would never reach storage. If one was still waiting,
-  // this writes the latest project on the way out; leaving with nothing pending writes
-  // and syncs nothing. persist only uses setters and module functions, so the first
-  // render's copy is safe to keep.
-  const latestProjectRef = useRef(project)
-  latestProjectRef.current = project
-  useEffect(() => () => {
-    if (savePendingRef.current) persist(latestProjectRef.current, 'Saved')
-  }, [])
-  useEffect(() => subscribeProjectSync(setSyncStatus), [])
+  const {
+    setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
+    renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
+    indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
+    setSelectedEnabled, addScene,
+  } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
-  const syncStatusLabel: Record<ProjectSyncStatus, string> = {
-    idle: 'Synced',
-    pending: 'Syncing to server…',
-    conflict: 'Sync conflict; local edits kept',
-    failed: 'Sync failed, will retry',
-  }
-  const save = () => persist(project, 'Saved')
-  const loadDraft = () => {
-    const loaded = loadProjectWithSource()
-    setSelectedId(null)
-    resetTimeline(loaded.project)
-    setSavedAt(loaded.source === 'default' ? 'No draft found; opened clean project' : `Loaded ${loaded.source} from this browser`)
-    setPersistenceState(loaded.source === 'default' ? 'No local draft found; using clean project' : `Loaded from browser localStorage ${loaded.source}`)
-  }
-  const importFile = async (file: File | undefined) => {
-    if (!file) return
-    try {
-      const imported = await importProjectFile(file)
-      setSelectedId(null)
-      resetTimeline(imported)
-      setSavedAt(`Imported ${file.name}`)
-      setPersistenceState('Imported JSON; pending autosave to browser localStorage')
-    } catch (error) {
-      setSavedAt('Import rejected')
-      setPersistenceState(error instanceof Error ? error.message : 'Project file could not be verified')
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-  const reset = () => {
-    setSelectedId(null)
-    resetTimeline(defaultProject())
-    setSavedAt('New local draft')
-    setPersistenceState('Pending autosave to browser localStorage')
-  }
-  // True once the demo's rules are present in the project, so the button becomes a
-  // no-op rather than appending a second copy (applyDemoAudioScene is additive and
-  // has no de-dupe of its own — see demoAudioScene.test.ts's note on that).
-  const isAudioDemoLoaded = demoAudioRules.every((rule) => project.rules?.some((existing) => existing.id === rule.id))
-  /**
-   * Appends the bundled audio demo (zones, SFX click targets, When-Do rules,
-   * per-asset volume) into the active scene/project. Opt-in and additive — see
-   * demoAudioScene.ts — rather than baked into defaultProject(), so it never
-   * surprises unrelated work. Guarded to run once: the button disables itself
-   * once loaded (isAudioDemoLoaded) instead of relying on the user not to
-   * click twice.
-   *
-   * Before touching project state, every assetId the demo's rules/audioAssets
-   * reference is checked against the bundled audio catalog (resolveLocalAudioUrl,
-   * the same lookup playback uses) so a renamed or missing bundled file is caught
-   * right here with a clear message, instead of surfacing later as a silent
-   * no-op the first time a rule tries to play it.
-   */
-  const loadAudioDemo = () => {
-    if (isAudioDemoLoaded) return
-    const referencedAssetIds = new Set(demoAudioAssets.map((asset) => asset.assetId))
-    const missing = [...referencedAssetIds].filter((assetId) => !resolveLocalAudioUrl(assetId))
-    if (missing.length > 0) {
-      setSavedAt('Audio demo not loaded')
-      setPersistenceState(`Missing bundled audio for: ${missing.join(', ')} — check public/audio/ and audioAssets.ts`)
-      return
-    }
-    const { project: nextProject, scene: nextScene } = applyDemoAudioScene(project, scene)
-    const nextScenes = nextProject.scenes.map((item) => (item.id === nextScene.id ? nextScene : item))
-    resetTimeline({ ...nextProject, scenes: nextScenes })
-    setSavedAt('Loaded audio demo (zones, rules, SFX targets)')
-    setPersistenceState('Pending autosave to browser localStorage')
-  }
+  const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
+    project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
+  })
 
   if (viewMode === 'runtime') {
     return (
