@@ -1,11 +1,10 @@
 /**
- * @file        colors.ts
+ * @file        LoginPage.tsx
  * @project     Spatial Experience Builder
  * @author      Chloe Lau Rey En
- * @brief       per axis color constants for the gizmo.
- *              Base colors match the app's object palette,
- *              and the hover colors are lighter versions
- *              shown when the cursor is over an arrow
+ * @brief       Temporary login page. Two buttons sign in as a teacher
+ *              or a student and send the user to the matching landing
+ *              page. Real login will replace the buttons later.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -29,8 +28,13 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
         <button className="login-button" onClick={() => onSignIn('teacher')}>
           Sign in as a Teacher
         </button>
-        <button className="login-button login-button secondary" onClick={() => onSignIn('student')}>Sign in as a Student</button>
-      
+        <button
+          className="login-button login-button-secondary"
+          onClick={() => onSignIn('student')}
+        >
+          Sign in as a Student
+        </button>
+
         <p className="login-note">Temporary sign-in. Real login will come later.</p>
       </div>
     </main>
