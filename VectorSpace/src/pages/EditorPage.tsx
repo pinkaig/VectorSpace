@@ -1,9 +1,9 @@
 /**
- * @file        App.tsx
+ * @file        EditorPage.tsx
  * @author      Sherman Goh Wee Hao
  * @date        2026-09-13
  * @reviewed    2026-09-13
- * @brief       Top-level editor coordinator and React application shell.
+ * @brief       Editor coordinator and React application shell (moved from src/App.tsx).
  *
  * @responsibility
  * Owns project editing state, selection, undo/redo, draft persistence,
@@ -29,30 +29,30 @@ import {
   createCommandTimeline,
   executeCommand,
 } from '@vectorspace/authoring-engine'
-import { createLogger } from '../packages/debugging/src/index'
+import { createLogger } from '../../packages/debugging/src/index'
 import {
   ProjectData,
   SceneObject,
   defaultProject,
   environmentLibrary,
   makeScene,
-} from './project/model'
+} from '../project/model'
 import {
   downloadProject,
   importProjectFile,
   loadProjectWithSource,
   saveProject,
-} from './project/serializer'
+} from '../project/serializer'
 import {
   getProjectSyncStatus,
   stageProjectSync,
   subscribeProjectSync,
   type ProjectSyncStatus,
-} from './project/projectSync'
-import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from './content/assets'
-import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from './content/userAssets'
-import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets, type AudioAssetDefinition } from './content/audioAssets'
-import { addUserAudio, isUserAudioAsset, loadUserAudio, removeUserAudio, type AudioImportResult } from './content/userAudio'
+} from '../project/projectSync'
+import { AssetDefinition, assetCatalog, countAssetUses, filterAssets } from '../content/assets'
+import { addUserAssets, isUserAsset, loadUserAssets, removeUserAsset, type OptimisedImport } from '../content/userAssets'
+import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets, type AudioAssetDefinition } from '../content/audioAssets'
+import { addUserAudio, isUserAudioAsset, loadUserAudio, removeUserAudio, type AudioImportResult } from '../content/userAudio'
 import {
   createEditorObject,
   createEditorScene,
@@ -71,20 +71,20 @@ import {
   transformEditorObjectCommand,
   updateEditorScene,
   type EditorCommandBuilder,
-} from './editor/editorOperations'
-import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from './editor/ruleEditorOperations'
-import { WhenDoRuleSection } from './sections/objectPanel/WhenDoRuleSection'
-import { buildSceneTree, grandparentId, previousSibling } from './editor/sceneTree'
-import RuntimeView from '../apps/runtime/src/RuntimeApplication'
-import Viewport, { CameraMode, GizmoMode, ViewportHandle } from './viewport/Viewport'
-import ReferenceViewport from './viewport/ReferenceViewport'
-import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from './content/demoAudioScene'
-import { resolveLocalAudioUrl } from './content/audioResolution'
-import { useStressTestKey } from './debug/stressTest' // STRESS TEST — comment out with the call below
-import LoginPage from './pages/LoginPage'
-import TeacherHomePage from './pages/TeacherHomePage'
-import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
-import StudentHomePage from './pages/StudentHomePage'
+} from '../editor/editorOperations'
+import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../editor/ruleEditorOperations'
+import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
+import { buildSceneTree, grandparentId, previousSibling } from '../editor/sceneTree'
+import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
+import Viewport, { CameraMode, GizmoMode, ViewportHandle } from '../viewport/Viewport'
+import ReferenceViewport from '../viewport/ReferenceViewport'
+import { applyDemoAudioScene, demoAudioAssets, demoAudioRules } from '../content/demoAudioScene'
+import { resolveLocalAudioUrl } from '../content/audioResolution'
+import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
+import LoginPage from './LoginPage'
+import TeacherHomePage from './TeacherHomePage'
+import TeacherTemplateSetupPage from './TeacherTemplateSetupPage'
+import StudentHomePage from './StudentHomePage'
 
 const initialLoad = loadProjectWithSource()
 const initialProject = initialLoad.project
@@ -98,7 +98,7 @@ type ViewMode =
   | 'editor'
   | 'runtime'
 
-export default function App() {
+export default function EditorPage() {
   const [project, setProject] = useState<ProjectData>(initialProject)
   const timelineRef = useRef(createCommandTimeline(initialProject, (state) => JSON.parse(JSON.stringify(state)) as ProjectData))
   const [selectedId, setSelectedId] = useState<string | null>(null)
