@@ -421,17 +421,26 @@ export default function EditorPage() {
       result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')
     if (result !== 'failed') stageProjectSync(nextProject)
   }
+  // true from the moment an autosave is scheduled until it runs
+  const savePendingRef = useRef(false)
   useEffect(() => {
-    const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
+    savePendingRef.current = true
+    const timer = window.setTimeout(() => {
+      savePendingRef.current = false
+      persist(project, 'Autosaved')
+    }, 750)
     return () => window.clearTimeout(timer)
   }, [project])
   // The autosave above is cancelled when this page unmounts, so an edit made in the last
-  // 750 ms before leaving /editor would never reach storage. This writes the latest
-  // project on the way out. persist only uses setters and module functions, so the
-  // first render's copy is safe to keep.
+  // 750 ms before leaving /editor would never reach storage. If one was still waiting,
+  // this writes the latest project on the way out; leaving with nothing pending writes
+  // and syncs nothing. persist only uses setters and module functions, so the first
+  // render's copy is safe to keep.
   const latestProjectRef = useRef(project)
   latestProjectRef.current = project
-  useEffect(() => () => persist(latestProjectRef.current, 'Saved'), [])
+  useEffect(() => () => {
+    if (savePendingRef.current) persist(latestProjectRef.current, 'Saved')
+  }, [])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const syncStatusLabel: Record<ProjectSyncStatus, string> = {
