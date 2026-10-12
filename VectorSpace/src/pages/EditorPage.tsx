@@ -424,6 +424,13 @@ export default function EditorPage() {
     const timer = window.setTimeout(() => persist(project, 'Autosaved'), 750)
     return () => window.clearTimeout(timer)
   }, [project])
+  // The autosave above is cancelled when this page unmounts, so an edit made in the last
+  // 750 ms before leaving /editor would never reach storage. This writes the latest
+  // project on the way out. persist only uses setters and module functions, so the
+  // first render's copy is safe to keep.
+  const latestProjectRef = useRef(project)
+  latestProjectRef.current = project
+  useEffect(() => () => persist(latestProjectRef.current, 'Saved'), [])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const syncStatusLabel: Record<ProjectSyncStatus, string> = {
