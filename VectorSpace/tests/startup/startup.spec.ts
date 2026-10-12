@@ -11,6 +11,10 @@
  *    failures) or relative (warm vs cold, p95 vs median)
  *  - results are written to test-results/startup/ with the environment recorded
  *
+ * The app no longer fetches or decodes any audio at launch (audio loads on demand), so
+ * the audio columns are expected to be zero and the gates below assert exactly that.
+ * The probe still records them so a launch-time audio fetch coming back is caught here.
+ *
  * Run with: npx playwright test -c playwright.startup.config.ts
  * Override run count with STARTUP_RUNS (default 15).
  */
@@ -33,11 +37,12 @@ const waitForSettled = async (page: Page) => {
   // The app's own UI is the ready signal (same selector smoke.spec.ts relies on).
   await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
   const interactiveMs = await page.evaluate(() => performance.now())
-  // Settled = a frame was drawn and no decode is in flight, held for SETTLE_MS.
+  // Settled = a frame was drawn and no decode is in flight, held for SETTLE_MS. There is
+  // no launch-time audio decode to wait for, so zero decodes is a valid settled state.
   const decodeCount = () => page.evaluate(() => (window as unknown as Probe).__startup.snapshot().decodes.length)
   await page.waitForFunction(() => {
     const s = (window as unknown as Probe).__startup.snapshot()
-    return s.firstDrawMs !== null && s.pendingDecodes === 0 && s.decodes.length > 0
+    return s.firstDrawMs !== null && s.pendingDecodes === 0
   })
   let last = await decodeCount()
   for (;;) {
@@ -135,9 +140,9 @@ test('startup: cold vs warm load, repeated', async ({ browser }, testInfo) => {
     for (const [i, r] of runs.entries()) {
       const where = `${label} run ${i}`
       expect(r.firstDrawMs, `${where}: a frame was drawn`).toBeGreaterThan(0)
-      expect(r.audioFileCount, `${where}: audio files were fetched`).toBeGreaterThan(0)
-      expect(r.audioDecodeFailures, `${where}: every audio file decodes`).toBe(0)
-      expect(r.audioDecodeCount, `${where}: one decode per fetched file`).toBe(r.audioFileCount)
+      expect(r.audioFileCount, `${where}: no audio is fetched at launch`).toBe(0)
+      expect(r.audioDecodeCount, `${where}: no audio is decoded at launch`).toBe(0)
+      expect(r.audioDecodeFailures, `${where}: nothing failed to decode`).toBe(0)
     }
   }
   // Relative gates.
