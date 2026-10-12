@@ -6,8 +6,9 @@
  * @brief       Application shell: the route table that decides which page a URL shows.
  *
  * @responsibility
- * Wraps the app in the router and the session, maps each URL to its page, and keeps the
- * pages a visitor may not open behind RequireRole. Owns no editor or project state.
+ * Wraps the app in the router and the session, maps each URL to its page, keeps the
+ * pages a visitor may not open behind RequireRole, and fetches the editor only when
+ * /editor is opened. Owns no editor or project state.
  *
  * @inputs
  * The URL hash (#/login, #/teacher, #/editor, ...) and the signed-in role.
@@ -31,14 +32,17 @@
  * @documentation
  * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Application-Shell-and-Routing
  */
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router'
-import EditorApplication from '../apps/editor/src/EditorApplication'
 import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
 import { RequireRole, SessionProvider, useSession, type Role } from './session/session'
+
+// The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
+// of the app, so it is downloaded when someone opens /editor, not on the login page.
+const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplication'))
 
 // where a signed-in visitor lands when the URL is empty or unknown, signed-out goes to login
 function Landing() {
@@ -82,7 +86,7 @@ export default function App() {
           <Route path="/teacher" element={<RequireRole role="teacher"><WithNav><TeacherHomePage /></WithNav></RequireRole>} />
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><WithNav><StudentHomePage /></WithNav></RequireRole>} />
-          <Route path="/editor" element={<RequireRole role="teacher"><EditorApplication /></RequireRole>} />
+          <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
           <Route path="*" element={<Landing />} />
         </Routes>
       </HashRouter>

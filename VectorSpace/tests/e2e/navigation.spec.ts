@@ -6,6 +6,17 @@ test('a signed-out visit to the editor is sent to login', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign in as a Teacher' })).toBeVisible()
 })
 
+test('the login page downloads neither the editor nor any audio', async ({ page }) => {
+  const requested: string[] = []
+  page.on('request', (request) => requested.push(request.url()))
+  await page.goto('/#/login')
+  await expect(page.getByRole('button', { name: 'Sign in as a Teacher' })).toBeVisible()
+  await page.waitForLoadState('networkidle')
+
+  expect(requested.filter((url) => /EditorPage|EditorApplication/.test(url))).toEqual([])
+  expect(requested.filter((url) => url.includes('/audio/'))).toEqual([])
+})
+
 test('a teacher can walk login, home, editor, home and sign out', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/#\/login$/)
