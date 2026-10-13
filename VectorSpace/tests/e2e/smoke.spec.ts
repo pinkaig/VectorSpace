@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { openEditor } from '../openEditor'
 
 test('loads the editor and enters simulation mode', async ({ page }) => {
-  await page.goto('/')
+  await openEditor(page)
 
   await expect(page).toHaveTitle('VectorSpace')
   await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()

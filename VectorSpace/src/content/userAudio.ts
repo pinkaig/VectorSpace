@@ -56,6 +56,11 @@ const contentTypeFor = (fileName: string): string => {
 
 const registerRecord = (record: StoredUserAudio): AudioAssetDefinition => {
   const assetId = `${ASSET_ID_PREFIX}${record.id}`
+  // The editor page loads these on every mount, and it can mount more than once per page
+  // load (leave /editor, come back). Hand back the entry already in the catalog rather
+  // than mint a second blob URL and a duplicate row.
+  const registered = audioAssetCatalog.find((asset) => asset.assetId === assetId)
+  if (registered) return registered
   const url = URL.createObjectURL(record.blob)
   userAudioUrls[assetId] = url
   // Uploaded clips default to the 'sfx' channel/cache tier: short, author-picked,

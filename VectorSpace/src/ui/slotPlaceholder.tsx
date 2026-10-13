@@ -16,7 +16,7 @@
  */
 /******************************************************************************/
 
-import "./SlotPlaceholder.css";
+import "./slotPlaceholder.css";
 
 type SlotPlaceholderProps = {
   label: string;
