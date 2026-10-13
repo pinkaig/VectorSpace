@@ -1,0 +1,25 @@
+/**
+ * @file        slotPlaceholder.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for the temporary SlotPlaceholder box. Only styles
+ *              the inside; the layout decides where it sits and its size.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.slot-placeholder {
+  display: grid;
+  place-items: center;   /* centres the label */
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--White);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
