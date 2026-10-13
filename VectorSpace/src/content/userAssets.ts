@@ -130,8 +130,8 @@ const putRecord = async (db: IDBDatabase, record: StoredUserModel): Promise<void
   })
 
 const hashBlob = async (blob: Blob): Promise<string> => {
-  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()) // generate a cryptographic hash of the file
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')  // convert the hash to a hex string
 }
 
 // Built-in model files never change during a session, so each is fetched and hashed once.
@@ -225,11 +225,10 @@ export const addUserAssets = async (
     try {
       hashes.set(await hashBuiltIn(model.url), model.label)
     } catch {
-      // ignore: see above
     }
   }
   const takenNames = new Set(existingNames.map(normalizeAssetName))
-
+  // duplicate check
   const result: ImportResult = { added: [], skipped: [], optimised: [], unoptimised: [] }
   for (const entry of entries) {
     const name = entry.name.replace(ENTRY_FILE_PATTERN, '')

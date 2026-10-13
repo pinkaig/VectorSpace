@@ -36,8 +36,8 @@ export function useViewportSettings() {
   // Orthographic button — shows that same pane top-left plus Top/Front/Right references.
   const [layoutMode, setLayoutMode] = useState<'quad' | 'single'>('single')
   const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
-  const [showOctaOrb, setShowOctaOrb] = useState(true)
-  const [showAxisIndicator, setShowAxisIndicator] = useState(true)
+  const [showOctaOrb, setShowOctaOrb] = useState(false)
+  const [showAxisIndicator, setShowAxisIndicator] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [resetToken, setResetToken] = useState(0)
 

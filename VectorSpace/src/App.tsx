@@ -45,6 +45,8 @@ import { RequireRole, SessionProvider, adminOverrideEnabled, useSession, type Ro
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
 // of the app, so it is downloaded when someone opens /editor, not on the login page.
 const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplication'))
+// Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
+const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 
 // where a signed-in visitor lands when the URL is empty or unknown, signed-out goes to login
 function Landing() {
@@ -135,6 +137,7 @@ export default function App() {
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><WithNav><StudentHomePage /></WithNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
+          {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           <Route path="*" element={<Landing />} />
         </Routes>
       </HashRouter>
