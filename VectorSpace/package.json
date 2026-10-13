@@ -21,6 +21,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test --project=chromium",
+    "test:startup": "playwright test -c playwright.startup.config.ts",
+    "check": "npm run typecheck && npm test && npm run test:e2e",
     "test:perf": "playwright test --project=perf --workers=1 --reporter=list",
     "test:perf:gpu": "playwright test --project=perf-gpu --workers=1 --reporter=list"
   },

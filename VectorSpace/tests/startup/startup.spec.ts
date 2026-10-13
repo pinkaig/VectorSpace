@@ -16,7 +16,8 @@
  * The probe still records them so a launch-time audio fetch coming back is caught here.
  *
  * Run with: npx playwright test -c playwright.startup.config.ts
- * Override run count with STARTUP_RUNS (default 15).
+ * Default is 3 runs, enough for the structural gates (they are exact counts, not timings).
+ * For numbers worth quoting, run STARTUP_RUNS=15 (the spread gate only applies from 10 runs).
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -26,9 +27,10 @@ import { summarizeRuns, toPhases, type StartupPhases } from './phases'
 import { startupProbeInit, type RawTimeline, type StartupProbe } from './startupProbe'
 import { openEditor } from '../openEditor'
 
-const RUNS = Number(process.env.STARTUP_RUNS ?? 15)
+const RUNS = Number(process.env.STARTUP_RUNS ?? 3)
 const SETTLE_MS = 300 // decode count must hold steady this long to count as done
 const MAX_SPREAD_RATIO = 3 // p95 over median on first draw; loose on purpose
+const MIN_RUNS_FOR_SPREAD = 10 // a p95 over fewer runs is just the slowest run
 const VIEWPORT = { width: 1280, height: 720 }
 
 type Probe = { __startup: StartupProbe }
@@ -149,7 +151,7 @@ test('startup: cold vs warm load, repeated', async ({ browser }, testInfo) => {
   expect(summary.warm.audioTransferBytes.median, 'warm load transfers no more audio than cold').toBeLessThanOrEqual(
     summary.cold.audioTransferBytes.median,
   )
-  for (const [label, s] of [['cold', summary.cold], ['warm', summary.warm]] as const) {
+  for (const [label, s] of RUNS >= MIN_RUNS_FOR_SPREAD ? ([['cold', summary.cold], ['warm', summary.warm]] as const) : []) {
     expect(s.firstDrawMs.spreadRatio, `${label}: first-draw p95/median spread`).toBeLessThanOrEqual(MAX_SPREAD_RATIO)
   }
 })

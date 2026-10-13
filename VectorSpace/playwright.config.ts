@@ -5,10 +5,15 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: 'html',
+  // 'list' prints each failure with its line in the terminal; the html report would also
+  // open a browser and hold the terminal. CI keeps html for the uploaded artefact.
+  reporter: process.env.CI ? 'html' : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    trace: 'on-first-retry',
+    // kept only for a failing test, so there is something to open without re-running it
+    // (npx playwright show-trace test-results/<test>/trace.zip)
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   projects: [
     {

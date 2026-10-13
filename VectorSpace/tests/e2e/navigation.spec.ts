@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { signInAs } from '../openEditor'
 
 test('a signed-out visit to the editor is sent to login', async ({ page }) => {
   await page.goto('/#/editor')
@@ -59,10 +60,10 @@ test('an admin reaches every page and can switch the role it acts as', async ({ 
   await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
 })
 
+// The two guard checks sign in through storage (signInAs): the walk above already covers the buttons.
 test('a teacher gets no admin controls and cannot open the student home', async ({ page }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Sign in as a Teacher' }).click()
-  await expect(page).toHaveURL(/#\/teacher$/)
+  await signInAs(page, 'teacher')
+  await page.goto('/#/teacher')
   await expect(page.getByLabel('Act as')).toHaveCount(0)
 
   await page.goto('/#/student')
@@ -70,10 +71,7 @@ test('a teacher gets no admin controls and cannot open the student home', async 
 })
 
 test('a student cannot open the editor and is sent to the student home', async ({ page }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Sign in as a Student' }).click()
-  await expect(page).toHaveURL(/#\/student$/)
-
+  await signInAs(page, 'student')
   await page.goto('/#/editor')
   await expect(page).toHaveURL(/#\/student$/)
 })
