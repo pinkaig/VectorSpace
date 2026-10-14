@@ -1,39 +1,17 @@
 /**
- * @file        App.tsx
- * @author      Sherman Goh Wee Hao
- * @date        2026-09-13
- * @reviewed    2026-10-12
- * @brief       Application shell: the route table that decides which page a URL shows.
+ * @file       App.tsx
+ * @project    Spatial Experience Builder
+ * @author     Sherman Goh Wee Hao
+ * @author     Goh Pin Kai
+ * @brief      Defines the application shell and manages page routing,
+ *             user sessions, role-based navigation, route protection,
+ *             and lazy loading of the 3D editor.
  *
- * @responsibility
- * Wraps the app in the router and the session, maps each URL to its page, keeps the
- * pages a visitor may not open behind RequireRole, and fetches the editor only when
- * /editor is opened. For an admin session it lists every page and offers the role switch.
- * Owns no editor or project state.
- *
- * @inputs
- * The URL hash (#/login, #/teacher, #/editor, ...), the signed-in role and the admin flag.
- *
- * @outputs
- * The page for the current route, and a redirect when the role may not open it.
- *
- * @members
- * App, Landing, SignIn, WithNav, pageLinks, the route table.
- *
- * @boundary
- * The editor itself is src/pages/EditorPage.tsx, reached through the apps/editor
- * boundary. Who is signed in lives in src/session/session.tsx.
- *
- * @dependencies
- * React, react-router (hash router), the pages in src/pages.
- *
- * @status
- * Current. Page links live in WithNav until each page has its own navigation. The admin
- * override (every page, switchable role) is temporary and goes with the temporary sign-in.
- *
- * @documentation
- * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Application-Shell-and-Routing
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/****************************************************************************************************/
 import { lazy, Suspense, type ReactNode } from 'react'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router'
 import LoginPage from './pages/LoginPage'

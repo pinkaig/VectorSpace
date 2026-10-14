@@ -1,39 +1,16 @@
-/// <reference types="vite/client" />
 /**
- * @file        environments.ts
- * @author      Goh Pin Kai
- * @date        2026-10-04
- * @brief       Environment (room) loading, from glTF files and procedural builders.
+ * @file       environments.ts
+ * @project    Spatial Experience Builder
+ * @author     Goh Pin Kai
+ * @brief      Manages 3D environment loading from GLB files and procedural
+ *             builders, including asset URL resolution, loading progress,
+ *             error handling, and resource cleanup.
  *
- * @responsibility
- * Resolves an environment id to either a bundled glTF/GLB file loaded via
- * GLTFLoader or a procedurally built scene, and reports progress and failure
- * through the supplied handlers.
- *
- * @inputs
- * An environment id and optional load handlers.
- *
- * @outputs
- * A LoadedEnvironment containing the Three.js object to add to the scene.
- *
- * @members
- * resolveEnvironmentUrl, LoadedEnvironment, EnvironmentLoadHandlers,
- * listProceduralIds, loadEnvironment.
- *
- * @boundary
- * Owns environment loading only. Scene composition and lifecycle belong to
- * viewport/environmentController.ts.
- *
- * @dependencies
- * three, three GLTFLoader, ./model.
- *
- * @status
- * Current implementation, used by the M1 build.
- *
- * @documentation
- * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
- * Links point at the project wiki; migration is still in progress.
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/****************************************************************************************************/
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { EnvironmentDefinition, findEnvironment } from '../project/model'
@@ -102,13 +79,6 @@ const loadGlb = (definition: EnvironmentDefinition, handlers: EnvironmentLoadHan
       (error) => reject(error instanceof Error ? error : new Error('Failed to load environment file')),
     )
   })
-
-/**
- * Loads an environment by id, reporting progress and surfacing a recoverable
- * error rather than throwing into the render loop. Required states per
- * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Library-Contract: loading, progress, error, retry, missing-asset.
- * Links point at the project wiki; migration is still in progress.
- */
 export const loadEnvironment = async (environmentId: string, handlers: EnvironmentLoadHandlers = {}): Promise<LoadedEnvironment> => {
   const definition = findEnvironment(environmentId)
   handlers.onProgress?.(0)
