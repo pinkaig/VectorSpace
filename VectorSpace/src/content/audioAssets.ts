@@ -130,8 +130,13 @@ export const countAudioAssetUses = (project: ProjectData, assetId: string): numb
 // could be a renamed .txt, a half-finished download, or a corrupt export. This
 // confirms each catalog entry by actually decoding it, and drops anything that
 // fails so it can never be picked in a rule and then fail silently at play time.
-// Runs once at app startup (see src/main.tsx); not awaited there since the UI
-// should render immediately with the unvalidated list and shrink if needed.
+// It used to run once at app startup (from src/main.tsx), not awaited so the UI
+// rendered immediately with the unvalidated list and shrank if needed. That
+// downloaded and decoded every bundled clip (about 6 MB) before anything was
+// asked to play, which is what made startup slow, so nothing calls it at launch
+// now: src/content/bundledAudio.test.ts checks each bundled file is whole and valid
+// instead. Call it from a lazy path (e.g. when the sound picker first opens) if a
+// runtime check is wanted again.
 export const validateAudioCatalog = async (
   catalog: AudioAssetDefinition[] = audioAssetCatalog,
 ): Promise<{ removed: AudioAssetDefinition[] }> => {

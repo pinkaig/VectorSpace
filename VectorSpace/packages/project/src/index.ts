@@ -117,6 +117,13 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     url: 'env/room_4.glb',
     description: 'Exhibition room 4.',
   },
+  {
+    id: 'env-room-5',
+    name: 'Room 5',
+    kind: 'glb',
+    url: 'env/the_hallwyl_museum_1st_floor_combined.glb',
+    description: 'Test environment.',
+  },
 ]
 
 export const defaultEnvironmentId =
