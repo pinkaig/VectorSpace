@@ -22,3 +22,42 @@
   --Black: #000000;
   --White: #FFFFFF;
 }
+
+/* ── V3 tokens (from the V3 Build Manual) ─────────────────────────────
+   New pages use these. The old tokens above stay until the editor is
+   moved over, so nothing existing breaks. */
+:root {
+  --ink: #1F1B3A;
+  --ink-2: #3B3363;
+  --text-muted: #5E5878;
+  --purple-500: #5B4BD6;
+  --purple-600: #4A3BC4;
+  --purple-700: #3326A0;
+  --purple-300: #B9AEDB;
+  --purple-100: #EEEAFB;
+  --purple-50: #FAF9FE;
+  --bg-app: #F4F2FB;
+  --surface: #FFFFFF;
+  --border-strong: #D5CEF2;
+  --green-500: #2E9E6A;
+  --green-800: #165E3D;
+  --green-50: #E3F5EC;
+  --amber-500: #F2A93B;
+  --amber-50: #FFF5E3;
+  --amber-200: #F3D29C;
+  --amber-900: #5C3A00;
+  --red-500: #D93A2B;
+  --red-700: #A3341F;
+  --overlay: rgba(31, 27, 58, 0.45);
+  --shadow-popup: 0 24px 60px rgba(31, 27, 58, 0.3);
+  --radius-panel: 22px;
+  --radius-popup: 24px;
+  --radius-card: 18px;
+  --radius-box: 16px;
+  --radius-btn-lg: 14px;
+  --radius-btn: 12px;
+  --radius-btn-sm: 10px;
+  --radius-pill: 999px;
+  --font-heading: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+}
