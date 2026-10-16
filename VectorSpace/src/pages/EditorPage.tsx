@@ -192,6 +192,7 @@ export default function EditorPage() {
     <main className="app-shell">
       <header className="topbar">
         <div className="project-title"><strong>{project.name}</strong></div>
+        {/**Add drop down for the room details here */}
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
         <nav className="Tutorial-steps">
@@ -209,11 +210,10 @@ export default function EditorPage() {
               title={title}
               onClick={() => viewStep(n)}
             >
-              <span className="button-num">{n}</span>
+            <span className="button-num">{n}</span>
               {label}
             </button>
                   )})}
-
         </nav>
           <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
@@ -538,14 +538,13 @@ export default function EditorPage() {
       </div>
       <section className="catalogue">
         <div className="catalogue-head">
-          <span><h2>Catalogue</h2></span>
+          <h2>Catalogue</h2>
             <div className="catalogue-types" role="tablist">
               {catalogueCategories.map((item)=>{
                /* wait for asset panel assistance on moving over? const selected = item.id=== category*/
                   const selected = item.id ===category
                   const classes =['chip']
                   if(selected) classes.push('is-selected')
-
                   return (
                     <button
                     className={classes.join(' ')}

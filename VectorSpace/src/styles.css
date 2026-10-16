@@ -131,7 +131,24 @@ button:disabled {
 }
 
 
-.button-num
+.Tutorial-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.Tutorial-steps .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px 0 6px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.Tutorial-steps .button-num
 {
   background: var(--White);
   color: var(--accent);
@@ -141,16 +158,16 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius);
+  border-radius: 50%;
   font-size: 11px;
 }
 
-.button--viewing
+.Tutorial-steps .button--viewing
 {
   background: var(--accent);
   color: var(--White);
 }
-.button--green
+.Tutorial-steps .button--green
 {
   background: green;
   color: var(--White);
@@ -177,29 +194,59 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
 }
-.catalogue-head >[role="tabpanel"] {
-flex: 1;
-min-width: none;
+.catalogue-head {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas:
+    "title types search"
+    "list  list  list";
+  align-items: center;
+  gap: 12px;
 }
 
-.catalogue-list {
-  /* Card = 38px preview + 2 x 7px padding + 2 x 1px border = 54px. Four cards and
-     their three gaps show at once; the rest of the library scrolls. */
-  padding: 0 px;
-  margin-bottom: 0px;
-  gap: 7px;
+.catalogue-head > h2 {
+  grid-area: title;
+  margin: 0;
+}
+
+.catalogue-types {
+  grid-area: types;
   display: flex;
-  gap: var(--asset-list-gap);
-  grid-auto-columns: calc(var(--asset)*5);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.catalogue-head > [role="tabpanel"] {
+  display: contents;
+}
+
+.catalogue-head > [role="tabpanel"] > input {
+  grid-area: search;
+  justify-self: end;
+  width: 240px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--White);
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.catalogue-head > [role="tabpanel"] > .catalogue-list {
+  grid-area: list;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 7px;
   max-height: none;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-edge1) transparent;
 }
 
-.catalogue-list .asset-card{
+.catalogue-list .asset-card {
   flex: 0 0 auto;
   min-width: 100px;
 }
@@ -220,6 +267,10 @@ min-width: none;
   color: var(--White);
   border-color: var(--text-2);
 }
+
+
+
+
 
 .workspace {
   display: grid;
