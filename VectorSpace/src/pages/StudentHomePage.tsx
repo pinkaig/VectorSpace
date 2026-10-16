@@ -1,3 +1,12 @@
 export default function StudentHomePage() {
-  return <h1>Student Home placeholder</h1>
+  return( 
+    <main>
+      <header className="topbar">
+    
+      </header>
+  <section>
+    
+  </section>
+    </main>
+  )
 }

@@ -129,6 +129,34 @@ button:disabled {
   color: var(--text-2);
   padding-inline: 8px;
 }
+
+
+.button-num
+{
+  background: var(--White);
+  color: var(--accent);
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-size: 11px;
+}
+
+.button--viewing
+{
+  background: var(--accent);
+  color: var(--White);
+}
+.button--green
+{
+  background: green;
+  color: var(--White);
+}
+
+
 .button.ghost {
   border-color: var(--border);
   background: var(--White);

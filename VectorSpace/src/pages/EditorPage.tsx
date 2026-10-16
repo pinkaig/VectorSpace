@@ -62,7 +62,46 @@ type ViewMode =
   | 'editor'
   | 'runtime'
 
+
+/* Variables and data for "Tutorial" where we can give students a step-by-step for giving them instructions on how to use */
+
+export type TutorialStep = 1|2|3|4
+export type CurrentStep = 1|2|3|4|5
+
+export const tutorialSteps: {step: TutorialStep; label:string}[] =[
+  {step: 1, label:'Place things'},
+  {step: 2, label:'Add info'},
+  {step: 3, label:'Make it react'},
+  {step: 4, label:'Play and share'}
+]
+
+/** Testing only const Change this to advance the tutorial buttons*/
+const TESTING_TUTORIAL: CurrentStep=2
+/** Testing only const*/
+
+export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
+  const [currentStep, setCurrentStep] = useState<CurrentStep>(startAt)
+  const [TUTStep, setTUTStep] = useState<TutorialStep>(Math.min(startAt, 4) as TutorialStep)
+ 
+  // Finishing the current step opens the next one and moves the view to it.
+  const completeStep = (n: TutorialStep) => {
+    if (n !== currentStep) return
+    setCurrentStep((n + 1) as CurrentStep)
+    setTUTStep(Math.min(n + 1, 4) as TutorialStep)
+  }
+
+  const viewStep = (n: TutorialStep) => {
+    if (n <= currentStep) setTUTStep(n)
+  }
+
+  return { currentStep, TUTStep, completeStep, viewStep }
+}
+
+
+
+
 export default function EditorPage() {
+
   const navigate = useNavigate()
   // Read the saved draft once per mount, not once at import. This page unmounts when the
   // visitor leaves /editor, and coming back must start from the latest autosave; a
@@ -127,6 +166,9 @@ export default function EditorPage() {
     project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
   })
 
+const { currentStep, TUTStep, viewStep } = useSimpleSteps()
+
+
   if (viewMode === 'runtime') {
     return (
       <RuntimeView
@@ -142,6 +184,35 @@ export default function EditorPage() {
         <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
         <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
         <div className="top-actions"> {/**** Top bar buttons *****/}
+
+        <nav className="Tutorial-steps">
+        {tutorialSteps.map(({ step: n, label }) => {
+          const locked = n > currentStep
+          const viewing = n === TUTStep
+          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
+          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
+          return (
+            <button
+              key={n}
+              className={`button button--${colour}`}
+              aria-current={viewing ? 'step' : undefined}
+              disabled={locked}
+              title={title}
+              onClick={() => viewStep(n)}
+            >
+              <span className="button-num">
+                {n}
+              </span>
+              {label}
+            </button>
+          )
+
+        })}
+
+        </nav>
+
+
+
           <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
