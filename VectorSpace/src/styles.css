@@ -1,8 +1,7 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap');
-
+/* Fredoka & Nunito are loaded by the links in index.html; families live in tokens.css. */
 :root {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
+  font-weight: 400;
   color: var(--text-main);
   background: var(--bg-page);
   font-synthesis: none;
@@ -11,7 +10,8 @@
 h1,
 h2,
 h3 {
-    font-family: "Titillium Web", sans-serif;
+    font-family: var(--font-display);
+    font-weight: 600;
     color: var(--text-main);
 }
 * {
@@ -30,8 +30,16 @@ body {
   overflow: hidden;
 }
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+/* Anything clickable or labelling is Nunito ExtraBold; classes may still set their own. */
+button,
+label,
+th {
+  font-weight: 800;
 }
 button {
   cursor: pointer;
@@ -76,6 +84,8 @@ button:disabled {
 }
 .brand strong {
   display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.02em;
 }
@@ -96,12 +106,14 @@ button:disabled {
 .eyebrow {
   display: block;
   color: var(--text-main);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
+  font-weight: 800;
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .project-title strong {
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
@@ -327,7 +339,7 @@ button:disabled {
   background: transparent;
   color: var(--text-main);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
 }
 .rail-tab span { color: var(--text-main);}
 .rail-tab:hover { color: var(--text-main); }
@@ -553,52 +565,11 @@ button:disabled {
   border-radius: var(--radius);
 
 }
-.stage-toolbar {
-  height: 55px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-}
-.mode-switch {
-  display: flex;
-  gap: 3px;
-    border: 1px var(--border);
-  border-radius: var(--radius);
-  background: var(--White);
-}
-.mode {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-2);
-  padding: 7px 9px;
-  font-size: 10px;
-}
-.mode.active {
-  border-color: var(--accent);
-  color: var(--White);
-  background: var(--accent);
-}
-.stage-meta {
-  color: var(--text-2);
-  font-family: "DM Mono", monospace;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 .divider {
   width: 1px;
   height: 13px;
   background: var(--border);
   margin: 0 3px;
-}
-/* .stage-toolbar and .runtime-topbar have no opaque background of their own, so this
-   divider sits directly over whatever body background shows through — lighten it here
-   without touching the shared .divider rule other panels (with an opaque backing) use. */
-.stage-meta .divider {
-  background: var(--border);
 }
 .viewport {
   flex: 1;
@@ -636,7 +607,7 @@ button:disabled {
   top: 8px;
   left: 8px;
   color: var(--text-main);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -651,7 +622,7 @@ button:disabled {
   right: 16px;
   bottom: 16px;
   color: var(--text-2);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 9px;
   border-radius: var(--radius);
   background: var(--White);
@@ -694,8 +665,12 @@ button:disabled {
   padding: 12px 18px;
   color: var(--text-2);
   border-top: 1px solid var(--border);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 9px;
+}
+.stage-footer-hint {
+  margin-left: auto;
+  color: var(--text-main);
 }
 .stage-footer kbd {
   color: var(--text-main);
@@ -803,7 +778,7 @@ button:disabled {
 }
 .asset-copy strong {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .asset-copy small {
   font-size: 9px;
@@ -909,13 +884,13 @@ button:disabled {
   position: absolute;
   left: 7px;
   top: 9px;
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 9px;
 }
 .number-field input {
   padding-left: 20px;
   padding-right: 3px;
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 10px;
 }
 .inspector-empty {
@@ -941,38 +916,160 @@ button:disabled {
   color: var(--accent);
   font-size: 22px;
 }
-.view-toolbar {
+/* ── Floating viewport controls (editor stage corners) ─────────────── */
+.stage-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 18px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(11, 18, 24, 0.5);
-  flex-wrap: wrap;
+  flex-direction: column;
 }
-.env-select {
+.floating-controls {
+  position: absolute;
+  z-index: 2;
   display: flex;
-  align-items: center;
   gap: 8px;
-  color: var(--text-2);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  pointer-events: none; /* the gaps between groups stay clickable for the canvas */
 }
-.env-select select {
+/* --float-gap is set inline on .stage-canvas from EditorPage's FLOAT_GAP. */
+.floating-controls.top-left { top: var(--float-gap); left: var(--float-gap); }
+.floating-controls.top-right { top: var(--float-gap); right: var(--float-gap); }
+.floating-controls.bottom-right { bottom: var(--float-gap); right: var(--float-gap); }
+.floating-controls.bottom-left {
+  bottom: var(--float-gap);
+  left: var(--float-gap);
+  flex-direction: column;
+  align-items: flex-start;
+}
+.float-group {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: var(--White);
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(40, 40, 90, 0.12);
+}
+/* Advanced dropdown: one short row per setting, opening upward from its button. */
+.float-menu {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+}
+.float-menu-label {
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 800;
+}
+.float-segment {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: 8px;
+}
+.float-segment button {
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 11px;
+  font-weight: 800;
+}
+.float-segment button.active {
+  background: var(--accent);
+  color: var(--White);
+}
+/* 4-pane layout: each pane is a quarter of the stage, so the floating groups shrink. */
+.stage-canvas.compact .floating-controls { gap: 6px; }
+.stage-canvas.compact .float-group {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+}
+.stage-canvas.compact .float-button,
+.stage-canvas.compact .float-select select {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+.stage-canvas.compact .float-button.icon {
+  width: 28px;
+  padding: 0;
+  font-size: 15px;
+}
+.stage-canvas.compact .float-label { font-size: 11px; padding: 0 4px; }
+.stage-canvas.compact .float-menu { padding: 6px 8px; gap: 4px 8px; }
+.float-label {
+  padding: 0 6px 0 8px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 800;
+}
+.float-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   background: var(--White);
   color: var(--text-main);
-  padding: 6px 8px;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.float-button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.float-button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--White);
+}
+.float-button.icon {
+  width: 38px;
+  justify-content: center;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.float-button kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 9px;
+}
+.float-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+.float-select {
+  display: flex;
+  align-items: center;
+}
+.float-select select {
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--White);
+  color: var(--text-main);
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 800;
   outline: none;
 }
-.view-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
+/* Built-in viewport overlays move clear of the floating groups. */
+.stage-canvas .viewport-stats { top: 64px; }
 .octaorb-backdrop,
 .axis-indicator-backdrop {
   position: absolute;
@@ -998,7 +1095,7 @@ button:disabled {
   background: rgba(9, 15, 19, 0.92);
   border: 1px solid #f4c94f;
   color: #f4c94f;
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1019,14 +1116,14 @@ button:disabled {
   border-radius: 6px;
   background: rgba(9, 15, 19, 0.8);
   color: #cdddd9;
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 .viewport-stats b {
   color: #f4c94f;
-  font-weight: 500;
+  font-weight: 700;
 }
 .asset-status-badge {
   position: absolute;
@@ -1042,7 +1139,7 @@ button:disabled {
   border: 1px solid #2a444a;
   border-radius: 6px;
   color: #cdddd9;
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 10px;
 }
 .asset-status-loading {
@@ -1066,7 +1163,7 @@ button:disabled {
   border: 1px solid var(--secondary-main1);
   border-radius: 5px;
   background: rgba(9, 15, 19, 0.8);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
@@ -1158,7 +1255,7 @@ button:disabled {
 .storage-note {
   flex-basis: 100%;
   color: var(--secondary-main2);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 8px;
 }
 .runtime-shell {
@@ -1186,7 +1283,7 @@ button:disabled {
   align-items: center;
   gap: 6px;
   color: #81989b;
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 10px;
 }
 .runtime-actions kbd {
@@ -1231,7 +1328,7 @@ button:disabled {
   gap: 8px;
   background: var(--White);
   color: var(--text-2);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 10px;
   pointer-events: none;
 }
@@ -1251,15 +1348,16 @@ button:disabled {
 .asset-tools input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 2px;
-  background: #4D5D53;
-  color: var(--White);
-  padding: 8px 9px;
+  border-radius: var(--radius);
+  background: var(--White);
+  color: var(--text-main);
+  padding: 9px 12px;
   outline: none;
-  font-size: 10px;
+  font-size: 12px;
 }
 .asset-tools input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 75, 214, 0.15); /* --accent at low alpha */
 }
 .asset-empty {
   color: var(--secondary-main2);
@@ -1462,7 +1560,7 @@ button:disabled {
 /* the rule's place in the run order, gold like the other labels but quieter than the sentence */
 .rule-number {
   color: var(--primary-main1);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 10px;
 }
 
@@ -1561,7 +1659,7 @@ button:disabled {
   color: var(--accent);
 }
 .text-panel-body code {
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-body);
   font-size: 12px;
 }
 .text-panel-error {

@@ -33,7 +33,7 @@ export function useViewportSettings() {
   const [rotateSpace, setRotateSpace] = useState<'world' | 'local'>('world')
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
   // 'single' (default) is one full-size perspective pane. 'quad' — entered via the
-  // Orthographic button — shows that same pane top-left plus Top/Front/Right references.
+  // Advanced options -> orthographic button — shows that same pane top-left plus Top/Front/Right references.
   const [layoutMode, setLayoutMode] = useState<'quad' | 'single'>('single')
   const [singleViewOrthographic, setSingleViewOrthographic] = useState(false)
   const [showOctaOrb, setShowOctaOrb] = useState(false)

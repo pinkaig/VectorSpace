@@ -1,28 +1,16 @@
 /**
- * @file        interactionController.ts
- * @brief       Owns viewport pointer, picking, drag, and keyboard interaction.
+ * @file       interactionController.ts
+ * @project    Spatial Experience Builder
+ * @author     Goh Pin Kai
+ * @brief      Handles viewport input and interactions, including object
+ *             selection, raycasting, gizmo transformations, camera navigation,
+ *             pointer lock, keyboard controls, and runtime interaction events.
  *
- * @responsibility
- * Translates browser input into selection and transform previews, manages free,
- * axis, scale, and rotation drag sessions, and commits only the final value on
- * pointer release through narrow callbacks.
- *
- * @inputs
- * Three.js camera, controls, raycaster, render groups, gizmo handles, camera
- * orientation refs, current viewport data, and authoring callbacks.
- *
- * @outputs
- * Registered browser listeners, renderer-side previews, commit callbacks, and
- * explicit disposal of all listeners.
- *
- * @ownership
- * The controller owns interaction session state, not ProjectData, history, or
- * persistence. The editor callback decides how a committed action is recorded.
- *
- * @documentation
- * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
- * Authoring boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Authoring-Engine
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/****************************************************************************************************/
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneObject } from '../../project/model'
@@ -89,6 +77,10 @@ export interface ViewportInteractionCallbacks {
   applyOrientation: (direction: THREE.Vector3, up: THREE.Vector3) => void
   snapTo: (direction: THREE.Vector3) => void
   setOrthographic: (value: boolean) => void
+  // F key: frame the selected object (orbit pivot + zoom), keeping the view direction.
+  focusSelected: () => void
+  // H key: frame the whole room (environment + every object), keeping the view direction.
+  frameAll: () => void
   showOctaOrbTooltip: (label: string, clientX: number, clientY: number) => void
   hideOctaOrbTooltip: () => void
   /**
@@ -526,6 +518,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     // never a runtime trigger. `repeat` is dropped so holding a key fires once.
     if (callbacks.onRuntimeEvent && !isTypingTarget(event.target) && !event.repeat && callbacks.getData().runtimeActive) {
       callbacks.onRuntimeEvent({ kind: 'key', payload: { code: event.code, key: event.key } })
+    }
+    // F/H keys frame the selected object or the whole room, but only in orbit mode
+    if ((event.code === 'KeyF' || event.code === 'KeyH') && interactive && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && !isTypingTarget(event.target)) {
+      const data = callbacks.getData()
+      if (!data.runtimeActive && data.cameraMode === 'orbit' && !dragSessions.isActive()) {
+        if (event.code === 'KeyF') callbacks.focusSelected()
+        else callbacks.frameAll()
+      }
     }
     if (!isTypingTarget(event.target) && ((event.code in MOVE_KEYS) || (event.code in VERTICAL_KEYS) || SPRINT_KEYS.has(event.code))) { if (callbacks.getData().cameraMode === 'walk') event.preventDefault(); pressedKeys.add(event.code) } }
   const onKeyUp = (event: KeyboardEvent) => { pressedKeys.delete(event.code) }

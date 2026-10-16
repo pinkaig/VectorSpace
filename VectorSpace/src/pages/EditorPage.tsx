@@ -1,36 +1,20 @@
 /**
- * @file        EditorPage.tsx
- * @author      Sherman Goh Wee Hao
- * @date        2026-09-13
- * @reviewed    2026-10-12
- * @brief       Editor coordinator, mounted at the /editor route (moved from src/App.tsx).
+ * @file       EditorPage.tsx
+ * @project    Spatial Experience Builder
+ * @author     Sherman Goh Wee Hao
+ * @author     Goh Pin Kai
+ * @brief      Coordinates the 3D editor interface, including scene management,
+ *             object selection and transformations, asset importing,
+ *             viewport controls, project saving, undo/redo operations,
+ *             and switching between editor and simulation modes.
  *
- * @responsibility
- * Composes the editor's hooks (src/editor/hooks), owns selection, editor/runtime mode
- * selection and the panel UI state, and lays out the editor panels. The project value,
- * undo/redo, autosave, imports and scene edits live in those hooks.
- *
- * @inputs
- * Initial project data from serializer.ts and user events from the editor UI.
- *
- * @outputs
- * Editor or RuntimeView JSX and project updates sent to child components.
- *
- * @members
- * selectedId, viewMode, assetQuery, syncToken, expandedSceneIds, and the values the
- * hooks return (project, commit, undo, redo, persist, addObject, updateSelected,
- * moveObject and the rest).
- *
- * @boundary
- * Does not choose which page shows or who may open it: the route table in src/App.tsx
- * and src/session/session.tsx do. This page loads its own project when it mounts and
- * saves it again when it unmounts, so leaving and returning to /editor loses nothing.
- *
- * @documentation
- * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts
- * Links point at the project wiki; migration is still in progress.
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
-import { useRef, useState, type DragEvent as ReactDragEvent } from 'react'
+/****************************************************************************************************/
+
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
@@ -44,8 +28,9 @@ import { type ClickRuleChoice } from '../editor/ruleEditorOperations'
 import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
-import Viewport, { ViewportHandle } from '../viewport/Viewport'
+import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
+import { overlayDims } from '../viewport/editing/overlayWidgets'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
@@ -109,6 +94,18 @@ export const catalogueCategories: { id: CatalogueIDTypes; label: string; singula
 ]
 
 
+const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
+  { preset: 'angled', label: 'Angled' },
+  { preset: 'top', label: 'Top' },
+  { preset: 'front', label: 'Front' },
+  { preset: 'side', label: 'Side' },
+]
+// The viewport's snapped-face label for each preset; any other snap (LEFT, edges) lights none.
+const FACE_LABEL_PRESET: Record<string, ViewPreset> = { TOP: 'top', FRONT: 'front', RIGHT: 'side' }
+const WALL_CUT_LABEL: Record<WallCut, string> = { full: 'Full', half: 'Half', low: 'Low' }
+const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low: 'full' } 
+// Gap between a floating control group and the corner widget it sits beside.
+const FLOAT_GAP = 5
 
 export default function EditorPage() {
 
@@ -150,7 +147,29 @@ export default function EditorPage() {
   const modelFileInputRef = useRef<HTMLInputElement>(null)
   const audioFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
-  const scene = project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
+  const [walls, setWalls] = useState<WallCut>('full')
+  // Snapped face reported by the viewport; null means a free (angled) view.
+  const [viewLabel, setViewLabel] = useState<string | null>(null)
+  const activeViewPreset: ViewPreset | null = viewLabel === null ? 'angled' : FACE_LABEL_PRESET[viewLabel] ?? null
+  // Floating groups step aside for the OctaOrb (top-right) and axis indicator (bottom-left),
+  // which only cover the stage corners in the single layout.
+  const dims = overlayDims(false)
+  const cornerWidgetsShown = layoutMode === 'single' && cameraMode === 'orbit'
+  const octaOrbClearance = cornerWidgetsShown && showOctaOrb ? dims.octaOrb + FLOAT_GAP : FLOAT_GAP
+  const axisClearance = cornerWidgetsShown && showAxisIndicator ? dims.axisIndicator + FLOAT_GAP : FLOAT_GAP
+  // The Advanced menu closes on any press outside its corner group, like a dropdown.
+  // Only the menu closes: its settings stay as chosen.
+  const [advancedMenuOpen, setAdvancedMenuOpen] = useState(false)
+  const advancedMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!advancedMenuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!advancedMenuRef.current?.contains(event.target as Node)) setAdvancedMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [advancedMenuOpen])
+  const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
   useBlockStrayFileDrop()
 
@@ -458,41 +477,8 @@ export default function EditorPage() {
           </div>
         </aside>
         <section className="center-stage">
-          <div className="stage-toolbar">
-            <div className="mode-switch">
-              <button className={gizmoMode === 'select' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('select')}>Select</button>
-              <button className={gizmoMode === 'move' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('move')}>Move</button>
-              <button className={gizmoMode === 'rotate' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('rotate')}>Rotate</button>
-              <button className={gizmoMode === 'scale' ? 'mode active' : 'mode'} onClick={() => setGizmoMode('scale')}>Scale</button>
-            </div>
-            {gizmoMode === 'scale' && (
-              <div className="mode-switch">
-                <button className={scaleSpace === 'world' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('world')} title="Scale handles stay aligned to world X/Y/Z">World</button>
-                <button className={scaleSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Local</button>
-              </div>
-            )}
-            {gizmoMode === 'rotate' && (
-              <div className="mode-switch">
-                <button className={rotateSpace === 'world' ? 'mode active' : 'mode'} onClick={() => setRotateSpace('world')} title="Rotation rings stay aligned to world X/Y/Z">World</button>
-                <button className={rotateSpace === 'local' ? 'mode active' : 'mode'} onClick={() => setRotateSpace('local')} title="Rotation rings rotate with the object, so they stay on its actual axes">Local</button>
-              </div>
-            )}
-            <div className="stage-meta"><span className="live-dot" />Editor preview <span className="divider" /> {scene.name}</div>
-          </div>
-          <div className="view-toolbar">
-            <label className="env-select"><span>Environment</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
-            <div className="mode-switch"><button className={cameraMode === 'orbit' ? 'mode active' : 'mode'} onClick={() => setCameraMode('orbit')}>Orbit</button><button className={cameraMode === 'walk' ? 'mode active' : 'mode'} onClick={() => setCameraMode('walk')}>Walk</button></div>
-            <div className="mode-switch">
-              <button className={layoutMode === 'single' ? 'mode active' : 'mode'} onClick={() => { setLayoutMode('single'); setSingleViewOrthographic(false) }} title="One full-size perspective view">Perspective</button>
-              <button className={layoutMode === 'quad' ? 'mode active' : 'mode'} onClick={() => setLayoutMode('quad')} title="Perspective + Top + Front + Right, all at once">Orthographic</button>
-            </div>
-            <div className="mode-switch">
-              <button className={showOctaOrb ? 'mode active' : 'mode'} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">OctaOrb</button>
-              <button className={showAxisIndicator ? 'mode active' : 'mode'} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
-              <button className={showStats ? 'mode active' : 'mode'} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
-            </div>
-            <div className="view-actions"><button className="button subtle" onClick={() => setResetToken((value) => value + 1)}>Reset view</button><button className="button subtle" onClick={captureStartView}>Set start view</button></div>
-          </div>
+          {/* The viewport fills the stage; every control floats over one of its corners. */}
+          <div className={layoutMode === 'quad' ? 'stage-canvas compact' : 'stage-canvas'} style={{ '--float-gap': `${FLOAT_GAP}px` } as CSSProperties}>
           {/*
             Keep both layouts mounted and toggle visibility with CSS.
             This avoids recreating WebGL contexts and reloading shaders,
@@ -525,12 +511,89 @@ export default function EditorPage() {
               showStats={showStats}
               textAssets={project.textAssets ?? []}
               compactOverlays={layoutMode === 'quad'}
+              walls={walls}
+              onViewLabelChange={setViewLabel}
+              showHint={false}
             />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="top" label="TOP" />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
           </div>
-          <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}</div>
+
+          {/* Top-left: transform tools */}
+          <div className="floating-controls top-left">
+            <div className="float-group">
+              <button className={gizmoMode === 'select' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('select')}>Select</button>
+              <button className={gizmoMode === 'move' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('move')}>Move</button>
+              <button className={gizmoMode === 'rotate' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('rotate')}>Rotate</button>
+              <button className={gizmoMode === 'scale' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('scale')}>Scale</button>
+            </div>
+            {gizmoMode === 'scale' && (
+              <div className="float-group">
+                <button className={scaleSpace === 'world' ? 'float-button active' : 'float-button'} onClick={() => setScaleSpace('world')} title="Scale handles stay aligned to world X/Y/Z">World</button>
+                <button className={scaleSpace === 'local' ? 'float-button active' : 'float-button'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Local</button>
+              </div>
+            )}
+            {gizmoMode === 'rotate' && (
+              <div className="float-group">
+                <button className={rotateSpace === 'world' ? 'float-button active' : 'float-button'} onClick={() => setRotateSpace('world')} title="Rotation rings stay aligned to world X/Y/Z">World</button>
+                <button className={rotateSpace === 'local' ? 'float-button active' : 'float-button'} onClick={() => setRotateSpace('local')} title="Rotation rings rotate with the object, so they stay on its actual axes">Local</button>
+              </div>
+            )}
+          </div>
+
+          {/* Top-right: view angles, left of the OctaOrb so they never cover it */}
+          <div className="floating-controls top-right" style={{ right: octaOrbClearance }}>
+            <div className="float-group">
+              <span className="float-label">View</span>
+              {VIEW_PRESETS.map(({ preset, label }) => (
+                <button key={preset} className={activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom-left: environment and start view, right of the axis indicator */}
+          <div className="floating-controls bottom-left" style={{ left: axisClearance }} ref={advancedMenuRef}>
+            {advancedMenuOpen && (
+              <div className="float-group float-menu">
+                <span className="float-menu-label">Camera</span>
+                <div className="float-segment">
+                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')}>Orbit</button>
+                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')}>Walk</button>
+                </div>
+                <span className="float-menu-label">Layout</span>
+                <div className="float-segment">
+                  <button className={layoutMode === 'single' ? 'active' : ''} onClick={() => { setLayoutMode('single'); setSingleViewOrthographic(false) }} title="One full-size perspective view">Single</button>
+                  <button className={layoutMode === 'quad' ? 'active' : ''} onClick={() => setLayoutMode('quad')} title="Perspective + Top + Front + Right, all at once">Quad</button>
+                </div>
+                <span className="float-menu-label">Show</span>
+                <div className="float-segment">
+                  <button className={showOctaOrb ? 'active' : ''} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">Orb</button>
+                  <button className={showAxisIndicator ? 'active' : ''} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
+                  <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
+                </div>
+              </div>
+            )}
+            <div className="float-group">
+              <label className="float-select"><span className="float-label">Room</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
+              <button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
+              <button className="float-button" onClick={captureStartView} title="Use the current camera as this scene's start view">Set start view</button>
+              <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>
+            </div>
+          </div>
+
+          {/* Bottom-right: zoom, walls, framing */}
+          <div className="floating-controls bottom-right">
+            <div className="float-group">
+              <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(0.8)} title="Zoom in">+</button>
+              <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(1.25)} title="Zoom out">−</button>
+              <button className="float-button" onClick={() => setWalls(NEXT_WALL_CUT[walls])} title="Cut the room's walls down so you can see inside">Walls: {WALL_CUT_LABEL[walls]}</button>
+              <button className="float-button" disabled={!selected || cameraMode !== 'orbit'} onClick={() => viewportRef.current?.focusSelected()} title="Frame the selected object">◎ Focus <kbd>F</kbd></button>
+              <button className="float-button" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.frameAll()} title="Frame the whole room">⛶ Whole room <kbd>H</kbd></button>
+            </div>
+          </div>
+          </div>
+          <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
         </section>
         <aside className="right-rail">
           <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} onAssetIdChange={setSelectedAssetId} onAddClickRule={addSelectedClickRule} rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)} onRemoveRule={removeRuleById} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
