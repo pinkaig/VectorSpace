@@ -191,8 +191,7 @@ export default function EditorPage() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
-        <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
+        <div className="project-title"><strong>{project.name}</strong></div>
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
         <nav className="Tutorial-steps">
@@ -221,15 +220,6 @@ export default function EditorPage() {
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
           <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
-          <button className="button ghost" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
-          <input
-            ref={fileInputRef}
-            className="hidden-file-input"
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => void importFile(event.target.files?.[0])}
-          />
-          <button className="button ghost" onClick={() => downloadProject(project)}>Export JSON</button>
           <button className="button primary" onClick={save}>Save project</button>
           <button className="button primary" onClick={() => setViewMode('runtime')}>Run simulation</button>
         </div>
@@ -548,7 +538,7 @@ export default function EditorPage() {
       </div>
       <section className="catalogue">
         <div className="catalogue-head">
-          <h2>Catalogue</h2>
+          <span><h2>Catalogue</h2></span>
             <div className="catalogue-types" role="tablist">
               {catalogueCategories.map((item)=>{
                /* wait for asset panel assistance on moving over? const selected = item.id=== category*/
