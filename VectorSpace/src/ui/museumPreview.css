@@ -1,0 +1,22 @@
+/**
+ * @file        museumPreview.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for MuseumPreview. Fills whatever box the parent gives it.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.museum-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;   /* image fills the box without stretching */
+}
+
+.museum-preview-empty {
+  background: var(--bg-app);
+}
