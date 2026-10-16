@@ -166,6 +166,61 @@ button:disabled {
   color: var(--White);
   border-color: var(--accent);
 }
+
+.catalogue {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+}
+.catalogue-head >[role="tabpanel"] {
+flex: 1;
+min-width: none;
+}
+
+.catalogue-list {
+  /* Card = 38px preview + 2 x 7px padding + 2 x 1px border = 54px. Four cards and
+     their three gaps show at once; the rest of the library scrolls. */
+  padding: 0 px;
+  margin-bottom: 0px;
+  gap: 7px;
+  display: flex;
+  gap: var(--asset-list-gap);
+  grid-auto-columns: calc(var(--asset)*5);
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-edge1) transparent;
+}
+
+.catalogue-list .asset-card{
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--White);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.chip.is-selected {
+  background: var(--Black);
+  color: var(--White);
+  border-color: var(--text-2);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 238px minmax(520px, 1fr) 286px;

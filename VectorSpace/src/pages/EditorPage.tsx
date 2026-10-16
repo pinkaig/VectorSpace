@@ -56,6 +56,7 @@ import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
+
 // which page the visitor is on is the router's job (src/App.tsx); this is only whether
 // the editor or its simulation is showing
 type ViewMode =
@@ -96,7 +97,16 @@ export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
 
   return { currentStep, TUTStep, completeStep, viewStep }
 }
+/**End of Tutorial assisting code for the UI */
 
+/** Catalogue assistance code */
+export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
+
+export const catalogueCategories: { id: CatalogueIDTypes; label: string; singular: string }[] = [
+    { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
+    { id: 'signs', label: 'signs', singular: 'sign' },
+    { id: 'misc', label: 'misc', singular: 'misc' },
+]
 
 
 
@@ -166,8 +176,8 @@ export default function EditorPage() {
     project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
   })
 
-const { currentStep, TUTStep, viewStep } = useSimpleSteps()
-
+  const { currentStep, TUTStep, viewStep } = useSimpleSteps()
+  const [category,setCategory]=useState<CatalogueIDTypes>('exhibits')
 
   if (viewMode === 'runtime') {
     return (
@@ -200,19 +210,12 @@ const { currentStep, TUTStep, viewStep } = useSimpleSteps()
               title={title}
               onClick={() => viewStep(n)}
             >
-              <span className="button-num">
-                {n}
-              </span>
+              <span className="button-num">{n}</span>
               {label}
             </button>
-          )
-
-        })}
+                  )})}
 
         </nav>
-
-
-
           <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
@@ -543,6 +546,55 @@ const { currentStep, TUTStep, viewStep } = useSimpleSteps()
           <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} onAssetIdChange={setSelectedAssetId} onAddClickRule={addSelectedClickRule} rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)} onRemoveRule={removeRuleById} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
+      <section className="catalogue">
+        <div className="catalogue-head">
+          <h2>Catalogue</h2>
+            <div className="catalogue-types" role="tablist">
+              {catalogueCategories.map((item)=>{
+               /* wait for asset panel assistance on moving over? const selected = item.id=== category*/
+                  const selected = item.id ===category
+                  const classes =['chip']
+                  if(selected) classes.push('is-selected')
+
+                  return (
+                    <button
+                    className={classes.join(' ')}
+                    key ={item.label}
+                    role="tab"
+                    title={`${item.label}`}
+                    onClick={()=>{setCategory(item.id);}}
+                    >{item.id}</button>
+                  )
+              })}
+            </div>
+            <div role="tabpanel">
+              {/**add no items found part here */}
+              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                <div className="catalogue-list">
+                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                    <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                      {isUserAsset(asset.assetId)
+                        ? (() => {
+                            const uses = countAssetUses(project, asset.assetId)
+                            return (
+                              <span
+                                className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
+                                aria-disabled={uses > 0}
+                                title={uses > 0 ? `In use by ${uses} object${uses === 1 ? '' : 's'} - delete ${uses === 1 ? 'it' : 'them'} to remove this asset` : 'Remove imported asset'}
+                                onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset) }}
+                              >×</span>
+                            )
+                          })()
+                        : <span className="add-symbol">+</span>}
+                    </button>
+                  ))}
+                  {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+                </div>
+            </div>
+        </div>
+      </section>
     </main>
   )
 }
