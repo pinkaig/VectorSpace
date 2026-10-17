@@ -4,14 +4,14 @@ import { signInAs } from '../openEditor'
 test('a signed-out visit to the editor is sent to login', async ({ page }) => {
   await page.goto('/#/editor')
   await expect(page).toHaveURL(/#\/login$/)
-  await expect(page.getByRole('button', { name: 'Sign in as a Teacher' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Educator/ })).toBeVisible()
 })
 
 test('the login page downloads neither the editor nor any audio', async ({ page }) => {
   const requested: string[] = []
   page.on('request', (request) => requested.push(request.url()))
   await page.goto('/#/login')
-  await expect(page.getByRole('button', { name: 'Sign in as a Teacher' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Educator/ })).toBeVisible()
   await page.waitForLoadState('networkidle')
 
   expect(requested.filter((url) => /EditorPage|EditorApplication/.test(url))).toEqual([])
@@ -22,7 +22,7 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
   await page.goto('/')
   await expect(page).toHaveURL(/#\/login$/)
 
-  await page.getByRole('button', { name: 'Sign in as a Teacher' }).click()
+  await page.getByRole('button', { name: /Educator/ }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
 
   await page.getByRole('link', { name: 'Editor' }).click()
@@ -41,7 +41,7 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
 
 test('an admin reaches every page and can switch the role it acts as', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Sign in as an Admin' }).click()
+  await page.getByRole('button', { name: /VThere Admin/ }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
 
   // the strip lists every page, so no sign-out is needed to see another role's home

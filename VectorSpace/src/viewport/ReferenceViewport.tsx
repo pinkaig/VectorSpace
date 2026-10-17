@@ -1,12 +1,17 @@
 /**
- * @file        ReferenceViewport.tsx
- * @brief       Read-only orthographic reference pane used by the quad-view layout.
+ * @file       ReferenceViewport.tsx
+ * @project    Spatial Experience Builder
+ * @author     Goh Pin Kai
+ * @brief      Renders read-only orthographic reference views for the quad-view
+ *             layout, including top, front, and right perspectives,
+ *             scene object synchronization, environment loading,
+ *             pan and zoom controls, and optimized rendering.
  *
- * @responsibility
- * Renders the scene's objects from one fixed axis-aligned angle (top/front/right) for
- * spatial reference alongside the main interactive Viewport. Pan and zoom only — no
- * selection, dragging, or gizmo; that all happens in the main perspective pane.
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/****************************************************************************************************/
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -14,6 +19,7 @@ import { SceneObject } from '../project/model'
 import { loadEnvironment } from '../content/environments'
 import { disposeObjectResources, syncArtefacts } from './syncArtefacts'
 import { createRenderScheduler } from './renderScheduler'
+import { FLOOR_BACKGROUND, FLOOR_SIZE, createFloorGrid } from './floorGrid'
 
 export type ReferenceAxis = 'top' | 'front' | 'right'
 
@@ -33,17 +39,15 @@ const AXIS_VIEW: Record<ReferenceAxis, { direction: THREE.Vector3; up: THREE.Vec
 // GridHelper lies flat in the XZ plane by default, which is only useful for the top pane —
 // front/right look at that plane edge-on and would see just a flat line. Rotate it into the
 // plane each pane actually faces (XY for front, ZY for right). Front/right are pushed back to
-// the far edge of the world grid (rather than through the origin) so the helper's bright
-// center-cross lines land on the backdrop's edge instead of cutting through the middle of
-// whatever's selected.
-const GRID_SIZE = 16
-const GRID_EDGE = GRID_SIZE / 2
+// the far edge of the world grid (rather than through the origin) so the backdrop sits behind
+// every object instead of cutting through the middle of whatever's selected.
+const GRID_EDGE = FLOOR_SIZE / 2
 const AXIS_GRID: Record<ReferenceAxis, { rotation: [number, number, number]; position: [number, number, number]; opacity: number }> = {
-  top: { rotation: [0, 0, 0], position: [0, 0.01, 0], opacity: 1 },
+  top: { rotation: [0, 0, 0], position: [0, 0, 0], opacity: 1 },
   // Dimmed relative to top — as a backdrop wall rather than a floor, it would otherwise
   // compete visually with the objects in front of it.
-  front: { rotation: [Math.PI / 2, 0, 0], position: [0, 0, -GRID_EDGE], opacity: 0.35 },
-  right: { rotation: [0, 0, Math.PI / 2], position: [-GRID_EDGE, 0, 0], opacity: 0.35 },
+  front: { rotation: [Math.PI / 2, 0, 0], position: [0, 0, -GRID_EDGE], opacity: 0.6 },
+  right: { rotation: [0, 0, Math.PI / 2], position: [-GRID_EDGE, 0, 0], opacity: 0.6 },
 }
 const FRUSTUM_HALF_HEIGHT = 9
 const FOCUS = new THREE.Vector3(0, 0.7, 0)
@@ -60,7 +64,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x1e1e1e)
+    scene.background = new THREE.Color(FLOOR_BACKGROUND)
 
     const environmentGroup = new THREE.Group()
     environmentGroupRef.current = environmentGroup
@@ -77,13 +81,12 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     mount.appendChild(renderer.domElement)
 
     scene.add(new THREE.HemisphereLight(0xdbe9e7, 0x17222d, 2.2))
-    const grid = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0x35515a, 0x1a2b34)
-    grid.rotation.set(...AXIS_GRID[axis].rotation)
-    grid.position.set(...AXIS_GRID[axis].position)
-    const gridMaterial = grid.material as THREE.Material
-    gridMaterial.transparent = true
-    gridMaterial.opacity = AXIS_GRID[axis].opacity
-    scene.add(grid)
+    // Same green floor as the main viewport in floorGrid.ts, stood up as a backdrop wall
+    // for the front/right panes.
+    const floor = createFloorGrid(AXIS_GRID[axis].opacity)
+    floor.group.rotation.set(...AXIS_GRID[axis].rotation)
+    floor.group.position.set(...AXIS_GRID[axis].position)
+    scene.add(floor.group)
 
     const objectsGroup = new THREE.Group()
     scene.add(objectsGroup)
@@ -162,8 +165,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = null
       disposeObjectResources(objectsGroup)
-      grid.geometry.dispose()
-      ;(grid.material as THREE.Material).dispose()
+      floor.dispose()
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }
