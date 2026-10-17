@@ -25,6 +25,9 @@ from .models import Actor
 
 security = HTTPBearer(auto_error=True)
 
+# A real Auth0 subject looks like "auth0|abc..."; "dev|" can never collide with one.
+DEV_PREFIX = "dev|"
+
 
 class TokenPayload(dict):
     """Decoded JWT claims."""
@@ -79,7 +82,10 @@ def decode_token(token: str) -> TokenPayload:
 def get_current_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> TokenPayload:
-    return decode_token(credentials.credentials)
+    token = credentials.credentials
+    if get_settings().auth_dev_bypass and token.startswith(DEV_PREFIX):
+        return TokenPayload({"sub": token})
+    return decode_token(token)
 
 
 def get_current_actor(
