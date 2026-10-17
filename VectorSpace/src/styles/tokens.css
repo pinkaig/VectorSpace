@@ -15,6 +15,10 @@
   --secondary-main1: #4294E2;
   --secondary-main2: #B0E0F6;   /* Mainly for assets and storage? */
 
+  /* display using fredoka font & body using nunito font*/
+  --font-display: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
   /* curving radius for UI */
   --radius: 12px;
 

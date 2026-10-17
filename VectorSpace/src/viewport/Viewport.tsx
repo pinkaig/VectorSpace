@@ -1,27 +1,17 @@
 /**
- * @file        Viewport.tsx
- * @author      Sherman Goh Wee Hao
- * @date        2026-09-13
- * @reviewed    2026-09-13
- * @brief       React-to-Three.js 3D viewport bridge.
+ * @file       Viewport.tsx
+ * @project    Spatial Experience Builder
+ * @author     Sherman Goh Wee Hao
+ * @author     Goh Pin Kai
+ * @brief      Bridges React and Three.js to manage the 3D viewport,
+ *             including scene rendering, camera controls, object
+ *             interactions, transformation gizmos, and runtime systems.
  *
- * @responsibility
- * Creates the Three.js scene, reconstructs project objects, handles editor
- * selection and floor movement, and owns renderer lifecycle cleanup.
- *
- * @inputs
- * ViewportProps: objects, selectedId, onSelect, onMove, and interactive mode.
- *
- * @outputs
- * A React mount element containing a WebGL canvas and optional editor hint.
- *
- * @members
- * mountRef, dataRef, scene, camera, renderer, objectsGroup, resize,
- * synchronisation helpers, ResizeObserver, and animation frame.
- *
- * @documentation
- * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/****************************************************************************************************/
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -61,7 +51,8 @@ import { createZoneVisuals } from '../viewport/zoneVisuals'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from '../viewport/ViewportOverlay'
 import { syncGizmo } from '../viewport/editing/syncGizmo'
 import { loadEnvironmentIntoGroup } from '../viewport/environmentController'
-import { applyCameraPose, applyViewOrientation, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
+import { createFloorGrid } from './floorGrid'
+import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
 import { createViewportInteractionController } from '../viewport/editing/interactionController'
 import { EYE_HEIGHT } from '../viewport/viewportTypes'
 import { EDGE_VIEWS, FACE_VIEWS, matchEdgeView, matchFaceView } from '../viewport/editing/viewSnap'
@@ -133,6 +124,60 @@ interface ViewportProps {
   compactOverlays?: boolean
   /** Shows the FPS / object count */
   showStats?: boolean
+  /** How much of the environment's walls to show; lower settings clip it horizontally. */
+  walls?: WallCut
+  /** Reports the current snapped view (e.g., 'TOP', 'FRONT'), or null when the camera is freely rotated. */
+  onViewLabelChange?: (label: string | null) => void
+  /** Draws the hint text in the viewport corner; the editor shows it in its footer instead. */
+  showHint?: boolean
+}
+
+// What the pointer and keys do right now, for the hint line in the viewport or editor footer.
+export const viewportHintText = (cameraMode: CameraMode, interactive: boolean, gizmoMode: GizmoMode): string | null =>
+  cameraMode === 'walk'
+    ? interactive
+      ? 'Drag to look : WASD to walk : X/C to fly up/down : Shift to sprint : Click to select'
+      : 'Click to look around : WASD to walk : Shift to sprint : Esc to exit : R to restart'
+    : !interactive
+      ? null
+      : gizmoMode === 'move'
+        ? 'Drag an axis arrow to move on one axis, or drag the object to move freely'
+        : gizmoMode === 'scale'
+          ? 'Drag a scale handle to resize along one axis'
+          : gizmoMode === 'rotate'
+            ? 'Drag a ring to rotate around that axis'
+            : 'Click to select : Drag to move'
+
+export type ViewPreset = 'angled' | 'top' | 'front' | 'side'
+export type WallCut = 'full' | 'half' | 'low'
+
+// Unit view directions (target -> camera) for the floating "View" buttons.
+const VIEW_PRESET_DIRECTIONS: Record<ViewPreset, THREE.Vector3> = {
+  angled: new THREE.Vector3(1, 0.8, 1).normalize(),
+  top: new THREE.Vector3(0, 1, 0),
+  front: new THREE.Vector3(0, 0, 1),
+  side: new THREE.Vector3(1, 0, 0),
+}
+
+// Fraction of the environment's height kept visible for each wall setting.
+const WALL_CUT_HEIGHT: Record<WallCut, number | null> = { full: null, half: 0.5, low: 0.12 }
+
+// Clips every environment material at a fraction of the environment's height, so
+// walls can be cut down to see into a room from an angle. Authored objects are untouched.
+const applyWallCut = (group: THREE.Group, walls: WallCut) => {
+  const fraction = WALL_CUT_HEIGHT[walls]
+  const box = new THREE.Box3().setFromObject(group)
+  const planes = fraction === null || box.isEmpty()
+    ? null
+    : [new THREE.Plane(new THREE.Vector3(0, -1, 0), box.min.y + (box.max.y - box.min.y) * fraction)]
+  group.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return
+    const materials = Array.isArray(child.material) ? child.material : [child.material]
+    materials.forEach((material: THREE.Material) => {
+      material.clippingPlanes = planes
+      material.needsUpdate = true
+    })
+  })
 }
 
 interface ViewportStats {
@@ -151,6 +196,14 @@ export interface ViewportHandle {
    * "Exit simulation" gets the same teardown via unmount.
    */
   restartRuntime: () => void
+  /** Snaps to a preset view; Top/Front/Side switch to orthographic, Angled back to perspective. */
+  setViewPreset: (preset: ViewPreset) => void
+  /** Dolly toward (< 1) or away from (> 1) the orbit pivot. */
+  zoomBy: (factor: number) => void
+  /** Frames the selected object (same as the F key). */
+  focusSelected: () => void
+  /** Frames the environment plus every object (same as the H key). */
+  frameAll: () => void
 }
 
 // 'TOP', 'FRONT', … when `direction` (target -> camera) is flat against a face,
@@ -187,6 +240,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     showAxisIndicator = true,
     compactOverlays = false,
     showStats = false,
+    walls = 'full',
+    onViewLabelChange,
+    showHint = true,
   },
   ref,
 ) {
@@ -239,6 +295,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // Set by the setup effect; lets effects outside it (environment swaps, prop
   // changes) wake the on-demand render loop.
   const requestRenderRef = useRef<() => void>(() => {})
+  // Set by the setup effect; camera actions the floating view controls call through the handle.
+  const viewActionsRef = useRef<Omit<ViewportHandle, 'getCameraPose' | 'restartRuntime'>>({
+    setViewPreset: () => {}, zoomBy: () => {}, focusSelected: () => {}, frameAll: () => {},
+  })
+  const wallsRef = useRef(walls)
+  wallsRef.current = walls
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
   // Name of the OctaOrb face the camera is snapped to ('TOP', 'FRONT', …), shown as a
@@ -256,6 +318,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       return getCameraPose(camera)
     },
     restartRuntime: () => restartRuntimeRef.current(),
+    setViewPreset: (preset) => viewActionsRef.current.setViewPreset(preset),
+    zoomBy: (factor) => viewActionsRef.current.zoomBy(factor),
+    focusSelected: () => viewActionsRef.current.focusSelected(),
+    frameAll: () => viewActionsRef.current.frameAll(),
   }), [])
 
   // Scene/renderer/camera setup — created once. All per-render values are read from refs so
@@ -264,11 +330,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const mount = mountRef.current
     if (!mount) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x1e1e1e)
+    scene.background = new THREE.Color(0xdcebfa)
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200)
     cameraRef.current = camera
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Per-material clipping, used only by the environment's wall cut (applyWallCut).
+    renderer.localClippingEnabled = true
     mount.appendChild(renderer.domElement)
 
     // Corner OctaOrb + axis indicator, drawn into the same canvas after the main pass.
@@ -299,8 +367,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2)
     keyLight.position.set(4, 8, 5)
     scene.add(keyLight)
-    const grid = new THREE.GridHelper(16, 16, 0x35515a, 0x1a2b34)
-    grid.position.y = 0.01
+    // Editor floor (see floorGrid.ts).
+    const floor = createFloorGrid()
+    const grid = floor.group
     scene.add(grid)
 
     // Orbit/pan/zoom for arranging content — disabled while walking or dragging/gizmo-manipulating an object.
@@ -309,6 +378,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     controls.dampingFactor = 0.12
     controls.maxDistance = 40
     controls.minDistance = 1
+    // Wheel zooms toward whatever is under the cursor (shifting the pivot with it) rather
+    // than always toward the pivot — so you can zoom straight onto an off-centre object.
+    controls.zoomToCursor = true
     // Full range, not just down to the horizon — OctaOrb's BOTTOM tip snaps the camera to
     // straight-up-from-below (polar angle Math.PI), and controls.update() runs every frame
     // regardless of how the camera got there, so any tighter cap here would clamp that snap
@@ -496,6 +568,43 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       applyPoseRef.current(dataRef.current.startCamera)
     }
 
+    // Camera actions shared by the floating view controls and the F / H shortcuts.
+    // Orbit mode only: walk mode has no pivot to snap, zoom toward or frame around.
+    const isOrbiting = () => dataRef.current.cameraMode === 'orbit'
+    viewActionsRef.current = {
+      setViewPreset: (preset) => {
+        if (!isOrbiting()) return
+        const direction = VIEW_PRESET_DIRECTIONS[preset]
+        const orientation = preset === 'angled'
+          ? applyViewOrientation(camera, controls, direction, new THREE.Vector3(0, 1, 0))
+          : snapCameraTo(camera, controls, direction)
+        yawRef.current = orientation.yaw
+        pitchRef.current = orientation.pitch
+        setFaceLabel(preset === 'angled' ? null : faceLabelFor(direction))
+        // Same rule as the OctaOrb: face views are orthographic, free views perspective.
+        if (dataRef.current.orthographic !== (preset !== 'angled')) dataRef.current.onOrthographicChange?.(preset !== 'angled')
+        requestRender()
+      },
+      zoomBy: (factor) => {
+        if (!isOrbiting()) return
+        dollyBy(camera, controls, factor)
+        requestRender()
+      },
+      focusSelected: () => {
+        if (!isOrbiting()) return
+        const { selectedId } = dataRef.current
+        const mesh = selectedId ? objectsGroup.getObjectByName(selectedId) : undefined
+        if (mesh && frameObject(camera, controls, mesh)) requestRender()
+      },
+      frameAll: () => {
+        if (!isOrbiting()) return
+        const box = new THREE.Box3().setFromObject(environmentGroup).union(new THREE.Box3().setFromObject(objectsGroup))
+        // An empty environment with no objects still has the floor grid to frame.
+        if (box.isEmpty()) box.setFromObject(grid)
+        if (frameBox(camera, controls, box)) requestRender()
+      },
+    }
+
     let interactionController: ReturnType<typeof createViewportInteractionController>
     const syncGizmoFrame = () => {
       const selected = dataRef.current.objects.find((object) => object.id === dataRef.current.selectedId) ?? null
@@ -571,6 +680,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           setFaceLabel(faceLabelFor(direction))
         },
         setOrthographic: (value) => dataRef.current.onOrthographicChange?.(value),
+        focusSelected: () => viewActionsRef.current.focusSelected(),
+        frameAll: () => viewActionsRef.current.frameAll(),
         showOctaOrbTooltip: overlays.showOctaOrbTooltip,
         hideOctaOrbTooltip: overlays.hideOctaOrbTooltip,
         // Always supplied so a mode flip needs no listener rebinding; the
@@ -747,6 +858,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       disposeObjectResources(objectsGroup)
       zoneVisuals.dispose()
       gizmoSet.dispose()
+      floor.dispose()
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }
@@ -806,6 +918,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       currentDispose: currentEnvDisposeRef,
       onStatus: setEnvStatus,
       onReady: () => {
+        applyWallCut(holder, wallsRef.current)
         applyPoseRef.current(dataRef.current.startCamera)
         requestRenderRef.current()
       },
@@ -813,6 +926,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     return loadHandle.cancel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environmentId, sceneId, reloadToken])
+
+  useEffect(() => {
+    const holder = environmentGroupRef.current
+    if (holder) applyWallCut(holder, walls)
+  }, [walls])
+
+  useEffect(() => {
+    onViewLabelChange?.(faceLabel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faceLabel])
 
   useEffect(() => {
     if (envStatus.state === 'ready') applyPoseRef.current(dataRef.current.startCamera)
@@ -855,19 +978,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     if (selected) void retryAsset(selected)
   }
 
-  const hint = cameraMode === 'walk'
-    ? interactive
-      ? 'Drag to look · WASD to walk · X/C to fly up/down · Shift to sprint · Click to select'
-      : 'Click to look around · WASD to walk · Shift to sprint · Esc to exit · R to restart'
-    : !interactive
-      ? null
-      : gizmoMode === 'move'
-        ? 'Drag an axis arrow to move on one axis, or drag the object to move freely'
-        : gizmoMode === 'scale'
-          ? 'Drag a scale handle to resize along one axis'
-          : gizmoMode === 'rotate'
-            ? 'Drag a ring to rotate around that axis'
-            : 'Click to select · Drag to move'
+  const hint = showHint ? viewportHintText(cameraMode, interactive, gizmoMode) : null
 
   const dims = overlayDims(compactOverlays)
 
