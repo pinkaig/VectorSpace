@@ -25,6 +25,10 @@ class Settings(BaseSettings):
 
     auth0_domain: str = ""
     auth0_audience: str = ""
+    # Machine-to-Machine app used only by the roster provisioning script (app/provision.py).
+    auth0_mgmt_client_id: str = ""
+    auth0_mgmt_client_secret: str = ""
+    auth0_connection: str = "Username-Password-Authentication"
 
     @property
     def sqlalchemy_database_url(self) -> str:

@@ -14,6 +14,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Boolean,
     Index,
     Integer,
     JSON,
@@ -44,6 +45,7 @@ class Organisation(Base):
 
     actors: Mapped[list["Actor"]] = relationship(back_populates="organisation")
     projects: Mapped[list["Project"]] = relationship(back_populates="organisation")
+    classes: Mapped[list["Classroom"]] = relationship(back_populates="organisation")
 
     __table_args__ = (UniqueConstraint("slug", name="uq_organisations_slug"),)
 
@@ -58,7 +60,8 @@ class Actor(Base):
     auth0_subject: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="student")
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
@@ -71,8 +74,40 @@ class Actor(Base):
     __table_args__ = (
         UniqueConstraint("auth0_subject", name="uq_actors_auth0_subject"),
         UniqueConstraint("organisation_id", "email", name="uq_actors_org_email"),
-        CheckConstraint("role in ('owner', 'admin', 'member', 'viewer')", name="ck_actors_role"),
+        CheckConstraint("role in ('admin', 'teacher', 'student')", name="ck_actors_role"),
     )
+
+
+class Classroom(Base):
+    """A class within a school. Teachers and students are linked through ClassMember."""
+
+    __tablename__ = "classes"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    organisation: Mapped["Organisation"] = relationship(back_populates="classes")
+    members: Mapped[list["ClassMember"]] = relationship(back_populates="classroom")
+
+    __table_args__ = (UniqueConstraint("organisation_id", "name", name="uq_classes_org_name"),)
+
+
+class ClassMember(Base):
+    __tablename__ = "class_members"
+
+    class_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), primary_key=True
+    )
+    actor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="CASCADE"), primary_key=True
+    )
+
+    classroom: Mapped["Classroom"] = relationship(back_populates="members")
+    actor: Mapped["Actor"] = relationship()
 
 
 class Project(Base):
@@ -88,6 +123,16 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft")
+    # A template is a project with kind='template': read-only to students, copied into a
+    # student project on "start from template". template_id/template_revision record the source.
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="project", server_default="project")
+    class_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("classes.id", ondelete="SET NULL"), nullable=True
+    )
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    )
+    template_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("project_versions.id", ondelete="SET NULL", use_alter=True), nullable=True
     )
@@ -108,6 +153,7 @@ class Project(Base):
     __table_args__ = (
         UniqueConstraint("organisation_id", "slug", name="uq_projects_org_slug"),
         CheckConstraint("status in ('draft', 'published', 'archived')", name="ck_projects_status"),
+        CheckConstraint("kind in ('project', 'template')", name="ck_projects_kind"),
     )
 
 

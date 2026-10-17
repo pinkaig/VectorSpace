@@ -1,8 +1,9 @@
 """Auth0 JWKS + JWT validation.
 
 Real infrastructure (not skeleton): fetches and caches the tenant's JWKS,
-validates bearer tokens against it, and exposes a FastAPI dependency that
-routers can use to require an authenticated actor.
+validates bearer tokens against it, and exposes FastAPI dependencies that
+routers can use to require a verified token (get_current_token) or a known,
+active school user (get_current_actor).
 """
 
 from __future__ import annotations
@@ -15,8 +16,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from jose.exceptions import JWTError
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .db import get_db
+from .models import Actor
 
 security = HTTPBearer(auto_error=True)
 
@@ -75,3 +80,14 @@ def get_current_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> TokenPayload:
     return decode_token(credentials.credentials)
+
+
+def get_current_actor(
+    token: TokenPayload = Depends(get_current_token),
+    db: Session = Depends(get_db),
+) -> Actor:
+    """Map a verified token to a school user row. Auth0 proves who; our table says what they may do."""
+    actor = db.scalar(select(Actor).where(Actor.auth0_subject == token.get("sub")))
+    if actor is None or not actor.active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active account for this login")
+    return actor

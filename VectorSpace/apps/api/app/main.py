@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from .routers import analytics, media, projects, publish, rules
+from .routers import analytics, me, media, projects, publish, rules
 
 
 logger = logging.getLogger("vectorspace.api")
@@ -50,6 +50,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 app = FastAPI(title="VectorSpace API", version="0.1.0")
 app.add_middleware(RequestLoggingMiddleware)
 
+app.include_router(me.router)
 app.include_router(projects.router)
 app.include_router(media.router)
 app.include_router(publish.router)
