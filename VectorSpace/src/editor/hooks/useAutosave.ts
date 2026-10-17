@@ -25,6 +25,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ProjectData } from '../../project/model'
 import { loadProjectWithSource, saveProject } from '../../project/serializer'
+import { isRemoteProject } from '../../project/remoteProject'
 import {
   getProjectSyncStatus,
   stageProjectSync,
@@ -43,12 +44,12 @@ export function useAutosave(project: ProjectData, initialSource: ReturnType<type
   const [savedAt, setSavedAt] = useState(
     initialSource === 'default'
       ? 'New local project'
-      : `Loaded ${initialSource} from this browser`,
+      : initialSource === 'server' ? 'Loaded from the server' : `Loaded ${initialSource} from this browser`,
   )
   const [persistenceState, setPersistenceState] = useState(
     initialSource === 'default'
       ? 'No local draft found; using clean project'
-      : `Loaded from browser localStorage ${initialSource}`,
+      : initialSource === 'server' ? 'Saves go to the server' : `Loaded from browser localStorage ${initialSource}`,
   )
   const [syncStatus, setSyncStatus] = useState<ProjectSyncStatus>(getProjectSyncStatus())
   /**
@@ -58,8 +59,16 @@ export function useAutosave(project: ProjectData, initialSource: ReturnType<type
    * text reflects Tier 1; sync status is tracked separately via syncStatus.
    */
   const persist = (nextProject: ProjectData, label: string) => {
-    const result = saveProject(nextProject)
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    if (isRemoteProject(nextProject.id)) {
+      // A server project is not written to the shared browser draft: that would replace the
+      // visitor's offline draft. The sync queue (also kept in localStorage) holds it until sent.
+      setSavedAt(`${label} ${time}`)
+      setPersistenceState('Queued for the server')
+      stageProjectSync(nextProject)
+      return
+    }
+    const result = saveProject(nextProject)
     setSavedAt(result === 'failed' ? 'Save failed' : `${label} ${time}`)
     setPersistenceState(result === 'saved' ? 'Primary + backup ready' :
       result === 'saved-with-backup' ? 'Backup copy only' : 'Export JSON now')

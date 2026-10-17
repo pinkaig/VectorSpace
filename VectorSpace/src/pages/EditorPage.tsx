@@ -18,7 +18,7 @@ import { useEffect, useRef, useState, type CSSProperties, type DragEvent as Reac
 import { useNavigate } from 'react-router'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
-import { downloadProject, loadProjectWithSource } from '../project/serializer'
+import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
 import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../content/audioAssets'
@@ -60,13 +60,15 @@ const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low
 // Gap between a floating control group and the corner widget it sits beside.
 const FLOAT_GAP = 5
 
-export default function EditorPage() {
+// start: the project to open, when the caller already has one (from the server); without it
+// the page opens the draft saved in this browser
+export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}) {
   const navigate = useNavigate()
   // Read the saved draft once per mount, not once at import. This page unmounts when the
   // visitor leaves /editor, and coming back must start from the latest autosave; a
   // module-level read would hand back the first visit's data and autosave would then
   // write that over the newer draft.
-  const [initialLoad] = useState(loadProjectWithSource)
+  const [initialLoad] = useState(() => start ?? loadProjectWithSource())
   const initialProject = initialLoad.project
   // Bumped when an edit is rejected, to pull the viewport's preview meshes back
   // to ProjectData. See runCommand.
