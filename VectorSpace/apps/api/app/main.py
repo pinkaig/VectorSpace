@@ -14,9 +14,11 @@ import time
 from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
+from .config import get_settings
 from .routers import analytics, me, media, projects, publish, rules
 
 
@@ -49,6 +51,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 app = FastAPI(title="VectorSpace API", version="0.1.0")
 app.add_middleware(RequestLoggingMiddleware)
+# the browser app is on another address (localhost:5173 in development), so it must be allowed in
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in get_settings().cors_origins.split(",") if origin.strip()],
+    allow_methods=["*"],
+    allow_headers=["Authorization", "Content-Type"],
+    expose_headers=["x-request-id"],
+)
 
 app.include_router(me.router)
 app.include_router(projects.router)
