@@ -1551,3 +1551,16 @@ button:disabled {
 .page-nav button {
   margin-left: auto;
 }
+
+/* a sign-in that the server refused (SignIn in App.tsx), over the bottom of the login page */
+.sign-in-problem {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border: 1px solid var(--red-500);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--red-700);
+}

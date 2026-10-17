@@ -26,6 +26,11 @@
  * VITE_ADMIN_OVERRIDE=true. Auth0 replaces the inside of SessionProvider (role and admin
  * then come from the verified login, and adminOverrideEnabled goes away); useSession()
  * and RequireRole, and so every page that uses them, stay as they are.
+ * Two modes, chosen by VITE_API_URL. Unset: the picker above, no server (the default, and
+ * what the browser tests use). Set: the chosen role maps to a seeded dev person (see
+ * app/seed.py), the API is asked who that is through GET /me, and the ANSWER sets the role,
+ * not the click. That needs AUTH_DEV_BYPASS on the API; with Auth0 the same /me call stays
+ * and only where the token comes from (getToken) changes.
  * This is page routing, not access control. The role and the admin flag sit in the
  * browser, so anyone can set them; whatever must be protected has to be checked by the
  * server on every request.
@@ -41,6 +46,7 @@
  */
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { Navigate } from 'react-router'
+import { apiFetch, apiUrl, type GetToken } from '../api/client'
 
 export type Role = 'teacher' | 'student'
 
@@ -52,6 +58,14 @@ export const adminOverrideEnabled = import.meta.env.DEV || import.meta.env.VITE_
 // closed browser starts at the login page, which is what a shared classroom machine wants
 const STORAGE_KEY = 'vectorspace-session-role'
 const ADMIN_STORAGE_KEY = 'vectorspace-session-admin'
+const TOKEN_STORAGE_KEY = 'vectorspace-session-token'
+
+// the seeded people (app/seed.py) that the picker's buttons stand for while Auth0 is absent;
+// the "dev|" bearer value is accepted by the API only when it runs with AUTH_DEV_BYPASS
+export const devSubjectFor = (role: Role, admin: boolean): string =>
+  admin ? 'dev|admin' : role === 'teacher' ? 'dev|teacher' : 'dev|student1'
+
+type Me = { role: 'admin' | 'teacher' | 'student'; display_name: string }
 
 const readStored = (key: string): string | null => {
   try {
@@ -88,7 +102,10 @@ export const guardRedirect = (role: Role | null, required: Role, admin = false):
 type Session = {
   role: Role | null
   admin: boolean
-  signIn: (role: Role, options?: { admin?: boolean }) => void
+  // resolves with the role the person lands as; rejects (an ApiError) if the server refuses them
+  signIn: (role: Role, options?: { admin?: boolean }) => Promise<Role>
+  // the bearer token for API calls, or null when signed out or running without a server
+  getToken: GetToken
   actAs: (role: Role) => void
   signOut: () => void
 }
@@ -102,13 +119,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     () => ({
       role,
       admin,
-      signIn: (next, options) => {
-        const asAdmin = adminOverrideEnabled && options?.admin === true
-        store(STORAGE_KEY, next)
+      signIn: async (next, options) => {
+        let landedAs = next
+        let asAdmin = adminOverrideEnabled && options?.admin === true
+        if (apiUrl) {
+          const token = devSubjectFor(next, asAdmin)
+          const me = await apiFetch<Me>(async () => token, '/me')
+          // the server's answer decides; an admin acts as a teacher until they switch
+          asAdmin = me.role === 'admin'
+          landedAs = me.role === 'student' ? 'student' : 'teacher'
+          store(TOKEN_STORAGE_KEY, token)
+        }
+        store(STORAGE_KEY, landedAs)
         store(ADMIN_STORAGE_KEY, asAdmin ? 'true' : null)
-        setRole(next)
+        setRole(landedAs)
         setAdmin(asAdmin)
+        return landedAs
       },
+      getToken: async () => readStored(TOKEN_STORAGE_KEY),
       // an admin changes the role the app treats them as; anyone else is ignored
       actAs: (next) => {
         if (!admin) return
@@ -118,6 +146,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signOut: () => {
         store(STORAGE_KEY, null)
         store(ADMIN_STORAGE_KEY, null)
+        store(TOKEN_STORAGE_KEY, null)
         setRole(null)
         setAdmin(false)
       },

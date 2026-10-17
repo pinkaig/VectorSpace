@@ -12,12 +12,13 @@
  *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /****************************************************************************************************/
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router'
 import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
+import { ApiError } from './api/client'
 import { RequireRole, SessionProvider, adminOverrideEnabled, useSession, type Role } from './session/session'
 
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
@@ -36,7 +37,20 @@ function Landing() {
 function SignIn() {
   const { signIn } = useSession()
   const navigate = useNavigate()
-  return <LoginPage showAdmin={adminOverrideEnabled} onSignIn={(role, admin) => { signIn(role, { admin }); navigate(`/${role}`) }} />
+  const [problem, setProblem] = useState<string | null>(null)
+  // the role it navigates to is the one signIn lands on, which the server decides when there is one
+  const onSignIn = (role: Role, admin?: boolean) => {
+    setProblem(null)
+    signIn(role, { admin }).then((landedAs) => navigate(`/${landedAs}`), (error: Error) => setProblem(
+      error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
+    ))
+  }
+  return (
+    <>
+      <LoginPage showAdmin={adminOverrideEnabled} onSignIn={onSignIn} />
+      {problem && <p role="alert" className="sign-in-problem">{problem}</p>}
+    </>
+  )
 }
 
 const pageLinks: Record<Role, { to: string; label: string }[]> = {

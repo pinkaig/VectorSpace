@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { guardRedirect } from './session'
+import { devSubjectFor, guardRedirect } from './session'
 
 describe('guardRedirect', () => {
   it('lets the required role stay', () => {
@@ -23,5 +23,17 @@ describe('guardRedirect', () => {
 
   it('still sends a signed-out visitor to login, admin flag or not', () => {
     expect(guardRedirect(null, 'teacher', true)).toBe('/login')
+  })
+})
+
+describe('devSubjectFor', () => {
+  it('maps each picker button to a seeded person', () => {
+    expect(devSubjectFor('teacher', false)).toBe('dev|teacher')
+    expect(devSubjectFor('student', false)).toBe('dev|student1')
+  })
+
+  it('maps the admin override to the seeded admin whichever role is picked', () => {
+    expect(devSubjectFor('teacher', true)).toBe('dev|admin')
+    expect(devSubjectFor('student', true)).toBe('dev|admin')
   })
 })
