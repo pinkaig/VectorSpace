@@ -84,6 +84,19 @@ export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
 }
 /**End of Tutorial assisting code for the UI */
 
+type RoomSide = 'north' | 'east' | 'south' | 'west'
+
+const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano']
+const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
+
+interface RoomPopupProps {
+  project: ProjectData
+  onSelectScene: (sceneId: string) => void
+}
+
+
+
+
 /** Catalogue assistance code */
 export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
 
@@ -184,6 +197,9 @@ export default function EditorPage() {
     })
   }
 
+  
+
+
   const {
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
@@ -210,7 +226,13 @@ export default function EditorPage() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="project-title"><strong>{project.name}</strong></div>
+        <SceneRoomPopUp
+          project={project}
+          onSelectScene={(id) => {
+            commit('Select scene', selectEditorScene(project, id).project)
+            setSelectedId(null)
+          }}
+        />
         {/**Add drop down for the room details here */}
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
@@ -691,4 +713,47 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
     )
   }
   return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<WhenDoRuleSection rules={rules} onAdd={onAddClickRule} onRemove={onRemoveRule} /><div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+}
+
+
+function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
+  const [isOpen, setIsOpen] = useState(false)
+  const [music, setMusic] = useState('Museum hum')
+  const [volume, setVolume] = useState('Quiet')
+
+  const sceneIndex = project.scenes.findIndex((s) => s.id === project.activeSceneId)
+  const scene = project.scenes[sceneIndex]
+  const roomNumber = sceneIndex + 1
+
+  const addRoom =(side:RoomSide)=>{}//Add later
+
+  return(
+    <div className="RoomPopUpWrap">
+      <button className="button" onClick={()=>setIsOpen(!isOpen)}>
+        <strong>{project.name}</strong>
+        <span className="button">
+          Room {roomNumber}{scene.name}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="RoomPopUpWrap">
+          <h2>Your rooms</h2>
+          <button className="button" onClick={()=>setIsOpen(false)}>X</button>
+        </div>
+
+        //room grid
+
+
+        //room nav
+
+
+        //music
+
+
+      )}
+
+    </div>
+  )
+
 }
