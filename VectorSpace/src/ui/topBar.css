@@ -1,0 +1,103 @@
+/**
+ * @file        topBar.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for TopBar (manual: radius 18, 10x14 padding, 40px logo, 34px avatar).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.ui-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ui-topbar-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.ui-topbar-name {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ui-topbar-badge {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* admin = ink fill with white text; teacher = amber chip; student = purple chip */
+.ui-topbar-badge-admin { background: var(--ink); color: var(--surface); }
+.ui-topbar-badge-teacher { background: var(--amber-50); color: var(--amber-900); border: 1px solid var(--amber-200); }
+.ui-topbar-badge-student { background: var(--purple-100); color: var(--purple-700); border: 1px solid var(--border-strong); }
+
+.ui-topbar-centre {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ui-topbar-divider {
+  align-self: stretch;
+  width: 1px;
+  background: var(--border);
+}
+
+.ui-topbar-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-app);
+}
+
+.ui-topbar-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ui-topbar-avatar-admin { background: var(--ink); color: var(--surface); }
+.ui-topbar-avatar-teacher { background: var(--amber-200); color: var(--amber-900); }
+.ui-topbar-avatar-student { background: var(--purple-100); color: var(--purple-700); }
+
+.ui-topbar-who-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.ui-topbar-who-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}

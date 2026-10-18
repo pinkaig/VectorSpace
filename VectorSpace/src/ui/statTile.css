@@ -1,0 +1,36 @@
+/**
+ * @file        statTile.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for StatTile (manual: bg-app fill, radius 16, Fredoka 32 value).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-stat {
+  padding: 16px 18px;
+  border-radius: var(--radius-box);
+  background: var(--bg-app);
+}
+
+.ui-stat-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ui-stat-value {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 36px;
+  color: var(--ink);
+}
+
+.ui-stat-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}

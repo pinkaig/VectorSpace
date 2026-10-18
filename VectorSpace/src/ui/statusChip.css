@@ -1,0 +1,27 @@
+/**
+ * @file        statusChip.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for StatusChip. Colours are the manual's chip table, by token name.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ui-chip-green { background: var(--green-50); color: var(--green-800); border-color: var(--green-200); }
+.ui-chip-amber { background: var(--amber-50); color: var(--amber-900); border-color: var(--amber-200); }
+.ui-chip-purple { background: var(--purple-100); color: var(--purple-700); border-color: var(--border-strong); }
+.ui-chip-grey { background: var(--bg-app); color: var(--text-muted); border-color: var(--border); }
+.ui-chip-red { background: var(--red-50); color: var(--red-900); border-color: var(--red-200); }

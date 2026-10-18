@@ -1,0 +1,44 @@
+/**
+ * @file        field.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for Field and for text inputs and selects (manual: 44px, radius 12, border-strong).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ui-field-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+/* applied to any input or select inside a Field, or on its own with the ui-input class */
+.ui-field input,
+.ui-field select,
+.ui-input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+}
+
+.ui-field input:focus,
+.ui-field select:focus,
+.ui-input:focus {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 0;
+}

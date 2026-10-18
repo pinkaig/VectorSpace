@@ -1,0 +1,50 @@
+/**
+ * @file        popup.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for Popup (manual: radius 24, 620px form width, overlay token, popup shadow).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--overlay);
+}
+
+.ui-popup {
+  width: min(620px, calc(100vw - 32px));
+  padding: 26px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.ui-popup-title {
+  margin: 0;
+  font-size: 26px;
+}
+
+.ui-popup-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.ui-popup-body {
+  margin-top: 18px;
+}
+
+.ui-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}

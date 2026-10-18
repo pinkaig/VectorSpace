@@ -1,0 +1,64 @@
+/**
+ * @file        button.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for the V3 button (see button.tsx). Sizes and colours from the V3 manual.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ui-btn-normal {
+  height: 44px;
+  padding: 0 18px;
+  font-size: 15px;
+}
+
+.ui-btn-small {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-btn-sm);
+  font-size: 13px;
+}
+
+.ui-btn-primary {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.ui-btn-primary:hover:not(:disabled) {
+  background: var(--purple-600);
+}
+
+.ui-btn-danger {
+  border-color: var(--red-200);
+  color: var(--red-700);
+}
+
+.ui-btn-add {
+  border-style: dashed;
+  border-color: var(--purple-300);
+  color: var(--purple-700);
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}
