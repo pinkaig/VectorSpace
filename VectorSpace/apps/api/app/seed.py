@@ -1,4 +1,7 @@
-"""Local demo data: one school, one admin, one teacher, two students and two classes.
+"""Local demo data: one school with an admin, three teachers, 24 students, five classes, six
+templates and about eighty projects with saved revisions, so a landing page has something to list.
+
+Sign in as dev|admin, dev|teacher, dev|teacher2, dev|teacher3 or dev|student1 ... dev|student24.
 
 Run from apps/api with AUTH_DEV_BYPASS=true (dry run by default, nothing is written until --apply):
 
@@ -15,16 +18,35 @@ from __future__ import annotations
 
 import sys
 
+from sqlalchemy import select
+
 from .config import get_settings
+from .models import Actor
 from .provision import Row, provision
+from .seed_content import seed_content
 
 SLUG, SCHOOL = "demo", "Demo School"
 
+CLASSES = ["Demo Class", "Other Class", "Year 7 Science", "Year 8 History", "Art Studio"]
+STUDENT_NAMES = [
+    "Demo Student One", "Demo Student Two", "Aisha Rahman", "Ben Carter", "Chloe Tan", "Dmitri Volkov",
+    "Elena Rossi", "Farid Haddad", "Grace Okafor", "Hiro Tanaka", "Isla McBride", "Jamal Brooks",
+    "Keiko Mori", "Liam O'Neill", "Mei Lin", "Noah Schmidt", "Olivia Reyes", "Priya Nair",
+    "Quentin Dubois", "Rosa Alvarez", "Sam Whitaker", "Tariq Aziz", "Uma Patel", "Victor Lindqvist",
+]
+
+# the first four keep the names the earlier seed used
 ROWS = [
     Row("admin@demo.test", "Demo Admin", "admin", []),
-    Row("teacher@demo.test", "Demo Teacher", "teacher", ["Demo Class"]),
-    Row("student1@demo.test", "Demo Student One", "student", ["Demo Class"]),
-    Row("student2@demo.test", "Demo Student Two", "student", ["Other Class"]),
+    Row("teacher@demo.test", "Demo Teacher", "teacher", ["Demo Class", "Year 7 Science", "Art Studio"]),
+    Row("teacher2@demo.test", "Maria Santos", "teacher", ["Other Class", "Year 8 History"]),
+    Row("teacher3@demo.test", "Oliver Grant", "teacher", ["Year 7 Science", "Year 8 History", "Art Studio"]),
+] + [
+    Row(
+        f"student{n}@demo.test", name, "student",
+        [CLASSES[(n - 1) % 5]] + ([CLASSES[(n + 1) % 5]] if n % 3 == 1 else []),
+    )
+    for n, name in enumerate(STUDENT_NAMES, start=1)
 ]
 
 
@@ -44,6 +66,14 @@ def main() -> None:
 
     with SessionLocal() as db:
         report = provision(db, DevLogins() if apply else None, SLUG, SCHOOL, ROWS)
+        if apply:
+            people = {a.email: a for a in db.scalars(select(Actor))}
+            templates, projects = seed_content(
+                db,
+                [people[r.email] for r in ROWS if r.role == "teacher"],
+                [people[r.email] for r in ROWS if r.role == "student"],
+            )
+            print(f"{templates} templates, {projects} new projects")
     for email, outcome, _ in report:
         print(f"{outcome:13} {email}  (bearer: dev|{email.split('@')[0]})")
     if not apply:
