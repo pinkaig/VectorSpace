@@ -1,0 +1,44 @@
+/**
+ * @file        AdminRoomsPage.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for Rooms & assets: two panels side by side, each a scrolling list
+ *              of rows with a switch on the right.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.admin-rooms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.admin-rooms-note {
+  margin: -8px 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.admin-rooms-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--purple-50);
+}
+
+.admin-rooms-name {
+  font-weight: 800;
+}
+
+.admin-rooms-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}

@@ -1,0 +1,173 @@
+/**
+ * @file        AdminLayout.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for the admin frame, plus the panel, page-title and table looks that
+ *              all four admin pages share. Values from the V3 manual (1440x900 frame,
+ *              230px sidebar, 12px gaps, no page scroll: only lists scroll).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Frame: top bar over (sidebar | page), fills the window, never scrolls ── */
+.admin-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  max-width: 1440px;
+  height: 100vh;
+  margin: 0 auto;
+  padding: 12px;
+  background: var(--bg-app);
+  color: var(--ink);
+}
+
+.admin-body {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-btn);
+  color: var(--ink-2);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-nav-active {
+  background: var(--purple-100);
+  color: var(--purple-700);
+}
+
+/* ── Page area: a title, then panels; the panels hold the scrolling lists ── */
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.admin-page-title {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px 0;
+}
+
+.admin-page-title h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+}
+
+.admin-page-title p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── Shared panel and table looks ─────────────────────────────────────── */
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.admin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-panel-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+/* the part of a panel that scrolls when its list is long */
+.admin-scroll {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  padding: 8px 14px 8px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.admin-table td {
+  padding: 9px 14px 9px 0;
+  border-bottom: 1px solid var(--purple-50);
+  font-size: 14px;
+}
+
+/* action buttons sit in the last column, right-aligned, and never wrap */
+.admin-table .admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.admin-muted {
+  color: var(--text-muted);
+}
+
+.admin-notice p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* ── School picker (inside the top bar) ───────────────────────────────── */
+.admin-school-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.admin-school-picker select {
+  height: 40px;
+  font-size: 15px;
+}

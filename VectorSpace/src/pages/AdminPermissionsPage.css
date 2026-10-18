@@ -1,0 +1,57 @@
+/**
+ * @file        AdminPermissionsPage.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for the Permissions grid and its "Unsaved changes / Saved" label.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.admin-permissions {
+  flex: 1;
+}
+
+.admin-permissions-save {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* the label beside Save: an amber dot while there are changes, green once saved */
+.admin-permissions-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.admin-permissions-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--amber-500);
+}
+
+.admin-permissions-dot-saved {
+  background: var(--green-500);
+}
+
+/* a group heading row ("Building", "Sharing", ...) inside the table */
+.admin-table .admin-permissions-group {
+  padding-top: 18px;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.admin-permissions-cell {
+  width: 150px;
+}

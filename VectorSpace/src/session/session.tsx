@@ -18,7 +18,8 @@
  * The current role and the admin flag through useSession(), and a redirect from RequireRole.
  *
  * @members
- * Role, adminOverrideEnabled, guardRedirect, SessionProvider, useSession, RequireRole.
+ * Role, adminOverrideEnabled, guardRedirect, adminRedirect, homePath, SessionProvider,
+ * useSession, RequireRole, RequireAdmin.
  *
  * @boundary
  * Sign-in here is temporary: choosing a role is all it takes, and the admin override is
@@ -59,6 +60,7 @@ export const adminOverrideEnabled = import.meta.env.DEV || import.meta.env.VITE_
 const STORAGE_KEY = 'vectorspace-session-role'
 const ADMIN_STORAGE_KEY = 'vectorspace-session-admin'
 const TOKEN_STORAGE_KEY = 'vectorspace-session-token'
+const NAME_STORAGE_KEY = 'vectorspace-session-name'
 
 // the seeded people (app/seed.py) that the picker's buttons stand for while Auth0 is absent;
 // the "dev|" bearer value is accepted by the API only when it runs with AUTH_DEV_BYPASS
@@ -66,6 +68,9 @@ export const devSubjectFor = (role: Role, admin: boolean): string =>
   admin ? 'dev|admin' : role === 'teacher' ? 'dev|teacher' : 'dev|student1'
 
 type Me = { role: 'admin' | 'teacher' | 'student'; display_name: string }
+
+// shown in the top bar's account group when there is no server to ask (offline picker mode)
+const offlineName = (role: Role, admin: boolean): string => (admin ? 'VThere Admin' : role === 'teacher' ? 'Teacher' : 'Student')
 
 const readStored = (key: string): string | null => {
   try {
@@ -99,11 +104,22 @@ const store = (key: string, value: string | null) => {
 export const guardRedirect = (role: Role | null, required: Role, admin = false): string | null =>
   !role ? '/login' : admin || role === required ? null : `/${role}`
 
+// where a signed-in person starts: an admin has its own area, everyone else has the page named
+// after their role. The admin flag wins, so an admin "acting as" a teacher still lands on /admin.
+export const homePath = (role: Role, admin: boolean): string => (admin ? '/admin' : `/${role}`)
+
+// the same idea as guardRedirect, for the /admin pages: only an admin stays
+export const adminRedirect = (role: Role | null, admin: boolean): string | null =>
+  !role ? '/login' : admin ? null : `/${role}`
+
 type Session = {
   role: Role | null
   admin: boolean
-  // resolves with the role the person lands as; rejects (an ApiError) if the server refuses them
-  signIn: (role: Role, options?: { admin?: boolean }) => Promise<Role>
+  // the name shown in the top bar: the server's display_name, or a fixed one while offline
+  displayName: string
+  // resolves with where the person landed (role and admin flag as the server decided them);
+  // rejects (an ApiError) if the server refuses them
+  signIn: (role: Role, options?: { admin?: boolean }) => Promise<{ role: Role; admin: boolean }>
   // the bearer token for API calls, or null when signed out or running without a server
   getToken: GetToken
   actAs: (role: Role) => void
@@ -115,26 +131,33 @@ const SessionContext = createContext<Session | null>(null)
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(readStoredRole)
   const [admin, setAdmin] = useState<boolean>(readStoredAdmin)
+  const [displayName, setDisplayName] = useState<string>(() => readStored(NAME_STORAGE_KEY) ?? '')
   const session = useMemo<Session>(
     () => ({
       role,
       admin,
+      displayName,
       signIn: async (next, options) => {
         let landedAs = next
         let asAdmin = adminOverrideEnabled && options?.admin === true
+        let name = ''
         if (apiUrl) {
           const token = devSubjectFor(next, asAdmin)
           const me = await apiFetch<Me>(async () => token, '/me')
           // the server's answer decides; an admin acts as a teacher until they switch
           asAdmin = me.role === 'admin'
           landedAs = me.role === 'student' ? 'student' : 'teacher'
+          name = me.display_name
           store(TOKEN_STORAGE_KEY, token)
         }
+        name = name || offlineName(landedAs, asAdmin)
         store(STORAGE_KEY, landedAs)
         store(ADMIN_STORAGE_KEY, asAdmin ? 'true' : null)
+        store(NAME_STORAGE_KEY, name)
         setRole(landedAs)
         setAdmin(asAdmin)
-        return landedAs
+        setDisplayName(name)
+        return { role: landedAs, admin: asAdmin }
       },
       getToken: async () => readStored(TOKEN_STORAGE_KEY),
       // an admin changes the role the app treats them as; anyone else is ignored
@@ -147,11 +170,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         store(STORAGE_KEY, null)
         store(ADMIN_STORAGE_KEY, null)
         store(TOKEN_STORAGE_KEY, null)
+        store(NAME_STORAGE_KEY, null)
         setRole(null)
         setAdmin(false)
+        setDisplayName('')
       },
     }),
-    [role, admin],
+    [role, admin, displayName],
   )
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>
 }
@@ -166,5 +191,13 @@ export function useSession(): Session {
 export function RequireRole({ role, children }: { role: Role; children: ReactNode }) {
   const session = useSession()
   const redirect = guardRedirect(session.role, role, session.admin)
+  return redirect ? <Navigate to={redirect} replace /> : children
+}
+
+// wraps the /admin pages: only an admin session sees them, anyone else is sent to their own home.
+// Like RequireRole this chooses a page; it is not security, the server checks every /admin request.
+export function RequireAdmin({ children }: { children: ReactNode }) {
+  const session = useSession()
+  const redirect = adminRedirect(session.role, session.admin)
   return redirect ? <Navigate to={redirect} replace /> : children
 }
