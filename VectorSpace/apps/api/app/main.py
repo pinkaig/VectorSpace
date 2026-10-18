@@ -1,10 +1,9 @@
 """FastAPI application entry point.
 
-NOT PART OF M1. The M1 deliverable is the frontend editor, which runs entirely
-in the browser and saves to localStorage. This service is scaffolding for a
-later milestone: the route handlers under app/routers/ return HTTP 501, and
-nothing in the M1 build calls it. The /health route and the request-id
-middleware below are real and tested; the business routes are not implemented.
+The API behind the multi-user platform: who is signed in (/me), classes, projects and their
+saved revisions. The M1 editor does not need it and still runs on localStorage alone; the browser
+app only calls it when VITE_API_URL is set. Delete and activate/publish are not built yet and
+return HTTP 501. The /health route and the request-id middleware are tested.
 
 Documentation: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
 """
@@ -19,7 +18,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from .config import get_settings
-from .routers import analytics, me, media, projects, publish, rules
+from .routers import analytics, classes, me, media, projects, publish, rules
 
 
 logger = logging.getLogger("vectorspace.api")
@@ -57,10 +56,11 @@ app.add_middleware(
     allow_origins=[origin.strip() for origin in get_settings().cors_origins.split(",") if origin.strip()],
     allow_methods=["*"],
     allow_headers=["Authorization", "Content-Type"],
-    expose_headers=["x-request-id"],
+    expose_headers=["x-request-id", "X-Total-Count"],
 )
 
 app.include_router(me.router)
+app.include_router(classes.router)
 app.include_router(projects.router)
 app.include_router(media.router)
 app.include_router(publish.router)
