@@ -265,6 +265,9 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
         </div>
       </header>
       <div className="workspace">
+        {/* TURNED OFF: left rail (Scene / Assets / Audio / Interactions panels) was removed so the
+            editor is viewport + catalogue. Full code is in git commit 68caea5, EditorPage.tsx
+            lines 268-499; the LeftTabs state above is still here for it. */}
         <section className="center-stage">
           {/* The viewport fills the stage; every control floats over one of its corners. */}
           <div className={layoutMode === 'quad' ? 'stage-canvas compact' : 'stage-canvas'} style={{ '--float-gap': `${FLOAT_GAP}px` } as CSSProperties}>
