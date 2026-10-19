@@ -1,3 +1,5 @@
+ import { Link } from 'react-router'
+
 function GreetingTime(): string {
   const time_hour = new Date().getHours();
   
@@ -11,23 +13,18 @@ type GreetingLoginName = {name?: string};
 
 function GreetingMessage({name}:GreetingLoginName){
   const greeting = GreetingTime();
-  return(<h1> {greeting} {name?', ${name}':""}!</h1>);
+  return(<h1> {greeting} {name?`, ${name}`:""}!</h1>);
 }
 
-type TeacherHomePageProps = {
-  name?: string;                  // teacher's name, once login provides it
-  onCreateTemplate: () => void;   // go to template setup
-  onSignOut: () => void;          // go back to the login screen
-};
 
-export default function TeacherHomePage({ name, onCreateTemplate, onSignOut }: TeacherHomePageProps) {
+
+export default function TeacherHomePage() {
   return(
   <main>
     <header className="topbar">
       <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
         <div className="top-actions">
           {/*temp for login */}
-          <button className="button primary"></button> 
         </div>
     </header>
     <div className="workspace">
@@ -35,7 +32,7 @@ export default function TeacherHomePage({ name, onCreateTemplate, onSignOut }: T
       <GreetingMessage />
     <section className="center-stage">
       Preview of any build here
-      <button className="button primary" onClick={onCreateTemplate}>create/edit template</button>
+      <Link className="button primary" to="/teacher/template">Create/edit template</Link>
     </section>
 
     </div>
