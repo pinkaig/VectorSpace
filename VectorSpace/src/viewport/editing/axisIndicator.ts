@@ -32,7 +32,7 @@ const makeBallTexture = (color: number, label: string | null) => {
   ctx.fill()
   if (label) {
     ctx.fillStyle = '#0b1118'
-    ctx.font = '700 26px "DM Mono", monospace'
+    ctx.font = '800 26px "Nunito", system-ui, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(label, 32, 34)

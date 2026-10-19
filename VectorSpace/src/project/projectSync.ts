@@ -30,6 +30,7 @@ import {
 } from '../../packages/sync/src/index'
 import type { ProjectData } from './model'
 import { createLogger } from '../../packages/debugging/src/index'
+import { ServerSyncTransport } from './remoteProject'
 
 const QUEUE_STORAGE_KEY = 'vectorspace-sync-queue-v1'
 
@@ -170,7 +171,10 @@ export const createProjectSync = (options: ProjectSyncOptions = {}): ProjectSync
   }
 }
 
-const defaultProjectSync = typeof window !== 'undefined' ? createProjectSync() : undefined
+// projects opened from the server go to it; any other project still meets the stub
+const defaultProjectSync = typeof window !== 'undefined'
+  ? createProjectSync({ transport: new ServerSyncTransport(new StubSyncTransport()) })
+  : undefined
 
 if (typeof window !== 'undefined' && defaultProjectSync) {
   window.addEventListener('online', () => defaultProjectSync.retry())

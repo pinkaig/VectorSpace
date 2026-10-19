@@ -15,6 +15,10 @@
   --secondary-main1: #4294E2;
   --secondary-main2: #B0E0F6;   /* Mainly for assets and storage? */
 
+  /* display using fredoka font & body using nunito font*/
+  --font-display: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
   /* curving radius for UI */
   --radius: 12px;
 
@@ -48,6 +52,12 @@
   --amber-900: #5C3A00;
   --red-500: #D93A2B;
   --red-700: #A3341F;
+  /* the chip and destructive-button colours the manual's component specs list but its token
+     appendix does not; named here in the same scale so no page writes raw hex */
+  --green-200: #9FD6BA;
+  --red-50: #FCEBE7;
+  --red-200: #F0C2B8;
+  --red-900: #8A2A16;
   --overlay: rgba(31, 27, 58, 0.45);
   --shadow-popup: 0 24px 60px rgba(31, 27, 58, 0.3);
   --radius-panel: 22px;

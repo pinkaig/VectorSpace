@@ -4,7 +4,9 @@ import { openEditor } from '../openEditor'
 // userAudio.ts keeps imported clips in IndexedDB and registers them into a shared catalog
 // every time the editor mounts. With routing the editor mounts again each time the
 // visitor comes back to /editor, and must not list the same clip twice.
-test('an imported clip is listed once after leaving and re-entering the editor', async ({ page }) => {
+// SKIPPED: the audio/assets left rail is turned off (see EditorPage.tsx); restore it from git
+// commit 68caea5 (EditorPage.tsx lines 268-499) and un-skip this.
+test.skip('an imported clip is listed once after leaving and re-entering the editor', async ({ page }) => {
   await openEditor(page)
   // store one clip the way userAudio.ts does (database, store and record shape)
   await page.evaluate(

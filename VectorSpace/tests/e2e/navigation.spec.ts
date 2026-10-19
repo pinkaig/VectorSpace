@@ -42,7 +42,11 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
 test('an admin reaches every page and can switch the role it acts as', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: /VThere Admin/ }).click()
-  await expect(page).toHaveURL(/#\/teacher$/)
+  await expect(page).toHaveURL(/#\/admin$/)
+
+  // an admin passes every guard, and the strip on the role pages links back to /admin
+  await page.goto('/#/teacher')
+  await expect(page.getByRole('link', { name: 'Admin', exact: true })).toBeVisible()
 
   // the strip lists every page, so no sign-out is needed to see another role's home
   await page.getByRole('link', { name: 'student: Home' }).click()
@@ -74,4 +78,26 @@ test('a student cannot open the editor and is sent to the student home', async (
   await signInAs(page, 'student')
   await page.goto('/#/editor')
   await expect(page).toHaveURL(/#\/student$/)
+})
+
+test('the admin area opens on Overview and has its four pages', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /VThere Admin/ }).click()
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Accounts' }).click()
+  await expect(page).toHaveURL(/#\/admin\/accounts$/)
+  await page.getByRole('link', { name: 'Permissions' }).click()
+  await expect(page.getByRole('heading', { name: 'Pick a school' })).toBeVisible()
+  await page.getByRole('link', { name: 'Rooms & assets' }).click()
+  await expect(page).toHaveURL(/#\/admin\/rooms$/)
+
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL(/#\/login$/)
+})
+
+test('a teacher who types /admin is sent back to the teacher home', async ({ page }) => {
+  await signInAs(page, 'teacher')
+  await page.goto('/#/admin')
+  await expect(page).toHaveURL(/#\/teacher$/)
 })

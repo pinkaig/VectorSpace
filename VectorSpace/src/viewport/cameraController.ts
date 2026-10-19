@@ -1,26 +1,17 @@
 /**
- * @file        cameraController.ts
- * @brief       Camera pose and visitor walk-movement adapter.
+ * @file       cameraController.ts
+ * @project    Spatial Experience Builder
+ * @author     Goh Pin Kai
+ * @brief      Manages 3D camera positioning, orientation, and navigation,
+ *             including orbit controls, view snapping, object framing,
+ *             perspective and orthographic projections, and visitor
+ *             walk movement with sprinting and ground-lock support.
  *
- * @responsibility
- * Converts camera poses to and from Three.js cameras, applies orbit targets,
- * and updates walk movement from the active keyboard state.
- *
- * @inputs
- * Three.js camera/control objects, CameraPose values, pressed keys, and frame
- * delta time.
- *
- * @outputs
- * Camera orientation values and updated camera transforms.
- *
- * @ownership
- * This module owns camera policy only. It does not own project persistence or
- * authoring commands.
- *
- * @documentation
- * Rendering map: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Viewport
- * Links point at the project wiki; migration is still in progress.
+ * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
+ *             Reproduction or disclosure of this file or its contents without the
+ *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/****************************************************************************************************/
 import * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { CameraPose } from '../project/model'
@@ -79,6 +70,58 @@ export const applyViewOrientation = (
     yaw: Math.atan2(-forward.x, -forward.z),
     pitch: Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1)),
   }
+}
+
+// Breathing room around a framed object, so its silhouette doesn't touch the viewport edges.
+const FRAME_PADDING = 1.25
+
+// Moves the orbit pivot to `object`'s centre and dollies in/out until its bounding
+// sphere fits the view, keeping the current viewing direction and up (so a snapped or
+// rolled view survives) — the F "focus selected" shortcut. Fits against the narrower of
+// the vertical/horizontal FOV, and the ortho camera derives its frustum from this same
+// distance (syncOrthoCamera), so it frames correctly in both projections.
+// Returns false when the object has no geometry yet (e.g. a model still loading).
+export const frameObject = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  object: THREE.Object3D,
+): boolean => {
+  const box = new THREE.Box3().setFromObject(object)
+  return frameBox(camera, controls, box)
+}
+
+// Same fit as frameObject, for an arbitrary world-space box — the "Whole room" (H)
+// control frames the environment plus every authored object this way.
+export const frameBox = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  box: THREE.Box3,
+): boolean => {
+  if (box.isEmpty()) return false
+  const sphere = box.getBoundingSphere(new THREE.Sphere())
+  const halfVertical = THREE.MathUtils.degToRad(camera.fov / 2)
+  const halfHorizontal = Math.atan(Math.tan(halfVertical) * camera.aspect)
+  const fitDistance = (Math.max(sphere.radius, 0.01) * FRAME_PADDING) / Math.sin(Math.min(halfVertical, halfHorizontal))
+  const distance = THREE.MathUtils.clamp(fitDistance, controls.minDistance, controls.maxDistance)
+  const direction = camera.position.clone().sub(controls.target).normalize()
+  controls.target.copy(sphere.center)
+  camera.position.copy(sphere.center).addScaledVector(direction, distance)
+  camera.lookAt(controls.target)
+  controls.update()
+  return true
+}
+
+// Moves the camera toward (factor < 1) or away from (factor > 1) the orbit pivot along the
+// current view direction — the +/- zoom buttons. Clamped to the controls' distance limits.
+export const dollyBy = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  factor: number,
+): void => {
+  const offset = camera.position.clone().sub(controls.target)
+  const distance = THREE.MathUtils.clamp(offset.length() * factor, controls.minDistance, controls.maxDistance)
+  camera.position.copy(controls.target).addScaledVector(offset.normalize(), distance)
+  controls.update()
 }
 
 // How far off the pole a straight-down/up view is tipped when handed back to OrbitControls.

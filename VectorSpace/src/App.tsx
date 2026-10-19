@@ -12,31 +12,53 @@
  *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /****************************************************************************************************/
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router'
+import AdminAccountsPage from './pages/AdminAccountsPage'
+import AdminLayout from './pages/AdminLayout'
+import AdminOverviewPage from './pages/AdminOverviewPage'
+import AdminPermissionsPage from './pages/AdminPermissionsPage'
+import AdminRoomsPage from './pages/AdminRoomsPage'
 import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
-import { RequireRole, SessionProvider, adminOverrideEnabled, useSession, type Role } from './session/session'
+import { ApiError } from './api/client'
+import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
 
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
 // of the app, so it is downloaded when someone opens /editor, not on the login page.
 const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplication'))
+// the same editor opened by project id (/editor/:projectId), fetched from the API first
+const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 
 // where a signed-in visitor lands when the URL is empty or unknown, signed-out goes to login
 function Landing() {
-  const { role } = useSession()
-  return <Navigate to={role ? `/${role}` : '/login'} replace />
+  const { role, admin } = useSession()
+  return <Navigate to={role ? homePath(role, admin) : '/login'} replace />
 }
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
   const { signIn } = useSession()
   const navigate = useNavigate()
-  return <LoginPage showAdmin={adminOverrideEnabled} onSignIn={(role, admin) => { signIn(role, { admin }); navigate(`/${role}`) }} />
+  const [problem, setProblem] = useState<string | null>(null)
+  // where it navigates to is what signIn lands on, which the server decides when there is one:
+  // an admin goes to /admin, everyone else to the page named after their role
+  const onSignIn = (role: Role, admin?: boolean) => {
+    setProblem(null)
+    signIn(role, { admin }).then((landed) => navigate(homePath(landed.role, landed.admin)), (error: Error) => setProblem(
+      error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
+    ))
+  }
+  return (
+    <>
+      <LoginPage showAdmin={adminOverrideEnabled} onSignIn={onSignIn} />
+      {problem && <p role="alert" className="sign-in-problem">{problem}</p>}
+    </>
+  )
 }
 
 const pageLinks: Record<Role, { to: string; label: string }[]> = {
@@ -58,6 +80,7 @@ function WithNav({ children }: { children: ReactNode }) {
   return (
     <>
       <nav className="page-nav">
+        {admin && <Link to="/admin">Admin</Link>}
         {links.map((link) => <Link key={link.to} to={link.to}>{link.label}</Link>)}
         {admin && role && (
           <label>
@@ -69,6 +92,7 @@ function WithNav({ children }: { children: ReactNode }) {
         )}
         <button className="button ghost" onClick={signOut}>Sign out</button>
       </nav>
+      <p role="note"><strong>Placeholder page:</strong> unstyled. Only the project and template lists work; everything else is not built yet.</p>
       {children}
     </>
   )
@@ -102,7 +126,8 @@ function WithNav({ children }: { children: ReactNode }) {
  *
  * A shared header or sidebar for several pages (WithNav stands in until then)
  *   Use a layout route: <Route element={<Layout />}> around the child <Route>s, and put
- *   <Outlet /> in Layout where the child page should appear.
+ *   <Outlet /> in Layout where the child page should appear. The /admin routes below are a
+ *   working example: pages/AdminLayout.tsx is the frame, each admin page fills its middle.
  */
 
 export default function App() {
@@ -111,10 +136,18 @@ export default function App() {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<SignIn />} />
+          {/* the VThere Admin area: one frame (top bar, sidebar) around four pages */}
+          <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="permissions" element={<AdminPermissionsPage />} />
+            <Route path="accounts" element={<AdminAccountsPage />} />
+            <Route path="rooms" element={<AdminRoomsPage />} />
+          </Route>
           <Route path="/teacher" element={<RequireRole role="teacher"><WithNav><TeacherHomePage /></WithNav></RequireRole>} />
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><WithNav><StudentHomePage /></WithNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
+          <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           <Route path="*" element={<Landing />} />
         </Routes>
