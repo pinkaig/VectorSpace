@@ -86,7 +86,7 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
     return rows
 
 
-def _distinct_name(db: Session, owner_id: uuid.UUID, kind: str, name: str) -> str:
+def distinct_name(db: Session, owner_id: uuid.UUID, kind: str, name: str) -> str:
     """name, or "name (2)", "name (3)"... so one person's copies of the same thing can be told apart."""
     taken = set(db.scalars(select(Project.name).where(Project.created_by_id == owner_id, Project.kind == kind)))
     if name not in taken:
@@ -174,7 +174,7 @@ def create_project(
         created_by_id=actor.id,
         class_id=body.class_id,
         kind=body.kind,
-        name=_distinct_name(db, actor.id, body.kind, body.name),
+        name=distinct_name(db, actor.id, body.kind, body.name),
         slug=_slug(body.name),
     )
     db.add(project)
@@ -218,7 +218,7 @@ def assign_project(
         organisation_id=actor.organisation_id,
         created_by_id=student.id,
         class_id=shared[0],
-        name=_distinct_name(db, student.id, "project", source.name),
+        name=distinct_name(db, student.id, "project", source.name),
         slug=_slug(source.name),
         template_id=source.id if source.kind == "template" else source.template_id,
         template_revision=None,

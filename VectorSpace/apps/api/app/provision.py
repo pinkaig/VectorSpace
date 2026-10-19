@@ -85,6 +85,22 @@ class Auth0Admin:
         return user["user_id"], ticket.json()["ticket"]
 
 
+class DevLogins:
+    """Stands in for Auth0Admin where there is no tenant: no network, no invite link.
+
+    Hands out "dev|<local part of the email>" as the subject, which app.auth accepts as a bearer
+    value while AUTH_DEV_BYPASS is on. Used by app.seed and by the admin Add an account route.
+    """
+
+    def create_user(self, email: str, display_name: str) -> tuple[str, str]:
+        return f"dev|{email.split('@')[0]}", ""
+
+
+def logins() -> Auth0Admin | DevLogins:
+    """Whichever one this deployment can actually use."""
+    return DevLogins() if get_settings().auth_dev_bypass else Auth0Admin()
+
+
 def read_rows(path: str) -> list[Row]:
     with open(path, newline="", encoding="utf-8-sig") as handle:
         rows = [

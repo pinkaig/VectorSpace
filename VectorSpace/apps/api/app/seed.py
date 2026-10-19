@@ -1,5 +1,6 @@
 """Local demo data: one school with an admin, three teachers, 24 students, five classes, six
-templates and about eighty projects with saved revisions, so a landing page has something to list.
+templates, and one project each plus a handful of extra states on dev|teacher and dev|student1,
+so a landing page has rows to list and a tester can reach every state worth seeing.
 
 Sign in as dev|admin, dev|teacher (Ms Tan), dev|teacher2, dev|teacher3 or dev|student1 (Aisyah) ... dev|student24.
 
@@ -22,7 +23,7 @@ from sqlalchemy import select
 
 from .config import get_settings
 from .models import Actor
-from .provision import Row, provision
+from .provision import DevLogins, Row, provision
 from .seed_content import seed_content
 
 SLUG, SCHOOL = "demo", "Demo School"
@@ -49,13 +50,6 @@ ROWS = [
     )
     for n, name in enumerate(STUDENT_NAMES, start=1)
 ]
-
-
-class DevLogins:
-    """Stands in for Auth0Admin: no network, no invite link."""
-
-    def create_user(self, email: str, display_name: str) -> tuple[str, str]:
-        return f"dev|{email.split('@')[0]}", ""
 
 
 def main() -> None:
