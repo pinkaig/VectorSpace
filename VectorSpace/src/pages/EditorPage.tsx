@@ -272,12 +272,12 @@ export default function EditorPage() {
               >
               Scene
             </button>
-            {/*<button //assets
+            <button //assets
               className={LeftTabs === 'assets' ? 'rail-tab active' : 'rail-tab'}
               onClick={() => SetLeftTab('assets')}
               >
               Assets
-            </button>*/}
+            </button>
             {/*<button //interactions
               className={LeftTabs === 'interactions' ? 'rail-tab active' : 'rail-tab'}
               onClick={() => SetLeftTab('interactions')}
