@@ -13,6 +13,7 @@ describe('guardRedirect', () => {
 
   it('sends the wrong role to its own home, not to login', () => {
     expect(guardRedirect('student', 'teacher')).toBe('/student')
+    expect(guardRedirect('student', ['teacher', 'student'])).toBeNull()
     expect(guardRedirect('teacher', 'student')).toBe('/teacher')
   })
 

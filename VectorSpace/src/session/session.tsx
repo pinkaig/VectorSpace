@@ -101,8 +101,8 @@ const store = (key: string, value: string | null) => {
 // where a visitor with `role` must go to be allowed on a page that needs `required`,
 // or null if they may stay. Signed out goes to login, the wrong role to its own home,
 // and an admin may stay on every page.
-export const guardRedirect = (role: Role | null, required: Role, admin = false): string | null =>
-  !role ? '/login' : admin || role === required ? null : `/${role}`
+export const guardRedirect = (role: Role | null, required: Role | Role[], admin = false): string | null =>
+  !role ? '/login' : admin || [required].flat().includes(role) ? null : `/${role}`
 
 // where a signed-in person starts: an admin has its own area, everyone else has the page named
 // after their role. The admin flag wins, so an admin "acting as" a teacher still lands on /admin.
@@ -188,7 +188,7 @@ export function useSession(): Session {
 }
 
 // wraps a route's page: renders it for the required role (or an admin), redirects anyone else
-export function RequireRole({ role, children }: { role: Role; children: ReactNode }) {
+export function RequireRole({ role, children }: { role: Role | Role[]; children: ReactNode }) {
   const session = useSession()
   const redirect = guardRedirect(session.role, role, session.admin)
   return redirect ? <Navigate to={redirect} replace /> : children

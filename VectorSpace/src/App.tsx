@@ -92,6 +92,7 @@ function WithNav({ children }: { children: ReactNode }) {
         )}
         <button className="button ghost" onClick={signOut}>Sign out</button>
       </nav>
+      <p role="note"><strong>Placeholder page:</strong> unstyled. Only the project and template lists work; everything else is not built yet.</p>
       {children}
     </>
   )
@@ -146,7 +147,7 @@ export default function App() {
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><WithNav><StudentHomePage /></WithNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
-          <Route path="/editor/:projectId" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
+          <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           <Route path="*" element={<Landing />} />
         </Routes>

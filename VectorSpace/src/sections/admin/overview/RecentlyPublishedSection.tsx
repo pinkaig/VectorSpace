@@ -14,6 +14,7 @@
 import type { PublishedItem } from "../../../api/admin";
 import { Button } from "../../../ui/button";
 import { StatusChip, type ChipTone } from "../../../ui/statusChip";
+import { useNoLogic } from "../../../ui/noLogic";
 
 const ACCESS: Record<PublishedItem["access"], { label: string; tone: ChipTone }> = {
   public: { label: "Public", tone: "green" },
@@ -22,6 +23,7 @@ const ACCESS: Record<PublishedItem["access"], { label: string; tone: ChipTone }>
 };
 
 export function RecentlyPublishedSection({ items }: { items: PublishedItem[] }) {
+  const [noLogic, noLogicPopup] = useNoLogic();
   return (
     <section className="admin-panel admin-overview-recent">
       <div className="admin-panel-head"><h2>Recently published</h2></div>
@@ -38,14 +40,15 @@ export function RecentlyPublishedSection({ items }: { items: PublishedItem[] }) 
                 <td>{item.visits} visits</td>
                 <td><StatusChip tone={ACCESS[item.access].tone}>{ACCESS[item.access].label}</StatusChip></td>
                 <td className="admin-actions">
-                  <Button size="small" disabled title="Not built yet">View</Button>
-                  <Button size="small" variant="danger" disabled title="Not built yet">Unpublish</Button>
+                  <Button size="small" onClick={() => noLogic(`View ${item.title}`)}>View</Button>
+                  <Button size="small" variant="danger" onClick={() => noLogic(`Unpublish ${item.title}`)}>Unpublish</Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {noLogicPopup}
     </section>
   );
 }

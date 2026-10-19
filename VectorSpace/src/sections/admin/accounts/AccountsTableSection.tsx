@@ -31,7 +31,7 @@ function lastActiveLabel(iso: string | null): string {
 type AccountsTableSectionProps = {
   rows: Account[];
   onTurnOff: (account: Account, off: boolean) => void;
-  // shows a line under the toolbar, for actions that are not connected yet
+  // opens the "no logic" popup, for actions that are not connected yet
   onNotice: (message: string) => void;
 };
 
@@ -56,14 +56,14 @@ export function AccountsTableSection({ rows, onTurnOff, onNotice }: AccountsTabl
               <td>{lastActiveLabel(account.lastActive)}</td>
               <td><StatusChip tone={STATUS[account.status].tone}>{STATUS[account.status].label}</StatusChip></td>
               <td className="admin-actions">
-                <Button size="small" onClick={() => onNotice(`Reset password for ${account.name} needs the real sign-in (Auth0), so nothing was sent.`)}>
+                <Button size="small" onClick={() => onNotice(`Reset password for ${account.name}`)}>
                   Reset password
                 </Button>
                 {/* one of: Turn off (Active), Turn on (Turned off), Resend invite (Invited) */}
                 {account.status === "active" && <Button size="small" variant="danger" onClick={() => onTurnOff(account, true)}>Turn off</Button>}
                 {account.status === "turned_off" && <Button size="small" onClick={() => onTurnOff(account, false)}>Turn on</Button>}
                 {account.status === "invited" && (
-                  <Button size="small" onClick={() => onNotice(`Resending the invite to ${account.email} needs the real sign-in (Auth0), so nothing was sent.`)}>
+                  <Button size="small" onClick={() => onNotice(`Resend invite to ${account.email}`)}>
                     Resend invite
                   </Button>
                 )}

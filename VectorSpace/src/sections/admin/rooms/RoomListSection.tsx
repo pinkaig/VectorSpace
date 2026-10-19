@@ -14,6 +14,7 @@
 import type { RoomItem } from "../../../api/admin";
 import { Button } from "../../../ui/button";
 import { Toggle } from "../../../ui/toggle";
+import { useNoLogic } from "../../../ui/noLogic";
 
 type RoomListSectionProps = {
   title: string;
@@ -25,11 +26,12 @@ type RoomListSectionProps = {
 };
 
 export function RoomListSection({ title, note, items, onToggle, extra }: RoomListSectionProps) {
+  const [noLogic, noLogicPopup] = useNoLogic();
   return (
     <section className="admin-panel">
       <div className="admin-panel-head">
         <h2>{title}</h2>
-        {extra === "upload" && <Button variant="add" disabled title="Uploading environments is not built yet">+ Upload environment</Button>}
+        {extra === "upload" && <Button variant="add" onClick={() => noLogic("Upload environment")}>+ Upload environment</Button>}
       </div>
       <p className="admin-rooms-note">{note}</p>
 
@@ -52,6 +54,7 @@ export function RoomListSection({ title, note, items, onToggle, extra }: RoomLis
           </div>
         ))}
       </div>
+      {noLogicPopup}
     </section>
   );
 }

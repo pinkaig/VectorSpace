@@ -15,6 +15,7 @@
 import { useState } from "react";
 import type { Account } from "../api/admin";
 import { Button } from "../ui/button";
+import { useNoLogic } from "../ui/noLogic";
 import { useLoad } from "../api/useLoad";
 import { useAdmin } from "../sections/admin/adminContext";
 import { AccountFilters, matchesFilter, type AccountTab } from "../sections/admin/accounts/AccountFilters";
@@ -29,8 +30,8 @@ export default function AdminAccountsPage() {
   const [tab, setTab] = useState<AccountTab>("everyone");
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState(false);
-  // one line under the toolbar for things that are not connected yet (Auth0 sends the emails)
-  const [notice, setNotice] = useState("");
+  // buttons that are not connected yet (Auth0 sends the emails) open a "no logic" popup
+  const [noLogic, noLogicPopup] = useNoLogic();
 
   const replace = (changed: Account) => setData((rows) => rows && rows.map((row) => (row.id === changed.id ? changed : row)));
   const turnOff = async (account: Account, off: boolean) => replace(await api.setAccountOff(account.id, off));
@@ -50,19 +51,19 @@ export default function AdminAccountsPage() {
         <div className="admin-accounts-toolbar">
           <AccountFilters accounts={accounts ?? []} tab={tab} onTab={setTab} search={search} onSearch={setSearch} />
           <div className="admin-accounts-add">
-            <Button onClick={() => setNotice("Importing a class list (CSV) is not built yet.")}>Import class list (CSV)</Button>
+            <Button onClick={() => noLogic("Import class list (CSV)")}>Import class list (CSV)</Button>
             <Button variant="primary" onClick={() => setAdding(true)}>+ Add an account</Button>
           </div>
         </div>
-        {notice && <p className="admin-accounts-notice" role="status">{notice}</p>}
 
         {/*TABLE: name and email, role, class, last active, status, row actions*/}
         {error && <p role="alert">Could not load accounts: {error}</p>}
         {accounts && (
-          <AccountsTableSection rows={shown} onTurnOff={turnOff} onNotice={setNotice} />
+          <AccountsTableSection rows={shown} onTurnOff={turnOff} onNotice={noLogic} />
         )}
       </section>
 
+      {noLogicPopup}
       {adding && (
         <AddAccountPopup
           onClose={() => setAdding(false)}

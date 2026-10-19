@@ -21,13 +21,13 @@
  * slice. Throws if VITE_API_URL is unset: offline mode has no templates to list.
  *
  * @status
- * Current. Not yet shown on any page.
+ * Current. Listed on both home pages by src/sections/home/ProjectListsSection.tsx.
  */
 import { apiFetch, type GetToken } from './client'
 
 export type TemplateStatus = 'draft' | 'published' | 'archived'
 
-/** One template, field for field what GET /projects?kind=template returns. */
+/** The fields a template page needs from GET /projects?kind=template (the API sends a few more). */
 export interface Template {
   id: string
   organisation_id: string
@@ -42,6 +42,9 @@ export interface Template {
   current_revision: number
   created_at: string
   updated_at: string
+  /** The latest save: when and by whom (null until the template has been saved once). */
+  saved_at: string | null
+  saved_by_name: string
 }
 
 export interface TemplateFilter {

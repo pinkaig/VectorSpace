@@ -14,9 +14,11 @@
 import { useNavigate } from "react-router";
 import type { AttentionItem } from "../../../api/admin";
 import { Button } from "../../../ui/button";
+import { useNoLogic } from "../../../ui/noLogic";
 
 export function NeedsAttentionSection({ items }: { items: AttentionItem[] }) {
   const navigate = useNavigate();
+  const [noLogic, noLogicPopup] = useNoLogic();
   return (
     <section className="admin-panel admin-overview-attention">
       <div className="admin-panel-head"><h2>Needs your attention</h2></div>
@@ -27,15 +29,14 @@ export function NeedsAttentionSection({ items }: { items: AttentionItem[] }) {
             <span>{item.text}</span>
             <Button
               size="small"
-              disabled={!item.goTo}
-              title={item.goTo ? undefined : "Reviewing a reported museum is not built yet"}
-              onClick={() => item.goTo && navigate(`/admin/${item.goTo}`)}
+              onClick={() => (item.goTo ? navigate(`/admin/${item.goTo}`) : noLogic(item.actionLabel))}
             >
               {item.actionLabel}
             </Button>
           </div>
         ))}
       </div>
+      {noLogicPopup}
     </section>
   );
 }

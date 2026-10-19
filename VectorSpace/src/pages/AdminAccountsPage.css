@@ -71,15 +71,6 @@
   background: var(--bg-app);
 }
 
-.admin-accounts-notice {
-  margin: 0 0 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius-btn);
-  background: var(--amber-50);
-  color: var(--amber-900);
-  font-size: 14px;
-}
-
 .admin-accounts-person {
   display: flex;
   flex-direction: column;
