@@ -302,7 +302,8 @@ button:disabled {
 
 .workspace {
   display: grid;
-  grid-template-columns: 238px minmax(520px, 1fr) 286px;
+  grid-template-columns: minmax(520px, 1fr);
+  position: relative;
   gap: 12px;
   flex: 1;
   min-height: 0;
@@ -1713,4 +1714,19 @@ button:disabled {
   border-radius: 8px;
   background: var(--surface);
   color: var(--red-700);
+}
+
+/* Inspector pops up over the viewport when an object is selected (tutorial step 2+). */
+.inspector-popup {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 286px;
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  z-index: 20;
+  background: var(--White);
+  border: 1px var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
