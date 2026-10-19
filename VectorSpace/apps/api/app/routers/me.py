@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -26,10 +27,14 @@ class MeResponse(BaseModel):
 
 @router.get("/me", response_model=MeResponse)
 def me(actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)) -> MeResponse:
-    return MeResponse(
+    answer = MeResponse(
         id=actor.id,
         organisation_id=actor.organisation_id,
         display_name=actor.display_name,
         role=actor.role,
         class_ids=class_ids(db, actor),
     )
+    # the only place that knows a real person just arrived, so this is where "last active" comes from
+    actor.last_seen_at = datetime.now(timezone.utc)
+    db.commit()
+    return answer
