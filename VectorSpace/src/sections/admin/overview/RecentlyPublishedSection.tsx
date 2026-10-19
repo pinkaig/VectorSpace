@@ -2,8 +2,15 @@
  * @file        RecentlyPublishedSection.tsx
  * @project     VectorSpace
  * @author      Sherman Goh Wee Hao
- * @brief       Overview section: museums that went live recently. View and Unpublish are
- *              shown but off until there are published museums to act on.
+ * @date        2026-10-19
+ * @brief       Overview section: the museums that went live most recently. View and Unpublish
+ *              are drawn but have no routes behind them, so they only post a notice.
+ *
+ * @boundary
+ * The mock-up gives each row a visit count and an access level (Public / Unlisted / Sign-in
+ * only). Neither exists: nothing counts visits, and nothing records how a museum is shared.
+ * Rather than print an invented number, the row shows when it was published. Put those two
+ * columns back when there is an analytics table and a sharing model to read them from.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -13,14 +20,9 @@
 
 import type { PublishedItem } from "../../../api/admin";
 import { Button } from "../../../ui/button";
-import { StatusChip, type ChipTone } from "../../../ui/statusChip";
 import { useNoLogic } from "../../../ui/noLogic";
 
-const ACCESS: Record<PublishedItem["access"], { label: string; tone: ChipTone }> = {
-  public: { label: "Public", tone: "green" },
-  unlisted: { label: "Unlisted", tone: "purple" },
-  sign_in: { label: "Sign-in only", tone: "grey" },
-};
+const when = (iso: string | null): string => (iso ? new Date(iso).toLocaleDateString() : "unknown");
 
 export function RecentlyPublishedSection({ items }: { items: PublishedItem[] }) {
   const [noLogic, noLogicPopup] = useNoLogic();
@@ -37,8 +39,7 @@ export function RecentlyPublishedSection({ items }: { items: PublishedItem[] }) 
                   <strong>{item.title}</strong>
                   <div className="admin-muted">{item.where}</div>
                 </td>
-                <td>{item.visits} visits</td>
-                <td><StatusChip tone={ACCESS[item.access].tone}>{ACCESS[item.access].label}</StatusChip></td>
+                <td>Published {when(item.publishedAt)}</td>
                 <td className="admin-actions">
                   <Button size="small" onClick={() => noLogic(`View ${item.title}`)}>View</Button>
                   <Button size="small" variant="danger" onClick={() => noLogic(`Unpublish ${item.title}`)}>Unpublish</Button>

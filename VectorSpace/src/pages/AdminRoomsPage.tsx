@@ -14,6 +14,7 @@
 /******************************************************************************/
 
 import { useLoad } from "../api/useLoad";
+import { NOT_STORED_YET } from "../api/admin";
 import { useAdmin } from "../sections/admin/adminContext";
 import { RoomListSection } from "../sections/admin/rooms/RoomListSection";
 import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
@@ -28,6 +29,9 @@ export default function AdminRoomsPage() {
         <h1>Rooms &amp; assets</h1>
         <p>{school ? school.name : "All schools"}</p>
       </div>
+
+      {/*NOT SAVED: which rooms a school may use has no table behind it (see api/adminFake.ts)*/}
+      <p className="admin-notstored" role="note">{NOT_STORED_YET}</p>
 
       {school ? <RoomsForSchool key={school.id} schoolId={school.id} /> : <PickSchoolNotice what="Rooms and asset packs" />}
     </>

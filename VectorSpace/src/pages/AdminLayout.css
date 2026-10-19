@@ -171,3 +171,15 @@
   height: 40px;
   font-size: 15px;
 }
+
+/* a page whose settings have no table behind them yet: say so, above the settings, so a
+   switch that moved is never mistaken for a setting that was saved (see api/adminFake.ts) */
+.admin-notstored {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--amber-200);
+  border-radius: var(--radius-panel);
+  background: var(--amber-50);
+  color: var(--amber-900);
+  font-size: 14px;
+}

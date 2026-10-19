@@ -13,6 +13,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ALL_SCHOOLS, createAdminApi, type AdminApi, type School, type SchoolFilter } from "../../api/admin";
+import { useSession } from "../../session/session";
 
 type AdminContext = {
   api: AdminApi;
@@ -29,11 +30,20 @@ type AdminContext = {
 const Context = createContext<AdminContext | null>(null);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const api = useMemo(createAdminApi, []);
+  // the admin calls go to the API as the signed-in admin, so they carry their token
+  const { getToken } = useSession();
+  const api = useMemo(() => createAdminApi(getToken), [getToken]);
   const [schools, setSchools] = useState<School[]>([]);
   const [schoolId, setSchoolId] = useState<SchoolFilter>(ALL_SCHOOLS);
 
-  const refreshSchools = useCallback(async () => setSchools(await api.listSchools()), [api]);
+  // a failure leaves the picker with just All schools; the page itself reports what went wrong
+  const refreshSchools = useCallback(async () => {
+    try {
+      setSchools(await api.listSchools());
+    } catch {
+      setSchools([]);
+    }
+  }, [api]);
   useEffect(() => {
     refreshSchools();
   }, [refreshSchools]);

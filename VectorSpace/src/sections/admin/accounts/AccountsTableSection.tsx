@@ -52,7 +52,7 @@ export function AccountsTableSection({ rows, onTurnOff, onNotice }: AccountsTabl
                 </div>
               </td>
               <td><StatusChip tone={account.role === "student" ? "purple" : "amber"}>{account.role === "student" ? "Student" : "Educator"}</StatusChip></td>
-              <td>{account.className ?? "-"}</td>
+              <td>{account.classNames.length ? account.classNames.join(", ") : "-"}</td>
               <td>{lastActiveLabel(account.lastActive)}</td>
               <td><StatusChip tone={STATUS[account.status].tone}>{STATUS[account.status].label}</StatusChip></td>
               <td className="admin-actions">

@@ -3,6 +3,8 @@
  * @project     VectorSpace
  * @author      Sherman Goh Wee Hao
  * @brief       Overview section: the schools table and the "+ Add a school" popup.
+ *              Adding is refused by the API (an admin belongs to one school and there is no
+ *              operator role above the schools yet), so the popup shows why.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -24,15 +26,21 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
   const { api } = useAdmin();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
 
   const close = () => {
     setAdding(false);
     setName("");
+    setProblem(null);
   };
   const add = async () => {
-    await api.addSchool(name.trim());
-    close();
-    onAdded();
+    try {
+      await api.addSchool(name.trim());
+      close();
+      onAdded();
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "Could not add the school.");
+    }
   };
 
   return (
@@ -79,6 +87,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
           <Field label="School name">
             <input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
           </Field>
+          {problem && <p role="alert">{problem}</p>}
         </Popup>
       )}
     </section>

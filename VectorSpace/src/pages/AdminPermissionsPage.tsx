@@ -13,6 +13,7 @@
  */
 /******************************************************************************/
 
+import { NOT_STORED_YET } from "../api/admin";
 import { useAdmin } from "../sections/admin/adminContext";
 import { PermissionsGridSection } from "../sections/admin/permissions/PermissionsGridSection";
 import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
@@ -27,6 +28,9 @@ export default function AdminPermissionsPage() {
         <h1>Permissions</h1>
         <p>{school ? school.name : "All schools"}</p>
       </div>
+
+      {/*NOT SAVED: these settings have no table behind them (see api/adminFake.ts)*/}
+      <p className="admin-notstored" role="note">{NOT_STORED_YET}</p>
 
       {/*GRID: one school's settings, or a note asking for a school to be picked*/}
       {school ? <PermissionsGridSection key={school.id} schoolId={school.id} /> : <PickSchoolNotice what="Permissions" />}

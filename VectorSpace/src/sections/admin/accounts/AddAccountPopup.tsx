@@ -26,13 +26,15 @@ export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {
   const [chosenSchool, setChosenSchool] = useState(schoolId === ALL_SCHOOLS ? (schools[0]?.id ?? "") : schoolId);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  // "Educator" on screen, "teacher" in the database (see api/admin.ts)
   const [role, setRole] = useState<Account["role"]>("student");
   const [className, setClassName] = useState("");
 
   const ready = name.trim() !== "" && email.includes("@") && chosenSchool !== "";
   const add = async () => {
     const account = await api.addAccount({
-      schoolId: chosenSchool, name: name.trim(), email: email.trim(), role, className: className.trim() || null,
+      schoolId: chosenSchool, name: name.trim(), email: email.trim(), role,
+      classNames: className.trim() ? [className.trim()] : [],
     });
     onAdded(account);
   };
@@ -59,7 +61,7 @@ export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {
         <Field label="Role">
           <select value={role} onChange={(event) => setRole(event.target.value as Account["role"])}>
             <option value="student">Student</option>
-            <option value="educator">Educator</option>
+            <option value="teacher">Educator</option>
           </select>
         </Field>
         <Field label="Class (optional)"><input value={className} onChange={(event) => setClassName(event.target.value)} /></Field>

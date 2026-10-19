@@ -28,13 +28,13 @@ const TABS: { id: AccountTab; label: string }[] = [
 const inTab = (account: Account, tab: AccountTab) =>
   tab === "everyone" ||
   (tab === "students" && account.role === "student") ||
-  (tab === "educators" && account.role === "educator") ||
+  (tab === "educators" && account.role === "teacher") ||
   (tab === "invited" && account.status === "invited");
 
 /** True when `account` belongs under `tab` and its name, email or class contains the search text. */
 export function matchesFilter(account: Account, tab: AccountTab, search: string): boolean {
   const text = search.trim().toLowerCase();
-  return inTab(account, tab) && (!text || [account.name, account.email, account.className ?? ""].some((field) => field.toLowerCase().includes(text)));
+  return inTab(account, tab) && (!text || [account.name, account.email, ...account.classNames].some((field) => field.toLowerCase().includes(text)));
 }
 
 type AccountFiltersProps = {
