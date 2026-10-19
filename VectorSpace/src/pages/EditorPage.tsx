@@ -233,10 +233,9 @@ export default function EditorPage() {
             setSelectedId(null)
           }}
         />
-        {/**Add drop down for the room details here */}
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
-        <nav className="Tutorial-steps">
+        <nav className="Tutorial-steps"> {/** tutorial buttons */}
         {tutorialSteps.map(({ step: n, label }) => {
           const locked = n > currentStep
           const viewing = n === TUTStep
@@ -246,7 +245,6 @@ export default function EditorPage() {
             <button
               key={n}
               className={`button button--${colour}`}
-              aria-current={viewing ? 'step' : undefined}
               disabled={locked}
               title={title}
               onClick={() => viewStep(n)}
@@ -735,6 +733,7 @@ function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
         </span>
       </button>
 
+      {/* Pop up logic  */}
       {isOpen && (
         <div className="room-popup">
           <h2>Your rooms</h2>
