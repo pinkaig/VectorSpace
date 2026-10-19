@@ -41,11 +41,71 @@ import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
+
 // which page the visitor is on is the router's job (src/App.tsx); this is only whether
 // the editor or its simulation is showing
 type ViewMode =
   | 'editor'
   | 'runtime'
+
+
+/* Variables and data for "Tutorial" where we can give students a step-by-step for giving them instructions on how to use */
+
+export type TutorialStep = 1|2|3|4
+export type CurrentStep = 1|2|3|4|5
+
+export const tutorialSteps: {step: TutorialStep; label:string}[] =[
+  {step: 1, label:'Place things'},
+  {step: 2, label:'Add info'},
+  {step: 3, label:'Make it react'},
+  {step: 4, label:'Play and share'}
+]
+
+/** Testing only const Change this to advance the tutorial buttons*/
+const TESTING_TUTORIAL: CurrentStep=2
+/** Testing only const*/
+
+export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
+  const [currentStep, setCurrentStep] = useState<CurrentStep>(startAt)
+  const [TUTStep, setTUTStep] = useState<TutorialStep>(Math.min(startAt, 4) as TutorialStep)
+ 
+  // Finishing the current step opens the next one and moves the view to it.
+  const completeStep = (n: TutorialStep) => {
+    if (n !== currentStep) return
+    setCurrentStep((n + 1) as CurrentStep)
+    setTUTStep(Math.min(n + 1, 4) as TutorialStep)
+  }
+
+  const viewStep = (n: TutorialStep) => {
+    if (n <= currentStep) setTUTStep(n)
+  }
+
+  return { currentStep, TUTStep, completeStep, viewStep }
+}
+/**End of Tutorial assisting code for the UI */
+
+type RoomSide = 'north' | 'east' | 'south' | 'west'
+
+const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano']
+const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
+
+interface RoomPopupProps {
+  project: ProjectData
+  onSelectScene: (sceneId: string) => void
+}
+
+
+
+
+/** Catalogue assistance code */
+export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
+
+export const catalogueCategories: { id: CatalogueIDTypes; label: string; singular: string }[] = [
+    { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
+    { id: 'signs', label: 'signs', singular: 'sign' },
+    { id: 'misc', label: 'misc', singular: 'misc' },
+]
+
 
 const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
   { preset: 'angled', label: 'Angled' },
@@ -138,6 +198,9 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     })
   }
 
+  
+
+
   const {
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
@@ -148,6 +211,9 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
     project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
   })
+
+  const { currentStep, TUTStep, viewStep } = useSimpleSteps()
+  const [category,setCategory]=useState<CatalogueIDTypes>('exhibits')
 
   if (viewMode === 'runtime') {
     return (
@@ -161,23 +227,39 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand"><span className="brand-mark">V</span><div><strong>VectorSpace</strong><span>Spatial Experience Builder</span></div></div>
-        <div className="project-title"><span className="eyebrow">Project</span><strong>{project.name}</strong><span className="save-state">{savedAt}</span></div>
+        <SceneRoomPopUp
+          project={project}
+          onSelectScene={(id) => {
+            commit('Select scene', selectEditorScene(project, id).project)
+            setSelectedId(null)
+          }}
+        />
         <div className="top-actions"> {/**** Top bar buttons *****/}
+
+        <nav className="Tutorial-steps"> {/** tutorial buttons */}
+        {tutorialSteps.map(({ step: n, label }) => {
+          const locked = n > currentStep
+          const viewing = n === TUTStep
+          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
+          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
+          return (
+            <button
+              key={n}
+              className={`button button--${colour}`}
+              disabled={locked}
+              title={title}
+              onClick={() => viewStep(n)}
+            >
+            <span className="button-num">{n}</span>
+              {label}
+            </button>
+                  )})}
+        </nav>
           <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
           <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
-          <button className="button ghost" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
-          <input
-            ref={fileInputRef}
-            className="hidden-file-input"
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => void importFile(event.target.files?.[0])}
-          />
-          <button className="button ghost" onClick={() => downloadProject(project)}>Export JSON</button>
           <button className="button primary" onClick={save}>Save project</button>
           <button className="button primary" onClick={() => setViewMode('runtime')}>Run simulation</button>
         </div>
@@ -191,18 +273,18 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               >
               Scene
             </button>
-            <button //assets
+            {/*<button //assets
               className={LeftTabs === 'assets' ? 'rail-tab active' : 'rail-tab'}
               onClick={() => SetLeftTab('assets')}
               >
               Assets
-            </button>
-            <button //interactions
+            </button>*/}
+            {/*<button //interactions
               className={LeftTabs === 'interactions' ? 'rail-tab active' : 'rail-tab'}
               onClick={() => SetLeftTab('interactions')}
             >
               Interact
-            </button>
+            </button>*/}
           </div>
           {/* ── Scenes tab ─────────────────────────────────────────── */}
           {LeftTabs === 'scenes' && (
@@ -538,6 +620,54 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} onAssetIdChange={setSelectedAssetId} onAddClickRule={addSelectedClickRule} rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)} onRemoveRule={removeRuleById} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
         </aside>
       </div>
+      <section className="catalogue">
+        <div className="catalogue-head">
+          <h2>Catalogue</h2>
+            <div className="catalogue-types" role="tablist">
+              {catalogueCategories.map((item)=>{
+               /* wait for asset panel assistance on moving over? const selected = item.id=== category*/
+                  const selected = item.id ===category
+                  const classes =['chip']
+                  if(selected) classes.push('is-selected')
+                  return (
+                    <button
+                    className={classes.join(' ')}
+                    key ={item.label}
+                    role="tab"
+                    title={`${item.label}`}
+                    onClick={()=>{setCategory(item.id);}}
+                    >{item.id}</button>
+                  )
+              })}
+            </div>
+            <div role="tabpanel">
+              {/**add no items found part here */}
+              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                <div className="catalogue-list">
+                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                    <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
+                      {isUserAsset(asset.assetId)
+                        ? (() => {
+                            const uses = countAssetUses(project, asset.assetId)
+                            return (
+                              <span
+                                className={uses > 0 ? 'icon-button in-use' : 'icon-button'}
+                                aria-disabled={uses > 0}
+                                title={uses > 0 ? `In use by ${uses} object${uses === 1 ? '' : 's'} - delete ${uses === 1 ? 'it' : 'them'} to remove this asset` : 'Remove imported asset'}
+                                onClick={(event) => { event.stopPropagation(); void deleteUserAsset(asset) }}
+                              >×</span>
+                            )
+                          })()
+                        : <span className="add-symbol">+</span>}
+                    </button>
+                  ))}
+                  {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+                </div>
+            </div>
+        </div>
+      </section>
     </main>
   )
 }
@@ -582,4 +712,46 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
     )
   }
   return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<WhenDoRuleSection rules={rules} onAdd={onAddClickRule} onRemove={onRemoveRule} /><div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
+}
+
+
+function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
+  const [isOpen, setIsOpen] = useState(false)
+  const [music, setMusic] = useState('Museum hum')
+  const [volume, setVolume] = useState('Quiet')
+  const sceneIndex = project.scenes.findIndex((s) => s.id === project.activeSceneId)
+  const scene = project.scenes[sceneIndex]
+  const roomNumber = sceneIndex + 1
+
+  const addRoom =(side:RoomSide)=>{}//Add later
+
+  return(
+    <div className="room-popup-anchor">
+      <button className="button" onClick={()=>setIsOpen(!isOpen)}>
+        <strong>{project.name}</strong>
+        <span className="button">
+          Room {roomNumber}{scene.name}
+        </span>
+      </button>
+
+      {/* Pop up logic  */}
+      {isOpen && (
+        <div className="room-popup">
+          <h2>Your rooms</h2>
+          <button className="button" onClick={()=>setIsOpen(false)}>X</button>
+        </div>
+
+        //room grid
+
+
+        //room nav
+
+
+        //music
+
+
+      )}
+
+    </div>
+  )
 }
