@@ -1,7 +1,8 @@
 """FastAPI application entry point.
 
 The API behind the multi-user platform: who is signed in (/me), classes, projects and their
-saved revisions. The M1 editor does not need it and still runs on localStorage alone; the browser
+saved revisions, and the admin area's schools and accounts (/admin). The M1 editor does not
+need it and still runs on localStorage alone; the browser
 app only calls it when VITE_API_URL is set. Delete and activate/publish are not built yet and
 return HTTP 501. The /health route and the request-id middleware are tested.
 
@@ -18,7 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from .config import get_settings
-from .routers import analytics, classes, me, media, projects, publish, rules
+from .routers import admin, analytics, classes, me, media, projects, publish, rules
 
 
 logger = logging.getLogger("vectorspace.api")
@@ -60,6 +61,7 @@ app.add_middleware(
 )
 
 app.include_router(me.router)
+app.include_router(admin.router)
 app.include_router(classes.router)
 app.include_router(projects.router)
 app.include_router(media.router)
