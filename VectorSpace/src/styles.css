@@ -196,6 +196,22 @@ button:disabled {
   border-color: var(--accent);
 }
 
+
+.room-popup-anchor { position: relative; }
+
+.room-popup {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  width: min(420px, calc(100vw - 32px)); padding: 16px;
+  border: 2px solid #5b4bd6; border-radius: 16px; background: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.room-trigger {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 8px 14px; border: 1px solid #e3e1ee; border-radius: 14px;
+  background: #fff; cursor: pointer; font: inherit;
+}
+
 .catalogue {
   flex: 0 0 auto;
   display: flex;

@@ -720,7 +720,6 @@ function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
   const [isOpen, setIsOpen] = useState(false)
   const [music, setMusic] = useState('Museum hum')
   const [volume, setVolume] = useState('Quiet')
-
   const sceneIndex = project.scenes.findIndex((s) => s.id === project.activeSceneId)
   const scene = project.scenes[sceneIndex]
   const roomNumber = sceneIndex + 1
@@ -728,7 +727,7 @@ function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
   const addRoom =(side:RoomSide)=>{}//Add later
 
   return(
-    <div className="RoomPopUpWrap">
+    <div className="room-popup-anchor">
       <button className="button" onClick={()=>setIsOpen(!isOpen)}>
         <strong>{project.name}</strong>
         <span className="button">
@@ -737,7 +736,7 @@ function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
       </button>
 
       {isOpen && (
-        <div className="RoomPopUpWrap">
+        <div className="room-popup">
           <h2>Your rooms</h2>
           <button className="button" onClick={()=>setIsOpen(false)}>X</button>
         </div>
@@ -755,5 +754,4 @@ function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
 
     </div>
   )
-
 }
