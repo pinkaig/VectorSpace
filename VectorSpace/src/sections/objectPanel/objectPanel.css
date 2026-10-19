@@ -1,10 +1,417 @@
 /**
- * @file        ObjectPanel.css
+ * @file        objectPanel.css
  * @project     Spatial Experience Builder
- * @author      Chloe Lau Rey En
- * @brief       Styles for the object panel: header, tabs and tab content.
+ * @author      Weian Ching
+ * @brief       Styles for the object panel: header, close button, tabs and
+ *              the boxes inside each tab. Only styles the inside of the
+ *              panel; EditorLayout sets where it sits and its width.
+ *              Colours come from the V3 tokens in tokens.css.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
+/******************************************************************************/
+
+.object-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  box-sizing: border-box;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+
+.object-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.object-panel-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--purple-500);
+}
+
+.object-panel-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.object-panel-eyebrow {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.object-panel-title h2 {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.object-panel-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.object-panel-close:hover {
+  background: var(--purple-50);
+  color: var(--purple-600);
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────── */
+
+.object-panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-100);
+}
+
+.object-panel-tab {
+  padding: 8px 0;
+  border: none;
+  border-radius: var(--radius-btn-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.object-panel-tab:hover {
+  color: var(--purple-600);
+}
+
+.object-panel-tab.active {
+  background: var(--surface);
+  color: var(--purple-600);
+  box-shadow: 0 1px 3px rgba(31, 27, 58, 0.12);
+}
+
+/* ── Body and boxes ───────────────────────────────────────────────────── */
+
+/* scrolls on its own so the header and tabs stay put */
+.object-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.object-panel-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-box);
+  background: var(--purple-50);
+}
+
+.object-panel-label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.object-panel-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.object-panel-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+
+.object-panel-button {
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.object-panel-button:hover {
+  border-color: var(--purple-300);
+  background: var(--purple-100);
+}
+
+.object-panel-button.danger {
+  color: var(--red-500);
+}
+
+.object-panel-button.danger:hover {
+  border-color: var(--red-500);
+  background: #FDECEA;
+  color: var(--red-700);
+}
+
+.object-panel-actions {
+  margin-top: 2px;
+}
+
+/* Move / Rotate / Size */
+.object-panel-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.object-panel-segment {
+  padding: 8px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.object-panel-segment:hover {
+  border-color: var(--purple-300);
+}
+
+.object-panel-segment.active {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+/* ── Snap switch ──────────────────────────────────────────────────────── */
+
+.object-panel-switch-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.object-panel-switch-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.object-panel-switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--purple-300);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.object-panel-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(31, 27, 58, 0.25);
+  transition: transform 0.15s;
+}
+
+.object-panel-switch.on {
+  background: var(--green-500);
+}
+
+.object-panel-switch.on span {
+  transform: translateX(18px);
+}
+
+/* ── Exact numbers ────────────────────────────────────────────────────── */
+
+.object-panel-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.object-panel-chevron {
+  color: var(--text-muted);
+}
+
+.object-panel-vector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.object-panel-vector-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.object-panel-vector-fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.object-panel-number {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+}
+
+.object-panel-number:focus-within {
+  border-color: var(--purple-500);
+}
+
+.object-panel-number span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.object-panel-number input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+/* ── Info placeholders ────────────────────────────────────────────────── */
+
+.object-panel-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  border: 1px dashed var(--purple-300);
+  border-radius: var(--radius-btn-sm);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.object-panel-placeholder.tall {
+  min-height: 80px;
+}
+
+/* ── Reactions: restyles the shared WhenDoRuleSection for this panel ──── */
+
+.object-panel-reactions .field-group {
+  margin: 0;
+}
+
+.object-panel-reactions .rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+}
+
+.object-panel-reactions .rule-number {
+  color: var(--purple-600);
+  font-family: var(--font-body);
+  font-weight: 800;
+}
+
+.object-panel-reactions .rule-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.object-panel-reactions .rule-remove {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.object-panel-reactions .rule-remove:hover {
+  color: var(--red-500);
+}
+
+/* ── Nothing selected ─────────────────────────────────────────────────── */
+
+.object-panel-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  flex: 1;
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.object-panel-empty p {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.object-panel-empty-mark {
+  color: var(--purple-300);
+  font-size: 32px;
+}

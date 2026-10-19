@@ -24,8 +24,7 @@ import { isUserAsset } from '../content/userAssets'
 import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../content/audioAssets'
 import { isUserAudioAsset } from '../content/userAudio'
 import { selectEditorScene } from '../editor/editorOperations'
-import { type ClickRuleChoice } from '../editor/ruleEditorOperations'
-import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
+import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
@@ -136,6 +135,11 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   const bumpSync = () => setSyncToken((value) => value + 1)
   const { project, timelineRef, commit, runCommand, resetTimeline, undo, redo } = useEditorHistory(initialProject, bumpSync)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // the editor step, Position = 1, Info = 2, Reactions = 3. The object panel's tabs set it
+  // now, and the top bar's step strip will share this same value when it lands.
+  const [step, setStep] = useState(1)
+  // the object panel's snap switch; not read by the viewport yet
+  const [snapOn, setSnapOn] = useState(false)
   const {
     gizmoMode, setGizmoMode,
     scaleSpace, setScaleSpace,
@@ -203,9 +207,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
 
   const {
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
-    renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
-    indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
-    setSelectedEnabled, addScene,
+    deleteSelected, duplicateSelected, indentObject, outdentObject,
+    addSelectedClickRule, removeRuleById, addScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
