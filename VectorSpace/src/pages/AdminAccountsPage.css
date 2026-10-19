@@ -1,0 +1,88 @@
+/**
+ * @file        AdminAccountsPage.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for the Accounts page: toolbar (tabs, search, add buttons) over a
+ *              scrolling table. Pill tabs are 40px tall, as in the V3 manual.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.admin-accounts {
+  flex: 1;
+}
+
+.admin-accounts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-accounts-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-accounts-add {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-accounts-tab {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.admin-accounts-tab-active {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+/* search: bg-app fill with the magnifier inside the left edge */
+.admin-accounts-search {
+  position: relative;
+  margin-left: 8px;
+}
+
+.admin-accounts-search svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.admin-accounts-search input {
+  width: 240px;
+  height: 40px;
+  padding-left: 36px;
+  background: var(--bg-app);
+}
+
+.admin-accounts-person {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-accounts-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* the name and email fields run the full width of the form */
+.admin-accounts-wide {
+  grid-column: 1 / -1;
+}

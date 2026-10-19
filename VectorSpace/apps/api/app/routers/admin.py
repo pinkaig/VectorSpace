@@ -1,0 +1,314 @@
+"""What the VThere Admin pages ask for: schools, the people in them, and the overview numbers.
+
+Admin only, and scoped the same way as everything else: an Actor belongs to exactly one
+organisation, so an admin administers exactly one school.
+
+That is worth saying plainly, because the admin screens were drawn for a VThere operator sitting
+*above* the schools — a School picker with "All schools", and "+ Add a school". The schema has no
+such person: roles are admin, teacher and student, all inside one organisation. So here "All
+schools" means the one school the caller administers, and POST /admin/schools answers 501 instead
+of inventing a cross-school operator. Giving VThere staff a real seat above the schools is a
+schema decision (an operator role or an organisation group), not something a route can paper over.
+
+Every number on these pages is a query against the tables we already have. The two things the
+pages ask for that no table can answer -- per-school permission settings, and which rooms and
+asset packs a school may use -- are not here; they stay in the browser's adminFake.ts and the
+pages mark them as not saved.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from ..auth import get_current_actor
+from ..db import get_db
+from ..models import Actor, ClassMember, Classroom, Organisation, Project, ProjectVersion
+from ..provision import Row, logins, provision
+from ._skeleton import not_implemented
+
+router = APIRouter(prefix="/admin", tags=["admin"])
+
+ALL_SCHOOLS = "all"
+
+
+def require_admin(actor: Actor = Depends(get_current_actor)) -> Actor:
+    if actor.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+    return actor
+
+
+def _school_scope(actor: Actor, school: str) -> None:
+    """The picker may send "all" or this admin's own school id; anything else is not theirs."""
+    if school != ALL_SCHOOLS and school != str(actor.organisation_id):
+        raise HTTPException(status_code=404, detail="School not found")
+
+
+class SchoolResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    students: int
+    educators: int
+    # derived, not stored: a school with at least one teacher and one student is up and running
+    status: str
+
+
+class AccountResponse(BaseModel):
+    id: uuid.UUID
+    school_id: uuid.UUID
+    name: str
+    email: str
+    role: str
+    # a person can be in more than one class, so this is a list and not a single name
+    class_names: list[str]
+    last_active: datetime | None
+    # turned_off when the account is switched off, invited until the first sign-in, then active
+    status: str
+
+
+class NewAccountRequest(BaseModel):
+    school_id: uuid.UUID
+    name: str
+    email: str
+    role: str
+    class_names: list[str] = []
+
+
+class AccountPatchRequest(BaseModel):
+    active: bool
+
+
+class Tile(BaseModel):
+    value: int
+    sub: str
+
+
+class AttentionItem(BaseModel):
+    id: str
+    text: str
+    action_label: str
+    # which admin page fixes it, or null when no page does
+    go_to: str | None
+
+
+class PublishedItem(BaseModel):
+    id: uuid.UUID
+    title: str
+    where: str
+    published_at: datetime | None
+
+
+class OverviewResponse(BaseModel):
+    tiles: dict[str, Tile]
+    schools: list[SchoolResponse]
+    attention: list[AttentionItem]
+    recent: list[PublishedItem]
+
+
+def _describe_schools(db: Session, orgs: list[Organisation]) -> list[SchoolResponse]:
+    counts = {
+        (org_id, role): total
+        for org_id, role, total in db.execute(
+            select(Actor.organisation_id, Actor.role, func.count())
+            .where(Actor.organisation_id.in_([o.id for o in orgs]))
+            .group_by(Actor.organisation_id, Actor.role)
+        ).all()
+    }
+    rows = []
+    for org in orgs:
+        students = counts.get((org.id, "student"), 0)
+        teachers = counts.get((org.id, "teacher"), 0)
+        rows.append(
+            SchoolResponse(
+                id=org.id, name=org.name, students=students, educators=teachers,
+                status="active" if students and teachers else "setting_up",
+            )
+        )
+    return rows
+
+
+def _account_status(actor: Actor) -> str:
+    if not actor.active:
+        return "turned_off"
+    return "active" if actor.last_seen_at else "invited"
+
+
+def _describe_accounts(db: Session, people: list[Actor]) -> list[AccountResponse]:
+    """The people plus the classes they are in: one extra query for the lot."""
+    classes: dict[uuid.UUID, list[str]] = {}
+    for actor_id, name in db.execute(
+        select(ClassMember.actor_id, Classroom.name)
+        .join(Classroom, Classroom.id == ClassMember.class_id)
+        .where(ClassMember.actor_id.in_([p.id for p in people]))
+        .order_by(Classroom.name)
+    ).all():
+        classes.setdefault(actor_id, []).append(name)
+    return [
+        AccountResponse(
+            id=p.id, school_id=p.organisation_id, name=p.display_name, email=p.email, role=p.role,
+            class_names=classes.get(p.id, []), last_active=p.last_seen_at, status=_account_status(p),
+        )
+        for p in people
+    ]
+
+
+@router.get("/schools", response_model=list[SchoolResponse])
+def list_schools(actor: Actor = Depends(require_admin), db: Session = Depends(get_db)) -> list[SchoolResponse]:
+    """One school: the caller's own. See this module's note on why there is no list above it."""
+    org = db.get(Organisation, actor.organisation_id)
+    return _describe_schools(db, [org] if org else [])
+
+
+@router.post("/schools", status_code=501)
+def add_school(actor: Actor = Depends(require_admin)) -> None:
+    raise not_implemented(
+        "Adding a school needs a VThere operator role above the schools, which the data model does "
+        "not have yet: an admin belongs to one school. Create schools with "
+        "python -m app.provision --school-slug <slug> --school-name <name> for now."
+    )
+
+
+@router.get("/accounts", response_model=list[AccountResponse])
+def list_accounts(
+    school: str = Query(ALL_SCHOOLS),
+    actor: Actor = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[AccountResponse]:
+    _school_scope(actor, school)
+    people = db.scalars(
+        select(Actor).where(Actor.organisation_id == actor.organisation_id).order_by(Actor.display_name)
+    )
+    return _describe_accounts(db, list(people))
+
+
+@router.post("/accounts", response_model=AccountResponse, status_code=201)
+def add_account(
+    body: NewAccountRequest, actor: Actor = Depends(require_admin), db: Session = Depends(get_db)
+) -> AccountResponse:
+    """The same provisioning path as the CSV tool and the seed: a login, an actor row, its classes.
+
+    Nobody signs themselves up, so creating an account means creating a login first. With
+    AUTH_DEV_BYPASS the login is a local "dev|..." stand-in; otherwise it is a real Auth0 user.
+    """
+    if body.school_id != actor.organisation_id:
+        raise HTTPException(status_code=404, detail="School not found")
+    if body.role not in ("admin", "teacher", "student"):
+        raise HTTPException(status_code=422, detail="role must be admin, teacher or student")
+    email = body.email.strip().lower()
+    org = db.get(Organisation, actor.organisation_id)
+    row = Row(email=email, display_name=body.name.strip(), role=body.role, classes=body.class_names)
+    provision(db, logins(), org.slug, org.name, [row])
+    person = db.scalar(select(Actor).where(Actor.organisation_id == org.id, Actor.email == email))
+    return _describe_accounts(db, [person])[0]
+
+
+@router.patch("/accounts/{account_id}", response_model=AccountResponse)
+def set_account_active(
+    account_id: uuid.UUID,
+    body: AccountPatchRequest,
+    actor: Actor = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AccountResponse:
+    """Turn an account off or back on. Accounts are never deleted; their work would go with them."""
+    person = db.get(Actor, account_id)
+    if person is None or person.organisation_id != actor.organisation_id:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if person.id == actor.id and not body.active:
+        raise HTTPException(status_code=400, detail="You cannot turn off your own account")
+    person.active = body.active
+    db.commit()
+    db.refresh(person)
+    return _describe_accounts(db, [person])[0]
+
+
+def _attention(db: Session, schools: list[SchoolResponse], never_signed_in: int) -> list[AttentionItem]:
+    """Only things a query can actually show. No invented reports or asset-pack announcements."""
+    items: list[AttentionItem] = []
+    for school in schools:
+        if school.status == "setting_up":
+            missing = "teachers" if not school.educators else "students"
+            items.append(
+                AttentionItem(
+                    id=f"setting-up-{school.id}", text=f"{school.name} has no {missing} yet",
+                    action_label="Add accounts", go_to="accounts",
+                )
+            )
+        if not db.scalar(
+            select(func.count()).select_from(Classroom).where(Classroom.organisation_id == school.id)
+        ):
+            items.append(
+                AttentionItem(
+                    id=f"no-classes-{school.id}", text=f"{school.name} has no classes yet",
+                    action_label="Add accounts", go_to="accounts",
+                )
+            )
+    if never_signed_in:
+        items.append(
+            AttentionItem(
+                id="never-signed-in",
+                text=f"{never_signed_in} {'person has' if never_signed_in == 1 else 'people have'} never signed in",
+                action_label="See who", go_to="accounts",
+            )
+        )
+    return items
+
+
+@router.get("/overview", response_model=OverviewResponse)
+def get_overview(
+    school: str = Query(ALL_SCHOOLS),
+    actor: Actor = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> OverviewResponse:
+    """The four numbers, the schools table, what needs an admin, and what was published recently."""
+    _school_scope(actor, school)
+    org_id = actor.organisation_id
+    schools = _describe_schools(db, [db.get(Organisation, org_id)])
+    people = list(db.scalars(select(Actor).where(Actor.organisation_id == org_id)))
+
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    teachers = [p for p in people if p.role == "teacher"]
+    students = [p for p in people if p.role == "student"]
+    # last_seen_at is stored with a timezone, but SQLite hands it back naive; compare in UTC either way
+    seen = lambda p: p.last_seen_at and (p.last_seen_at if p.last_seen_at.tzinfo else p.last_seen_at.replace(tzinfo=timezone.utc))
+    active_this_week = sum(1 for p in students if (when := seen(p)) and when >= week_ago)
+    never = sum(1 for p in people if p.active and p.last_seen_at is None)
+
+    published = list(
+        db.scalars(
+            select(Project)
+            .where(Project.organisation_id == org_id, Project.kind == "project", Project.status == "published")
+            .order_by(Project.updated_at.desc())
+        )
+    )
+    drafts = db.scalar(
+        select(func.count()).select_from(Project).where(
+            Project.organisation_id == org_id, Project.kind == "project", Project.status == "draft"
+        )
+    )
+    class_names = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.organisation_id == org_id))}
+    school_name = schools[0].name if schools else ""
+    recent = [
+        PublishedItem(
+            id=p.id, title=p.name,
+            where=f"{school_name} · {class_names[p.class_id]}" if p.class_id in class_names else school_name,
+            published_at=p.updated_at,
+        )
+        for p in published[:5]
+    ]
+
+    return OverviewResponse(
+        tiles={
+            "schools": Tile(value=len(schools), sub=f"{sum(1 for s in schools if s.status == 'active')} active"),
+            "educators": Tile(value=len(teachers), sub=f"{sum(1 for p in teachers if p.last_seen_at is None)} not signed in yet"),
+            "students": Tile(value=len(students), sub=f"{active_this_week} active this week"),
+            "published": Tile(value=len(published), sub=f"{drafts} still drafts"),
+        },
+        schools=schools,
+        attention=_attention(db, schools, never),
+        recent=recent,
+    )

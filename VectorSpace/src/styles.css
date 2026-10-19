@@ -141,18 +141,169 @@ button:disabled {
   color: var(--text-2);
   padding-inline: 8px;
 }
+
+/*Styles concerning the 4 tutorial buttons to indicate progress*/
+.Tutorial-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.Tutorial-steps .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px 0 6px;
+  border-radius: 999px; /*since the button isn't a square, we can't use % or it becomes a elipse*/
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.Tutorial-steps .button-num{
+  background: var(--White);
+  color: var(--accent);
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+}
+
+.Tutorial-steps .button--viewing{
+  background: var(--accent);
+  color: var(--White);
+}
+.Tutorial-steps .button--green{
+  background: green;
+  color: var(--White);
+}
+/*Styles concerning the 4 tutorial buttons to indicate progress*/
+
+
 .button.ghost {
   border-color: var(--border);
   background: var(--White);
 }
+
 .button.primary {
   background: var(--accent);
   color: var(--White);
   border-color: var(--accent);
 }
+
+/*styles for the popup concerning the room*/
+.room-popup-anchor { position: relative; }
+
+.room-popup {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  width: min(420px, calc(100vw - 32px)); padding: 16px;
+  border: 2px solid #5b4bd6; border-radius: 16px; background: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.room-trigger {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 8px 14px; border: 1px solid #e3e1ee; border-radius: 14px;
+  background: #fff; cursor: pointer; font: inherit;
+}
+/*styles for the popup concerning the room*/
+
+.catalogue {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+}
+.catalogue-head {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas:
+    "title types search"
+    "list  list  list";
+  align-items: center;
+  gap: 12px;
+}
+
+.catalogue-head > h2 {
+  grid-area: title;
+  margin: 0;
+}
+
+.catalogue-types {
+  grid-area: types;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.catalogue-head > [role="tabpanel"] {
+  display: contents;
+}
+
+.catalogue-head > [role="tabpanel"] > input {
+  grid-area: search;
+  justify-self: end;
+  width: 240px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--White);
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.catalogue-head > [role="tabpanel"] > .catalogue-list {
+  grid-area: list;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 7px;
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.catalogue-list .asset-card {
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--White);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.chip.is-selected {
+  background: var(--Black);
+  color: var(--White);
+  border-color: var(--text-2);
+}
+
+
+
+
+
 .workspace {
   display: grid;
-  grid-template-columns: 238px minmax(520px, 1fr) 286px;
+  grid-template-columns: minmax(520px, 1fr);
+  position: relative;
   gap: 12px;
   flex: 1;
   min-height: 0;
@@ -1550,4 +1701,32 @@ button:disabled {
 }
 .page-nav button {
   margin-left: auto;
+}
+
+/* a sign-in that the server refused (SignIn in App.tsx), over the bottom of the login page */
+.sign-in-problem {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border: 1px solid var(--red-500);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--red-700);
+}
+
+/* Inspector pops up over the viewport when an object is selected (tutorial step 2+). */
+.inspector-popup {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 286px;
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  z-index: 20;
+  background: var(--White);
+  border: 1px var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
