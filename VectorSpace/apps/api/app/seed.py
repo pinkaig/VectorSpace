@@ -1,7 +1,7 @@
 """Local demo data: one school with an admin, three teachers, 24 students, five classes, six
 templates and about eighty projects with saved revisions, so a landing page has something to list.
 
-Sign in as dev|admin, dev|teacher, dev|teacher2, dev|teacher3 or dev|student1 ... dev|student24.
+Sign in as dev|admin, dev|teacher (Ms Tan), dev|teacher2, dev|teacher3 or dev|student1 (Aisyah) ... dev|student24.
 
 Run from apps/api with AUTH_DEV_BYPASS=true (dry run by default, nothing is written until --apply):
 
@@ -27,20 +27,21 @@ from .seed_content import seed_content
 
 SLUG, SCHOOL = "demo", "Demo School"
 
-CLASSES = ["Demo Class", "Other Class", "Year 7 Science", "Year 8 History", "Art Studio"]
+# student1 is Aisyah in Ms Tan's first class, so "teacher sends to Aisyah" works straight after seeding
+CLASSES = ["1A Science", "1B Science", "2A Humanities", "2B Humanities", "Art Club"]
 STUDENT_NAMES = [
-    "Demo Student One", "Demo Student Two", "Aisha Rahman", "Ben Carter", "Chloe Tan", "Dmitri Volkov",
-    "Elena Rossi", "Farid Haddad", "Grace Okafor", "Hiro Tanaka", "Isla McBride", "Jamal Brooks",
-    "Keiko Mori", "Liam O'Neill", "Mei Lin", "Noah Schmidt", "Olivia Reyes", "Priya Nair",
-    "Quentin Dubois", "Rosa Alvarez", "Sam Whitaker", "Tariq Aziz", "Uma Patel", "Victor Lindqvist",
+    "Aisyah Rahman", "Ethan Lim", "Chloe Tan", "Ben Carter", "Dmitri Volkov", "Elena Rossi",
+    "Farid Haddad", "Grace Okafor", "Hiro Tanaka", "Isla McBride", "Jamal Brooks", "Keiko Mori",
+    "Liam O'Neill", "Mei Lin Chua", "Noah Schmidt", "Olivia Reyes", "Priya Nair", "Quentin Dubois",
+    "Rosa Alvarez", "Sam Whitaker", "Tariq Aziz", "Uma Patel", "Victor Lindqvist", "Wei Jie Ong",
 ]
 
-# the first four keep the names the earlier seed used
+# the logins keep their old keys (dev|teacher, dev|student1 ...); only the people behind them have real names
 ROWS = [
-    Row("admin@demo.test", "Demo Admin", "admin", []),
-    Row("teacher@demo.test", "Demo Teacher", "teacher", ["Demo Class", "Year 7 Science", "Art Studio"]),
-    Row("teacher2@demo.test", "Maria Santos", "teacher", ["Other Class", "Year 8 History"]),
-    Row("teacher3@demo.test", "Oliver Grant", "teacher", ["Year 7 Science", "Year 8 History", "Art Studio"]),
+    Row("admin@demo.test", "Jasmine Ong (VThere)", "admin", []),
+    Row("teacher@demo.test", "Ms Tan Hui Min", "teacher", ["1A Science", "2A Humanities", "Art Club"]),
+    Row("teacher2@demo.test", "Mr Rahim Ismail", "teacher", ["1B Science", "2B Humanities"]),
+    Row("teacher3@demo.test", "Ms Maria Santos", "teacher", ["1A Science", "2B Humanities", "Art Club"]),
 ] + [
     Row(
         f"student{n}@demo.test", name, "student",

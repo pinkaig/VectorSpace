@@ -37,7 +37,7 @@ def test_each_role_sees_what_the_landing_pages_need(db, seeded, client) -> None:
     student = client.get("/projects", params={"limit": 200}, headers=as_user("dev|student1"))
     kinds = {p["kind"] for p in student.json()}
     assert kinds == {"project", "template"}
-    assert all(p["created_by_name"] == "Demo Student One" for p in student.json() if p["kind"] == "project")
+    assert all(p["created_by_name"] == "Aisyah Rahman" for p in student.json() if p["kind"] == "project")
     teacher = client.get("/projects", params={"kind": "project"}, headers=as_user("dev|teacher"))
     assert int(teacher.headers["X-Total-Count"]) > len(client.get("/projects", params={"mine": True, "kind": "project"}, headers=as_user("dev|teacher")).json())
     assert len(client.get("/classes", headers=as_user("dev|admin")).json()) == 5

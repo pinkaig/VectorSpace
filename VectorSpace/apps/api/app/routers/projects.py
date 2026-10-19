@@ -50,28 +50,65 @@ class ProjectResponse(BaseModel):
     created_by_name: str = ""
     class_name: str | None = None
     current_revision: int = 0
+    # the latest save: when, and by whom (a teacher's "send" counts as the first save)
+    saved_at: datetime | None = None
+    saved_by_name: str = ""
+    template_name: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
-    """The rows plus who made them, which class they are in and how many saves they have: three lookups for the lot."""
-    owners = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_({p.created_by_id for p in projects})))}
-    classes = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.id.in_({p.class_id for p in projects if p.class_id})))}
-    revisions = {
-        v.id: v.revision
+    """The rows plus who made them, their class, their template and the latest save: four lookups for the lot."""
+    versions = {
+        v.id: v
         for v in db.scalars(select(ProjectVersion).where(ProjectVersion.id.in_({p.current_version_id for p in projects if p.current_version_id})))
     }
-    return [
-        ProjectResponse.model_validate(p).model_copy(
-            update={
-                "created_by_name": owners.get(p.created_by_id, ""),
-                "class_name": classes.get(p.class_id) if p.class_id else None,
-                "current_revision": revisions.get(p.current_version_id, 0) if p.current_version_id else 0,
-            }
+    people_ids = {p.created_by_id for p in projects} | {v.created_by_id for v in versions.values()}
+    people = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_(people_ids)))}
+    classes = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.id.in_({p.class_id for p in projects if p.class_id})))}
+    templates = {t.id: t.name for t in db.scalars(select(Project).where(Project.id.in_({p.template_id for p in projects if p.template_id})))}
+    rows = []
+    for p in projects:
+        saved = versions.get(p.current_version_id)
+        rows.append(
+            ProjectResponse.model_validate(p).model_copy(
+                update={
+                    "created_by_name": people.get(p.created_by_id, ""),
+                    "class_name": classes.get(p.class_id) if p.class_id else None,
+                    "current_revision": saved.revision if saved else 0,
+                    "saved_at": saved.created_at if saved else None,
+                    "saved_by_name": people.get(saved.created_by_id, "") if saved else "",
+                    "template_name": templates.get(p.template_id) if p.template_id else None,
+                }
+            )
         )
-        for p in projects
-    ]
+    return rows
+
+
+def _distinct_name(db: Session, owner_id: uuid.UUID, kind: str, name: str) -> str:
+    """name, or "name (2)", "name (3)"... so one person's copies of the same thing can be told apart."""
+    taken = set(db.scalars(select(Project.name).where(Project.created_by_id == owner_id, Project.kind == kind)))
+    if name not in taken:
+        return name
+    number = 2
+    while f"{name} ({number})" in taken:
+        number += 1
+    return f"{name} ({number})"
+
+
+def _copy_current(db: Session, source: Project, target: Project, author: Actor, label: str | None = None) -> None:
+    """Gives target a first revision holding source's current content (nothing if source was never saved)."""
+    latest = db.get(ProjectVersion, source.current_version_id) if source.current_version_id else None
+    if latest is None or latest.content_snapshot is None:
+        return
+    snapshot = ContentSnapshot(project_id=target.id, data=latest.content_snapshot.data, checksum=latest.content_snapshot.checksum)
+    db.add(snapshot)
+    db.flush()
+    version = ProjectVersion(project_id=target.id, revision=1, created_by_id=author.id, content_snapshot_id=snapshot.id, label=label)
+    db.add(version)
+    db.flush()
+    target.current_version_id = version.id
 
 
 def _load(db: Session, actor: Actor, project_id: uuid.UUID) -> Project:
@@ -137,31 +174,65 @@ def create_project(
         created_by_id=actor.id,
         class_id=body.class_id,
         kind=body.kind,
-        name=body.name,
+        name=_distinct_name(db, actor.id, body.kind, body.name),
         slug=_slug(body.name),
     )
     db.add(project)
     db.flush()
 
     if template:
-        source = db.get(ProjectVersion, template.current_version_id) if template.current_version_id else None
+        latest = db.get(ProjectVersion, template.current_version_id) if template.current_version_id else None
         project.template_id = template.id
-        project.template_revision = source.revision if source else None
-        if source and source.content_snapshot:
-            snapshot = ContentSnapshot(
-                project_id=project.id, data=source.content_snapshot.data, checksum=source.content_snapshot.checksum
-            )
-            db.add(snapshot)
-            db.flush()
-            version = ProjectVersion(
-                project_id=project.id, revision=1, created_by_id=actor.id, content_snapshot_id=snapshot.id
-            )
-            db.add(version)
-            db.flush()
-            project.current_version_id = version.id
+        project.template_revision = latest.revision if latest else None
+        _copy_current(db, template, project, actor)
     db.commit()
     db.refresh(project)
     return _describe(db, [project])[0]
+
+
+class AssignRequest(BaseModel):
+    student_id: uuid.UUID
+
+
+@router.post("/{project_id}/assign", response_model=ProjectResponse, status_code=201)
+def assign_project(
+    project_id: uuid.UUID, body: AssignRequest, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)
+) -> ProjectResponse:
+    """Send a student their own copy of a project or template: the teacher's "send to student".
+
+    The copy belongs to the student (they can open and save it; the teacher can read it through the
+    class). Its first revision is labelled with who sent it, so the history shows where it came from.
+    """
+    if actor.role == "student":
+        raise HTTPException(status_code=403, detail="Only teachers can send work to a student")
+    source = _load(db, actor, project_id)
+    student = db.get(Actor, body.student_id)
+    if student is None or student.organisation_id != actor.organisation_id or student.role != "student":
+        raise HTTPException(status_code=404, detail="Student not found")
+    mine = class_ids(db, actor)
+    shared = [c for c in class_ids(db, student) if actor.role == "admin" or c in mine]
+    if not shared:
+        raise HTTPException(status_code=403, detail="That student is not in one of your classes")
+
+    copy = Project(
+        organisation_id=actor.organisation_id,
+        created_by_id=student.id,
+        class_id=shared[0],
+        name=_distinct_name(db, student.id, "project", source.name),
+        slug=_slug(source.name),
+        template_id=source.id if source.kind == "template" else source.template_id,
+        template_revision=None,
+    )
+    db.add(copy)
+    db.flush()
+    if copy.template_id:
+        origin = source if source.kind == "template" else db.get(Project, source.template_id)
+        latest = db.get(ProjectVersion, origin.current_version_id) if origin and origin.current_version_id else None
+        copy.template_revision = latest.revision if latest else None
+    _copy_current(db, source, copy, actor, label=f"Sent by {actor.display_name}")
+    db.commit()
+    db.refresh(copy)
+    return _describe(db, [copy])[0]
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)

@@ -77,6 +77,7 @@ def test_content_without_a_schema_version_is_rejected(client, school) -> None:
 def test_a_student_copy_of_a_template_starts_at_the_templates_content(client, school) -> None:
     template = make(client, "t1", "tpl", kind="template")
     save(client, "t1", template)
+    client.patch(f"/projects/{template['id']}", json={"status": "published"}, headers=as_user("t1"))
     copy = make(client, "s1", template_id=template["id"], class_id=str(school["class1"].id))
     assert copy["template_revision"] == 1
     listed = client.get(f"/projects/{copy['id']}/versions", headers=as_user("s1")).json()

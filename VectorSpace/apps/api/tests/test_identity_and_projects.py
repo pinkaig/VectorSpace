@@ -88,6 +88,8 @@ def test_template_is_visible_to_school_and_copied_with_provenance(client, school
     db.get(Project, UUID(template["id"])).current_version_id = version.id
     db.commit()
 
+    assert client.get(f"/projects/{template['id']}", headers=as_user("s3")).status_code == 404  # still a draft
+    client.patch(f"/projects/{template['id']}", json={"status": "published"}, headers=as_user("t1"))
     assert client.get(f"/projects/{template['id']}", headers=as_user("s3")).status_code == 200
     assert client.get(f"/projects/{template['id']}", headers=as_user("other")).status_code == 404
 
@@ -101,5 +103,31 @@ def test_template_is_visible_to_school_and_copied_with_provenance(client, school
 
 def test_students_cannot_edit_templates(client, school) -> None:
     template = make(client, "t1", kind="template")
+    client.patch(f"/projects/{template['id']}", json={"status": "published"}, headers=as_user("t1"))
     response = client.patch(f"/projects/{template['id']}", json={"name": "x"}, headers=as_user("s1"))
     assert response.status_code == 403
+
+def test_copies_of_the_same_name_are_numbered(client, school) -> None:
+    names = [make(client, "s1", "Space station")["name"] for _ in range(3)]
+    assert names == ["Space station", "Space station (2)", "Space station (3)"]
+    assert make(client, "s2", "Space station")["name"] == "Space station"  # numbering is per person
+
+
+def test_teacher_sends_a_template_to_a_student(client, school) -> None:
+    template = make(client, "t1", "Gallery walk", kind="template")
+    client.post(f"/projects/{template['id']}/versions", json={"base_revision": 0, "data": {"schemaVersion": 1}}, headers=as_user("t1"))
+    client.patch(f"/projects/{template['id']}", json={"status": "published"}, headers=as_user("t1"))
+    sent = client.post(f"/projects/{template['id']}/assign", json={"student_id": str(school["s1"].id)}, headers=as_user("t1"))
+    assert sent.status_code == 201, sent.text
+    body = sent.json()
+    assert (body["created_by_name"], body["template_id"], body["class_name"]) == (school["s1"].display_name, template["id"], "1A")
+    assert (body["saved_by_name"], body["template_name"]) == (school["t1"].display_name, "Gallery walk")
+    # it is now the student's own project, in their list
+    assert [p["id"] for p in client.get("/projects?mine=true", headers=as_user("s1")).json()] == [body["id"]]
+
+
+def test_send_is_refused_for_students_and_other_classes(client, school) -> None:
+    project = make(client, "t1", "Lesson")
+    assert client.post(f"/projects/{project['id']}/assign", json={"student_id": str(school["s2"].id)}, headers=as_user("s1")).status_code == 403
+    outsider = client.post(f"/projects/{project['id']}/assign", json={"student_id": str(school["s3"].id)}, headers=as_user("t1"))
+    assert outsider.status_code == 403

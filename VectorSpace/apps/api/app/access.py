@@ -1,7 +1,8 @@
 """Who may see or change what. Every project route goes through here, never the UI.
 
 Rules: admins see their whole school; teachers see their own projects and those in
-their classes; students see only their own; anyone in the school can read templates.
+their classes; students see only their own; everyone in the school reads published templates
+(a draft or archived template is visible only to its author and admins).
 Nothing is ever visible across schools.
 """
 
@@ -9,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.orm import Session
 
 from .models import Actor, ClassMember, Project
@@ -23,7 +24,7 @@ def visible_projects(db: Session, actor: Actor) -> Select[tuple[Project]]:
     query = select(Project).where(Project.organisation_id == actor.organisation_id)
     if actor.role == "admin":
         return query
-    conditions = [Project.kind == "template", Project.created_by_id == actor.id]
+    conditions = [and_(Project.kind == "template", Project.status == "published"), Project.created_by_id == actor.id]
     if actor.role == "teacher":
         conditions.append(Project.class_id.in_(class_ids(db, actor)))
     return query.where(or_(*conditions))

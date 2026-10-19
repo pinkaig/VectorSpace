@@ -44,6 +44,7 @@ class ProjectVersionResponse(BaseModel):
     label: str | None
     content_snapshot_id: uuid.UUID | None
     created_at: datetime
+    created_by_name: str = ""
 
     model_config = {"from_attributes": True}
 
@@ -64,13 +65,15 @@ def _checksum(data: dict[str, Any]) -> str:
 @router.get("", response_model=list[ProjectVersionResponse])
 def list_versions(
     project_id: uuid.UUID, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)
-) -> list[ProjectVersion]:
+) -> list[ProjectVersionResponse]:
     _load(db, actor, project_id)
-    return list(
+    rows = list(
         db.scalars(
             select(ProjectVersion).where(ProjectVersion.project_id == project_id).order_by(ProjectVersion.revision.desc())
         )
     )
+    names = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_({v.created_by_id for v in rows})))}
+    return [ProjectVersionResponse.model_validate(v).model_copy(update={"created_by_name": names.get(v.created_by_id, "")}) for v in rows]
 
 
 @router.post("", response_model=ProjectVersionResponse, status_code=201)
