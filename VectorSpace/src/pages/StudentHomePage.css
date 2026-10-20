@@ -1,0 +1,30 @@
+/**
+ * @file        StudentHomePage.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for the student home: greeting, assigned project card
+ *              and the "Your other projects" cards. Values from the V3 manual.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Page frame: centred, with a gap around everything ────────────────── */
+.student-home {
+  max-width: 1440px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 12px;
+  background: var(--bg-app);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+/* ── Content column: narrower, centred, with space under the top bar ──── */
+.student-home-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 0;
+}
