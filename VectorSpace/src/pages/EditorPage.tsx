@@ -25,6 +25,8 @@ import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../co
 import { isUserAudioAsset } from '../content/userAudio'
 import { selectEditorScene } from '../editor/editorOperations'
 import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
+import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
+import type { ClickRuleChoice } from '../editor/ruleEditorOperations'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
@@ -207,7 +209,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
 
   const {
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
-    deleteSelected, duplicateSelected, indentObject, outdentObject,
+    renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
+    indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
     addSelectedClickRule, removeRuleById, addScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
