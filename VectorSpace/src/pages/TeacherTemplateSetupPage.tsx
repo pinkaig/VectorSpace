@@ -1,3 +1,22 @@
+
+
+
+
+
+
+
+
 export default function TeacherTemplateSetupPage() {
-  return <h1>Teacher Template Setup placeholder</h1>
+  return (<main className="app-shell">
+    <header className="topbar"> </header>
+    <section> 
+    fuck my life life
+
+    <div className="workspace">
+      
+    </div>
+    </section>
+    </main>
+  )
+
 }

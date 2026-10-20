@@ -267,7 +267,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
           <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
           <button className="button primary" onClick={save}>Save project</button>
-          <button className="button primary" onClick={() => setViewMode('runtime')}>Run simulation</button>
+          <button className="button primary" onClick={() => setViewMode('runtime')}>Play</button>
         </div>
       </header>
       <div className="workspace">
