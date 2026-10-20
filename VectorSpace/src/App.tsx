@@ -143,7 +143,7 @@ export default function App() {
             <Route path="accounts" element={<AdminAccountsPage />} />
             <Route path="rooms" element={<AdminRoomsPage />} />
           </Route>
-          <Route path="/teacher" element={<RequireRole role="teacher"><WithNav><TeacherHomePage /></WithNav></RequireRole>} />
+          <Route path="/teacher" element={<RequireRole role="teacher"><TeacherHomePage /></RequireRole>} />
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><StudentHomePage /></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />

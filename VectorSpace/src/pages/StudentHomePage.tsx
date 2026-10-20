@@ -14,7 +14,7 @@
 
 import { useSession } from "../session/session";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
-import { LandingPageTopBar } from "../ui/LandingPageTopbar";
+import { LandingPageTopBar } from "../ui/LandingPageTopBar";
 import "./StudentHomePage.css";
 
 export default function StudentHomePage() {

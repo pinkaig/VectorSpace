@@ -21,6 +21,7 @@ type LandingPageTopBarProps = {
   tabs?: ReactNode; // teacher tabs go here; empty for students
   userName: string; // "Ms Tan"
   userSubline: string; // "Riverside Secondary"
+  actions?: ReactNode;
   onSignOut: () => void;
 };
 
@@ -29,6 +30,7 @@ export function LandingPageTopBar({
   tabs,
   userName,
   userSubline,
+  actions,
   onSignOut,
 }: LandingPageTopBarProps) {
   return (
@@ -48,8 +50,13 @@ export function LandingPageTopBar({
 
       <nav className="landing-top-bar-tabs">{tabs}</nav>
 
+      {actions && <div className="landing-top-bar-actions">{actions}</div>}
+      <div className="landing-top-bar-divider" />
+
       <div className="landing-top-bar-account">
-        <div className="landing-top-bar-avatar">{userName[0]}</div>
+        <div className={`landing-top-bar-avatar ${roleBadge ?? "student"}`}>
+          {userName[0]}
+        </div>
         <div className="landing-top-bar-user">
           <strong>{userName}</strong>
           <span>{userSubline}</span>
