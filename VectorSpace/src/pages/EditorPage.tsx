@@ -346,10 +346,9 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               ))}
             </div>
           </div>
-
-          {/* Bottom-left: environment and start view, right of the axis indicator */}
+          {/* Bottom-left: Room drop down (UP?) environment and start view, right of the axis indicator */}
           <div className="floating-controls bottom-left" style={{ left: axisClearance }} ref={advancedMenuRef}>
-            {advancedMenuOpen && (
+            {/*advancedMenuOpen && (
               <div className="float-group float-menu">
                 <span className="float-menu-label">Camera</span>
                 <div className="float-segment">
@@ -368,12 +367,12 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                   <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
                 </div>
               </div>
-            )}
+            )*/}
             <div className="float-group">
-              <label className="float-select"><span className="float-label">Room</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
-              <button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
+              <label className="float-select"><span className="float-label">Things in this room </span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
+              {/*<button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
               <button className="float-button" onClick={captureStartView} title="Use the current camera as this scene's start view">Set start view</button>
-              <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>
+              <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>*/}
             </div>
           </div>
 
@@ -511,8 +510,23 @@ function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
       {/* Pop up logic  */}
       {isOpen && (
         <div className="room-popup">
-          <h2>Your rooms</h2>
-          <button className="button" onClick={()=>setIsOpen(false)}>X</button>
+          <h2>Your rooms
+            <button className="button" onClick={()=>setIsOpen(false)}>X</button>
+          </h2>
+          Tap a + to add a room on that side. A door appears on that wall.<br></br>
+          <button></button><br></br>
+          <button></button>
+          <button>{scene.name}</button>
+          <button></button><br></br>
+          <button></button>
+          <section>
+            <h3>Background music - <span>{scene.name}</span></h3> 
+            music
+            <span></span>
+            
+             <button>Type 1</button> <button>Type 2</button> <button>Type 3</button> <br></br>
+            volume <button>Quiet</button> <button>Normal</button> <button>Loud</button>
+          </section>
         </div>
 
         //room grid
