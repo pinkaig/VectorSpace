@@ -196,19 +196,260 @@ button:disabled {
 }
 
 /*styles for the popup concerning the room*/
-.room-popup-anchor { position: relative; }
-
-.room-popup {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
-  width: min(420px, calc(100vw - 32px)); padding: 16px;
-  border: 2px solid #5b4bd6; border-radius: 16px; background: #fff;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+/* the top-left project button and its "Your rooms" popup (SceneRoomPopUp in EditorPage) */
+.rooms-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  color: var(--ink);
 }
 
-.room-trigger {
-  display: flex; flex-direction: column; align-items: flex-start;
-  padding: 8px 14px; border: 1px solid #e3e1ee; border-radius: 14px;
-  background: #fff; cursor: pointer; font: inherit;
+/* ── The button ───────────────────────────────────────────────────────── */
+.rooms-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rooms-trigger:hover {
+  background: var(--purple-50);
+}
+
+/* the cube: a link back to the home page */
+.rooms-home {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.rooms-home:hover {
+  background: var(--purple-600);
+}
+
+.rooms-trigger-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.rooms-trigger-text strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.rooms-trigger-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--purple-600);
+}
+
+/* ── The popup ────────────────────────────────────────────────────────── */
+.rooms-popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 32px));
+  padding: 16px;
+  border: 2px solid var(--purple-500);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.rooms-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rooms-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.rooms-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.rooms-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: var(--bg-app);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* ── The grid of rooms ────────────────────────────────────────────────── */
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, 56px);
+  gap: 6px;
+}
+
+.rooms-cell {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+}
+
+/* the room being edited */
+.rooms-cell-current {
+  border: 2px solid var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+  cursor: default;
+}
+
+/* another room: green, click to go there */
+.rooms-cell-other {
+  border: 2px solid var(--green-500);
+  background: var(--green-50);
+  color: var(--green-800);
+  cursor: pointer;
+}
+
+.rooms-cell-other:hover {
+  background: var(--green-200);
+}
+
+/* a free side: dashed "+" */
+.rooms-cell-add {
+  border: 2px dashed var(--purple-300);
+  background: var(--purple-50);
+  color: var(--purple-500);
+  cursor: pointer;
+}
+
+.rooms-cell-add:hover {
+  background: var(--purple-100);
+}
+
+.rooms-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--green-50);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ── Background music ─────────────────────────────────────────────────── */
+.rooms-music {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.rooms-music-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--purple-500);
+}
+
+.rooms-music-head h3 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.rooms-music .rooms-sub {
+  margin-top: -4px;
+}
+
+.rooms-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rooms-choice-label {
+  flex: 0 0 74px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.rooms-choice-options {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+}
+
+.rooms-choice-option {
+  flex: 1;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rooms-choice-on {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.rooms-home:focus-visible,
+.rooms-trigger:focus-visible,
+.rooms-close:focus-visible,
+.rooms-cell:focus-visible,
+.rooms-choice-option:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
 }
 /*styles for the popup concerning the room*/
 
@@ -952,6 +1193,11 @@ button:disabled {
 .floating-controls.top-left { top: var(--float-gap); left: var(--float-gap); }
 .floating-controls.top-right { top: var(--float-gap); right: var(--float-gap); }
 .floating-controls.bottom-right { bottom: var(--float-gap); right: var(--float-gap); }
+/* Bottom-left box: "Things in this room" (button, then its tree) over the room picker. The
+   tree scrolls when the room is full so it never runs off the top of the stage. */
+.float-group.things-in-room { flex-direction: column; align-items: stretch; width: 240px; }
+.things-in-room .things-toggle { justify-content: space-between; }
+.things-in-room .tree-list { overflow-y: auto; max-height: min(320px, 40vh); }
 .floating-controls.bottom-left {
   bottom: var(--float-gap);
   left: var(--float-gap);

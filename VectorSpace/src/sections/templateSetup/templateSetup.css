@@ -1,0 +1,276 @@
+/**
+ * @file        templateSetup.css
+ * @project     VectorSpace
+ * @author      <your name>
+ * @brief       Styles for the three template-setup panels: Mission brief, the room viewport
+ *              and Project details. The page frame is in pages/TeacherTemplateSetupPage.css.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Shared: the white panel, its title and small capital headings ────── */
+.setup-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.setup-panel-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.setup-panel-note {
+  margin: 4px 0 14px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.setup-heading {
+  margin: 22px 0 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ── Mission brief ────────────────────────────────────────────────────── */
+.brief-due {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brief-due-label {
+  font-weight: 800;
+}
+
+.brief-due-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.brief-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-help {
+  margin: -4px 0 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* one row: text box (stretches), chip (to-dos only), remove button */
+.brief-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brief-input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  font-size: 14px;
+}
+
+.brief-input-bold {
+  font-weight: 800;
+}
+
+/* long chips ("a fact card on every exhibit") cut off with ...; the full text is the tooltip */
+.brief-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+}
+
+.brief-chip .ui-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.brief-remove {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-btn-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.brief-remove:hover {
+  background: var(--red-50);
+  color: var(--red-700);
+}
+
+.brief-remove:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}
+
+.brief-add {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+/* ── Viewport ─────────────────────────────────────────────────────────── */
+/* the pale blue behind the room. It matches the edge colour of the placeholder picture
+   so the picture blends in; there is no token for it yet. */
+.setup-viewport {
+  --viewport-bg: #DCEBFA;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--viewport-bg);
+}
+
+/* the top row: label on the left, Edit room on the right */
+.viewport-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.viewport-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* the space the room preview will fill; empty for now */
+.viewport-stage {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+
+.viewport-hint {
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.viewport-hint strong {
+  color: var(--ink);
+}
+
+/* ── Project details ──────────────────────────────────────────────────── */
+.details-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 14px;
+  border-radius: var(--radius-box);
+  background: var(--bg-app);
+  font-size: 14px;
+}
+
+.details-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.details-summary dt {
+  color: var(--text-muted);
+}
+
+.details-summary dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.details-locks {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.details-lock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--purple-50);
+}
+
+.details-lock-name {
+  font-weight: 800;
+}
+
+.details-catalogues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.details-catalogue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.details-catalogue-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.details-catalogue:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}

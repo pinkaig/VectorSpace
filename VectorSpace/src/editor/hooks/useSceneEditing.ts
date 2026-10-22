@@ -42,6 +42,7 @@ import {
   rotateEditorObjectAboutPivotCommand,
   rotateEditorObjectCommand,
   scaleEditorObjectCommand,
+  selectEditorScene,
   setEditorObjectAssetId,
   setEditorObjectEnabled,
   setEditorObjectVisible,
@@ -147,11 +148,19 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     const id = `scene-${project.scenes.length + 1}`
     commit('Create scene', createEditorScene(project, makeScene(id, `Room ${project.scenes.length + 1}`)).project)
   }
+  // The rooms popup's "+": adds a room with the id it is given (the popup uses the id to
+  // remember which side the room is on) but keeps you in the room you are in; addScene moves
+  // you into the new one. One commit, so one Undo takes the new room away again.
+  const addRoom = (sceneId: string) => {
+    if (project.scenes.some((item) => item.id === sceneId)) return
+    const created = createEditorScene(project, makeScene(sceneId, `Room ${project.scenes.length + 1}`)).project
+    commit('Add room', selectEditorScene(created, project.activeSceneId).project)
+  }
 
   return {
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
-    setSelectedEnabled, addScene,
+    setSelectedEnabled, addScene, addRoom,
   }
 }

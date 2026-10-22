@@ -1,0 +1,238 @@
+/**
+ * @file        missionBriefPanel.css
+ * @project     VectorSpace
+ * @author      <your name>
+ * @brief       Styles for MissionBriefPanel: the open card and the folded tab. Both hang over
+ *              the top-left of the editor's room, just under the Select / Move tool row
+ *              (that row is 46px tall: 34px buttons + 6px padding top and bottom).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Shared: where both looks sit, and the purple strip along the top ─── */
+.mb-card,
+.mb-tab {
+  position: absolute;
+  top: calc(var(--float-gap, 5px) + 54px);
+  left: var(--float-gap, 5px);
+  z-index: 3;
+  box-sizing: border-box;
+  width: 380px;
+  max-width: calc(100% - 2 * var(--float-gap, 5px));
+  border: 1px solid var(--border-strong);
+  border-top: 6px solid var(--purple-500);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  box-shadow: 0 6px 20px rgba(31, 27, 58, 0.12);
+}
+
+/* ── Open card ────────────────────────────────────────────────────────── */
+.mb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* never taller than the room, leaving space for the bottom controls */
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  padding: 16px 18px;
+  border-radius: 4px 4px var(--radius-box) var(--radius-box);
+}
+
+.mb-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mb-head-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-100);
+  color: var(--purple-600);
+}
+
+.mb-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.mb-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.mb-due {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mb-done-chip {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--green-50);
+  color: var(--green-800);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mb-heading {
+  margin: 4px 0 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.mb-todos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mb-todo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mb-todo-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* a finished to-do is crossed out and greyed, so what is left stands out */
+.mb-todo-done .mb-todo-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.mb-todo-count {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+/* the tick box: empty, green with a tick, or dashed for "your teacher checks this" */
+.mb-tick {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--purple-300);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--surface);
+}
+
+.mb-tick-done {
+  border-color: var(--green-500);
+  background: var(--green-500);
+}
+
+.mb-tick-teacher {
+  border-style: dashed;
+  border-color: var(--amber-500);
+}
+
+.mb-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.mb-fold {
+  min-height: 48px;
+  margin-top: 4px;
+  border: none;
+  border-radius: var(--radius-btn-lg);
+  background: var(--purple-500);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mb-fold:hover {
+  background: var(--purple-600);
+}
+
+/* ── Folded tab ───────────────────────────────────────────────────────── */
+.mb-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 14px;
+  border-radius: 0 0 var(--radius-box) var(--radius-box);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mb-tab-icon {
+  flex-shrink: 0;
+  color: var(--purple-600);
+}
+
+.mb-tab-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.mb-bars {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  padding: 0 6px;
+}
+
+.mb-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--purple-100);
+}
+
+.mb-bar-done {
+  background: var(--green-500);
+}
+
+.mb-tab-done {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--green-800);
+  white-space: nowrap;
+}
+
+.mb-fold:focus-visible,
+.mb-tab:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}
