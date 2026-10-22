@@ -25,7 +25,8 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
   await page.getByRole('button', { name: /Educator/ }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
 
-  await page.getByRole('link', { name: 'Editor' }).click()
+  // the teacher home has no editor link yet, so open it by URL
+  await page.goto('/#/editor')
   await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
 
   // a refresh keeps the session, so the editor is still open afterwards

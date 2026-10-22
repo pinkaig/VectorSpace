@@ -98,6 +98,13 @@ function WithNav({ children }: { children: ReactNode }) {
   )
 }
 
+// the strip only for admin sessions, so they keep "Act as" and the page links;
+// teachers and students see the page on its own
+function AdminNav({ children }: { children: ReactNode }) {
+  const { admin } = useSession()
+  return admin ? <WithNav>{children}</WithNav> : <>{children}</>
+}
+
 /*
  * Working with React Router here: a short recipe
  *
@@ -143,9 +150,9 @@ export default function App() {
             <Route path="accounts" element={<AdminAccountsPage />} />
             <Route path="rooms" element={<AdminRoomsPage />} />
           </Route>
-          <Route path="/teacher" element={<RequireRole role="teacher"><TeacherHomePage /></RequireRole>} />
+          <Route path="/teacher" element={<RequireRole role="teacher"><AdminNav><TeacherHomePage /></AdminNav></RequireRole>} />
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
-          <Route path="/student" element={<RequireRole role="student"><StudentHomePage /></RequireRole>} />
+          <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
           <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
