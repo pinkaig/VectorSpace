@@ -22,6 +22,9 @@ import AdminRoomsPage from './pages/AdminRoomsPage'
 import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
+import TeacherLayout from './pages/TeacherLayout'
+import TeacherReviewPage from './pages/TeacherReviewPage'
+import TeacherResultsPage from './pages/TeacherResultsPage'
 import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
 import { ApiError } from './api/client'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
@@ -150,7 +153,11 @@ export default function App() {
             <Route path="accounts" element={<AdminAccountsPage />} />
             <Route path="rooms" element={<AdminRoomsPage />} />
           </Route>
-          <Route path="/teacher" element={<RequireRole role="teacher"><AdminNav><TeacherHomePage /></AdminNav></RequireRole>} />
+          <Route path="/teacher" element={<RequireRole role="teacher"><AdminNav><TeacherLayout /></AdminNav></RequireRole>}>
+            <Route index element={<TeacherHomePage />} />
+            <Route path="review" element={<TeacherReviewPage />} />
+            <Route path="results" element={<TeacherResultsPage />} />
+          </Route>
           <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />

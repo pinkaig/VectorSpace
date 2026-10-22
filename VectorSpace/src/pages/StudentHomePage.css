@@ -13,9 +13,8 @@
 
 /* ── Page frame: centred, with a gap around everything ────────────────── */
 .student-home {
-  max-width: 1440px;
+  /* removed max-width: 1440px and margin: 0 auto */
   min-height: 100vh;
-  margin: 0 auto;
   padding: 12px;
   background: var(--bg-app);
   font-family: var(--font-body);

@@ -1,0 +1,32 @@
+/**
+ * @file        TeacherLayout.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Frame for the teacher pages: exactly the screen's height,
+ *              12px outer padding and gaps, app background. The top bar takes
+ *              its own height and the current tab's page gets the rest.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.teacher-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100vh;
+  box-sizing: border-box;
+  /* removed max-width: 1440px and margin: 0 auto, so it fills the screen */
+  padding: 12px;
+  background: var(--bg-app);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+/* the current tab's page takes the space under the top bar */
+.teacher-layout > main {
+  flex: 1;
+  min-height: 0;
+}
