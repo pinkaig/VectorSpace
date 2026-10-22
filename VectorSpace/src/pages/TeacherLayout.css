@@ -18,8 +18,7 @@
   gap: 12px;
   height: 100vh;
   box-sizing: border-box;
-  max-width: 1440px;
-  margin: 0 auto;
+  /* removed max-width: 1440px and margin: 0 auto, so it fills the screen */
   padding: 12px;
   background: var(--bg-app);
   font-family: var(--font-body);
