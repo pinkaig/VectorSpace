@@ -1,0 +1,181 @@
+/**
+ * @file        LandingPageTopBar.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for the shared home-page top bar: logo, product name,
+ *              role badge, centre tabs, actions slot, divider and the account
+ *              box. Only styles the inside; the page decides where the bar
+ *              sits. Values from the V3 manual.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Bar: one white rounded strip ─────────────────────────────────────── */
+.landing-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+/* ── Left: logo, name, role badge ─────────────────────────────────────── */
+.landing-top-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-top-bar-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.landing-top-bar-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.landing-top-bar-badge {
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.landing-top-bar-badge.teacher {
+  border-color: var(--amber-200);
+  background: var(--amber-50);
+  color: var(--amber-900);
+}
+
+.landing-top-bar-badge.admin {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+/* ── Middle: tabs, centred in the leftover space ──────────────────────── */
+.landing-top-bar-tabs {
+  display: flex;
+  flex: 1;                  /* pushes everything after it to the right */
+  justify-content: center;
+  gap: 8px;
+}
+
+.landing-top-bar-tab {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.landing-top-bar-tab:hover {
+  background: var(--purple-50);
+}
+
+.landing-top-bar-tab.active {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+/* ── Right: actions slot (e.g. admin school picker) and divider ───────── */
+.landing-top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.landing-top-bar-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+}
+
+/* ── Account box ──────────────────────────────────────────────────────── */
+.landing-top-bar-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-lg);
+  background: var(--bg-app);
+}
+
+.landing-top-bar-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+}
+
+.landing-top-bar-avatar.student {
+  background: var(--amber-50);
+  color: var(--amber-900);
+}
+
+.landing-top-bar-avatar.teacher {
+  background: var(--amber-500);
+  color: var(--ink);
+}
+
+.landing-top-bar-avatar.admin {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.landing-top-bar-user {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.landing-top-bar-user strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.landing-top-bar-user span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.landing-top-bar-signout {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.landing-top-bar-signout:hover {
+  background: var(--purple-50);
+}
