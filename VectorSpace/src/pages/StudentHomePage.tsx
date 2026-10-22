@@ -105,6 +105,7 @@ export default function StudentHomePage() {
             <button
               type="button"
               className="student-home-start"
+              disabled // fake project for now; enable when the assigned card uses real data
               onClick={() => navigate(`/editor/${assigned.id}`)}
             >
               Start building

@@ -131,6 +131,11 @@
   cursor: pointer;
 }
 
+.student-home-start:disabled {
+  opacity: 0.4;            /* manual: disabled = 40% opacity, no pointer */
+  cursor: not-allowed;
+}
+
 .student-home-start:hover {
   background: var(--purple-600);
 }
