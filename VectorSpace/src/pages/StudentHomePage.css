@@ -26,5 +26,155 @@
 .student-home-content {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 0;
+  padding: 24px 0;
+}
+
+/* ── Greeting and section labels ──────────────────────────────────────── */
+.student-home-greeting {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.student-home-lead {
+  margin: 6px 0 24px;
+  font-size: 17px;
+  color: var(--text-muted);
+}
+
+.student-home-label {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Assigned project card: picture left, info right ──────────────────── */
+.student-home-assigned {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.student-home-assigned-image {
+  height: 294px;
+  border-radius: var(--radius-box);
+  overflow: hidden;
+}
+
+/* ── Assigned card: info column ───────────────────────────────────────── */
+.student-home-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.student-home-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--amber-200);
+  border-radius: var(--radius-pill);
+  background: var(--amber-50);
+  color: var(--amber-900);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.student-home-chip-muted {
+  border-color: var(--border);
+  background: var(--bg-app);
+  color: var(--text-muted);
+}
+
+.student-home-assigned-title {
+  margin: 0 0 10px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.student-home-task {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.student-home-template {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.student-home-start {
+  height: 52px;
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--radius-btn-lg);
+  background: var(--purple-500);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.student-home-start:hover {
+  background: var(--purple-600);
+}
+
+/* ── Your other projects ──────────────────────────────────────────────── */
+.student-home-others {
+  margin-top: 24px;
+}
+
+.student-home-others-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.student-home-other {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.student-home-other:hover {
+  background: var(--purple-50);
+}
+
+.student-home-other-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.student-home-other-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.student-home-other-sub-published {
+  color: var(--green-800);
 }
