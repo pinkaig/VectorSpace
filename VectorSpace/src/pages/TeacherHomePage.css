@@ -1,0 +1,272 @@
+/**
+ * @file        TeacherHomePage.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for the teacher home (Classes tab): greeting, class
+ *              cards, published rows and the new project card. Values from
+ *              the V3 manual.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Page frame: centred, with a gap around everything ────────────────── */
+.teacher-home {
+  max-width: 1440px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 12px;
+  background: var(--bg-app);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+/* ── Content column: narrower, centred, with space under the top bar ──── */
+.teacher-home-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+/* ── Greeting and section labels ──────────────────────────────────────── */
+.teacher-home-greeting {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.teacher-home-lead {
+  margin: 6px 0 24px;
+  font-size: 17px;
+  color: var(--text-muted);
+}
+
+.teacher-home-label {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Temporary dev section (remove with ProjectListsSection) ──────────── */
+.teacher-home-dev {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.teacher-home-dev summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+/* ── Class card: picture left, info right ─────────────────────────────── */
+.teacher-home-class {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.teacher-home-class-image {
+  height: 196px;
+  border-radius: var(--radius-box);
+  overflow: hidden;
+}
+
+.teacher-home-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.teacher-home-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--amber-200);
+  border-radius: var(--radius-pill);
+  background: var(--amber-50);
+  color: var(--amber-900);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.teacher-home-chip-dark {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.teacher-home-class-title {
+  margin: 0 0 12px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+/* ── Progress bar: three parts, widths set from the counts ────────────── */
+.teacher-home-progress {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  margin-bottom: 8px;
+}
+
+.teacher-home-progress span {
+  border-radius: var(--radius-pill);
+}
+
+.teacher-home-progress-sent { background: var(--green-500); }
+.teacher-home-progress-building { background: var(--purple-500); }
+.teacher-home-progress-not-started { background: var(--purple-100); }
+
+.teacher-home-progress-legend {
+  display: flex;
+  gap: 16px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.teacher-home-progress-legend strong { font-weight: 800; }
+.teacher-home-legend-sent { color: var(--green-800); }
+.teacher-home-legend-building { color: var(--purple-600); }
+.teacher-home-legend-not-started { color: var(--text-muted); }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.teacher-home-class-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.teacher-home-primary,
+.teacher-home-secondary {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.teacher-home-primary {
+  border: none;
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.teacher-home-primary:hover { background: var(--purple-600); }
+
+.teacher-home-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.teacher-home-secondary:hover { background: var(--purple-50); }
+
+/* ── Published row: one compact strip per published project ───────────── */
+.teacher-home-published {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.teacher-home-published-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.teacher-home-published-stats {
+  margin-left: auto;          /* pushes the stats and button to the right */
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-800);
+}
+
+/* ── Small button (manual: 32–36px, 13px ExtraBold, never wraps) ───────── */
+.teacher-home-small {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.teacher-home-small:hover {
+  background: var(--purple-50);
+}
+
+/* ── Start a new project: dashed card ─────────────────────────────────── */
+.teacher-home-new-section {
+  margin-top: 24px;
+}
+
+.teacher-home-new {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.teacher-home-new-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-100);
+  color: var(--purple-600);
+}
+
+.teacher-home-new-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teacher-home-new-text strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.teacher-home-new-text span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.teacher-home-new-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;          /* same trick: pushes the button to the right */
+}
