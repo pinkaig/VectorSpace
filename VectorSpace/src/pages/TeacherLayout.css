@@ -13,11 +13,21 @@
 /******************************************************************************/
 
 .teacher-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100vh;
+  box-sizing: border-box;
   max-width: 1440px;
-  min-height: 100vh;
   margin: 0 auto;
   padding: 12px;
   background: var(--bg-app);
   font-family: var(--font-body);
   color: var(--ink);
+}
+
+/* the current tab's page takes the space under the top bar */
+.teacher-layout > main {
+  flex: 1;
+  min-height: 0;
 }

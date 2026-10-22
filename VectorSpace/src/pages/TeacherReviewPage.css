@@ -12,3 +12,350 @@
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /******************************************************************************/
+
+/* ── Two panels: list left, selected museum right ─────────────────────── */
+.review {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 12px;
+}
+
+.review-list-panel,
+.review-detail-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+}
+
+/* ── List panel ───────────────────────────────────────────────────────── */
+.review-list-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.review-list-sub {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-item:hover {
+  background: var(--purple-50);
+}
+
+/* manual: selected = purple-100 fill + 2px purple-500 border */
+.review-item-selected {
+  border: 2px solid var(--purple-500);
+  padding: 9px 11px;
+  background: var(--purple-100);
+}
+
+.review-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--purple-100);
+  color: var(--purple-700);
+  font-weight: 800;
+}
+
+.review-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.review-item-text strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.review-item-text span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Status chips (manual colours) ────────────────────────────────────── */
+.review-chip {
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.review-chip-amber {
+  border-color: var(--amber-200);
+  background: var(--amber-50);
+  color: var(--amber-900);
+}
+
+.review-chip-green {
+  border-color: var(--green-200);
+  background: var(--green-50);
+  color: var(--green-800);
+}
+
+.review-chip-red {
+  border-color: var(--red-200);
+  background: var(--red-50);
+  color: var(--red-900);
+}
+
+/* ── Detail: header ───────────────────────────────────────────────────── */
+.review-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.review-avatar-large {
+  width: 52px;
+  height: 52px;
+  font-size: 20px;
+}
+
+.review-detail-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.review-detail-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Detail: picture left, brief and tiles right ──────────────────────── */
+.review-detail-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+}
+
+.review-preview {
+  position: relative;
+  height: 380px;
+  border-radius: var(--radius-box);
+  overflow: hidden;
+}
+
+.review-walk {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-side {
+  overflow-y: auto;
+}
+
+.review-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Mission brief to-dos ─────────────────────────────────────────────── */
+.review-todos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.review-todo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.review-tick {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--surface);
+}
+
+.review-tick-done {
+  border-color: var(--green-500);
+  background: var(--green-500);
+}
+
+.review-todo-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ── Inside: 2 × 2 stat tiles ─────────────────────────────────────────── */
+.review-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.review-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border-radius: var(--radius-box);
+  background: var(--bg-app);
+}
+
+.review-tile strong {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.review-tile span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Comment and buttons ──────────────────────────────────────────────── */
+.review-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.review-comment textarea {
+  height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body);
+  font-size: 15px;
+  resize: none;
+}
+
+.review-comment textarea:focus {
+  outline: 2px solid var(--purple-500);
+  border-color: transparent;
+}
+
+.review-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto; 
+}
+
+.review-message {
+  margin-right: auto;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.review-message-green {
+  border-color: var(--green-200);
+  background: var(--green-50);
+  color: var(--green-800);
+}
+
+.review-message-red {
+  border-color: var(--red-200);
+  background: var(--red-50);
+  color: var(--red-900);
+}
+
+.review-send-back,
+.review-approve {
+  height: 48px;
+  padding: 0 22px;
+  border-radius: var(--radius-btn-lg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.review-send-back {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.review-send-back:hover { background: var(--purple-50); }
+
+.review-approve {
+  border: none;
+  background: var(--green-500);
+  color: var(--surface);
+}
