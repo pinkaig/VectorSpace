@@ -207,7 +207,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
-    addSelectedClickRule, removeRuleById, addScene, addRoom,
+    addSelectedClickRule, removeRuleById, addScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -236,7 +236,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             commit('Select scene', selectEditorScene(project, id).project)
             setSelectedId(null)
           }}
-          onAddRoom={addRoom}
+          onAddRoom={addScene}
         />
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
