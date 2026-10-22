@@ -3,25 +3,14 @@
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
  * @brief       Styles for the teacher home (Classes tab): greeting, class
- *              cards, published rows and the new project card. Values from
- *              the V3 manual.
+ *              card, published rows and the new project card. The frame
+ *              around it is TeacherLayout's. Values from the V3 manual.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
  *              prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /******************************************************************************/
-
-/* ── Page frame: centred, with a gap around everything ────────────────── */
-.teacher-home {
-  max-width: 1440px;
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 12px;
-  background: var(--bg-app);
-  font-family: var(--font-body);
-  color: var(--ink);
-}
 
 /* ── Content column: narrower, centred, with space under the top bar ──── */
 .teacher-home-content {
@@ -53,18 +42,6 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
-}
-
-/* ── Temporary dev section (remove with ProjectListsSection) ──────────── */
-.teacher-home-dev {
-  margin-top: 24px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.teacher-home-dev summary {
-  cursor: pointer;
-  font-weight: 800;
 }
 
 /* ── Class card: picture left, info right ─────────────────────────────── */
@@ -196,7 +173,7 @@
 }
 
 .teacher-home-published-stats {
-  margin-left: auto;          /* pushes the stats and button to the right */
+  margin-left: auto;
   font-size: 13px;
   font-weight: 600;
   color: var(--green-800);
@@ -217,9 +194,7 @@
   cursor: pointer;
 }
 
-.teacher-home-small:hover {
-  background: var(--purple-50);
-}
+.teacher-home-small:hover { background: var(--purple-50); }
 
 /* ── Start a new project: dashed card ─────────────────────────────────── */
 .teacher-home-new-section {
@@ -268,5 +243,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;          /* same trick: pushes the button to the right */
+  margin-left: auto;
+}
+
+/* ── Temporary dev section (remove with ProjectListsSection) ──────────── */
+.teacher-home-dev {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.teacher-home-dev summary {
+  cursor: pointer;
+  font-weight: 800;
 }
