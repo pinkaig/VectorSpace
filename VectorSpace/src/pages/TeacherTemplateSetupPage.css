@@ -54,6 +54,10 @@
   color: var(--surface);
 }
 
+.setup-header-icon:hover {
+  background: var(--purple-600);
+}
+
 .setup-header-title {
   margin: 0;
   font-family: var(--font-body);

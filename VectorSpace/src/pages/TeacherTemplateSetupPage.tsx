@@ -86,16 +86,16 @@ export default function TeacherTemplateSetupPage() {
       {/*HEADER: which project this is (left), what the teacher can do with it (right)*/}
       <header className="setup-header">
         <div className="setup-header-project">
-          <div className="setup-header-icon"><Box size={22} /></div>
+          {/* the cube goes back to the teacher home page */}
+          <Link to="/teacher" className="setup-header-icon" title="Back to home"><Box size={22} /></Link>
           <div>
             <h1 className="setup-header-title">{SAMPLE_PROJECT.title}</h1>
             <p className="setup-header-sub">
               Your copy of the {SAMPLE_PROJECT.templateName} · {SAMPLE_PROJECT.room}
-            </p>
+            </p>` `
           </div>
           <StatusChip tone="amber">Teacher view</StatusChip>
         </div>
-
         <div className="setup-header-actions">
           <Button onClick={() => noLogic("Preview as a student")}>Preview as a student</Button>
           <Button variant="primary" onClick={assignBrief}>Assign to {SAMPLE_PROJECT.className}</Button>
@@ -121,7 +121,6 @@ export default function TeacherTemplateSetupPage() {
         <ProjectDetailsSection className={SAMPLE_PROJECT.className} due={brief.due} />
       </div>
 
-      {noLogicPopup}
     </main>
   );
 }
