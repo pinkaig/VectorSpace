@@ -625,12 +625,16 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
   }
   const justAddedSide = ROOM_SIDES.find((side) => side.id === justAdded && hasRoom(side.id))
 
-  return(
-    <div className="room-popup-anchor">
-      <button className="button room-trigger" onClick={()=>setIsOpen(!isOpen)} title={`${project.name} · Room ${roomNumber} ${scene.name}`}>
-        <strong>{project.name}</strong>
-        <span className="room-trigger-sub">
-          Room {roomNumber} · {scene.name}
+  return (
+    <div className="rooms-anchor" ref={anchorRef}>
+      {/* THE CUBE: back to the home page (the editor saves as you go, so nothing is lost) */}
+      <Link to={home} className="rooms-home" aria-label="Back to home" title="Back to home"><Box size={20} /></Link>
+
+      {/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
+      <button type="button" className="rooms-trigger" aria-expanded={isOpen} onClick={() => setIsOpen(!isOpen)}>
+        <span className="rooms-trigger-text">
+          <strong>{project.name}</strong>
+          <span className="rooms-trigger-room">{labelOf(current.id)} <ChevronDown size={14} /></span>
         </span>
       </button>
 

@@ -16,6 +16,7 @@
 /******************************************************************************/
 
 import { Box, Plus } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useSession } from "../session/session";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
 import { MuseumPreview } from "../ui/museumPreview";
@@ -51,6 +52,7 @@ function greetingForTime(): string {
 
 export default function TeacherHomePage() {
   const { displayName } = useSession();
+  const navigate = useNavigate();
 
   return (
     <main className="teacher-home-content">
@@ -106,7 +108,7 @@ export default function TeacherHomePage() {
           </p>
 
           <div className="teacher-home-class-actions">
-            <button type="button" className="teacher-home-primary">
+            <button type="button" className="teacher-home-primary" onClick={() => navigate("/teacher/template")}>
               Set up project
             </button>
             <button type="button" className="teacher-home-secondary">
