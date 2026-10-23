@@ -56,11 +56,12 @@ button:disabled {
   padding: 12px;
 }
 .topbar {
-  height: 76px;
+  min-height: 76px;
   padding: 0 28px;
   display: flex;
   align-items: center;
-  gap: 42px;
+  justify-content: space-between;
+  gap: 24px;
   border: 1px var(--border);
   border-radius: var(--radius);
   background: var(--White);
@@ -126,6 +127,8 @@ button:disabled {
 .top-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 .button {
@@ -136,6 +139,37 @@ button:disabled {
   background: var(--White);
   font-size: 11px;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Project / room button: two stacked lines, truncated rather than squashed */
+.room-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 260px;
+  text-align: left;
+}
+.room-trigger strong,
+.room-trigger-sub {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-trigger-sub {
+  font-weight: 600;
+  color: var(--secondary-main1);
+}
+.room-popup-anchor { flex-shrink: 0; }
+
+/* Secondary actions: inline on wide screens, folded into "More" on narrow ones */
+.top-more { position: relative; }
+.top-more-toggle { display: none; }
+.top-more-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .button.subtle {
   color: var(--text-2);
@@ -1499,6 +1533,73 @@ button:disabled {
     transform: rotate(360deg);
   }
 }
+/* Laptops at 125–150% display scaling land around 1280–1536px wide */
+@media (max-width: 1440px) {
+  .topbar {
+    padding-inline: 16px;
+    gap: 16px;
+  }
+  .top-actions { gap: 6px; }
+  /* Steps: numbers only, except the step being viewed (full label stays in the tooltip) */
+  .Tutorial-steps .button { padding: 0 10px; } /* 24px number + 20px = a 44px circle */
+  .Tutorial-steps .button-label { display: none; }
+  .Tutorial-steps .button--viewing { padding-right: 14px; }
+  .Tutorial-steps .button--viewing .button-label { display: inline; }
+  .top-more-toggle { display: inline-block; }
+  .top-more-items {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 50;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--White);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  .top-more.open .top-more-items { display: flex; }
+
+  .floating-controls { gap: 6px; }
+  .float-group {
+    gap: 4px;
+    padding: 4px;
+    border-radius: 11px;
+  }
+  .float-button,
+  .float-select select {
+    height: 28px;
+    padding: 0 9px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+  .float-button.icon {
+    width: 30px;
+    font-size: 16px;
+  }
+  .float-label { font-size: 11px; padding: 0 4px 0 6px; }
+  .stage-canvas .viewport-stats { top: 52px; }
+  .stage-footer { padding: 8px 14px; }
+
+  /*header*/
+  .catalogue { padding: 10px 14px; gap: 8px; }
+  .catalogue-head { gap: 8px; }
+  .catalogue-head > h2 { font-size: 18px; }
+  .chip {
+    min-height: 30px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+  .catalogue-head > [role="tabpanel"] > input {
+    width: 200px;
+    min-height: 30px;
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 1100px) {
   .app-shell,
   .runtime-shell {

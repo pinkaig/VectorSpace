@@ -185,6 +185,17 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [advancedMenuOpen])
+  // "More" only shows on narrow screens .top-more in css; on wide ones its items sit inline.
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!moreMenuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) setMoreMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [moreMenuOpen])
   const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
   useBlockStrayFileDrop()
@@ -255,15 +266,20 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               onClick={() => viewStep(n)}
             >
             <span className="button-num">{n}</span>
-              {label}
+              <span className="button-label">{label}</span>
             </button>
                   )})}
         </nav>
           <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
+          <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
+            <button className="button ghost top-more-toggle" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen}>More ▾</button>
+            <div className="top-more-items" onClick={() => setMoreMenuOpen(false)}>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
           <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
+            </div>
+          </div>
           <button className="button primary" onClick={save}>Save project</button>
           <button className="button primary" onClick={() => setViewMode('runtime')}>Play</button>
         </div>
@@ -609,16 +625,12 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
   }
   const justAddedSide = ROOM_SIDES.find((side) => side.id === justAdded && hasRoom(side.id))
 
-  return (
-    <div className="rooms-anchor" ref={anchorRef}>
-      {/* THE CUBE: back to the home page (the editor saves as you go, so nothing is lost) */}
-      <Link to={home} className="rooms-home" aria-label="Back to home" title="Back to home"><Box size={20} /></Link>
-
-      {/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
-      <button type="button" className="rooms-trigger" aria-expanded={isOpen} onClick={() => setIsOpen(!isOpen)}>
-        <span className="rooms-trigger-text">
-          <strong>{project.name}</strong>
-          <span className="rooms-trigger-room">{labelOf(current.id)} <ChevronDown size={14} /></span>
+  return(
+    <div className="room-popup-anchor">
+      <button className="button room-trigger" onClick={()=>setIsOpen(!isOpen)} title={`${project.name} · Room ${roomNumber} ${scene.name}`}>
+        <strong>{project.name}</strong>
+        <span className="room-trigger-sub">
+          Room {roomNumber} · {scene.name}
         </span>
       </button>
 
