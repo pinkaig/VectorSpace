@@ -17,9 +17,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
-  max-width: 1440px;
   height: 100vh;
-  margin: 0 auto;
   padding: 12px;
   background: var(--bg-app);
   color: var(--ink);
