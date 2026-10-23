@@ -16,8 +16,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { Box, ChevronDown, Circle, Cylinder, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
-import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
+import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
@@ -93,7 +94,12 @@ const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
 interface RoomPopupProps {
   project: ProjectData
   onSelectScene: (sceneId: string) => void
+  onAddRoom: (side: RoomSide) => void
+  onDeleteRoom: (sceneId: string) => void
+  onEnvironmentChange: (environmentId: string) => void
 }
+
+type RoomPopupTab = 'rooms' | 'style' | 'music'
 
 
 
@@ -103,9 +109,13 @@ export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
 
 export const catalogueCategories: { id: CatalogueIDTypes; label: string; singular: string }[] = [
     { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
-    { id: 'signs', label: 'signs', singular: 'sign' },
-    { id: 'misc', label: 'misc', singular: 'misc' },
+    { id: 'signs', label: 'Signs', singular: 'Sign' },
+    { id: 'misc', label: 'Misc', singular: 'Misc' },
 ]
+
+// Catalogue card icon per asset kind; the tile colour cycles so neighbouring cards differ.
+const catalogueIcons: Record<AssetKind, LucideIcon> = { model: Box, cube: Box, sphere: Circle, cylinder: Cylinder }
+const catalogueTileColours = ['lilac', 'mint', 'peach', 'sky', 'rose']
 
 
 const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
@@ -222,7 +232,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
-    addSelectedClickRule, removeRuleById, addScene,
+    addSelectedClickRule, removeRuleById, addScene, removeScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -250,6 +260,10 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             commit('Select scene', selectEditorScene(project, id).project)
             setSelectedId(null)
           }}
+          // The side isn't stored yet: scenes have no layout, so every + adds the next room.
+          onAddRoom={() => addScene()}
+          onDeleteRoom={removeScene}
+          onEnvironmentChange={setEnvironment}
         />
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
@@ -389,7 +403,6 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               </div>
             )}
             <div className="float-group">
-              <label className="float-select"><span className="float-label">Room</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
               <button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
               <button className="float-button" onClick={captureStartView} title="Use the current camera as this scene's start view">Set start view</button>
               <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>
@@ -429,7 +442,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                     role="tab"
                     title={`${item.label}`}
                     onClick={()=>{setCategory(item.id);}}
-                    >{item.id}</button>
+                    >{item.label}</button>
                   )
               })}
             </div>
@@ -437,9 +450,11 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               {/**add no items found part here */}
               <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
                 <div className="catalogue-list">
-                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                  {filterAssets(assetQuery, visibleAssets).map((asset, index) => {
+                    const Icon = catalogueIcons[asset.kind] ?? Box
+                    return (
                     <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
-                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className={`asset-tile ${catalogueTileColours[index % catalogueTileColours.length]}`}><Icon size={20} strokeWidth={1.75} /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
                         ? (() => {
@@ -455,7 +470,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                           })()
                         : <span className="add-symbol">+</span>}
                     </button>
-                  ))}
+                    )
+                  })}
                   {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
                 </div>
             </div>
@@ -508,43 +524,124 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
 }
 
 
-function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
+function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnvironmentChange }: RoomPopupProps){
   const [isOpen, setIsOpen] = useState(false)
+  const [tab, setTab] = useState<RoomPopupTab>('rooms')
+  // Room waiting on "Delete?" confirmation; a room can hold a lot of work.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // Music is UI only for now: nothing in the project stores it yet.
   const [music, setMusic] = useState('Museum hum')
   const [volume, setVolume] = useState('Quiet')
-  const sceneIndex = project.scenes.findIndex((s) => s.id === project.activeSceneId)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const sceneIndex = Math.max(0, project.scenes.findIndex((s) => s.id === project.activeSceneId))
   const scene = project.scenes[sceneIndex]
-  const roomNumber = sceneIndex + 1
+  const roomLabel = (index: number) => `Room ${index + 1} · ${project.scenes[index].name}`
 
-  const addRoom =(side:RoomSide)=>{}//Add later
+  // Closes on any press outside the trigger and popup, like the Advanced menu.
+  useEffect(() => {
+    if (!isOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!anchorRef.current?.contains(event.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [isOpen])
+
+  const addSlot = (side: RoomSide) => (
+    <button className={`room-slot add ${side}`} onClick={() => onAddRoom(side)} title={`Add a room to the ${side}`}>+</button>
+  )
 
   return(
-    <div className="room-popup-anchor">
-      <button className="button room-trigger" onClick={()=>setIsOpen(!isOpen)} title={`${project.name} · Room ${roomNumber} ${scene.name}`}>
-        <strong>{project.name}</strong>
-        <span className="room-trigger-sub">
-          Room {roomNumber} · {scene.name}
+    <div className="room-popup-anchor" ref={anchorRef}>
+      <button className="room-trigger" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}>
+        <span className="room-trigger-icon"><Box size={20} strokeWidth={1.75} /></span>
+        <span className="room-trigger-copy">
+          <strong>{project.name}</strong>
+          <small>{roomLabel(sceneIndex)} <ChevronDown size={14} /></small>
         </span>
       </button>
 
-      {/* Pop up logic  */}
       {isOpen && (
-        <div className="room-popup">
-          <h2>Your rooms</h2>
-          <button className="button" onClick={()=>setIsOpen(false)}>X</button>
+        <div className="room-popup" role="dialog" aria-label="Your rooms">
+          <div className="room-popup-head">
+            <div>
+              <h2>Your rooms</h2>
+              <p>Tap a + to add a room on that side. A door appears on that wall.</p>
+            </div>
+            <button className="room-popup-close" onClick={() => setIsOpen(false)} title="Close"><X size={18} /></button>
+          </div>
+
+          <div className="room-tabs" role="tablist">
+            {(['rooms', 'style', 'music'] as RoomPopupTab[]).map((id) => (
+              <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-selected' : ''} onClick={() => setTab(id)}>
+                {id[0].toUpperCase() + id.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'rooms' && (
+            <>
+              <div className="room-grid">
+                {addSlot('north')}
+                {addSlot('west')}
+                <div className="room-slot current">{roomLabel(sceneIndex)}</div>
+                {addSlot('east')}
+                {addSlot('south')}
+              </div>
+              {project.scenes.length > 1 && (
+                <div className="room-list">
+                  {project.scenes.map((item, index) => {
+                    const chipClass = index === sceneIndex ? 'room-chip is-selected' : 'room-chip'
+                    if (confirmDeleteId === item.id) {
+                      const count = item.objects.length
+                      return (
+                        <span key={item.id} className="room-chip confirm">
+                          <span>Delete {roomLabel(index)}{count > 0 ? ` and its ${count} thing${count === 1 ? '' : 's'}` : ''}?</span>
+                          <button className="room-chip-yes" onClick={() => { onDeleteRoom(item.id); setConfirmDeleteId(null) }}>Delete</button>
+                          <button className="room-chip-no" onClick={() => setConfirmDeleteId(null)}>Keep</button>
+                        </span>
+                      )
+                    }
+                    return (
+                      <span key={item.id} className={chipClass}>
+                        <button className="room-chip-name" onClick={() => onSelectScene(item.id)}>{roomLabel(index)}</button>
+                        <button className="room-chip-delete" onClick={() => setConfirmDeleteId(item.id)} title={`Delete ${roomLabel(index)}`} aria-label={`Delete ${roomLabel(index)}`}><X size={13} /></button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
+            </>
+          )}
+
+          {tab === 'style' && (
+            <label className="room-field">
+              <span>Room style</span>
+              <select value={scene.environmentId} onChange={(event) => onEnvironmentChange(event.target.value)}>
+                {environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}
+              </select>
+            </label>
+          )}
+
+          {tab === 'music' && (
+            <>
+              <label className="room-field">
+                <span>Background music</span>
+                <select value={music} onChange={(event) => setMusic(event.target.value)}>
+                  {MUSIC_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label className="room-field">
+                <span>Volume</span>
+                <select value={volume} onChange={(event) => setVolume(event.target.value)}>
+                  {VOLUME_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+            </>
+          )}
         </div>
-
-        //room grid
-
-
-        //room nav
-
-
-        //music
-
-
       )}
-
     </div>
   )
 }

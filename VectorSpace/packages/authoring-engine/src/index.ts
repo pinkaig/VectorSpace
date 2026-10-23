@@ -385,6 +385,33 @@ export const setActiveScene = (
   return { project: next }
 }
 
+export const removeScene = (
+  project: ProjectData,
+  sceneId: string,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const scene = requireScene(next, sceneId)
+  // a project always has a scene to show and to make active
+  if (next.scenes.length === 1) {
+    throw new ObjectOperationError('A project needs at least one scene')
+  }
+  const index = next.scenes.indexOf(scene)
+  next.scenes.splice(index, 1)
+  // rules targeting the scene's objects or zones would fail validateRules on the
+  // next load, so they go with the scene (same reason as removeObject)
+  const objectIds = new Set(scene.objects.map((object) => object.id))
+  const zoneIds = new Set((scene.zones ?? []).map((zone) => zone.id))
+  if (Array.isArray(next.rules)) {
+    next.rules = next.rules.filter((rule) =>
+      !(rule.objectId !== undefined && objectIds.has(rule.objectId))
+      && !(rule.zoneId !== undefined && zoneIds.has(rule.zoneId)))
+  }
+  if (next.activeSceneId === sceneId) {
+    next.activeSceneId = next.scenes[Math.max(0, index - 1)].id
+  }
+  return { project: next }
+}
+
 // ---- attachment operations -------------------------------------------------
 // An attachment lives on its host (SceneObject or ZoneDefinition), so these
 // ops address a host rather than duplicating four functions per host type.
