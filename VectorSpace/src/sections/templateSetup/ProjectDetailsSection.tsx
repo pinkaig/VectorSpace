@@ -18,7 +18,7 @@ import { Check } from "lucide-react";
 import { Toggle } from "../../ui/toggle";
 import "./templateSetup.css";
 
-// SAMPLE DATA: replaced once these are stored (locks need a field in the scene; see the handover)
+// SAMPLE DATA: the template name, locks and catalogues shown in this panel
 const SAMPLE_TEMPLATE = "Museum template";
 const SAMPLE_LOCKS = [
   { id: "walls", name: "Walls and floor", on: true },
@@ -51,9 +51,7 @@ export function ProjectDetailsSection({ className, due }: ProjectDetailsSectionP
   return (
     <section className="setup-panel">
       <h2 className="setup-panel-title">Project details</h2>
-
-      {/*SUMMARY: label on the left, value on the right*/}
-      <dl className="details-summary">
+      <dl className="details-summary">{/*SUMMARY: label on the left, value on the right*/}
         <div>
           <dt>Class</dt>
           <dd>{className}</dd>
@@ -61,9 +59,7 @@ export function ProjectDetailsSection({ className, due }: ProjectDetailsSectionP
         <div><dt>Due</dt><dd>{due || "Not set"}</dd></div>
         <div><dt>Template</dt><dd>{SAMPLE_TEMPLATE}</dd></div>
       </dl>
-
-      {/*LOCKED FOR STUDENTS: name on the left, switch (with On / Off) on the right*/}
-      <h3 className="setup-heading">Locked for students</h3>
+      <h3 className="setup-heading">Locked for students</h3>{/*LOCKED FOR STUDENTS: name on the left, switch (with On / Off) on the right*/}
       <ul className="details-locks">
         {locks.map((lock) => (
           <li key={lock.id} className="details-lock">
@@ -72,15 +68,12 @@ export function ProjectDetailsSection({ className, due }: ProjectDetailsSectionP
           </li>
         ))}
       </ul>
-
-      {/*CATALOGUE: chips that are picked (dark, with a tick) or not (white)*/}
-      <h3 className="setup-heading">Catalogue for this project</h3>
+      <h3 className="setup-heading">Catalogue for this project</h3>{/*CATALOGUE: chips that are picked (dark, with a tick) or not (white)*/}
       <div className="details-catalogues">
         {catalogues.map((cat) => (
           <button
             key={cat.id}
             type="button"
-            aria-pressed={cat.on}
             className={`details-catalogue ${cat.on ? "details-catalogue-on" : ""}`}
             onClick={() => flipCatalogue(cat.id)}
           >

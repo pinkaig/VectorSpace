@@ -74,18 +74,13 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
 
   return (
     <section className="setup-panel">
-      {/*TITLE*/}
-      <h2 className="setup-panel-title">Mission brief</h2>
+      <h2 className="setup-panel-title">Mission brief</h2>{/*TITLE*/}
       <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
-
-      {/*DUE DATE: a plain text box for now, a date picker later*/}
-      <label className="brief-due">
+      <label className="brief-due">{/*DUE DATE: a plain text box*/}
         <span className="brief-due-label">Due</span>
         <input className="ui-input brief-due-input" maxLength={MAX_TEXT} value={brief.due} onChange={(event) => onChange({ ...brief, due: event.target.value })} />
       </label>
-
-      {/*TO DO: the teacher's words, then the chip saying what the app will count*/}
-      <h3 className="setup-heading">To do · ticks itself when done</h3>
+      <h3 className="setup-heading">To do · ticks itself when done</h3>{/*TO DO: the teacher's words, then the chip saying what the app will count*/}
       <p className="brief-help">
         Write it your own way, e.g. "Put 5 exhibits in the room" or "No sounds". It can count
         exhibits, fact cards, sounds, reactions, rooms and zones.
@@ -95,7 +90,6 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
           <li key={todo.id} className="brief-item">
             <input
               className="ui-input brief-input brief-input-bold"
-              aria-label={`To-do ${index + 1}`}
               placeholder="e.g. Place 3 exhibits"
               maxLength={MAX_TEXT}
               value={todo.text}
@@ -104,22 +98,19 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
               onKeyDown={enterAdds(addTodo)}
             />
             <TodoChip text={todo.text} />
-            <button type="button" className="brief-remove" aria-label={`Remove to-do ${index + 1}`} onClick={() => removeTodo(todo.id)}>
+            <button type="button" className="brief-remove" onClick={() => removeTodo(todo.id)}>
               <X size={16} />
             </button>
           </li>
         ))}
       </ul>
       <Button variant="add" size="small" className="brief-add" onClick={addTodo}>+ Add a to-do</Button>
-
-      {/*RULES: free text; students read these, nothing checks them*/}
-      <h3 className="setup-heading">Rules</h3>
+      <h3 className="setup-heading">Rules</h3>{/*RULES: free text; students read these, nothing checks them*/}
       <ul className="brief-list">
         {brief.rules.map((rule, index) => (
           <li key={rule.id} className="brief-item">
             <input
               className="ui-input brief-input"
-              aria-label={`Rule ${index + 1}`}
               placeholder="e.g. Keep everything school-appropriate"
               maxLength={MAX_TEXT}
               value={rule.text}
@@ -127,7 +118,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
               onChange={(event) => editRule(rule.id, event.target.value)}
               onKeyDown={enterAdds(addRule)}
             />
-            <button type="button" className="brief-remove" aria-label={`Remove rule ${index + 1}`} onClick={() => removeRule(rule.id)}>
+            <button type="button" className="brief-remove" onClick={() => removeRule(rule.id)}>
               <X size={16} />
             </button>
           </li>

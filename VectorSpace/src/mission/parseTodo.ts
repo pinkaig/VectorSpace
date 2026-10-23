@@ -15,6 +15,8 @@
  *                     "Don't add any sounds"       -> at most 0 sounds
  *                     "No more than 5 exhibits"    -> at most 5 exhibits
  *                     "Add up to 5 exhibits"       -> at most 5 exhibits
+ *                     "Less than 5 exhibits"       -> at most 4 exhibits
+ *                     "No fewer than 5 exhibits"   -> at least 5 exhibits
  *              The VERB IS IGNORED on purpose: "place", "add", "put", "make", "build" all mean
  *              the same here, so "Place 5 exhibits" and "Add 5 exhibits" give the same goal and
  *              the teacher's own wording can stay as it is.
@@ -59,11 +61,12 @@ const NUMBER_WORDS: Record<string, number> = {
   // order words: "add a second room" means two rooms in total
   first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10,
   // loose amounts: the smallest sensible count
-  pair: 2, couple: 2, few: 3, several: 3, dozen: 12,
+  pair: 2, couple: 3, few: 3, several: 4, dozen: 12,
 }
 
 // a sentence with one of these sets a limit: "don't add sounds", "no more than 5 exhibits"
-const NEGATIVE_WORDS = new Set(['not', 'dont', 'no', 'never', 'without', 'avoid', 'zero', 'none'])
+const NEGATIVE_WORDS = new Set(['not', 'dont', 'no', 'never', 'without', 'avoid', 'zero', 'none',
+  'shouldnt', 'cant', 'cannot', 'mustnt', 'doesnt', 'wont', 'nothing'])
 const EACH_WORDS = new Set(['each', 'every', 'all'])
 // the most a to-do can ask for; anything bigger is almost certainly a typo
 const MAX_TARGET = 99
@@ -121,6 +124,11 @@ function numberBefore(words: string[], before: number, stopAt: number): number |
   return null
 }
 
+// "less than 5", "fewer than 5": below a number, so one fewer is the most allowed
+function hasBelowWords(words: string[]): boolean {
+  return words.some((word, i) => (word === 'less' || word === 'fewer') && words[i + 1] === 'than')
+}
+
 // "at most 5", "up to 5", "max 5", "maximum of 5": a limit with no negative word
 function hasLimitWords(words: string[]): boolean {
   return words.some((word, i) =>
@@ -138,6 +146,7 @@ function hasLimitWords(words: string[]): boolean {
  *   parseTodo('Add a second room')             -> 2 or more rooms
  *   parseTodo("Don't add any sounds")          -> 0 sounds at most
  *   parseTodo('No more than 5 exhibits')       -> 5 exhibits at most
+ *   parseTodo('Less than 5 exhibits')          -> 4 exhibits at most
  *   parseTodo('Make it look nice')             -> null
  */
 export function parseTodo(text: string): MissionGoal | null {
@@ -153,6 +162,12 @@ export function parseTodo(text: string): MissionGoal | null {
     // "Don't give each exhibit a sound" is too tangled to count
     if (things.some((thing) => EACH_WORDS.has(words[thing.at - 1]))) return null
     const goal = things[0]
+    // "no less than 5" / "no fewer than 5" is a floor: at least 5
+    if (hasBelowWords(words.slice(negativeAt, goal.at))) {
+      const floor = numberBefore(words, goal.at, negativeAt)
+      if (floor === null || floor < 1 || floor > MAX_TARGET) return null
+      return { kind: goal.kind, target: floor, compare: 'atLeast' }
+    }
     // "no MORE THAN 5" keeps its number; otherwise "don't add a/any sound" means none at all
     const moreThan = words.slice(negativeAt, goal.at).some((word) => word === 'more' || word === 'than')
     const target = moreThan ? numberBefore(words, goal.at, negativeAt) : 0
@@ -173,6 +188,11 @@ export function parseTodo(text: string): MissionGoal | null {
   // ── otherwise: the first thing named, and the number just before it ──
   const goal = things[0]
   const target = numberBefore(words, goal.at, 0) ?? 1
+  // "less than 5 exhibits": at most 4
+  if (hasBelowWords(words.slice(0, goal.at))) {
+    if (target < 1 || target > MAX_TARGET) return null
+    return { kind: goal.kind, target: target - 1, compare: 'atMost' }
+  }
   if (target < 1 || target > MAX_TARGET) return null
   return { kind: goal.kind, target, compare: hasLimitWords(words) ? 'atMost' : 'atLeast' }
 }

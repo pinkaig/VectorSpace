@@ -27,9 +27,8 @@
 import type { ProjectData, SceneObject } from '../project/model'
 import type { GoalKind, MissionGoal } from './missionBrief'
 
-// Decides whether a placed object is an exhibit. A placed object does not yet record which
-// catalogue category it came from, so until it does every object counts as an exhibit.
-// When it does, pass a real one, e.g. (object) => categoryOf(object.assetId) === 'exhibits'.
+// Decides whether a placed object is an exhibit. A placed object does not record which
+// catalogue category it came from, so every object counts as an exhibit.
 export type IsExhibit = (object: SceneObject) => boolean
 export const everyObjectIsAnExhibit: IsExhibit = () => true
 

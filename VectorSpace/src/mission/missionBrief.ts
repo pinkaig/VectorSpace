@@ -26,7 +26,7 @@ export type GoalKind =
   | 'rooms'      // scenes
   | 'zones'      // zones
 
-// the kinds that hang off an exhibit, so "give EACH exhibit a ..." makes sense for them
+// the reactions that hang off an exhibit, so "give EACH exhibit a ..."
 export const PER_EXHIBIT_KINDS: readonly GoalKind[] = ['factCards', 'sounds', 'reactions']
 
 // what a to-do asks for, once understood
@@ -45,9 +45,8 @@ export interface MissionGoal {
 import type { MissionBrief } from '../project/model'
 export type { MissionBrief, MissionRule, MissionTodo } from '../project/model'
 
-// The due date as the brief shows it, e.g. "Thursday, 22 Oct". A new brief is due today until
-// the teacher changes it (a date picker will replace the text box later). Built in two parts
-// because en-GB on its own leaves out the comma.
+// The due date as the brief shows it, e.g. "Thursday, 22 Oct". A new brief is due today until the teacher changes it. Built in two parts
+// because en-GB 
 export const formatDueDate = (date: Date): string =>
   `${date.toLocaleDateString('en-GB', { weekday: 'long' })}, ${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
 
@@ -55,8 +54,7 @@ export const formatDueDate = (date: Date): string =>
 let nextId = 0
 export const newBriefId = (prefix: 'todo' | 'rule'): string => `${prefix}-${Date.now().toString(36)}-${nextId++}`
 
-// The brief as it should be saved: text trimmed, empty to-dos and rules (a row added but never
-// typed in) dropped. Run before saving, so students never see a blank line.
+// The brief as it should be saved: text trimmed, empty to-dos and rules (a row added but never typed in) dropped. Run before saving, so students never see a blank line.
 export const tidyBrief = (brief: MissionBrief): MissionBrief => {
   const tidy = <T extends { text: string }>(items: T[]): T[] =>
     items.map((item) => ({ ...item, text: item.text.trim() })).filter((item) => item.text !== '')

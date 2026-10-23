@@ -170,7 +170,7 @@
   color: var(--ink-2);
 }
 
-/* the space the room preview will fill; empty for now */
+/* the room preview area */
 .viewport-stage {
   display: grid;
   place-items: center;

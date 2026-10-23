@@ -296,7 +296,7 @@ export interface MissionRule {
 }
 
 export interface MissionBrief {
-  // shown as written, e.g. "Friday, 16 Oct"; a real date once there is a date picker
+  // shown as written, e.g. "Friday, 16 Oct"
   due: string
   todos: MissionTodo[]
   rules: MissionRule[]

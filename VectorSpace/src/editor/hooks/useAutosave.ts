@@ -40,7 +40,8 @@ const syncStatusLabel: Record<ProjectSyncStatus, string> = {
   failed: 'Sync failed, will retry',
 }
 
-export function useAutosave(project: ProjectData, initialSource: ReturnType<typeof loadProjectWithSource>['source']) {
+// saving: false in a teacher preview, where nothing may be written (no autosave, no Save)
+export function useAutosave(project: ProjectData, initialSource: ReturnType<typeof loadProjectWithSource>['source'], saving = true) {
   const [savedAt, setSavedAt] = useState(
     initialSource === 'default'
       ? 'New local project'
@@ -59,6 +60,7 @@ export function useAutosave(project: ProjectData, initialSource: ReturnType<type
    * text reflects Tier 1; sync status is tracked separately via syncStatus.
    */
   const persist = (nextProject: ProjectData, label: string) => {
+    if (!saving) return
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     if (isRemoteProject(nextProject.id)) {
       // A server project is not written to the shared browser draft: that would replace the

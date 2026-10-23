@@ -54,11 +54,10 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
   // ── FOLDED: a tab to open it again ──
   if (!open) {
     return (
-      <button type="button" className="mb-tab" aria-expanded={false} onClick={() => setOpen(true)}>
+      <button type="button" className="mb-tab" onClick={() => setOpen(true)}>
         <ClipboardList size={20} className="mb-tab-icon" />
         <span className="mb-tab-title">Mission brief</span>
-        {/*one bar per to-do, green when done*/}
-        <span className="mb-bars" aria-hidden="true">
+        <span className="mb-bars">{/*one bar per to-do, green when done*/}
           {todos.map((todo) => <span key={todo.id} className={`mb-bar ${todo.progress?.complete ? "mb-bar-done" : ""}`} />)}
         </span>
         <span className="mb-tab-done">{doneText}</span>
@@ -69,9 +68,8 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
 
   // ── OPEN: the whole brief ──
   return (
-    <section className="mb-card" aria-label="Mission brief">
-      {/*TITLE: icon, name, due date, progress*/}
-      <div className="mb-head">
+    <section className="mb-card">
+      <div className="mb-head">{/*TITLE: icon, name, due date, progress*/}
         <div className="mb-head-icon"><ClipboardList size={22} /></div>
         <div className="mb-head-text">
           <h2 className="mb-title">Mission brief</h2>
@@ -79,7 +77,6 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
         </div>
         <span className="mb-done-chip">{doneText}</span>
       </div>
-
       {/*TO DO: tick, text, count*/}
       {todos.length > 0 && (
         <>
@@ -89,7 +86,6 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
           </ul>
         </>
       )}
-
       {/*RULES: just read, nothing checks them*/}
       {brief.rules.length > 0 && (
         <>
@@ -110,7 +106,7 @@ function TodoRow({ todo }: { todo: TodoState }) {
   if (!todo.progress) {
     return (
       <li className="mb-todo">
-        <span className="mb-tick mb-tick-teacher" role="img" aria-label="Your teacher checks this one" />
+        <span className="mb-tick mb-tick-teacher" />
         <span className="mb-todo-text">{todo.text}</span>
         <span className="mb-todo-count">teacher</span>
       </li>
@@ -119,7 +115,7 @@ function TodoRow({ todo }: { todo: TodoState }) {
   const { complete } = todo.progress;
   return (
     <li className={`mb-todo ${complete ? "mb-todo-done" : ""}`}>
-      <span className={`mb-tick ${complete ? "mb-tick-done" : ""}`} role="img" aria-label={complete ? "Done" : "Not done yet"}>
+      <span className={`mb-tick ${complete ? "mb-tick-done" : ""}`}>
         {complete && <Check size={14} strokeWidth={3.5} />}
       </span>
       <span className="mb-todo-text">{todo.text}</span>

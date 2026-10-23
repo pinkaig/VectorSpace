@@ -15,8 +15,8 @@
 /****************************************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { Box, ChevronDown, Music, Plus, X } from 'lucide-react'
+import { Link } from 'react-router'
+import { Box, ChevronDown, Music, Palette, Plus, X } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
@@ -117,8 +117,8 @@ const FLOAT_GAP = 5
 
 // start: the project to open, when the caller already has one (from the server); without it
 // the page opens the draft saved in this browser
-export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}) {
-  const navigate = useNavigate()
+// preview: true when a teacher previews as a student (TeacherPreviewPage); nothing is saved
+export default function EditorPage({ start, preview = false }: { start?: ProjectLoadResult; preview?: boolean } = {}) {
   // Read the saved draft once per mount, not once at import. This page unmounts when the
   // visitor leaves /editor, and coming back must start from the latest autosave; a
   // module-level read would hand back the first visit's data and autosave would then
@@ -148,7 +148,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     showStats, setShowStats,
     resetToken, setResetToken,
   } = useViewportSettings()
-  const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source)
+  const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source, !preview)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
@@ -249,28 +249,26 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           }}
           onAddRoom={addScene}
         />
+        <nav className="Tutorial-steps"> {/** tutorial buttons */}
+        {tutorialSteps.map(({ step: n, label }) => {
+          const locked = n > currentStep
+          const viewing = n === TUTStep
+          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
+          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
+          return (
+            <button
+              key={n}
+              className={`button button--${colour}`}
+              disabled={locked}
+              title={title}
+              onClick={() => viewStep(n)}
+            >
+            <span className="button-num">{n}</span>
+              <span className="button-label">{label}</span>
+            </button>
+                  )})}
+        </nav>
         <div className="top-actions"> {/**** Top bar buttons *****/}
-
-        <nav className="Tutorial-steps"> {/** tutorial buttons */}
-        {tutorialSteps.map(({ step: n, label }) => {
-          const locked = n > currentStep
-          const viewing = n === TUTStep
-          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
-          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
-          return (
-            <button
-              key={n}
-              className={`button button--${colour}`}
-              disabled={locked}
-              title={title}
-              onClick={() => viewStep(n)}
-            >
-            <span className="button-num">{n}</span>
-              <span className="button-label">{label}</span>
-            </button>
-                  )})}
-        </nav>
-          <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
@@ -557,6 +555,11 @@ const ROOM_SIDES = [
 
 const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano'] as const
 const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud'] as const
+// MATERIAL: placeholder style names. Picking one is on screen only and does not change the models.
+const STYLE_OPTIONS = ['Style 1', 'Style 2', 'Style 3', 'Style 4'] as const
+type RoomStyle = (typeof STYLE_OPTIONS)[number]
+type RoomMaterial = { walls: RoomStyle; floor: RoomStyle }
+const DEFAULT_ROOM_MATERIAL: RoomMaterial = { walls: 'Style 1', floor: 'Style 1' }
 type RoomSound = { music: (typeof MUSIC_OPTIONS)[number]; volume: (typeof VOLUME_OPTIONS)[number] }
 const DEFAULT_ROOM_SOUND: RoomSound = { music: 'Museum hum', volume: 'Quiet' }
 
@@ -566,6 +569,8 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
   const [justAdded, setJustAdded] = useState<string | null>(null)
   // ON SCREEN ONLY: music and volume per room, by room id
   const [sounds, setSounds] = useState<Record<string, RoomSound>>({})
+  // ON SCREEN ONLY: the wall and floor style per room, by room id
+  const [materials, setMaterials] = useState<Record<string, RoomMaterial>>({})
   const anchorRef = useRef<HTMLDivElement>(null)
   // the cube goes home: /teacher for a teacher, /student for a student (the same rule as sign-in)
   const { role, admin } = useSession()
@@ -597,6 +602,8 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
 
   const sound = sounds[current.id] ?? DEFAULT_ROOM_SOUND
   const setSound = (change: Partial<RoomSound>) => setSounds((all) => ({ ...all, [current.id]: { ...sound, ...change } }))
+  const material = materials[current.id] ?? DEFAULT_ROOM_MATERIAL
+  const setMaterial = (change: Partial<RoomMaterial>) => setMaterials((all) => ({ ...all, [current.id]: { ...material, ...change } }))
 
   const addRoom = (sideId: string) => {
     onAddRoom(sideId)
@@ -616,7 +623,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
         type="button"
         className={`rooms-cell ${isCurrent ? 'rooms-cell-current' : 'rooms-cell-other'}`}
         style={place}
-        aria-current={isCurrent ? 'true' : undefined}
         onClick={() => goTo(sceneId)}
       >
         {labelOf(sceneId)}{isCurrent ? '' : ' →'}
@@ -627,11 +633,8 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
 
   return (
     <div className="rooms-anchor" ref={anchorRef}>
-      {/* THE CUBE: back to the home page (the editor saves as you go, so nothing is lost) */}
-      <Link to={home} className="rooms-home" aria-label="Back to home" title="Back to home"><Box size={20} /></Link>
-
-      {/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
-      <button type="button" className="rooms-trigger" aria-expanded={isOpen} onClick={() => setIsOpen(!isOpen)}>
+      <Link to={home} className="rooms-home" title="Back to home"><Box size={20} /></Link>{/* THE CUBE: back to the home page (the editor saves as you go, so nothing is lost) */}
+      <button type="button" className="rooms-trigger" onClick={() => setIsOpen(!isOpen)}>{/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
         <span className="rooms-trigger-text">
           <strong>{project.name}</strong>
           <span className="rooms-trigger-room">{labelOf(current.id)} <ChevronDown size={14} /></span>
@@ -639,38 +642,32 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
       </button>
 
       {isOpen && (
-        <div className="rooms-popup" role="dialog" aria-label="Your rooms">
-          {/* TITLE and close */}
-          <div className="rooms-head">
+        <div className="rooms-popup">
+          <div className="rooms-head">{/* TITLE and close */}
             <div>
               <h2 className="rooms-title">Your rooms</h2>
               <p className="rooms-sub">Tap a + to add a room on that side. A door appears on that wall.</p>
             </div>
-            <button type="button" className="rooms-close" aria-label="Close rooms" onClick={() => setIsOpen(false)}><X size={16} /></button>
+            <button type="button" className="rooms-close" onClick={() => setIsOpen(false)}><X size={16} /></button>
           </div>
-
-          {/* THE GRID: starting room in the middle, a room or "+" on each side; never moves */}
-          <div className="rooms-grid">
+          <div className="rooms-grid">{/* THE GRID: starting room in the middle, a room or "+" on each side; never moves */}
             {roomButton(starting.id, { gridRow: 2, gridColumn: 2 })}
             {ROOM_SIDES.map((side) => {
               const place = { gridRow: side.row, gridColumn: side.col }
               return hasRoom(side.id) ? roomButton(side.id, place) : (
-                <button key={side.id} type="button" className="rooms-cell rooms-cell-add" style={place} aria-label={`Add a room ${side.words}`} onClick={() => addRoom(side.id)}>
+                <button key={side.id} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(side.id)}>
                   <Plus size={18} />
                 </button>
               )
             })}
           </div>
-
           {/* NOTE: where the room just added went */}
           {justAddedSide && (
             <p className="rooms-note">
               {labelOf(justAddedSide.id)} is {justAddedSide.words}. Click it to start building there.
             </p>
           )}
-
-          {/* BACKGROUND MUSIC for the room being edited (on screen only for now) */}
-          <div className="rooms-music">
+          <div className="rooms-music">{/* BACKGROUND MUSIC for the room being edited (on screen only for now) */}
             <div className="rooms-music-head">
               <Music size={18} />
               <h3>Background music · {current.name}</h3>
@@ -678,6 +675,15 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
             <p className="rooms-sub">Loops softly while visitors are in this room.</p>
             <RoomChoiceRow label="Music" options={MUSIC_OPTIONS} value={sound.music} onPick={(music) => setSound({ music })} />
             <RoomChoiceRow label="Volume" options={VOLUME_OPTIONS} value={sound.volume} onPick={(volume) => setSound({ volume })} />
+          </div>
+          <div className="rooms-material">{/* MATERIAL for the room being edited (on screen only: the styles do not change the models) */}
+            <div className="rooms-material-head">
+              <Palette size={18} />
+              <h3>Material · {current.name}</h3>
+            </div>
+            <p className="rooms-sub">How the walls and floor of this room look.</p>
+            <RoomChoiceRow label="Walls" options={STYLE_OPTIONS} value={material.walls} onPick={(walls) => setMaterial({ walls })} />
+            <RoomChoiceRow label="Floor" options={STYLE_OPTIONS} value={material.floor} onPick={(floor) => setMaterial({ floor })} />
           </div>
         </div>
       )}
@@ -688,14 +694,13 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
 // a label, then a row of buttons where the picked one is purple
 function RoomChoiceRow<T extends string>({ label, options, value, onPick }: { label: string; options: readonly T[]; value: T; onPick: (value: T) => void }) {
   return (
-    <div className="rooms-choice" role="group" aria-label={label}>
+    <div className="rooms-choice">
       <span className="rooms-choice-label">{label}</span>
       <div className="rooms-choice-options">
         {options.map((option) => (
           <button
             key={option}
             type="button"
-            aria-pressed={option === value}
             className={`rooms-choice-option ${option === value ? 'rooms-choice-on' : ''}`}
             onClick={() => onPick(option)}
           >
