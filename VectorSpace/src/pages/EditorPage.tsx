@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { Box, ChevronDown, Circle, Cylinder, X, type LucideIcon } from 'lucide-react'
+import { Box, ChevronDown, Circle, Cylinder, Settings, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
@@ -32,7 +32,6 @@ import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
-import { overlayDims } from '../viewport/editing/overlayWidgets'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
@@ -128,8 +127,11 @@ const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
 const FACE_LABEL_PRESET: Record<string, ViewPreset> = { TOP: 'top', FRONT: 'front', RIGHT: 'side' }
 const WALL_CUT_LABEL: Record<WallCut, string> = { full: 'Full', half: 'Half', low: 'Low' }
 const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low: 'full' } 
-// Gap between a floating control group and the corner widget it sits beside.
+// Gap between a floating control group and the stage edge.
 const FLOAT_GAP = 5
+// The viewport's right-edge widget column (OctaOrb, axis indicator, stats) starts below the
+// View bar: FLOAT_GAP + the bar's 46px height + a little air.
+const VIEW_BAR_CLEARANCE = 58
 
 // start: the project to open, when the caller already has one (from the server); without it
 // the page opens the draft saved in this browser
@@ -162,7 +164,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     showOctaOrb, setShowOctaOrb,
     showAxisIndicator, setShowAxisIndicator,
     showStats, setShowStats,
-    resetToken, setResetToken,
+    resetToken,
   } = useViewportSettings()
   const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
@@ -181,12 +183,6 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   // Snapped face reported by the viewport; null means a free (angled) view.
   const [viewLabel, setViewLabel] = useState<string | null>(null)
   const activeViewPreset: ViewPreset | null = viewLabel === null ? 'angled' : FACE_LABEL_PRESET[viewLabel] ?? null
-  // Floating groups step aside for the OctaOrb (top-right) and axis indicator (bottom-left),
-  // which only cover the stage corners in the single layout.
-  const dims = overlayDims(false)
-  const cornerWidgetsShown = layoutMode === 'single' && cameraMode === 'orbit'
-  const octaOrbClearance = cornerWidgetsShown && showOctaOrb ? dims.octaOrb + FLOAT_GAP : FLOAT_GAP
-  const axisClearance = cornerWidgetsShown && showAxisIndicator ? dims.axisIndicator + FLOAT_GAP : FLOAT_GAP
   // The Advanced menu closes on any press outside its corner group, like a dropdown.
   // Only the menu closes: its settings stay as chosen.
   const [advancedMenuOpen, setAdvancedMenuOpen] = useState(false)
@@ -229,7 +225,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
 
 
   const {
-    setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
+    setEnvironment, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
     addSelectedClickRule, removeRuleById, addScene, removeScene,
@@ -339,6 +335,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               showStats={showStats}
               textAssets={project.textAssets ?? []}
               compactOverlays={layoutMode === 'quad'}
+              // in the quad layout the View bar sits over another pane, so the main pane's corner is free
+              overlayInsetTop={layoutMode === 'quad' ? undefined : VIEW_BAR_CLEARANCE}
               walls={walls}
               onViewLabelChange={setViewLabel}
               showHint={false}
@@ -370,24 +368,24 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             )}
           </div>
 
-          {/* Top-right: view angles, left of the OctaOrb so they never cover it */}
-          <div className="floating-controls top-right" style={{ right: octaOrbClearance }}>
+          {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
+          <div className="floating-controls top-right">
             <div className="float-group">
               <span className="float-label">View</span>
               {VIEW_PRESETS.map(({ preset, label }) => (
-                <button key={preset} className={activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
+                <button key={preset} className={cameraMode === 'orbit' && activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
               ))}
             </div>
           </div>
 
-          {/* Bottom-left: environment and start view, right of the axis indicator */}
-          <div className="floating-controls bottom-left" style={{ left: axisClearance }} ref={advancedMenuRef}>
+          {/* Bottom-right: zoom, walls, framing, and the settings menu opening above them */}
+          <div className="floating-controls bottom-right" ref={advancedMenuRef}>
             {advancedMenuOpen && (
               <div className="float-group float-menu">
                 <span className="float-menu-label">Camera</span>
                 <div className="float-segment">
-                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')}>Orbit</button>
-                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')}>Walk</button>
+                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')} title="Look around the room from outside">Orbit</button>
+                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')} title="Walk around the room like a visitor (WASD)">Walk</button>
                 </div>
                 <span className="float-menu-label">Layout</span>
                 <div className="float-segment">
@@ -398,25 +396,18 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                 <div className="float-segment">
                   <button className={showOctaOrb ? 'active' : ''} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">Orb</button>
                   <button className={showAxisIndicator ? 'active' : ''} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
-                  <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
+                  {/* FPS and draw calls are for the team, not students: dev builds only */}
+                  {import.meta.env.DEV && <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>}
                 </div>
               </div>
             )}
-            <div className="float-group">
-              <button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
-              <button className="float-button" onClick={captureStartView} title="Use the current camera as this scene's start view">Set start view</button>
-              <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>
-            </div>
-          </div>
-
-          {/* Bottom-right: zoom, walls, framing */}
-          <div className="floating-controls bottom-right">
             <div className="float-group">
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(0.8)} title="Zoom in">+</button>
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(1.25)} title="Zoom out">−</button>
               <button className="float-button" onClick={() => setWalls(NEXT_WALL_CUT[walls])} title="Cut the room's walls down so you can see inside">Walls: {WALL_CUT_LABEL[walls]}</button>
               <button className="float-button" disabled={!selected || cameraMode !== 'orbit'} onClick={() => viewportRef.current?.focusSelected()} title="Frame the selected object">◎ Focus <kbd>F</kbd></button>
               <button className="float-button" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.frameAll()} title="Frame the whole room">⛶ Whole room <kbd>H</kbd></button>
+              <button className={advancedMenuOpen ? 'float-button icon active' : 'float-button icon'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="View settings: camera, layout and overlays" aria-label="View settings" aria-expanded={advancedMenuOpen}><Settings size={17} /></button>
             </div>
           </div>
           </div>

@@ -1086,7 +1086,12 @@ button:disabled {
 /* --float-gap is set inline on .stage-canvas from EditorPage's FLOAT_GAP. */
 .floating-controls.top-left { top: var(--float-gap); left: var(--float-gap); }
 .floating-controls.top-right { top: var(--float-gap); right: var(--float-gap); }
-.floating-controls.bottom-right { bottom: var(--float-gap); right: var(--float-gap); }
+.floating-controls.bottom-right {
+  bottom: var(--float-gap);
+  right: var(--float-gap);
+  flex-direction: column;
+  align-items: flex-end;
+}
 .floating-controls.bottom-left {
   bottom: var(--float-gap);
   left: var(--float-gap);
@@ -1220,8 +1225,6 @@ button:disabled {
   font-weight: 800;
   outline: none;
 }
-/* Built-in viewport overlays move clear of the floating groups. */
-.stage-canvas .viewport-stats { top: 64px; }
 .octaorb-backdrop,
 .axis-indicator-backdrop {
   position: absolute;
@@ -1231,15 +1234,8 @@ button:disabled {
   border: 1px solid var(--secondary-main1);
   pointer-events: none;
 }
-.octaorb-backdrop {
-  /* width/height set inline from overlayDims (shrinks in the quad layout) */
-  top: 8px;
-  right: 8px;
-}
-.axis-indicator-backdrop {
-  left: 8px;
-  bottom: 8px;
-}
+/* Size and position are set inline from overlayBox (overlayWidgets.ts): one column on the
+   right edge, OctaOrb then axis indicator then stats. */
 .octaorb-tooltip {
   position: absolute;
   pointer-events: none;
@@ -1257,9 +1253,7 @@ button:disabled {
   z-index: 5;
 }
 .viewport-stats {
-  position: absolute;
-  top: 8px;
-  left: 8px;
+  position: absolute; /* top/right set inline, under the overlay widgets */
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1436,7 +1430,6 @@ button:disabled {
     font-size: 16px;
   }
   .float-label { font-size: 11px; padding: 0 4px 0 6px; }
-  .stage-canvas .viewport-stats { top: 52px; }
   .stage-footer { padding: 8px 14px; }
 
   /*header*/
