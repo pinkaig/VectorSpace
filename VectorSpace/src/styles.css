@@ -296,6 +296,40 @@ button:disabled {
 .room-slot.east { grid-area: east; }
 .room-slot.south { grid-area: south; }
 .room-slot.current { grid-area: current; background: #5b4bd6; color: #fff; }
+.room-slot.current { position: relative; }
+.room-rename {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+  display: grid; place-items: center; padding: 0;
+  border: none; border-radius: 6px; background: rgba(255, 255, 255, 0.15); color: #fff; cursor: pointer;
+}
+.room-rename:hover { background: rgba(255, 255, 255, 0.3); }
+.room-slot.current.editing { display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.room-rename-prefix { font-size: 11px; opacity: 0.8; }
+.room-slot.current.editing input {
+  width: 100%; min-width: 0; height: 26px; padding: 0 6px;
+  border: none; border-radius: 6px; background: #fff; color: var(--text-main);
+  font: inherit; font-size: 13px; font-weight: 700; text-align: center;
+}
+.room-slot.neighbour {
+  border: 2px solid #3aa676; background: #e3f4ec; color: #1f5f43; cursor: pointer;
+}
+.room-slot.neighbour:hover { background: #d3eee1; }
+
+/* Visit order: numbered room chips, then arrows that move the current room */
+.room-order { display: flex; align-items: center; gap: 8px; }
+.room-order-label { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--text-main); }
+.room-order .room-list { flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.room-order-move {
+  flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 10px; background: #fff; color: #5b4bd6; cursor: pointer;
+}
+.room-order-move:disabled { color: var(--text-2); background: #f6f5fb; opacity: 0.5; cursor: default; }
+.room-chip-name { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.room-chip-number {
+  width: 22px; height: 22px; display: grid; place-items: center; flex: 0 0 auto;
+  border-radius: 50%; background: #f1effa; color: var(--text-main); font-size: 11px; font-weight: 800;
+}
+.room-chip.is-selected .room-chip-number { background: #3aa676; color: #fff; }
 
 .room-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .room-chip {

@@ -54,6 +54,7 @@ export type {
   InteractionRule,
   MediaKind,
   ProjectData,
+  RoomCell,
   SceneData,
   SceneObject,
   TextAssetMeta,

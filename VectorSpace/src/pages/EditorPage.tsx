@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { Box, ChevronDown, Circle, Cylinder, Settings, X, type LucideIcon } from 'lucide-react'
+import { Box, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, Pencil, Settings, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
@@ -29,6 +29,7 @@ import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
 import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
 import type { ClickRuleChoice } from '../editor/ruleEditorOperations'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
+import { cellBeside, roomAt, roomCell, ROOM_SIDES, type RoomSide } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
@@ -85,8 +86,6 @@ export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
 }
 /**End of Tutorial assisting code for the UI */
 
-type RoomSide = 'north' | 'east' | 'south' | 'west'
-
 const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano']
 const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
 
@@ -95,10 +94,15 @@ interface RoomPopupProps {
   onSelectScene: (sceneId: string) => void
   onAddRoom: (side: RoomSide) => void
   onDeleteRoom: (sceneId: string) => void
+  onMoveRoom: (sceneId: string, step: -1 | 1) => void
+  onRenameRoom: (sceneId: string, name: string) => void
   onEnvironmentChange: (environmentId: string) => void
 }
 
 type RoomPopupTab = 'rooms' | 'style' | 'music'
+
+// Fits the room box; the project file itself allows up to 200 characters.
+const ROOM_NAME_MAX = 40
 
 
 
@@ -228,7 +232,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     setEnvironment, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
-    addSelectedClickRule, removeRuleById, addScene, removeScene,
+    addSelectedClickRule, removeRuleById, addScene, removeScene, moveSceneInOrder, renameScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -256,9 +260,10 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             commit('Select scene', selectEditorScene(project, id).project)
             setSelectedId(null)
           }}
-          // The side isn't stored yet: scenes have no layout, so every + adds the next room.
-          onAddRoom={() => addScene()}
+          onAddRoom={addScene}
           onDeleteRoom={removeScene}
+          onMoveRoom={moveSceneInOrder}
+          onRenameRoom={renameScene}
           onEnvironmentChange={setEnvironment}
         />
         <div className="top-actions"> {/**** Top bar buttons *****/}
@@ -515,8 +520,10 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
 }
 
 
-function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnvironmentChange }: RoomPopupProps){
+function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom, onEnvironmentChange }: RoomPopupProps){
   const [isOpen, setIsOpen] = useState(false)
+  // The current room's name while it is being edited; null when not renaming.
+  const [nameDraft, setNameDraft] = useState<string | null>(null)
   const [tab, setTab] = useState<RoomPopupTab>('rooms')
   // Room waiting on "Delete?" confirmation; a room can hold a lot of work.
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -538,9 +545,30 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnv
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [isOpen])
 
-  const addSlot = (side: RoomSide) => (
-    <button className={`room-slot add ${side}`} onClick={() => onAddRoom(side)} title={`Add a room to the ${side}`}>+</button>
-  )
+  // Saving happens only on blur (Enter blurs too), so it runs once; Escape marks the edit
+  // cancelled first, because removing the input can still fire a blur. An empty name keeps
+  // the old one (onRenameRoom ignores it).
+  const nameCancelledRef = useRef(false)
+  const startRename = () => {
+    nameCancelledRef.current = false
+    setNameDraft(scene.name)
+  }
+  const saveName = () => {
+    if (nameDraft !== null && !nameCancelledRef.current) onRenameRoom(scene.id, nameDraft)
+    nameCancelledRef.current = true
+    setNameDraft(null)
+  }
+
+  // Each side of the current room shows the room already there (click to go), or a + to add one.
+  const here = roomCell(project, scene)
+  const sideSlot = (side: RoomSide) => {
+    const neighbour = here ? roomAt(project, cellBeside(here, side)) : undefined
+    if (neighbour) {
+      const index = project.scenes.indexOf(neighbour)
+      return <button key={side} className={`room-slot neighbour ${side}`} onClick={() => onSelectScene(neighbour.id)} title={`Go to ${roomLabel(index)}`}>{roomLabel(index)}</button>
+    }
+    return <button key={side} className={`room-slot add ${side}`} onClick={() => onAddRoom(side)} title={`Add a room to the ${side}`} aria-label={`Add a room to the ${side}`}>+</button>
+  }
 
   return(
     <div className="room-popup-anchor" ref={anchorRef}>
@@ -548,7 +576,7 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnv
         <span className="room-trigger-icon"><Box size={20} strokeWidth={1.75} /></span>
         <span className="room-trigger-copy">
           <strong>{project.name}</strong>
-          <small>{roomLabel(sceneIndex)} <ChevronDown size={14} /></small>
+          <small>{roomLabel(sceneIndex)}{project.scenes.length > 1 ? ` (${project.scenes.length} rooms)` : ''} <ChevronDown size={14} /></small>
         </span>
       </button>
 
@@ -573,21 +601,39 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnv
           {tab === 'rooms' && (
             <>
               <div className="room-grid">
-                {addSlot('north')}
-                {addSlot('west')}
-                <div className="room-slot current">{roomLabel(sceneIndex)}</div>
-                {addSlot('east')}
-                {addSlot('south')}
+                {ROOM_SIDES.map((side) => sideSlot(side))}
+                {nameDraft === null ? (
+                  <div className="room-slot current">
+                    <span>{roomLabel(sceneIndex)}</span>
+                    <button className="room-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room"><Pencil size={13} /></button>
+                  </div>
+                ) : (
+                  <form className="room-slot current editing" onSubmit={(event) => { event.preventDefault(); (document.activeElement as HTMLElement | null)?.blur() }}>
+                    <span className="room-rename-prefix">Room {sceneIndex + 1} ·</span>
+                    <input
+                      autoFocus
+                      aria-label="Room name"
+                      value={nameDraft}
+                      maxLength={ROOM_NAME_MAX}
+                      onChange={(event) => setNameDraft(event.target.value)}
+                      onFocus={(event) => event.target.select()}
+                      onBlur={saveName}
+                      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); nameCancelledRef.current = true; setNameDraft(null) } }}
+                    />
+                  </form>
+                )}
               </div>
               {project.scenes.length > 1 && (
-                <div className="room-list">
+                <div className="room-order">
+                  <span className="room-order-label">Visit order</span>
+                  <div className="room-list">
                   {project.scenes.map((item, index) => {
                     const chipClass = index === sceneIndex ? 'room-chip is-selected' : 'room-chip'
                     if (confirmDeleteId === item.id) {
                       const count = item.objects.length
                       return (
                         <span key={item.id} className="room-chip confirm">
-                          <span>Delete {roomLabel(index)}{count > 0 ? ` and its ${count} thing${count === 1 ? '' : 's'}` : ''}?</span>
+                          <span>Delete {item.name}{count > 0 ? ` and its ${count} thing${count === 1 ? '' : 's'}` : ''}?</span>
                           <button className="room-chip-yes" onClick={() => { onDeleteRoom(item.id); setConfirmDeleteId(null) }}>Delete</button>
                           <button className="room-chip-no" onClick={() => setConfirmDeleteId(null)}>Keep</button>
                         </span>
@@ -595,11 +641,17 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnv
                     }
                     return (
                       <span key={item.id} className={chipClass}>
-                        <button className="room-chip-name" onClick={() => onSelectScene(item.id)}>{roomLabel(index)}</button>
+                        <button className="room-chip-name" onClick={() => onSelectScene(item.id)} title={`Go to ${roomLabel(index)}`}>
+                          <span className="room-chip-number">{index + 1}</span>{item.name}
+                        </button>
                         <button className="room-chip-delete" onClick={() => setConfirmDeleteId(item.id)} title={`Delete ${roomLabel(index)}`} aria-label={`Delete ${roomLabel(index)}`}><X size={13} /></button>
                       </span>
                     )
                   })}
+                  </div>
+                  {/* move the room you're in earlier or later in the order visitors see the rooms */}
+                  <button className="room-order-move" disabled={sceneIndex === 0} onClick={() => onMoveRoom(scene.id, -1)} title="Visit this room earlier" aria-label="Visit this room earlier"><ChevronLeft size={16} /></button>
+                  <button className="room-order-move" disabled={sceneIndex === project.scenes.length - 1} onClick={() => onMoveRoom(scene.id, 1)} title="Visit this room later" aria-label="Visit this room later"><ChevronRight size={16} /></button>
                 </div>
               )}
               <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>

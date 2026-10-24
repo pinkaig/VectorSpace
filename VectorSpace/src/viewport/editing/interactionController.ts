@@ -259,15 +259,16 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
               ? rollView(currentDirection, currentUp, kind.replace('roll-', '') as 'left' | 'right')
               : nudgeView(currentDirection, currentUp, kind as 'up' | 'down' | 'left' | 'right')
             callbacks.applyOrientation(next.direction, next.up)
-            callbacks.setOrthographic(true)
+            // face views stay perspective, like the View bar's Top / Front / Side
+            callbacks.setOrthographic(false)
             return true
           }
         }
         const vertexHit = pickOctaOrbTarget()
         if (vertexHit) {
           callbacks.snapTo(vertexHit.object.userData.direction as THREE.Vector3)
-          // Orthographic only suits flat face views; an edge view keeps its perspective.
-          callbacks.setOrthographic(overlays.octaOrb.vertexMeshes.includes(vertexHit.object as THREE.Mesh))
+          // face and edge views alike stay perspective, like the View bar's Top / Front / Side
+          callbacks.setOrthographic(false)
         }
         return true
       }

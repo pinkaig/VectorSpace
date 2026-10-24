@@ -584,8 +584,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         yawRef.current = orientation.yaw
         pitchRef.current = orientation.pitch
         setFaceLabel(preset === 'angled' ? null : faceLabelFor(direction))
-        // Same rule as the OctaOrb: face views are orthographic, free views perspective.
-        if (dataRef.current.orthographic !== (preset !== 'angled')) dataRef.current.onOrthographicChange?.(preset !== 'angled')
+        // Every view is perspective, face views included (same rule as the OctaOrb).
+        if (dataRef.current.orthographic) dataRef.current.onOrthographicChange?.(false)
         requestRender()
       },
       zoomBy: (factor) => {
