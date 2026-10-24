@@ -31,6 +31,7 @@ import {
   createScene,
   duplicateObject,
   removeObject,
+  removeScene,
   renameObject,
   reparentObject,
   setActiveScene,
@@ -138,3 +139,6 @@ export const selectEditorScene = (project: ProjectData, sceneId: string): Object
 
 export const createEditorScene = (project: ProjectData, scene: ProjectData['scenes'][number]): ObjectOperationResult =>
   createScene(project, scene)
+
+export const removeEditorScene = (project: ProjectData, sceneId: string): ObjectOperationResult =>
+  removeScene(project, sceneId)

@@ -234,264 +234,104 @@ button:disabled {
 }
 
 /*styles for the popup concerning the room*/
-/* the top-left project button and its "Your rooms" popup (SceneRoomPopUp in EditorPage) */
-.rooms-anchor {
-  justify-self: start; /* only as wide as the cube + button, so clicks beside it close the popup */
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-body);
-  color: var(--ink);
+.room-popup-anchor { position: relative; }
+
+.room-popup {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  width: min(500px, calc(100vw - 32px)); padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  border: 2px solid #5b4bd6; border-radius: 16px; background: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
 }
 
-/* ── The button ───────────────────────────────────────────────────────── */
-.rooms-trigger {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: var(--radius-btn);
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-body);
-  text-align: left;
-  cursor: pointer;
+.room-trigger {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 10px 6px 6px; border: none; border-radius: 14px;
+  background: transparent; cursor: pointer; font: inherit; text-align: left;
+}
+.room-trigger:hover { background: var(--bg-page); }
+.room-trigger-icon {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 12px; background: #5b4bd6; color: #fff;
+}
+.room-trigger-copy { display: flex; flex-direction: column; gap: 2px; }
+.room-trigger-copy strong { color: var(--text-main); font-size: 16px; }
+.room-trigger-copy small {
+  display: flex; align-items: center; gap: 4px;
+  color: #5b4bd6; font-size: 13px; font-weight: 700;
 }
 
-.rooms-trigger:hover {
-  background: var(--purple-50);
+.room-popup-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.room-popup-head h2 { margin: 0 0 4px; font-size: 20px; }
+.room-popup-head p { margin: 0; color: var(--text-2); font-size: 13px; }
+.room-popup-close {
+  flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center;
+  border: none; border-radius: 12px; background: #f1effa; color: var(--text-main); cursor: pointer;
 }
 
-/* the cube: a link back to the home page */
-.rooms-home {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-btn);
-  background: var(--purple-500);
-  color: var(--surface);
+.room-tabs {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  padding: 5px; border-radius: 12px; background: #f1effa;
+}
+.room-tabs button {
+  min-height: 40px; border: 1px solid transparent; border-radius: 9px;
+  background: transparent; color: var(--text-2); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+}
+.room-tabs button.is-selected { background: #fff; border-color: #d9d4f3; color: var(--text-main); }
+
+/* Plus layout: current room in the middle, an add slot on each side */
+.room-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 62px; gap: 8px;
+  grid-template-areas:
+    ".    north ."
+    "west current east"
+    ".    south .";
+}
+.room-slot {
+  display: grid; place-items: center; padding: 6px; border-radius: 10px;
+  font: inherit; font-size: 13px; font-weight: 800; text-align: center;
+}
+.room-slot.add {
+  border: 2px dashed #cfc8f2; background: #faf9ff; color: #5b4bd6; font-size: 18px; cursor: pointer;
+}
+.room-slot.add:hover { background: #f1effa; border-color: #5b4bd6; }
+.room-slot.north { grid-area: north; }
+.room-slot.west { grid-area: west; }
+.room-slot.east { grid-area: east; }
+.room-slot.south { grid-area: south; }
+.room-slot.current { grid-area: current; background: #5b4bd6; color: #fff; }
+
+.room-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.room-chip {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 4px 2px 2px; border: 1px solid var(--border); border-radius: 999px;
+  background: #fff; color: var(--text-2); font-size: 12px; font-weight: 700;
+}
+.room-chip button {
+  border: none; background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.room-chip-name { padding: 4px 8px; border-radius: 999px; }
+.room-chip-delete {
+  width: 22px; height: 22px; display: grid; place-items: center; padding: 0;
+  border-radius: 50%; opacity: 0.6;
+}
+.room-chip-delete:hover { opacity: 1; background: #fbe0e6; color: #b42335; }
+.room-chip.is-selected { background: #5b4bd6; border-color: #5b4bd6; color: #fff; }
+.room-chip.is-selected .room-chip-delete:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.room-chip.confirm { gap: 6px; padding: 2px 4px 2px 10px; border-color: #e5a3ae; background: #fff5f6; color: #8a1c2b; }
+.room-chip.confirm button { padding: 4px 10px; border-radius: 999px; }
+.room-chip .room-chip-yes { background: #c62f43; color: #fff; }
+.room-chip .room-chip-no { background: #fff; border: 1px solid var(--border); }
+
+.room-popup-note {
+  margin: 0; padding: 12px 14px; border-radius: 10px;
+  background: #e3f4ec; color: var(--text-main); font-size: 13px;
 }
 
-.rooms-home:hover {
-  background: var(--purple-600);
-}
-
-.rooms-trigger-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-
-.rooms-trigger-text strong {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.rooms-trigger-room {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--purple-600);
-}
-
-/* ── The popup ────────────────────────────────────────────────────────── */
-.rooms-popup {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-sizing: border-box;
-  width: min(440px, calc(100vw - 32px));
-  padding: 16px;
-  border: 2px solid var(--purple-500);
-  border-radius: 20px;
-  background: var(--surface);
-  box-shadow: var(--shadow-popup);
-}
-
-.rooms-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.rooms-title {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.rooms-sub {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.rooms-close {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: var(--radius-btn);
-  background: var(--bg-app);
-  color: var(--ink);
-  cursor: pointer;
-}
-
-/* ── The grid of rooms ────────────────────────────────────────────────── */
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(3, 56px);
-  gap: 6px;
-}
-
-.rooms-cell {
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  min-height: 0;
-  padding: 4px 8px;
-  border-radius: var(--radius-btn);
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: center;
-}
-
-/* the room being edited */
-.rooms-cell-current {
-  border: 2px solid var(--purple-500);
-  background: var(--purple-500);
-  color: var(--surface);
-  cursor: default;
-}
-
-/* another room: green, click to go there */
-.rooms-cell-other {
-  border: 2px solid var(--green-500);
-  background: var(--green-50);
-  color: var(--green-800);
-  cursor: pointer;
-}
-
-.rooms-cell-other:hover {
-  background: var(--green-200);
-}
-
-/* a free side: dashed "+" */
-.rooms-cell-add {
-  border: 2px dashed var(--purple-300);
-  background: var(--purple-50);
-  color: var(--purple-500);
-  cursor: pointer;
-}
-
-.rooms-cell-add:hover {
-  background: var(--purple-100);
-}
-
-.rooms-note {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-btn);
-  background: var(--green-50);
-  color: var(--ink-2);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-/* ── Background music ─────────────────────────────────────────────────── */
-.rooms-music,
-.rooms-material {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.rooms-music-head,
-.rooms-material-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--purple-500);
-}
-
-.rooms-music-head h3,
-.rooms-material-head h3 {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.rooms-music .rooms-sub {
-  margin-top: -4px;
-}
-
-.rooms-choice {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.rooms-choice-label {
-  flex: 0 0 74px;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--ink-2);
-}
-
-.rooms-choice-options {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-}
-
-.rooms-choice-option {
-  flex: 1;
-  min-height: 40px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.rooms-choice-on {
-  border-color: var(--purple-500);
-  background: var(--purple-500);
-  color: var(--surface);
-}
-
-.rooms-home:focus-visible,
-.rooms-trigger:focus-visible,
-.rooms-close:focus-visible,
-.rooms-cell:focus-visible,
-.rooms-choice-option:focus-visible {
-  outline: 2px solid var(--purple-500);
-  outline-offset: 2px;
+.room-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 800; color: var(--text-2); }
+.room-field select {
+  height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px;
+  background: #fff; color: var(--text-main); font: inherit; font-weight: 700;
 }
 /*styles for the popup concerning the room*/
 
@@ -559,8 +399,24 @@ button:disabled {
 
 .catalogue-list .asset-card {
   flex: 0 0 auto;
-  min-width: 100px;
+  min-width: 220px;
 }
+
+/* Catalogue card icon: a pastel tile, colour cycled per card */
+.asset-tile {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #2b2a3d;
+}
+.asset-tile.lilac { background: #e7e3fb; }
+.asset-tile.mint  { background: #dff3ea; }
+.asset-tile.peach { background: #fde8d6; }
+.asset-tile.sky   { background: #dceafa; }
+.asset-tile.rose  { background: #fbe0e6; }
 
 .chip {
   min-height: 36px;
@@ -1234,12 +1090,12 @@ button:disabled {
 /* --float-gap is set inline on .stage-canvas from EditorPage's FLOAT_GAP. */
 .floating-controls.top-left { top: var(--float-gap); left: var(--float-gap); }
 .floating-controls.top-right { top: var(--float-gap); right: var(--float-gap); }
-.floating-controls.bottom-right { bottom: var(--float-gap); right: var(--float-gap); }
-/* Bottom-left box: "Things in this room" (button, then its tree) over the room picker. The
-   tree scrolls when the room is full so it never runs off the top of the stage. */
-.float-group.things-in-room { flex-direction: column; align-items: stretch; width: 240px; }
-.things-in-room .things-toggle { justify-content: space-between; }
-.things-in-room .tree-list { overflow-y: auto; max-height: min(320px, 40vh); }
+.floating-controls.bottom-right {
+  bottom: var(--float-gap);
+  right: var(--float-gap);
+  flex-direction: column;
+  align-items: flex-end;
+}
 .floating-controls.bottom-left {
   bottom: var(--float-gap);
   left: var(--float-gap);
@@ -1373,8 +1229,6 @@ button:disabled {
   font-weight: 800;
   outline: none;
 }
-/* Built-in viewport overlays move clear of the floating groups. */
-.stage-canvas .viewport-stats { top: 64px; }
 .octaorb-backdrop,
 .axis-indicator-backdrop {
   position: absolute;
@@ -1384,15 +1238,8 @@ button:disabled {
   border: 1px solid var(--secondary-main1);
   pointer-events: none;
 }
-.octaorb-backdrop {
-  /* width/height set inline from overlayDims (shrinks in the quad layout) */
-  top: 8px;
-  right: 8px;
-}
-.axis-indicator-backdrop {
-  left: 8px;
-  bottom: 8px;
-}
+/* Size and position are set inline from overlayBox (overlayWidgets.ts): one column on the
+   right edge, OctaOrb then axis indicator then stats. */
 .octaorb-tooltip {
   position: absolute;
   pointer-events: none;
@@ -1410,9 +1257,7 @@ button:disabled {
   z-index: 5;
 }
 .viewport-stats {
-  position: absolute;
-  top: 8px;
-  left: 8px;
+  position: absolute; /* top/right set inline, under the overlay widgets */
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1589,7 +1434,6 @@ button:disabled {
     font-size: 16px;
   }
   .float-label { font-size: 11px; padding: 0 4px 0 6px; }
-  .stage-canvas .viewport-stats { top: 52px; }
   .stage-footer { padding: 8px 14px; }
 
   /*header*/

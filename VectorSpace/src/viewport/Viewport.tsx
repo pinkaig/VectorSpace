@@ -57,7 +57,7 @@ import { createViewportInteractionController } from '../viewport/editing/interac
 import { EYE_HEIGHT } from '../viewport/viewportTypes'
 import { EDGE_VIEWS, FACE_VIEWS, matchEdgeView, matchFaceView } from '../viewport/editing/viewSnap'
 import { createGizmoSet } from '../viewport/editing/createGizmoSet'
-import { createViewportOverlays, overlayDims } from '../viewport/editing/overlayWidgets'
+import { createViewportOverlays, overlayBox, overlayDims, OVERLAY_GAP, OVERLAY_MARGIN } from '../viewport/editing/overlayWidgets'
 import type { EnvStatus } from '../viewport/renderTypes'
 import {
   getAssetDescriptor,
@@ -122,6 +122,8 @@ interface ViewportProps {
   showAxisIndicator?: boolean
   // Shrinks the OctaOrb / axis indicator
   compactOverlays?: boolean
+  /** Where the right-edge column of OctaOrb, axis indicator and stats starts, so a host can keep it below its own controls. */
+  overlayInsetTop?: number
   /** Shows the FPS / object count */
   showStats?: boolean
   /** How much of the environment's walls to show; lower settings clip it horizontally. */
@@ -239,6 +241,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     showOctaOrb = true,
     showAxisIndicator = true,
     compactOverlays = false,
+    overlayInsetTop = OVERLAY_MARGIN,
     showStats = false,
     walls = 'full',
     onViewLabelChange,
@@ -251,8 +254,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -656,6 +659,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
           compactOverlays: dataRef.current.compactOverlays,
+          overlayInsetTop: dataRef.current.overlayInsetTop,
           unpickableAssetIds: unpickableAssetIdsRef.current,
           runtimeActive: dataRef.current.runtimeMode === 'play',
           // one-way boolean per the modal-input-boundary decision: text
@@ -831,6 +835,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
           compact: dataRef.current.compactOverlays,
+          insetTop: dataRef.current.overlayInsetTop,
         })
       }
     }
@@ -980,15 +985,27 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   const hint = showHint ? viewportHintText(cameraMode, interactive, gizmoMode) : null
 
+  // The widgets only draw in orbit; stats sit under whichever of them are showing.
   const dims = overlayDims(compactOverlays)
+  const orbShown = cameraMode === 'orbit' && showOctaOrb
+  const axisShown = cameraMode === 'orbit' && showAxisIndicator
+  const layout = { compact: compactOverlays, insetTop: overlayInsetTop, showOctaOrb: orbShown }
+  const statsTop = overlayInsetTop
+    + (orbShown ? dims.octaOrb + OVERLAY_GAP : 0)
+    + (axisShown ? dims.axisIndicator + OVERLAY_GAP : 0)
+  const backdropStyle = (widget: 'octaOrb' | 'axisIndicator') => {
+    const size = widget === 'octaOrb' ? dims.octaOrb : dims.axisIndicator
+    // every widget is right-aligned at OVERLAY_MARGIN, so only its top comes from the layout
+    return { width: size, height: size, top: overlayBox(widget, layout, 0).top, right: OVERLAY_MARGIN }
+  }
 
   return (
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
       {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
-      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" style={{ width: dims.octaOrb, height: dims.octaOrb }} />}
-      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" style={{ width: dims.axisIndicator, height: dims.axisIndicator }} />}
+      {orbShown && <div className="octaorb-backdrop" style={backdropStyle('octaOrb')} />}
+      {axisShown && <div className="axis-indicator-backdrop" style={backdropStyle('axisIndicator')} />}
       {cameraMode === 'orbit' && faceLabel && (
         <div className="viewport-face-header" key={faceLabel}>
           <span className="viewport-face-header-name">{faceLabel}</span>
@@ -996,7 +1013,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         </div>
       )}
       {showStats && stats && (
-      <div className="viewport-stats">
+      <div className="viewport-stats" style={{ top: statsTop, right: OVERLAY_MARGIN }}>
         <span><b>{stats.fps.toFixed(0)}</b> FPS</span>  
         <span>FT: {stats.frameMs.toFixed(1)} ms</span> {/* frame time */}
         <span>Objects: <b>{stats.objects}</b></span>

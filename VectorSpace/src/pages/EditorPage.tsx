@@ -15,10 +15,10 @@
 /****************************************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
-import { Link } from 'react-router'
-import { Box, ChevronDown, Music, Palette, Plus, X } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { Box, ChevronDown, Circle, Cylinder, Settings, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
-import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
+import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
@@ -32,17 +32,14 @@ import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
-import { overlayDims } from '../viewport/editing/overlayWidgets'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
-import { MissionBriefPanel } from '../sections/missionBrief/MissionBriefPanel'
 import { useUserAssets } from '../editor/hooks/useUserAssets'
 import { useUserAudio } from '../editor/hooks/useUserAudio'
 import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
-import { homePath, useSession } from '../session/session'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -88,6 +85,20 @@ export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
 }
 /**End of Tutorial assisting code for the UI */
 
+type RoomSide = 'north' | 'east' | 'south' | 'west'
+
+const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano']
+const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
+
+interface RoomPopupProps {
+  project: ProjectData
+  onSelectScene: (sceneId: string) => void
+  onAddRoom: (side: RoomSide) => void
+  onDeleteRoom: (sceneId: string) => void
+  onEnvironmentChange: (environmentId: string) => void
+}
+
+type RoomPopupTab = 'rooms' | 'style' | 'music'
 
 
 
@@ -97,9 +108,13 @@ export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
 
 export const catalogueCategories: { id: CatalogueIDTypes; label: string; singular: string }[] = [
     { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
-    { id: 'signs', label: 'signs', singular: 'sign' },
-    { id: 'misc', label: 'misc', singular: 'misc' },
+    { id: 'signs', label: 'Signs', singular: 'Sign' },
+    { id: 'misc', label: 'Misc', singular: 'Misc' },
 ]
+
+// Catalogue card icon per asset kind; the tile colour cycles so neighbouring cards differ.
+const catalogueIcons: Record<AssetKind, LucideIcon> = { model: Box, cube: Box, sphere: Circle, cylinder: Cylinder }
+const catalogueTileColours = ['lilac', 'mint', 'peach', 'sky', 'rose']
 
 
 const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
@@ -112,13 +127,16 @@ const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
 const FACE_LABEL_PRESET: Record<string, ViewPreset> = { TOP: 'top', FRONT: 'front', RIGHT: 'side' }
 const WALL_CUT_LABEL: Record<WallCut, string> = { full: 'Full', half: 'Half', low: 'Low' }
 const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low: 'full' } 
-// Gap between a floating control group and the corner widget it sits beside.
+// Gap between a floating control group and the stage edge.
 const FLOAT_GAP = 5
+// The viewport's right-edge widget column (OctaOrb, axis indicator, stats) starts below the
+// View bar: FLOAT_GAP + the bar's 46px height + a little air.
+const VIEW_BAR_CLEARANCE = 58
 
 // start: the project to open, when the caller already has one (from the server); without it
 // the page opens the draft saved in this browser
-// preview: true when a teacher previews as a student (TeacherPreviewPage); nothing is saved
-export default function EditorPage({ start, preview = false }: { start?: ProjectLoadResult; preview?: boolean } = {}) {
+export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}) {
+  const navigate = useNavigate()
   // Read the saved draft once per mount, not once at import. This page unmounts when the
   // visitor leaves /editor, and coming back must start from the latest autosave; a
   // module-level read would hand back the first visit's data and autosave would then
@@ -146,9 +164,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     showOctaOrb, setShowOctaOrb,
     showAxisIndicator, setShowAxisIndicator,
     showStats, setShowStats,
-    resetToken, setResetToken,
+    resetToken,
   } = useViewportSettings()
-  const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source, !preview)
+  const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [assetQuery, setAssetQuery] = useState('')
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
@@ -162,17 +180,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const audioFileInputRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<ViewportHandle>(null)
   const [walls, setWalls] = useState<WallCut>('full')
-  // the bottom-left "Things in this room" list starts folded so it does not cover the room
-  const [thingsOpen, setThingsOpen] = useState(false)
   // Snapped face reported by the viewport; null means a free (angled) view.
   const [viewLabel, setViewLabel] = useState<string | null>(null)
   const activeViewPreset: ViewPreset | null = viewLabel === null ? 'angled' : FACE_LABEL_PRESET[viewLabel] ?? null
-  // Floating groups step aside for the OctaOrb (top-right) and axis indicator (bottom-left),
-  // which only cover the stage corners in the single layout.
-  const dims = overlayDims(false)
-  const cornerWidgetsShown = layoutMode === 'single' && cameraMode === 'orbit'
-  const octaOrbClearance = cornerWidgetsShown && showOctaOrb ? dims.octaOrb + FLOAT_GAP : FLOAT_GAP
-  const axisClearance = cornerWidgetsShown && showAxisIndicator ? dims.axisIndicator + FLOAT_GAP : FLOAT_GAP
   // The Advanced menu closes on any press outside its corner group, like a dropdown.
   // Only the menu closes: its settings stay as chosen.
   const [advancedMenuOpen, setAdvancedMenuOpen] = useState(false)
@@ -215,10 +225,10 @@ export default function EditorPage({ start, preview = false }: { start?: Project
 
 
   const {
-    setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
+    setEnvironment, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
-    addSelectedClickRule, removeRuleById, addScene,
+    addSelectedClickRule, removeRuleById, addScene, removeScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -240,35 +250,39 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   return (
     <main className="app-shell">
       <header className="topbar">
-        {/* project name + room; opens "Your rooms" (SceneRoomPopUp, at the end of this file) */}
         <SceneRoomPopUp
           project={project}
           onSelectScene={(id) => {
             commit('Select scene', selectEditorScene(project, id).project)
             setSelectedId(null)
           }}
-          onAddRoom={addScene}
+          // The side isn't stored yet: scenes have no layout, so every + adds the next room.
+          onAddRoom={() => addScene()}
+          onDeleteRoom={removeScene}
+          onEnvironmentChange={setEnvironment}
         />
-        <nav className="Tutorial-steps"> {/** tutorial buttons */}
-        {tutorialSteps.map(({ step: n, label }) => {
-          const locked = n > currentStep
-          const viewing = n === TUTStep
-          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
-          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
-          return (
-            <button
-              key={n}
-              className={`button button--${colour}`}
-              disabled={locked}
-              title={title}
-              onClick={() => viewStep(n)}
-            >
-            <span className="button-num">{n}</span>
-              <span className="button-label">{label}</span>
-            </button>
-                  )})}
-        </nav>
         <div className="top-actions"> {/**** Top bar buttons *****/}
+
+        <nav className="Tutorial-steps"> {/** tutorial buttons */}
+        {tutorialSteps.map(({ step: n, label }) => {
+          const locked = n > currentStep
+          const viewing = n === TUTStep
+          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
+          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
+          return (
+            <button
+              key={n}
+              className={`button button--${colour}`}
+              disabled={locked}
+              title={title}
+              onClick={() => viewStep(n)}
+            >
+            <span className="button-num">{n}</span>
+              <span className="button-label">{label}</span>
+            </button>
+                  )})}
+        </nav>
+          <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
@@ -279,7 +293,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             </div>
           </div>
           <button className="button primary" onClick={save}>Save project</button>
-          <button className="button primary" onClick={() => setViewMode('runtime')}>Play</button>
+          <button className="button primary" onClick={() => setViewMode('runtime')}>Run simulation</button>
         </div>
       </header>
       <div className="workspace">
@@ -321,6 +335,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               showStats={showStats}
               textAssets={project.textAssets ?? []}
               compactOverlays={layoutMode === 'quad'}
+              // in the quad layout the View bar sits over another pane, so the main pane's corner is free
+              overlayInsetTop={layoutMode === 'quad' ? undefined : VIEW_BAR_CLEARANCE}
               walls={walls}
               onViewLabelChange={setViewLabel}
               showHint={false}
@@ -352,26 +368,24 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             )}
           </div>
 
-          {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} />}
-
-          {/* Top-right: view angles, left of the OctaOrb so they never cover it */}
-          <div className="floating-controls top-right" style={{ right: octaOrbClearance }}>
+          {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
+          <div className="floating-controls top-right">
             <div className="float-group">
               <span className="float-label">View</span>
               {VIEW_PRESETS.map(({ preset, label }) => (
-                <button key={preset} className={activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
+                <button key={preset} className={cameraMode === 'orbit' && activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
               ))}
             </div>
           </div>
-          {/* Bottom-left: Room drop down (UP?) environment and start view, right of the axis indicator */}
-          <div className="floating-controls bottom-left" style={{ left: axisClearance }} ref={advancedMenuRef}>
-            {/*advancedMenuOpen && (
+
+          {/* Bottom-right: zoom, walls, framing, and the settings menu opening above them */}
+          <div className="floating-controls bottom-right" ref={advancedMenuRef}>
+            {advancedMenuOpen && (
               <div className="float-group float-menu">
                 <span className="float-menu-label">Camera</span>
                 <div className="float-segment">
-                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')}>Orbit</button>
-                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')}>Walk</button>
+                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')} title="Look around the room from outside">Orbit</button>
+                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')} title="Walk around the room like a visitor (WASD)">Walk</button>
                 </div>
                 <span className="float-menu-label">Layout</span>
                 <div className="float-segment">
@@ -382,43 +396,18 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                 <div className="float-segment">
                   <button className={showOctaOrb ? 'active' : ''} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">Orb</button>
                   <button className={showAxisIndicator ? 'active' : ''} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
-                  <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
+                  {/* FPS and draw calls are for the team, not students: dev builds only */}
+                  {import.meta.env.DEV && <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>}
                 </div>
               </div>
-            )*/}
-            {/* One box: "Things in this room" (folded until clicked) over the room picker. The list
-                is the old Scene panel's object tree (commit 68caea5), for this room only. */}
-            <div className="float-group things-in-room">
-              <button className="float-button things-toggle" aria-expanded={thingsOpen} onClick={() => setThingsOpen((open) => !open)}>
-                Things in this room · {scene.objects.length}<span>{thingsOpen ? '▾' : '▴'}</span>
-              </button>
-              {thingsOpen && <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
-                <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
-                  <div className="tree-indent-controls">
-                    <button className="tree-indent-btn" title="Outdent" disabled={row.object.parentId === undefined} onClick={() => outdentObject(row.object.id)}>⇤</button>
-                    <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
-                  </div>
-                  <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
-                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
-                  </button>
-                </div>
-              ))}</div>}
-              {/* the room picker (switches this room's environment), along the bottom of the same box */}
-              <label className="float-select"><span className="float-label">Room </span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
-              {/*<button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
-              <button className="float-button" onClick={captureStartView} title="Use the current camera as this scene's start view">Set start view</button>
-              <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>*/}
-            </div>
-          </div>
-
-          {/* Bottom-right: zoom, walls, framing */}
-          <div className="floating-controls bottom-right">
+            )}
             <div className="float-group">
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(0.8)} title="Zoom in">+</button>
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(1.25)} title="Zoom out">−</button>
               <button className="float-button" onClick={() => setWalls(NEXT_WALL_CUT[walls])} title="Cut the room's walls down so you can see inside">Walls: {WALL_CUT_LABEL[walls]}</button>
               <button className="float-button" disabled={!selected || cameraMode !== 'orbit'} onClick={() => viewportRef.current?.focusSelected()} title="Frame the selected object">◎ Focus <kbd>F</kbd></button>
               <button className="float-button" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.frameAll()} title="Frame the whole room">⛶ Whole room <kbd>H</kbd></button>
+              <button className={advancedMenuOpen ? 'float-button icon active' : 'float-button icon'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="View settings: camera, layout and overlays" aria-label="View settings" aria-expanded={advancedMenuOpen}><Settings size={17} /></button>
             </div>
           </div>
           </div>
@@ -444,7 +433,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     role="tab"
                     title={`${item.label}`}
                     onClick={()=>{setCategory(item.id);}}
-                    >{item.id}</button>
+                    >{item.label}</button>
                   )
               })}
             </div>
@@ -452,9 +441,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               {/**add no items found part here */}
               <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
                 <div className="catalogue-list">
-                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                  {filterAssets(assetQuery, visibleAssets).map((asset, index) => {
+                    const Icon = catalogueIcons[asset.kind] ?? Box
+                    return (
                     <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
-                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className={`asset-tile ${catalogueTileColours[index % catalogueTileColours.length]}`}><Icon size={20} strokeWidth={1.75} /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
                         ? (() => {
@@ -470,7 +461,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                           })()
                         : <span className="add-symbol">+</span>}
                     </button>
-                  ))}
+                    )
+                  })}
                   {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
                 </div>
             </div>
@@ -522,192 +514,125 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
   return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<WhenDoRuleSection rules={rules} onAdd={onAddClickRule} onRemove={onRemoveRule} /><div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
 }
 
-/*
- * The top-left of the editor: the cube (back to the home page), the project button
- * ("Dinosaur museum / Room 1 · Entrance hall") and the "Your rooms" popup it opens:
- *   - a 3x3 grid: the STARTING ROOM (the project's first room) always in the middle, one room
- *     at most on each of its four sides, "+" on the free sides, corners empty. The grid never
- *     moves; the room being edited is the purple one.
- *   - background music and volume for the room being edited
- * HOW A ROOM REMEMBERS ITS SIDE: "+" makes the room with the id of that side (room-right,
- * room-below, room-left, room-above; see ROOM_SIDES), so its place is saved with the project
- * without any new field. Only these five rooms exist: the starting room and one per side.
- * (A room with any other id, left in an old draft, is not shown.)
- * FOR NOW: doors between rooms are not built, and music and volume are ON SCREEN ONLY
- * (they highlight per room, but nothing is saved or played).
- */
-interface RoomPopupProps {
-  project: ProjectData
-  // go to (start editing) another room
-  onSelectScene: (sceneId: string) => void
-  // add a room with this id, staying in the current one
-  onAddRoom: (sceneId: string) => void
-}
 
-// The four sides of the starting room: the id a room on that side gets, where it sits in the
-// 3x3 grid, and how the note describes it.
-const ROOM_SIDES = [
-  { id: 'room-above', row: 1, col: 2, words: 'above the starting room' },
-  { id: 'room-left', row: 2, col: 1, words: 'left of the starting room' },
-  { id: 'room-right', row: 2, col: 3, words: 'right of the starting room' },
-  { id: 'room-below', row: 3, col: 2, words: 'below the starting room' },
-] as const
-
-const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano'] as const
-const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud'] as const
-// MATERIAL: placeholder style names. Picking one is on screen only and does not change the models.
-const STYLE_OPTIONS = ['Style 1', 'Style 2', 'Style 3', 'Style 4'] as const
-type RoomStyle = (typeof STYLE_OPTIONS)[number]
-type RoomMaterial = { walls: RoomStyle; floor: RoomStyle }
-const DEFAULT_ROOM_MATERIAL: RoomMaterial = { walls: 'Style 1', floor: 'Style 1' }
-type RoomSound = { music: (typeof MUSIC_OPTIONS)[number]; volume: (typeof VOLUME_OPTIONS)[number] }
-const DEFAULT_ROOM_SOUND: RoomSound = { music: 'Museum hum', volume: 'Quiet' }
-
-function SceneRoomPopUp({ project, onSelectScene, onAddRoom }: RoomPopupProps) {
+function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnvironmentChange }: RoomPopupProps){
   const [isOpen, setIsOpen] = useState(false)
-  // the side a room was just added on, so the note under the grid can say where it went
-  const [justAdded, setJustAdded] = useState<string | null>(null)
-  // ON SCREEN ONLY: music and volume per room, by room id
-  const [sounds, setSounds] = useState<Record<string, RoomSound>>({})
-  // ON SCREEN ONLY: the wall and floor style per room, by room id
-  const [materials, setMaterials] = useState<Record<string, RoomMaterial>>({})
+  const [tab, setTab] = useState<RoomPopupTab>('rooms')
+  // Room waiting on "Delete?" confirmation; a room can hold a lot of work.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // Music is UI only for now: nothing in the project stores it yet.
+  const [music, setMusic] = useState('Museum hum')
+  const [volume, setVolume] = useState('Quiet')
   const anchorRef = useRef<HTMLDivElement>(null)
-  // the cube goes home: /teacher for a teacher, /student for a student (the same rule as sign-in)
-  const { role, admin } = useSession()
-  const home = role ? homePath(role, admin) : '/'
+  const sceneIndex = Math.max(0, project.scenes.findIndex((s) => s.id === project.activeSceneId))
+  const scene = project.scenes[sceneIndex]
+  const roomLabel = (index: number) => `Room ${index + 1} · ${project.scenes[index].name}`
 
-  // Escape, or a click anywhere outside, closes it
+  // Closes on any press outside the trigger and popup, like the Advanced menu.
   useEffect(() => {
     if (!isOpen) return
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setIsOpen(false)
-    const onPointer = (event: PointerEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       if (!anchorRef.current?.contains(event.target as Node)) setIsOpen(false)
     }
-    window.addEventListener('keydown', onKey)
-    document.addEventListener('pointerdown', onPointer)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerdown', onPointer)
-    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [isOpen])
 
-  // "Room 2 · Fossil lab": numbered in the order the rooms were made
-  const labelOf = (sceneId: string) => {
-    const index = project.scenes.findIndex((scene) => scene.id === sceneId)
-    return `Room ${index + 1} · ${project.scenes[index].name}`
-  }
-  const current = project.scenes.find((scene) => scene.id === project.activeSceneId) ?? project.scenes[0]
-  const starting = project.scenes[0]
-  const hasRoom = (sceneId: string) => project.scenes.some((scene) => scene.id === sceneId)
+  const addSlot = (side: RoomSide) => (
+    <button className={`room-slot add ${side}`} onClick={() => onAddRoom(side)} title={`Add a room to the ${side}`}>+</button>
+  )
 
-  const sound = sounds[current.id] ?? DEFAULT_ROOM_SOUND
-  const setSound = (change: Partial<RoomSound>) => setSounds((all) => ({ ...all, [current.id]: { ...sound, ...change } }))
-  const material = materials[current.id] ?? DEFAULT_ROOM_MATERIAL
-  const setMaterial = (change: Partial<RoomMaterial>) => setMaterials((all) => ({ ...all, [current.id]: { ...material, ...change } }))
-
-  const addRoom = (sideId: string) => {
-    onAddRoom(sideId)
-    setJustAdded(sideId)
-  }
-  const goTo = (sceneId: string) => {
-    if (sceneId !== current.id) onSelectScene(sceneId)
-    setJustAdded(null)
-  }
-
-  // one room in the grid: purple if it is being edited, green to go there
-  const roomButton = (sceneId: string, place: { gridRow: number; gridColumn: number }) => {
-    const isCurrent = sceneId === current.id
-    return (
-      <button
-        key={sceneId}
-        type="button"
-        className={`rooms-cell ${isCurrent ? 'rooms-cell-current' : 'rooms-cell-other'}`}
-        style={place}
-        onClick={() => goTo(sceneId)}
-      >
-        {labelOf(sceneId)}{isCurrent ? '' : ' →'}
-      </button>
-    )
-  }
-  const justAddedSide = ROOM_SIDES.find((side) => side.id === justAdded && hasRoom(side.id))
-
-  return (
-    <div className="rooms-anchor" ref={anchorRef}>
-      <Link to={home} className="rooms-home" title="Back to home"><Box size={20} /></Link>{/* THE CUBE: back to the home page (the editor saves as you go, so nothing is lost) */}
-      <button type="button" className="rooms-trigger" onClick={() => setIsOpen(!isOpen)}>{/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
-        <span className="rooms-trigger-text">
+  return(
+    <div className="room-popup-anchor" ref={anchorRef}>
+      <button className="room-trigger" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}>
+        <span className="room-trigger-icon"><Box size={20} strokeWidth={1.75} /></span>
+        <span className="room-trigger-copy">
           <strong>{project.name}</strong>
-          <span className="rooms-trigger-room">{labelOf(current.id)} <ChevronDown size={14} /></span>
+          <small>{roomLabel(sceneIndex)} <ChevronDown size={14} /></small>
         </span>
       </button>
 
       {isOpen && (
-        <div className="rooms-popup">
-          <div className="rooms-head">{/* TITLE and close */}
+        <div className="room-popup" role="dialog" aria-label="Your rooms">
+          <div className="room-popup-head">
             <div>
-              <h2 className="rooms-title">Your rooms</h2>
-              <p className="rooms-sub">Tap a + to add a room on that side. A door appears on that wall.</p>
+              <h2>Your rooms</h2>
+              <p>Tap a + to add a room on that side. A door appears on that wall.</p>
             </div>
-            <button type="button" className="rooms-close" onClick={() => setIsOpen(false)}><X size={16} /></button>
+            <button className="room-popup-close" onClick={() => setIsOpen(false)} title="Close"><X size={18} /></button>
           </div>
-          <div className="rooms-grid">{/* THE GRID: starting room in the middle, a room or "+" on each side; never moves */}
-            {roomButton(starting.id, { gridRow: 2, gridColumn: 2 })}
-            {ROOM_SIDES.map((side) => {
-              const place = { gridRow: side.row, gridColumn: side.col }
-              return hasRoom(side.id) ? roomButton(side.id, place) : (
-                <button key={side.id} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(side.id)}>
-                  <Plus size={18} />
-                </button>
-              )
-            })}
+
+          <div className="room-tabs" role="tablist">
+            {(['rooms', 'style', 'music'] as RoomPopupTab[]).map((id) => (
+              <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-selected' : ''} onClick={() => setTab(id)}>
+                {id[0].toUpperCase() + id.slice(1)}
+              </button>
+            ))}
           </div>
-          {/* NOTE: where the room just added went */}
-          {justAddedSide && (
-            <p className="rooms-note">
-              {labelOf(justAddedSide.id)} is {justAddedSide.words}. Click it to start building there.
-            </p>
+
+          {tab === 'rooms' && (
+            <>
+              <div className="room-grid">
+                {addSlot('north')}
+                {addSlot('west')}
+                <div className="room-slot current">{roomLabel(sceneIndex)}</div>
+                {addSlot('east')}
+                {addSlot('south')}
+              </div>
+              {project.scenes.length > 1 && (
+                <div className="room-list">
+                  {project.scenes.map((item, index) => {
+                    const chipClass = index === sceneIndex ? 'room-chip is-selected' : 'room-chip'
+                    if (confirmDeleteId === item.id) {
+                      const count = item.objects.length
+                      return (
+                        <span key={item.id} className="room-chip confirm">
+                          <span>Delete {roomLabel(index)}{count > 0 ? ` and its ${count} thing${count === 1 ? '' : 's'}` : ''}?</span>
+                          <button className="room-chip-yes" onClick={() => { onDeleteRoom(item.id); setConfirmDeleteId(null) }}>Delete</button>
+                          <button className="room-chip-no" onClick={() => setConfirmDeleteId(null)}>Keep</button>
+                        </span>
+                      )
+                    }
+                    return (
+                      <span key={item.id} className={chipClass}>
+                        <button className="room-chip-name" onClick={() => onSelectScene(item.id)}>{roomLabel(index)}</button>
+                        <button className="room-chip-delete" onClick={() => setConfirmDeleteId(item.id)} title={`Delete ${roomLabel(index)}`} aria-label={`Delete ${roomLabel(index)}`}><X size={13} /></button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
+            </>
           )}
-          <div className="rooms-music">{/* BACKGROUND MUSIC for the room being edited (on screen only for now) */}
-            <div className="rooms-music-head">
-              <Music size={18} />
-              <h3>Background music · {current.name}</h3>
-            </div>
-            <p className="rooms-sub">Loops softly while visitors are in this room.</p>
-            <RoomChoiceRow label="Music" options={MUSIC_OPTIONS} value={sound.music} onPick={(music) => setSound({ music })} />
-            <RoomChoiceRow label="Volume" options={VOLUME_OPTIONS} value={sound.volume} onPick={(volume) => setSound({ volume })} />
-          </div>
-          <div className="rooms-material">{/* MATERIAL for the room being edited (on screen only: the styles do not change the models) */}
-            <div className="rooms-material-head">
-              <Palette size={18} />
-              <h3>Material · {current.name}</h3>
-            </div>
-            <p className="rooms-sub">How the walls and floor of this room look.</p>
-            <RoomChoiceRow label="Walls" options={STYLE_OPTIONS} value={material.walls} onPick={(walls) => setMaterial({ walls })} />
-            <RoomChoiceRow label="Floor" options={STYLE_OPTIONS} value={material.floor} onPick={(floor) => setMaterial({ floor })} />
-          </div>
+
+          {tab === 'style' && (
+            <label className="room-field">
+              <span>Room style</span>
+              <select value={scene.environmentId} onChange={(event) => onEnvironmentChange(event.target.value)}>
+                {environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}
+              </select>
+            </label>
+          )}
+
+          {tab === 'music' && (
+            <>
+              <label className="room-field">
+                <span>Background music</span>
+                <select value={music} onChange={(event) => setMusic(event.target.value)}>
+                  {MUSIC_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label className="room-field">
+                <span>Volume</span>
+                <select value={volume} onChange={(event) => setVolume(event.target.value)}>
+                  {VOLUME_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+            </>
+          )}
         </div>
       )}
-    </div>
-  )
-}
-
-// a label, then a row of buttons where the picked one is purple
-function RoomChoiceRow<T extends string>({ label, options, value, onPick }: { label: string; options: readonly T[]; value: T; onPick: (value: T) => void }) {
-  return (
-    <div className="rooms-choice">
-      <span className="rooms-choice-label">{label}</span>
-      <div className="rooms-choice-options">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`rooms-choice-option ${option === value ? 'rooms-choice-on' : ''}`}
-            onClick={() => onPick(option)}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
