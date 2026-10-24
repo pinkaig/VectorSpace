@@ -37,6 +37,7 @@ import {
   duplicateEditorObject,
   moveEditorObjectCommand,
   removeEditorObject,
+  removeEditorScene,
   renameEditorObject,
   reparentEditorObject,
   rotateEditorObjectAboutPivotCommand,
@@ -144,14 +145,21 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     commit('Set object enabled state', setEditorObjectEnabled(project, scene.id, selected.id, value).project)
   }
   const addScene = () => {
-    const id = `scene-${project.scenes.length + 1}`
-    commit('Create scene', createEditorScene(project, makeScene(id, `Room ${project.scenes.length + 1}`)).project)
+    // after a delete, scenes.length + 1 can name a scene that still exists, so skip taken ids
+    let number = project.scenes.length + 1
+    while (project.scenes.some((item) => item.id === `scene-${number}`)) number += 1
+    commit('Create scene', createEditorScene(project, makeScene(`scene-${number}`, `Room ${project.scenes.length + 1}`)).project)
+  }
+  const removeScene = (sceneId: string) => {
+    if (project.scenes.length === 1) return
+    commit('Delete scene', removeEditorScene(project, sceneId).project)
+    setSelectedId(null)
   }
 
   return {
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
-    setSelectedEnabled, addScene,
+    setSelectedEnabled, addScene, removeScene,
   }
 }

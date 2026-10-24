@@ -1,0 +1,55 @@
+# Render Blueprint
+#
+#   vectorspace      static site: the React app, served from Render's CDN, never sleeps
+#                    https://vectorspace-tuw2.onrender.com
+#   vectorspace-api  Docker web service: FastAPI, free plan (sleeps after 15 min idle,
+#                    so an external pinger hits /health every 10 min to keep it awake)
+#                    https://vectorspace-api.onrender.com
+#   database         Neon free Postgres (sleeps when idle, wakes in under a second)
+#
+# Both deploy from Working once the team's CI (.github/workflows/ci.yml) passes.
+services:
+  - type: web
+    name: vectorspace-api
+    runtime: docker
+    plan: free
+    branch: Working
+    rootDir: VectorSpace/apps/api
+    dockerfilePath: ./VectorSpace/apps/api/Dockerfile
+    dockerContext: ./VectorSpace/apps/api
+    # no dockerCommand: the Dockerfile's CMD runs migrations then starts uvicorn on $PORT,
+    # since pre-deploy commands are not on the free plan
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_ENV
+        value: production
+      # Neon connection string (Dashboard > Connect), e.g.
+      # postgresql://user:pw@ep-xxx.aws.neon.tech/vectorspace?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # the static site's address, exactly, e.g. https://vectorspace-tuw2.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
+      - key: AUTH0_DOMAIN
+        sync: false
+      - key: AUTH0_AUDIENCE
+        sync: false
+
+  - type: web
+    name: vectorspace
+    runtime: static
+    branch: Working
+    rootDir: VectorSpace
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Left unset on purpose: the app then runs in its offline mode (role picker, saves in
+      # the browser), which is the full M1 experience. Set VITE_API_URL to the API's address
+      # only once the browser app signs in through Auth0, because production refuses the
+      # dev sign-in (AUTH_DEV_BYPASS) that the picker uses against a server.
+      # - key: VITE_API_URL
+      #   value: https://vectorspace-api.onrender.com

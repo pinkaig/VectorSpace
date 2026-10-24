@@ -16,8 +16,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { Box, ChevronDown, Circle, Cylinder, Settings, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
-import { ProjectData, SceneObject, environmentLibrary } from '../project/model'
+import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
@@ -31,7 +32,6 @@ import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
-import { overlayDims } from '../viewport/editing/overlayWidgets'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
@@ -93,7 +93,12 @@ const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
 interface RoomPopupProps {
   project: ProjectData
   onSelectScene: (sceneId: string) => void
+  onAddRoom: (side: RoomSide) => void
+  onDeleteRoom: (sceneId: string) => void
+  onEnvironmentChange: (environmentId: string) => void
 }
+
+type RoomPopupTab = 'rooms' | 'style' | 'music'
 
 
 
@@ -103,9 +108,13 @@ export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
 
 export const catalogueCategories: { id: CatalogueIDTypes; label: string; singular: string }[] = [
     { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
-    { id: 'signs', label: 'signs', singular: 'sign' },
-    { id: 'misc', label: 'misc', singular: 'misc' },
+    { id: 'signs', label: 'Signs', singular: 'Sign' },
+    { id: 'misc', label: 'Misc', singular: 'Misc' },
 ]
+
+// Catalogue card icon per asset kind; the tile colour cycles so neighbouring cards differ.
+const catalogueIcons: Record<AssetKind, LucideIcon> = { model: Box, cube: Box, sphere: Circle, cylinder: Cylinder }
+const catalogueTileColours = ['lilac', 'mint', 'peach', 'sky', 'rose']
 
 
 const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
@@ -118,8 +127,11 @@ const VIEW_PRESETS: { preset: ViewPreset; label: string }[] = [
 const FACE_LABEL_PRESET: Record<string, ViewPreset> = { TOP: 'top', FRONT: 'front', RIGHT: 'side' }
 const WALL_CUT_LABEL: Record<WallCut, string> = { full: 'Full', half: 'Half', low: 'Low' }
 const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low: 'full' } 
-// Gap between a floating control group and the corner widget it sits beside.
+// Gap between a floating control group and the stage edge.
 const FLOAT_GAP = 5
+// The viewport's right-edge widget column (OctaOrb, axis indicator, stats) starts below the
+// View bar: FLOAT_GAP + the bar's 46px height + a little air.
+const VIEW_BAR_CLEARANCE = 58
 
 // start: the project to open, when the caller already has one (from the server); without it
 // the page opens the draft saved in this browser
@@ -152,7 +164,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     showOctaOrb, setShowOctaOrb,
     showAxisIndicator, setShowAxisIndicator,
     showStats, setShowStats,
-    resetToken, setResetToken,
+    resetToken,
   } = useViewportSettings()
   const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
@@ -171,12 +183,6 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   // Snapped face reported by the viewport; null means a free (angled) view.
   const [viewLabel, setViewLabel] = useState<string | null>(null)
   const activeViewPreset: ViewPreset | null = viewLabel === null ? 'angled' : FACE_LABEL_PRESET[viewLabel] ?? null
-  // Floating groups step aside for the OctaOrb (top-right) and axis indicator (bottom-left),
-  // which only cover the stage corners in the single layout.
-  const dims = overlayDims(false)
-  const cornerWidgetsShown = layoutMode === 'single' && cameraMode === 'orbit'
-  const octaOrbClearance = cornerWidgetsShown && showOctaOrb ? dims.octaOrb + FLOAT_GAP : FLOAT_GAP
-  const axisClearance = cornerWidgetsShown && showAxisIndicator ? dims.axisIndicator + FLOAT_GAP : FLOAT_GAP
   // The Advanced menu closes on any press outside its corner group, like a dropdown.
   // Only the menu closes: its settings stay as chosen.
   const [advancedMenuOpen, setAdvancedMenuOpen] = useState(false)
@@ -189,6 +195,17 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [advancedMenuOpen])
+  // "More" only shows on narrow screens .top-more in css; on wide ones its items sit inline.
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!moreMenuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) setMoreMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [moreMenuOpen])
   const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
   useBlockStrayFileDrop()
@@ -208,10 +225,10 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
 
 
   const {
-    setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
+    setEnvironment, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
-    addSelectedClickRule, removeRuleById, addScene,
+    addSelectedClickRule, removeRuleById, addScene, removeScene,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -239,6 +256,10 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             commit('Select scene', selectEditorScene(project, id).project)
             setSelectedId(null)
           }}
+          // The side isn't stored yet: scenes have no layout, so every + adds the next room.
+          onAddRoom={() => addScene()}
+          onDeleteRoom={removeScene}
+          onEnvironmentChange={setEnvironment}
         />
         <div className="top-actions"> {/**** Top bar buttons *****/}
 
@@ -257,15 +278,20 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               onClick={() => viewStep(n)}
             >
             <span className="button-num">{n}</span>
-              {label}
+              <span className="button-label">{label}</span>
             </button>
                   )})}
         </nav>
           <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
           <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
           <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
+          <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
+            <button className="button ghost top-more-toggle" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen}>More ▾</button>
+            <div className="top-more-items" onClick={() => setMoreMenuOpen(false)}>
           <button className="button ghost" onClick={loadDraft}>Load draft</button>
           <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
+            </div>
+          </div>
           <button className="button primary" onClick={save}>Save project</button>
           <button className="button primary" onClick={() => setViewMode('runtime')}>Run simulation</button>
         </div>
@@ -309,6 +335,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               showStats={showStats}
               textAssets={project.textAssets ?? []}
               compactOverlays={layoutMode === 'quad'}
+              // in the quad layout the View bar sits over another pane, so the main pane's corner is free
+              overlayInsetTop={layoutMode === 'quad' ? undefined : VIEW_BAR_CLEARANCE}
               walls={walls}
               onViewLabelChange={setViewLabel}
               showHint={false}
@@ -340,24 +368,24 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             )}
           </div>
 
-          {/* Top-right: view angles, left of the OctaOrb so they never cover it */}
-          <div className="floating-controls top-right" style={{ right: octaOrbClearance }}>
+          {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
+          <div className="floating-controls top-right">
             <div className="float-group">
               <span className="float-label">View</span>
               {VIEW_PRESETS.map(({ preset, label }) => (
-                <button key={preset} className={activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
+                <button key={preset} className={cameraMode === 'orbit' && activeViewPreset === preset ? 'float-button active' : 'float-button'} disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.setViewPreset(preset)}>{label}</button>
               ))}
             </div>
           </div>
 
-          {/* Bottom-left: environment and start view, right of the axis indicator */}
-          <div className="floating-controls bottom-left" style={{ left: axisClearance }} ref={advancedMenuRef}>
+          {/* Bottom-right: zoom, walls, framing, and the settings menu opening above them */}
+          <div className="floating-controls bottom-right" ref={advancedMenuRef}>
             {advancedMenuOpen && (
               <div className="float-group float-menu">
                 <span className="float-menu-label">Camera</span>
                 <div className="float-segment">
-                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')}>Orbit</button>
-                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')}>Walk</button>
+                  <button className={cameraMode === 'orbit' ? 'active' : ''} onClick={() => setCameraMode('orbit')} title="Look around the room from outside">Orbit</button>
+                  <button className={cameraMode === 'walk' ? 'active' : ''} onClick={() => setCameraMode('walk')} title="Walk around the room like a visitor (WASD)">Walk</button>
                 </div>
                 <span className="float-menu-label">Layout</span>
                 <div className="float-segment">
@@ -368,26 +396,18 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                 <div className="float-segment">
                   <button className={showOctaOrb ? 'active' : ''} onClick={() => setShowOctaOrb((value) => !value)} title="Show or hide OctaOrb">Orb</button>
                   <button className={showAxisIndicator ? 'active' : ''} onClick={() => setShowAxisIndicator((value) => !value)} title="Show or hide the axis indicator">Axes</button>
-                  <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>
+                  {/* FPS and draw calls are for the team, not students: dev builds only */}
+                  {import.meta.env.DEV && <button className={showStats ? 'active' : ''} onClick={() => setShowStats((value) => !value)} title="Show or hide FPS and object count">Stats</button>}
                 </div>
               </div>
             )}
-            <div className="float-group">
-              <label className="float-select"><span className="float-label">Room</span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
-              <button className="float-button" onClick={() => setResetToken((value) => value + 1)} title="Go back to this scene's start view">Reset view</button>
-              <button className="float-button" onClick={captureStartView} title="Use the current camera as this scene's start view">Set start view</button>
-              <button className={advancedMenuOpen ? 'float-button active' : 'float-button'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="Camera mode, layout and overlay settings">Advanced {advancedMenuOpen ? '▾' : '▴'}</button>
-            </div>
-          </div>
-
-          {/* Bottom-right: zoom, walls, framing */}
-          <div className="floating-controls bottom-right">
             <div className="float-group">
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(0.8)} title="Zoom in">+</button>
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(1.25)} title="Zoom out">−</button>
               <button className="float-button" onClick={() => setWalls(NEXT_WALL_CUT[walls])} title="Cut the room's walls down so you can see inside">Walls: {WALL_CUT_LABEL[walls]}</button>
               <button className="float-button" disabled={!selected || cameraMode !== 'orbit'} onClick={() => viewportRef.current?.focusSelected()} title="Frame the selected object">◎ Focus <kbd>F</kbd></button>
               <button className="float-button" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.frameAll()} title="Frame the whole room">⛶ Whole room <kbd>H</kbd></button>
+              <button className={advancedMenuOpen ? 'float-button icon active' : 'float-button icon'} onClick={() => setAdvancedMenuOpen((open) => !open)} title="View settings: camera, layout and overlays" aria-label="View settings" aria-expanded={advancedMenuOpen}><Settings size={17} /></button>
             </div>
           </div>
           </div>
@@ -413,7 +433,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                     role="tab"
                     title={`${item.label}`}
                     onClick={()=>{setCategory(item.id);}}
-                    >{item.id}</button>
+                    >{item.label}</button>
                   )
               })}
             </div>
@@ -421,9 +441,11 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               {/**add no items found part here */}
               <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
                 <div className="catalogue-list">
-                  {filterAssets(assetQuery, visibleAssets).map((asset) => (
+                  {filterAssets(assetQuery, visibleAssets).map((asset, index) => {
+                    const Icon = catalogueIcons[asset.kind] ?? Box
+                    return (
                     <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
-                      <span className={`asset-preview ${asset.kind}`}><span /></span>
+                      <span className={`asset-tile ${catalogueTileColours[index % catalogueTileColours.length]}`}><Icon size={20} strokeWidth={1.75} /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
                         ? (() => {
@@ -439,7 +461,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
                           })()
                         : <span className="add-symbol">+</span>}
                     </button>
-                  ))}
+                    )
+                  })}
                   {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
                 </div>
             </div>
@@ -492,43 +515,124 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
 }
 
 
-function SceneRoomPopUp({ project, onSelectScene }: RoomPopupProps){
+function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onEnvironmentChange }: RoomPopupProps){
   const [isOpen, setIsOpen] = useState(false)
+  const [tab, setTab] = useState<RoomPopupTab>('rooms')
+  // Room waiting on "Delete?" confirmation; a room can hold a lot of work.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // Music is UI only for now: nothing in the project stores it yet.
   const [music, setMusic] = useState('Museum hum')
   const [volume, setVolume] = useState('Quiet')
-  const sceneIndex = project.scenes.findIndex((s) => s.id === project.activeSceneId)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const sceneIndex = Math.max(0, project.scenes.findIndex((s) => s.id === project.activeSceneId))
   const scene = project.scenes[sceneIndex]
-  const roomNumber = sceneIndex + 1
+  const roomLabel = (index: number) => `Room ${index + 1} · ${project.scenes[index].name}`
 
-  const addRoom =(side:RoomSide)=>{}//Add later
+  // Closes on any press outside the trigger and popup, like the Advanced menu.
+  useEffect(() => {
+    if (!isOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!anchorRef.current?.contains(event.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [isOpen])
+
+  const addSlot = (side: RoomSide) => (
+    <button className={`room-slot add ${side}`} onClick={() => onAddRoom(side)} title={`Add a room to the ${side}`}>+</button>
+  )
 
   return(
-    <div className="room-popup-anchor">
-      <button className="button" onClick={()=>setIsOpen(!isOpen)}>
-        <strong>{project.name}</strong>
-        <span className="button">
-          Room {roomNumber}{scene.name}
+    <div className="room-popup-anchor" ref={anchorRef}>
+      <button className="room-trigger" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}>
+        <span className="room-trigger-icon"><Box size={20} strokeWidth={1.75} /></span>
+        <span className="room-trigger-copy">
+          <strong>{project.name}</strong>
+          <small>{roomLabel(sceneIndex)} <ChevronDown size={14} /></small>
         </span>
       </button>
 
-      {/* Pop up logic  */}
       {isOpen && (
-        <div className="room-popup">
-          <h2>Your rooms</h2>
-          <button className="button" onClick={()=>setIsOpen(false)}>X</button>
+        <div className="room-popup" role="dialog" aria-label="Your rooms">
+          <div className="room-popup-head">
+            <div>
+              <h2>Your rooms</h2>
+              <p>Tap a + to add a room on that side. A door appears on that wall.</p>
+            </div>
+            <button className="room-popup-close" onClick={() => setIsOpen(false)} title="Close"><X size={18} /></button>
+          </div>
+
+          <div className="room-tabs" role="tablist">
+            {(['rooms', 'style', 'music'] as RoomPopupTab[]).map((id) => (
+              <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-selected' : ''} onClick={() => setTab(id)}>
+                {id[0].toUpperCase() + id.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'rooms' && (
+            <>
+              <div className="room-grid">
+                {addSlot('north')}
+                {addSlot('west')}
+                <div className="room-slot current">{roomLabel(sceneIndex)}</div>
+                {addSlot('east')}
+                {addSlot('south')}
+              </div>
+              {project.scenes.length > 1 && (
+                <div className="room-list">
+                  {project.scenes.map((item, index) => {
+                    const chipClass = index === sceneIndex ? 'room-chip is-selected' : 'room-chip'
+                    if (confirmDeleteId === item.id) {
+                      const count = item.objects.length
+                      return (
+                        <span key={item.id} className="room-chip confirm">
+                          <span>Delete {roomLabel(index)}{count > 0 ? ` and its ${count} thing${count === 1 ? '' : 's'}` : ''}?</span>
+                          <button className="room-chip-yes" onClick={() => { onDeleteRoom(item.id); setConfirmDeleteId(null) }}>Delete</button>
+                          <button className="room-chip-no" onClick={() => setConfirmDeleteId(null)}>Keep</button>
+                        </span>
+                      )
+                    }
+                    return (
+                      <span key={item.id} className={chipClass}>
+                        <button className="room-chip-name" onClick={() => onSelectScene(item.id)}>{roomLabel(index)}</button>
+                        <button className="room-chip-delete" onClick={() => setConfirmDeleteId(item.id)} title={`Delete ${roomLabel(index)}`} aria-label={`Delete ${roomLabel(index)}`}><X size={13} /></button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
+            </>
+          )}
+
+          {tab === 'style' && (
+            <label className="room-field">
+              <span>Room style</span>
+              <select value={scene.environmentId} onChange={(event) => onEnvironmentChange(event.target.value)}>
+                {environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}
+              </select>
+            </label>
+          )}
+
+          {tab === 'music' && (
+            <>
+              <label className="room-field">
+                <span>Background music</span>
+                <select value={music} onChange={(event) => setMusic(event.target.value)}>
+                  {MUSIC_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label className="room-field">
+                <span>Volume</span>
+                <select value={volume} onChange={(event) => setVolume(event.target.value)}>
+                  {VOLUME_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+            </>
+          )}
         </div>
-
-        //room grid
-
-
-        //room nav
-
-
-        //music
-
-
       )}
-
     </div>
   )
 }
