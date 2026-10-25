@@ -342,7 +342,7 @@ export const setObjectEnabled = (project: ProjectData, input: ObjectFlagInput): 
 export const updateScene = (
   project: ProjectData,
   input: SceneUpdateInput,
-  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera'>>,
+  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout'>>,
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const scene = requireScene(next, input.sceneId)
@@ -409,6 +409,19 @@ export const removeScene = (
   if (next.activeSceneId === sceneId) {
     next.activeSceneId = next.scenes[Math.max(0, index - 1)].id
   }
+  return { project: next }
+}
+
+// Scene order is the visit order; this moves one scene to `toIndex` (clamped to the list).
+export const moveScene = (
+  project: ProjectData,
+  sceneId: string,
+  toIndex: number,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const scene = requireScene(next, sceneId)
+  next.scenes.splice(next.scenes.indexOf(scene), 1)
+  next.scenes.splice(Math.min(Math.max(0, toIndex), next.scenes.length), 0, scene)
   return { project: next }
 }
 

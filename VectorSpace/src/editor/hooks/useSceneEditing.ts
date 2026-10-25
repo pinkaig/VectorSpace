@@ -38,6 +38,7 @@ import {
   moveEditorObjectCommand,
   removeEditorObject,
   removeEditorScene,
+  moveEditorScene,
   renameEditorObject,
   reparentEditorObject,
   rotateEditorObjectAboutPivotCommand,
@@ -53,6 +54,7 @@ import {
 } from '../editorOperations'
 import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../ruleEditorOperations'
 import { grandparentId, previousSibling } from '../sceneTree'
+import { cellBeside, freeCell, roomAt, roomCell, type RoomSide } from '../roomLayout'
 
 type SceneEditingInputs = {
   project: ProjectData
@@ -145,14 +147,42 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     if (!selected) return
     commit('Set object enabled state', setEditorObjectEnabled(project, scene.id, selected.id, value).project)
   }
-  // Adds a room (scene) with the id it is given and keeps you in the room you are in. The rooms
-  // popup's "+" passes the id of a side (e.g. 'room-right'), which is how a room remembers where
-  // it is. An id already in use does nothing. One commit, so one Undo takes the room away again.
-  const addScene = (sceneId: string) => {
-    if (project.scenes.some((item) => item.id === sceneId)) return
-    const created = createEditorScene(project, makeScene(sceneId, `Room ${project.scenes.length + 1}`)).project
-    commit('Create scene', selectEditorScene(created, project.activeSceneId).project)
+
+  // Rooms from before the map existed have no stored cell: store the one roomCell infers
+  // (or a free one), so it stays put; part of the caller's undo step.
+  const withStoredCell = (from: ProjectData, room: SceneData): ProjectData =>
+    room.layout ? from : updateEditorScene(from, room.id, { layout: roomCell(from, room) ?? freeCell(from) }).project
+
+  // Adds a room on one side of the current room, on the rooms map. Stays in the current
+  // room, so the new one shows up on the side that was clicked (the map centres on the
+  // room you're in; jumping to the new room would flip it to the opposite side).
+  const addScene = (side: RoomSide) => {
+    // after a delete, scenes.length + 1 can name a scene that still exists, so skip taken ids
+    let number = project.scenes.length + 1
+    while (project.scenes.some((item) => item.id === `scene-${number}`)) number += 1
+    const base = withStoredCell(project, scene)
+    const here = base.scenes.find((item) => item.id === scene.id)!.layout!
+    const cell = cellBeside(here, side)
+    if (roomAt(base, cell)) return
+    const room = { ...makeScene(`scene-${number}`, `Room ${project.scenes.length + 1}`), layout: cell }
+    // createScene makes the new scene active; switch back in the same undo step
+    commit('Create scene', selectEditorScene(createEditorScene(base, room).project, scene.id).project)
   }
+  const renameScene = (sceneId: string, name: string) => {
+    const trimmed = name.trim()
+    const current = project.scenes.find((item) => item.id === sceneId)
+    if (!trimmed || !current || current.name === trimmed) return
+    commit('Rename scene', updateEditorScene(project, sceneId, { name: trimmed }).project)
+  }
+  // Moves a room earlier (-1) or later (+1) in the visit order.
+  const moveSceneInOrder = (sceneId: string, step: -1 | 1) => {
+    const index = project.scenes.findIndex((item) => item.id === sceneId)
+    const target = index + step
+    if (index < 0 || target < 0 || target >= project.scenes.length) return
+    // the first room's origin cell is implicit until stored, so store it before it can move
+    const base = withStoredCell(project, project.scenes[0])
+    commit('Reorder scenes', moveEditorScene(base, sceneId, target).project)
+  
   const removeScene = (sceneId: string) => {
     if (project.scenes.length === 1) return
     commit('Delete scene', removeEditorScene(project, sceneId).project)
@@ -163,6 +193,6 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
-    setSelectedEnabled, addScene, removeScene,
+    setSelectedEnabled, addScene, removeScene, moveSceneInOrder, renameScene,
   }
 }

@@ -58,6 +58,7 @@ export type {
   MissionRule,
   MissionTodo,
   ProjectData,
+  RoomCell,
   SceneData,
   SceneObject,
   TextAssetMeta,
