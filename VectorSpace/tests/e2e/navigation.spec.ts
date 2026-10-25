@@ -29,11 +29,11 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
 
   // the teacher home has no editor link yet, so open it by URL
   await page.goto('/#/editor')
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 
   // a refresh keeps the session, so the editor is still open afterwards
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 
   await page.getByRole('button', { name: 'Home' }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
@@ -66,7 +66,7 @@ test('an admin reaches every page and can switch the role it acts as', async ({ 
 
   // an admin acting as a student still opens the editor
   await page.getByRole('link', { name: 'teacher: Editor' }).click()
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 })
 
 // The two guard checks sign in through storage (signInAs): the walk above already covers the buttons.

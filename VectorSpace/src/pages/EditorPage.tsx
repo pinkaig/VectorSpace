@@ -246,14 +246,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   const saveProblem = savedAt === 'Save failed' || syncStatus === 'conflict'
   const saveLabel = savedAt === 'Save failed' ? 'Not saved' : syncStatus === 'conflict' ? 'Conflict' : syncStatus === 'pending' ? 'Saving…' : 'Saved'
 
-  if (viewMode === 'runtime') {
-    return (
-      <RuntimeView
-        project={project}
-        onExit={() => setViewMode('editor')}
-      />
-    )
-  }
+  // Play keeps the top bar (Play turns into Stop) and swaps the building stage for the visitor's view.
+  const playing = viewMode === 'runtime'
 
   return (
     <main className="app-shell">
@@ -295,8 +289,8 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
         </nav>
 
         <div className="top-actions"> {/**** Top bar buttons *****/}
-          <button className="top-icon-button" onClick={undo} disabled={!timelineRef.current.canUndo} title="Undo" aria-label="Undo"><Undo2 size={18} /></button>
-          <button className="top-icon-button" onClick={redo} disabled={!timelineRef.current.canRedo} title="Redo" aria-label="Redo"><Redo2 size={18} /></button>
+          <button className="top-icon-button" onClick={undo} disabled={playing || !timelineRef.current.canUndo} title="Undo" aria-label="Undo"><Undo2 size={18} /></button>
+          <button className="top-icon-button" onClick={redo} disabled={playing || !timelineRef.current.canRedo} title="Redo" aria-label="Redo"><Redo2 size={18} /></button>
           <span className="topbar-divider" />
           {/* Autosave runs on every change; clicking saves straight away */}
           <button
@@ -306,7 +300,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           >
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
-          <button className="top-play" onClick={() => setViewMode('runtime')}><Play size={13} fill="currentColor" /> Play</button>
+          <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => setViewMode(playing ? 'editor' : 'runtime')}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
           {/* the Share flow (who can visit, teacher review) isn't built yet */}
           <button className="top-publish" disabled title="Publishing is coming soon">Publish</button>
           {/* Less-used actions, out of the way */}
@@ -320,6 +314,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           </div>
         </div>
       </header>
+      {playing ? <RuntimeView project={project} onExit={() => setViewMode('editor')} /> : <>
       <div className="workspace">
         {/* TURNED OFF: left rail (Scene / Assets / Audio / Interactions panels) was removed so the
             editor is viewport + catalogue. Full code is in git commit 68caea5, EditorPage.tsx
@@ -492,6 +487,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             </div>
         </div>
       </section>
+      </>}
     </main>
   )
 }

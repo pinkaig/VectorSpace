@@ -182,6 +182,9 @@ button:disabled {
   color: #b42318;
 }
 .top-play:hover { background: #fdf0ee; }
+/* while playing it reads Stop, filled */
+.top-play.playing { background: #d1462f; border-color: #d1462f; color: var(--White); }
+.top-play.playing:hover { background: #b93a25; }
 .top-publish {
   border: none;
   background: #1c1a3a;
@@ -2023,3 +2026,197 @@ button:disabled {
   border-radius: var(--radius);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
+
+/* ── Play: the visitor's view under the editor's top bar ───────────────── */
+.play-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--White);
+}
+.play-stage .viewport { cursor: grab; }
+.play-stage .viewport:active { cursor: grabbing; }
+.play-banner,
+.play-panel,
+.play-hint,
+.play-tour-nav,
+.play-joystick {
+  position: absolute;
+  z-index: 3;
+}
+.play-banner {
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 6px 6px 18px;
+  border-radius: 14px;
+  background: #1c1a3a;
+  color: var(--White);
+  font-size: 15px;
+  font-weight: 800;
+}
+.play-banner button {
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--White);
+  color: #1c1a3a;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.play-banner button:hover { background: #ecebff; }
+.play-panel {
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+}
+.play-panel strong { font-size: 16px; margin-right: 4px; }
+.play-room-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ecebff;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+.play-panel-divider { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
+.play-panel-label { color: var(--text-2); font-size: 14px; font-weight: 700; }
+.play-mode {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--White);
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.play-mode:hover { border-color: var(--accent); }
+.play-mode.active { background: var(--accent); border-color: var(--accent); color: var(--White); }
+
+/* Hints along the bottom edge */
+.play-hint {
+  bottom: 16px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-main);
+  font-size: 15px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.play-hint b { font-weight: 800; }
+.play-hint.center { left: 50%; transform: translateX(-50%); }
+.play-hint.left { left: 160px; }
+.play-hint.left.no-stick { left: 16px; }
+.play-hint.right { right: 16px; }
+
+/* Walk: joystick bottom-left */
+.play-joystick {
+  left: 16px;
+  bottom: 16px;
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px rgba(28, 26, 58, 0.12);
+  touch-action: none;
+  cursor: grab;
+}
+.play-joystick-knob {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+}
+.viewport-crosshair.ring {
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2.5px solid #1c1a3a;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+}
+.viewport-crosshair.ring::before,
+.viewport-crosshair.ring::after { display: none; }
+
+/* Tour spots: numbered floor markers and the spot stepper */
+.play-spot-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.play-spot-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--White);
+  border-radius: 50%;
+  background: #8aa9e6;
+  color: var(--White);
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(28, 26, 58, 0.2);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.play-spot-marker.active { width: 54px; height: 54px; font-size: 22px; background: #2f5fd0; }
+.play-tour-nav {
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 400px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--White);
+}
+.play-tour-nav button {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.play-tour-prev { background: #f1f0fa; color: var(--text-main); }
+.play-tour-next { background: #2f5fd0; color: var(--White); }
+.play-tour-nav button:disabled { cursor: default; }
+.play-tour-spot { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.play-tour-spot span {
+  color: #2f5fd0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.play-tour-spot strong { font-size: 18px; }

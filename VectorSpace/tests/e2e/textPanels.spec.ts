@@ -28,8 +28,8 @@ test('rule-driven text panels render safely and close on Escape in order', async
   }, demoProject)
 
   await openEditor(page)
-  await page.getByRole('button', { name: 'Run simulation' }).click()
-  await expect(page.getByText('Visitor view')).toBeVisible()
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
 
   // sceneStart rule: the welcome panel opens with parsed markdown-lite
   const welcome = page.getByRole('dialog', { name: 'Welcome' })
@@ -62,8 +62,8 @@ test('rule-driven text panels render safely and close on Escape in order', async
 
   await page.keyboard.press('Escape')
   await expect(welcome).toBeHidden()
-  await expect(page.getByText('Visitor view')).toBeVisible()
+  await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
 })

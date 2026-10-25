@@ -37,7 +37,7 @@ type Probe = { __startup: StartupProbe }
 
 const waitForSettled = async (page: Page) => {
   // The app's own UI is the ready signal (same selector smoke.spec.ts relies on).
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
   const interactiveMs = await page.evaluate(() => performance.now())
   // Settled = a frame was drawn and no decode is in flight, held for SETTLE_MS. There is
   // no launch-time audio decode to wait for, so zero decodes is a valid settled state.
