@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
-import { Box, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, Pencil, Music, Palette, Plus,Settings, X, type LucideIcon } from 'lucide-react'
+import { Box, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, Pencil, Music, Palette, Plus, Settings, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
@@ -87,27 +87,6 @@ export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
   return { currentStep, TUTStep, completeStep, viewStep }
 }
 /**End of Tutorial assisting code for the UI */
-
-
-const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano']
-const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud']
-
-interface RoomPopupProps {
-  project: ProjectData
-  onSelectScene: (sceneId: string) => void
-  onAddRoom: (side: RoomSide) => void
-  onDeleteRoom: (sceneId: string) => void
-  onMoveRoom: (sceneId: string, step: -1 | 1) => void
-  onRenameRoom: (sceneId: string, name: string) => void
-  onEnvironmentChange: (environmentId: string) => void
-}
-
-type RoomPopupTab = 'rooms' | 'style' | 'music'
-
-// Fits the room box; the project file itself allows up to 200 characters.
-const ROOM_NAME_MAX = 40
-
-
 
 
 /** Catalogue assistance code */
@@ -270,7 +249,6 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           onDeleteRoom={removeScene}
           onMoveRoom={moveSceneInOrder}
           onRenameRoom={renameScene}
-          onEnvironmentChange={setEnvironment}
         />
         <nav className="Tutorial-steps"> {/** tutorial buttons */}
         {tutorialSteps.map(({ step: n, label }) => {
@@ -551,37 +529,41 @@ function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, o
 /*
  * The top-left of the editor: the cube (back to the home page), the project button
  * ("Dinosaur museum / Room 1 · Entrance hall") and the "Your rooms" popup it opens:
- *   - a 3x3 grid: the STARTING ROOM (the project's first room) always in the middle, one room
- *     at most on each of its four sides, "+" on the free sides, corners empty. The grid never
- *     moves; the room being edited is the purple one.
- *   - background music and volume for the room being edited
- * HOW A ROOM REMEMBERS ITS SIDE: "+" makes the room with the id of that side (room-right,
- * room-below, room-left, room-above; see ROOM_SIDES), so its place is saved with the project
- * without any new field. Only these five rooms exist: the starting room and one per side.
- * (A room with any other id, left in an old draft, is not shown.)
- * DELETE: any room except the starting room can be deleted (with a "Delete?" check first,
- * since a room can hold a lot of work). Its side shows "+" again.
- * FOR NOW: doors between rooms are not built, and music and volume are ON SCREEN ONLY
- * (they highlight per room, but nothing is saved or played).
+ *   - a 3x3 map centred on the ROOM BEING EDITED (purple, with a pencil to rename it). Each of
+ *     its four sides shows the room already there (green, click to go) or "+" to add one.
+ *   - visit order: the rooms in the order visitors see them, with arrows to move this room
+ *   - delete this room (after a "Delete?" check, since a room can hold a lot of work), as long
+ *     as it is not the only room
+ *   - background music, volume and wall/floor material for the room being edited
+ * HOW A ROOM REMEMBERS ITS SIDE: each scene stores its cell on the rooms map
+ * (SceneData.layout; see editor/roomLayout.ts), so rooms can spread out in any direction and
+ * the map follows the room you are in.
+ * FOR NOW: music, volume and material are ON SCREEN ONLY (they highlight per room, but nothing
+ * is saved or played). The room's environment is picked in the bottom-left "Room" box.
  */
 interface RoomPopupProps {
   project: ProjectData
   // go to (start editing) another room
   onSelectScene: (sceneId: string) => void
-  // add a room with this id, staying in the current one
-  onAddRoom: (sceneId: string) => void
-  // delete a room (never offered for the starting room)
+  // add a room on this side of the room being edited, staying in the current one
+  onAddRoom: (side: RoomSide) => void
   onDeleteRoom: (sceneId: string) => void
+  // move a room earlier (-1) or later (+1) in the visit order
+  onMoveRoom: (sceneId: string, step: -1 | 1) => void
+  onRenameRoom: (sceneId: string, name: string) => void
 }
 
-// The four sides of the starting room: the id a room on that side gets, where it sits in the
-// 3x3 grid, and how the note describes it.
-const ROOM_SIDES = [
-  { id: 'room-above', row: 1, col: 2, words: 'above the starting room' },
-  { id: 'room-left', row: 2, col: 1, words: 'left of the starting room' },
-  { id: 'room-right', row: 2, col: 3, words: 'right of the starting room' },
-  { id: 'room-below', row: 3, col: 2, words: 'below the starting room' },
-] as const
+// Fits the room box; the project file itself allows up to 200 characters.
+const ROOM_NAME_MAX = 40
+
+// Where each side of the room being edited sits in the 3x3 map, and how the note describes it.
+const SIDE_PLACE: Record<RoomSide, { gridRow: number; gridColumn: number; words: string }> = {
+  north: { gridRow: 1, gridColumn: 2, words: 'above' },
+  west: { gridRow: 2, gridColumn: 1, words: 'left of' },
+  east: { gridRow: 2, gridColumn: 3, words: 'right of' },
+  south: { gridRow: 3, gridColumn: 2, words: 'below' },
+}
+const CENTRE_PLACE = { gridRow: 2, gridColumn: 2 }
 
 const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano'] as const
 const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud'] as const
@@ -593,18 +575,14 @@ const DEFAULT_ROOM_MATERIAL: RoomMaterial = { walls: 'Style 1', floor: 'Style 1'
 type RoomSound = { music: (typeof MUSIC_OPTIONS)[number]; volume: (typeof VOLUME_OPTIONS)[number] }
 const DEFAULT_ROOM_SOUND: RoomSound = { music: 'Museum hum', volume: 'Quiet' }
 
-function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom }: RoomPopupProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  // the room waiting on its "Delete?" check (PK's confirm step), or null
-function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom, onEnvironmentChange }: RoomPopupProps){
+function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom }: RoomPopupProps) {
   const [isOpen, setIsOpen] = useState(false)
   // The current room's name while it is being edited; null when not renaming.
   const [nameDraft, setNameDraft] = useState<string | null>(null)
-  const [tab, setTab] = useState<RoomPopupTab>('rooms')
-  // Room waiting on "Delete?" confirmation; a room can hold a lot of work.
+  // the room waiting on its "Delete?" check, or null
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  // the side a room was just added on, so the note under the grid can say where it went
-  const [justAdded, setJustAdded] = useState<string | null>(null)
+  // the side a room was just added on (and the room it was added beside), for the note under the map
+  const [justAdded, setJustAdded] = useState<{ fromId: string; side: RoomSide } | null>(null)
   // ON SCREEN ONLY: music and volume per room, by room id
   const [sounds, setSounds] = useState<Record<string, RoomSound>>({})
   // ON SCREEN ONLY: the wall and floor style per room, by room id
@@ -629,52 +607,46 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
     }
   }, [isOpen])
 
-  // "Room 2 · Fossil lab": numbered in the order the rooms were made
+  // "Room 2 · Fossil lab": numbered in visit order
   const labelOf = (sceneId: string) => {
     const index = project.scenes.findIndex((scene) => scene.id === sceneId)
     return `Room ${index + 1} · ${project.scenes[index].name}`
   }
   const current = project.scenes.find((scene) => scene.id === project.activeSceneId) ?? project.scenes[0]
-  const starting = project.scenes[0]
-  const hasRoom = (sceneId: string) => project.scenes.some((scene) => scene.id === sceneId)
+  const currentIndex = project.scenes.indexOf(current)
+
   // Saving happens only on blur (Enter blurs too), so it runs once; Escape marks the edit
   // cancelled first, because removing the input can still fire a blur. An empty name keeps
   // the old one (onRenameRoom ignores it).
   const nameCancelledRef = useRef(false)
   const startRename = () => {
     nameCancelledRef.current = false
-    setNameDraft(scene.name)
+    setNameDraft(current.name)
   }
   const saveName = () => {
-    if (nameDraft !== null && !nameCancelledRef.current) onRenameRoom(scene.id, nameDraft)
+    if (nameDraft !== null && !nameCancelledRef.current) onRenameRoom(current.id, nameDraft)
     nameCancelledRef.current = true
     setNameDraft(null)
   }
 
-  // Each side of the current room shows the room already there (click to go), or a + to add one.
-  const here = roomCell(project, scene)
-  const sideSlot = (side: RoomSide) => {
-    const neighbour = here ? roomAt(project, cellBeside(here, side)) : undefined
-    if (neighbour) {
-      const index = project.scenes.indexOf(neighbour)
-      return <button key={side} className={`room-slot neighbour ${side}`} onClick={() => onSelectScene(neighbour.id)} title={`Go to ${roomLabel(index)}`}>{roomLabel(index)}</button>
-    }
-    return <button key={side} className={`room-slot add ${side}`} onClick={() => onAddRoom(side)} title={`Add a room to the ${side}`} aria-label={`Add a room to the ${side}`}>+</button>
-  }
+  // the room on one side of the room being edited, if there is one
+  const here = roomCell(project, current)
+  const neighbourOn = (side: RoomSide) => (here ? roomAt(project, cellBeside(here, side)) : undefined)
 
   const sound = sounds[current.id] ?? DEFAULT_ROOM_SOUND
   const setSound = (change: Partial<RoomSound>) => setSounds((all) => ({ ...all, [current.id]: { ...sound, ...change } }))
   const material = materials[current.id] ?? DEFAULT_ROOM_MATERIAL
   const setMaterial = (change: Partial<RoomMaterial>) => setMaterials((all) => ({ ...all, [current.id]: { ...material, ...change } }))
 
-  const addRoom = (sideId: string) => {
-    onAddRoom(sideId)
-    setJustAdded(sideId)
+  const addRoom = (side: RoomSide) => {
+    onAddRoom(side)
+    setJustAdded({ fromId: current.id, side })
   }
   const goTo = (sceneId: string) => {
     if (sceneId !== current.id) onSelectScene(sceneId)
     setJustAdded(null)
     setConfirmDeleteId(null)
+    setNameDraft(null)
   }
   const deleteRoom = (sceneId: string) => {
     onDeleteRoom(sceneId)
@@ -682,62 +654,99 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
     setJustAdded(null)
   }
 
-  // one room in the grid: purple if it is being edited, green to go there
-  const roomButton = (sceneId: string, place: { gridRow: number; gridColumn: number }) => {
-    const isCurrent = sceneId === current.id
+  // one side of the map: the room already there (green, click to go), or a dashed "+"
+  const sideCell = (side: RoomSide) => {
+    const place = { gridRow: SIDE_PLACE[side].gridRow, gridColumn: SIDE_PLACE[side].gridColumn }
+    const neighbour = neighbourOn(side)
+    if (neighbour) {
+      return (
+        <button key={side} type="button" className="rooms-cell rooms-cell-other" style={place} onClick={() => goTo(neighbour.id)} title={`Go to ${labelOf(neighbour.id)}`}>
+          {labelOf(neighbour.id)} →
+        </button>
+      )
+    }
+    const words = `Add a room ${SIDE_PLACE[side].words} this one`
     return (
-      <button
-        key={sceneId}
-        type="button"
-        className={`rooms-cell ${isCurrent ? 'rooms-cell-current' : 'rooms-cell-other'}`}
-        style={place}
-        onClick={() => goTo(sceneId)}
-      >
-        {labelOf(sceneId)}{isCurrent ? '' : ' →'}
+      <button key={side} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(side)} title={words} aria-label={words}>
+        <Plus size={18} />
       </button>
     )
   }
-  const justAddedSide = ROOM_SIDES.find((side) => side.id === justAdded && hasRoom(side.id))
+  const justAddedRoom = justAdded && justAdded.fromId === current.id ? neighbourOn(justAdded.side) : undefined
 
   return (
     <div className="rooms-anchor" ref={anchorRef}>
       <Link to={home} className="rooms-home" title="Back to home"><Box size={20} /></Link>{/* THE CUBE: back to the home page (the editor saves as you go, so nothing is lost) */}
-      <button type="button" className="rooms-trigger" onClick={() => setIsOpen(!isOpen)}>{/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
+      <button type="button" className="rooms-trigger" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}>{/* THE BUTTON: project name, then which room is being edited; opens "Your rooms" */}
         <span className="rooms-trigger-text">
           <strong>{project.name}</strong>
-          <span className="rooms-trigger-room">{labelOf(current.id)} <ChevronDown size={14} /></span>
-          <small>{roomLabel(sceneIndex)}{project.scenes.length > 1 ? ` (${project.scenes.length} rooms)` : ''} <ChevronDown size={14} /></small>
+          <span className="rooms-trigger-room">
+            {labelOf(current.id)}{project.scenes.length > 1 ? ` (${project.scenes.length} rooms)` : ''} <ChevronDown size={14} />
+          </span>
         </span>
       </button>
 
       {isOpen && (
-        <div className="rooms-popup">
+        <div className="rooms-popup" role="dialog" aria-label="Your rooms">
           <div className="rooms-head">{/* TITLE and close */}
             <div>
               <h2 className="rooms-title">Your rooms</h2>
               <p className="rooms-sub">Tap a + to add a room on that side. A door appears on that wall.</p>
             </div>
-            <button type="button" className="rooms-close" onClick={() => setIsOpen(false)}><X size={16} /></button>
+            <button type="button" className="rooms-close" onClick={() => setIsOpen(false)} title="Close"><X size={16} /></button>
           </div>
-          <div className="rooms-grid">{/* THE GRID: starting room in the middle, a room or "+" on each side; never moves */}
-            {roomButton(starting.id, { gridRow: 2, gridColumn: 2 })}
-            {ROOM_SIDES.map((side) => {
-              const place = { gridRow: side.row, gridColumn: side.col }
-              return hasRoom(side.id) ? roomButton(side.id, place) : (
-                <button key={side.id} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(side.id)}>
-                  <Plus size={18} />
-                </button>
-              )
-            })}
+
+          <div className="rooms-grid">{/* THE MAP: the room being edited in the middle, a room or "+" on each side */}
+            {ROOM_SIDES.map((side) => sideCell(side))}
+            {nameDraft === null ? (
+              <div className="rooms-cell rooms-cell-current rooms-cell-renamable" style={CENTRE_PLACE}>
+                <span>{labelOf(current.id)}</span>
+                <button type="button" className="room-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room"><Pencil size={13} /></button>
+              </div>
+            ) : (
+              <form className="rooms-cell rooms-cell-current rooms-cell-editing" style={CENTRE_PLACE} onSubmit={(event) => { event.preventDefault(); (document.activeElement as HTMLElement | null)?.blur() }}>
+                <span className="room-rename-prefix">Room {currentIndex + 1} ·</span>
+                <input
+                  autoFocus
+                  aria-label="Room name"
+                  value={nameDraft}
+                  maxLength={ROOM_NAME_MAX}
+                  onChange={(event) => setNameDraft(event.target.value)}
+                  onFocus={(event) => event.target.select()}
+                  onBlur={saveName}
+                  onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); nameCancelledRef.current = true; setNameDraft(null) } }}
+                />
+              </form>
+            )}
           </div>
+
           {/* NOTE: where the room just added went */}
-          {justAddedSide && (
+          {justAdded && justAddedRoom && (
             <p className="rooms-note">
-              {labelOf(justAddedSide.id)} is {justAddedSide.words}. Click it to start building there.
+              {labelOf(justAddedRoom.id)} is {SIDE_PLACE[justAdded.side].words} {current.name}. Click it to start building there.
             </p>
           )}
-          {/* DELETE the room being edited (not the starting room), after a "Delete?" check */}
-          {current.id !== starting.id && (confirmDeleteId === current.id ? (
+
+          {/* VISIT ORDER: the order visitors see the rooms; the arrows move the room being edited */}
+          {project.scenes.length > 1 && (
+            <div className="room-order">
+              <span className="room-order-label">Visit order</span>
+              <div className="room-list">
+                {project.scenes.map((item, index) => (
+                  <span key={item.id} className={index === currentIndex ? 'room-chip is-selected' : 'room-chip'}>
+                    <button type="button" className="room-chip-name" onClick={() => goTo(item.id)} title={`Go to ${labelOf(item.id)}`}>
+                      <span className="room-chip-number">{index + 1}</span>{item.name}
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <button type="button" className="room-order-move" disabled={currentIndex === 0} onClick={() => onMoveRoom(current.id, -1)} title="Visit this room earlier" aria-label="Visit this room earlier"><ChevronLeft size={16} /></button>
+              <button type="button" className="room-order-move" disabled={currentIndex === project.scenes.length - 1} onClick={() => onMoveRoom(current.id, 1)} title="Visit this room later" aria-label="Visit this room later"><ChevronRight size={16} /></button>
+            </div>
+          )}
+
+          {/* DELETE the room being edited (never the only room), after a "Delete?" check */}
+          {project.scenes.length > 1 && (confirmDeleteId === current.id ? (
             <div className="rooms-delete confirm">
               <span>
                 Delete {labelOf(current.id)}
@@ -753,6 +762,7 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
               </button>
             </div>
           ))}
+
           <div className="rooms-music">{/* BACKGROUND MUSIC for the room being edited (on screen only for now) */}
             <div className="rooms-music-head">
               <Music size={18} />
@@ -772,91 +782,7 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
             <RoomChoiceRow label="Floor" options={STYLE_OPTIONS} value={material.floor} onPick={(floor) => setMaterial({ floor })} />
           </div>
 
-          {tab === 'rooms' && (
-            <>
-              <div className="room-grid">
-                {ROOM_SIDES.map((side) => sideSlot(side))}
-                {nameDraft === null ? (
-                  <div className="room-slot current">
-                    <span>{roomLabel(sceneIndex)}</span>
-                    <button className="room-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room"><Pencil size={13} /></button>
-                  </div>
-                ) : (
-                  <form className="room-slot current editing" onSubmit={(event) => { event.preventDefault(); (document.activeElement as HTMLElement | null)?.blur() }}>
-                    <span className="room-rename-prefix">Room {sceneIndex + 1} ·</span>
-                    <input
-                      autoFocus
-                      aria-label="Room name"
-                      value={nameDraft}
-                      maxLength={ROOM_NAME_MAX}
-                      onChange={(event) => setNameDraft(event.target.value)}
-                      onFocus={(event) => event.target.select()}
-                      onBlur={saveName}
-                      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); nameCancelledRef.current = true; setNameDraft(null) } }}
-                    />
-                  </form>
-                )}
-              </div>
-              {project.scenes.length > 1 && (
-                <div className="room-order">
-                  <span className="room-order-label">Visit order</span>
-                  <div className="room-list">
-                  {project.scenes.map((item, index) => {
-                    const chipClass = index === sceneIndex ? 'room-chip is-selected' : 'room-chip'
-                    if (confirmDeleteId === item.id) {
-                      const count = item.objects.length
-                      return (
-                        <span key={item.id} className="room-chip confirm">
-                          <span>Delete {item.name}{count > 0 ? ` and its ${count} thing${count === 1 ? '' : 's'}` : ''}?</span>
-                          <button className="room-chip-yes" onClick={() => { onDeleteRoom(item.id); setConfirmDeleteId(null) }}>Delete</button>
-                          <button className="room-chip-no" onClick={() => setConfirmDeleteId(null)}>Keep</button>
-                        </span>
-                      )
-                    }
-                    return (
-                      <span key={item.id} className={chipClass}>
-                        <button className="room-chip-name" onClick={() => onSelectScene(item.id)} title={`Go to ${roomLabel(index)}`}>
-                          <span className="room-chip-number">{index + 1}</span>{item.name}
-                        </button>
-                        <button className="room-chip-delete" onClick={() => setConfirmDeleteId(item.id)} title={`Delete ${roomLabel(index)}`} aria-label={`Delete ${roomLabel(index)}`}><X size={13} /></button>
-                      </span>
-                    )
-                  })}
-                  </div>
-                  {/* move the room you're in earlier or later in the order visitors see the rooms */}
-                  <button className="room-order-move" disabled={sceneIndex === 0} onClick={() => onMoveRoom(scene.id, -1)} title="Visit this room earlier" aria-label="Visit this room earlier"><ChevronLeft size={16} /></button>
-                  <button className="room-order-move" disabled={sceneIndex === project.scenes.length - 1} onClick={() => onMoveRoom(scene.id, 1)} title="Visit this room later" aria-label="Visit this room later"><ChevronRight size={16} /></button>
-                </div>
-              )}
-              <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
-            </>
-          )}
-
-          {tab === 'style' && (
-            <label className="room-field">
-              <span>Room style</span>
-              <select value={scene.environmentId} onChange={(event) => onEnvironmentChange(event.target.value)}>
-                {environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}
-              </select>
-            </label>
-          )}
-
-          {tab === 'music' && (
-            <>
-              <label className="room-field">
-                <span>Background music</span>
-                <select value={music} onChange={(event) => setMusic(event.target.value)}>
-                  {MUSIC_OPTIONS.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label className="room-field">
-                <span>Volume</span>
-                <select value={volume} onChange={(event) => setVolume(event.target.value)}>
-                  {VOLUME_OPTIONS.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-            </>
-          )}
+          <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
         </div>
       )}
     </div>

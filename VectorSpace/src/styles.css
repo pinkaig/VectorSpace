@@ -497,6 +497,15 @@ button:disabled {
   background: var(--purple-100);
 }
 
+/* the room being edited can be renamed in place: a pencil in its corner, then an input */
+.rooms-cell-renamable { position: relative; padding-right: 28px; }
+.rooms-cell-editing { display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.rooms-cell-editing input {
+  width: 100%; min-width: 0; height: 24px; padding: 0 6px; box-sizing: border-box;
+  border: none; border-radius: 6px; background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 700; text-align: center;
+}
+
 .rooms-note {
   margin: 0;
   padding: 10px 12px;

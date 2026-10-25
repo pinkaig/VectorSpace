@@ -147,7 +147,6 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     if (!selected) return
     commit('Set object enabled state', setEditorObjectEnabled(project, scene.id, selected.id, value).project)
   }
-
   // Rooms from before the map existed have no stored cell: store the one roomCell infers
   // (or a free one), so it stays put; part of the caller's undo step.
   const withStoredCell = (from: ProjectData, room: SceneData): ProjectData =>
@@ -182,7 +181,7 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     // the first room's origin cell is implicit until stored, so store it before it can move
     const base = withStoredCell(project, project.scenes[0])
     commit('Reorder scenes', moveEditorScene(base, sceneId, target).project)
-  
+  }
   const removeScene = (sceneId: string) => {
     if (project.scenes.length === 1) return
     commit('Delete scene', removeEditorScene(project, sceneId).project)
