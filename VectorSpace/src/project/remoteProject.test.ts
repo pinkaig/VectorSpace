@@ -24,7 +24,7 @@ describe('loadRemoteProject', () => {
     expect(isRemoteProject('p-new')).toBe(true)
   })
 
-  it('reads the current version and uses its scene and revision', async () => {
+  it('reads the current version and uses its scene and revision, under the project row\'s name', async () => {
     const saved = { ...defaultProject(), name: 'Saved scene' }
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(reply(200, { id: 'p-saved', name: 'Row name', current_version_id: 'v3' }))
@@ -33,7 +33,8 @@ describe('loadRemoteProject', () => {
     const { project, revision } = await loadRemoteProject(token, 'p-saved', API)
     expect(fetchMock.mock.calls[1][0]).toBe('http://api/projects/p-saved/versions/v3')
     expect(revision).toBe(3)
-    expect(project.name).toBe('Saved scene')
+    // the home page lists the row's name, so the editor shows the same one
+    expect(project.name).toBe('Row name')
     expect(project.id).toBe('p-saved')
   })
 

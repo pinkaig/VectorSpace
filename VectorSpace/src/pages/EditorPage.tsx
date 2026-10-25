@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { Box, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, Pencil, Settings, X, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
@@ -242,6 +242,10 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   const { currentStep, TUTStep, viewStep } = useSimpleSteps()
   const [category,setCategory]=useState<CatalogueIDTypes>('exhibits')
 
+  // The top bar's save badge: "Saved" unless a save is in flight or something went wrong.
+  const saveProblem = savedAt === 'Save failed' || syncStatus === 'conflict'
+  const saveLabel = savedAt === 'Save failed' ? 'Not saved' : syncStatus === 'conflict' ? 'Conflict' : syncStatus === 'pending' ? 'Saving…' : 'Saved'
+
   if (viewMode === 'runtime') {
     return (
       <RuntimeView
@@ -266,9 +270,10 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           onRenameRoom={renameScene}
           onEnvironmentChange={setEnvironment}
         />
-        <div className="top-actions"> {/**** Top bar buttons *****/}
-
-        <nav className="Tutorial-steps"> {/** tutorial buttons */}
+        <span className="topbar-divider" />
+        {/* Tutorial steps: the one being viewed shows its label, the rest only their number
+            (the label stays in the tooltip) */}
+        <nav className="Tutorial-steps">
         {tutorialSteps.map(({ step: n, label }) => {
           const locked = n > currentStep
           const viewing = n === TUTStep
@@ -280,6 +285,7 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
               className={`button button--${colour}`}
               disabled={locked}
               title={title}
+              aria-label={title}
               onClick={() => viewStep(n)}
             >
             <span className="button-num">{n}</span>
@@ -287,18 +293,31 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
             </button>
                   )})}
         </nav>
-          <button className="button subtle" onClick={() => navigate('/teacher')}>Home</button>
-          <button className="button subtle" onClick={undo} disabled={!timelineRef.current.canUndo}>Undo</button>
-          <button className="button subtle" onClick={redo} disabled={!timelineRef.current.canRedo}>Redo</button>
+
+        <div className="top-actions"> {/**** Top bar buttons *****/}
+          <button className="top-icon-button" onClick={undo} disabled={!timelineRef.current.canUndo} title="Undo" aria-label="Undo"><Undo2 size={18} /></button>
+          <button className="top-icon-button" onClick={redo} disabled={!timelineRef.current.canRedo} title="Redo" aria-label="Redo"><Redo2 size={18} /></button>
+          <span className="topbar-divider" />
+          {/* Autosave runs on every change; clicking saves straight away */}
+          <button
+            className={saveProblem ? 'top-saved problem' : 'top-saved'}
+            onClick={save}
+            title={`${savedAt} · ${syncStatusLabel[syncStatus]} (click to save now)`}
+          >
+            {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
+          </button>
+          <button className="top-play" onClick={() => setViewMode('runtime')}><Play size={13} fill="currentColor" /> Play</button>
+          {/* the Share flow (who can visit, teacher review) isn't built yet */}
+          <button className="top-publish" disabled title="Publishing is coming soon">Publish</button>
+          {/* Less-used actions, out of the way */}
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
-            <button className="button ghost top-more-toggle" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen}>More ▾</button>
+            <button className="top-icon-button" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen} title="More" aria-label="More"><MoreHorizontal size={18} /></button>
             <div className="top-more-items" onClick={() => setMoreMenuOpen(false)}>
-          <button className="button ghost" onClick={loadDraft}>Load draft</button>
-          <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
+              <button className="button ghost" onClick={() => navigate('/teacher')}>Home</button>
+              <button className="button ghost" onClick={loadDraft}>Load draft</button>
+              <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
             </div>
           </div>
-          <button className="button primary" onClick={save}>Save project</button>
-          <button className="button primary" onClick={() => setViewMode('runtime')}>Run simulation</button>
         </div>
       </header>
       <div className="workspace">

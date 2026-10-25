@@ -57,14 +57,19 @@ button:disabled {
 }
 .topbar {
   min-height: 76px;
-  padding: 0 28px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  border: 1px var(--border);
-  border-radius: var(--radius);
+  gap: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
   background: var(--White);
+}
+.topbar-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 36px;
+  background: var(--border);
 }
 .brand {
   display: flex;
@@ -124,13 +129,66 @@ button:disabled {
   font-size: 11px;
   padding-left: 4px;
 }
+/* Right side: undo/redo | save state, Play, Publish, more */
 .top-actions {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
+.top-icon-button {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--White);
+  color: var(--text-main);
+  cursor: pointer;
+}
+.top-icon-button:hover:not(:disabled) { border-color: var(--accent); }
+.top-icon-button:disabled { opacity: 0.55; cursor: default; }
+.top-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border: none;
+  background: none;
+  color: #2f7d4f;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.top-saved.problem { color: #b45309; }
+.top-play,
+.top-publish {
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.top-play {
+  border: 1.5px solid #c0392b;
+  background: var(--White);
+  color: #b42318;
+}
+.top-play:hover { background: #fdf0ee; }
+.top-publish {
+  border: none;
+  background: #1c1a3a;
+  color: var(--White);
+}
+/* keeps its full look while the Share flow isn't built (the global button:disabled fades it) */
+.top-publish:disabled { opacity: 1; cursor: default; }
 .button {
   border: 1px solid var(--border);
   padding: 9px 13px;
@@ -163,14 +221,24 @@ button:disabled {
 }
 .room-popup-anchor { flex-shrink: 0; }
 
-/* Secondary actions: inline on wide screens, folded into "More" on narrow ones */
+/* Less-used actions (Home, Load draft, audio demo) behind the ⋯ button */
 .top-more { position: relative; }
-.top-more-toggle { display: none; }
 .top-more-items {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--White);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
+.top-more.open .top-more-items { display: flex; }
 .button.subtle {
   color: var(--text-2);
   padding-inline: 8px;
@@ -183,37 +251,51 @@ button:disabled {
   gap: 6px;
 }
 
+/* Every step is a 44px numbered circle; the one being viewed grows into a pill with its label */
 .Tutorial-steps .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 14px 0 6px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
   border-radius: 999px; /*since the button isn't a square, we can't use % or it becomes a elipse*/
-  font-size: 14px;
+  color: var(--text-2);
+  font-size: 15px;
   font-weight: 800;
+  cursor: pointer;
 }
+.Tutorial-steps .button:disabled { cursor: default; }
+.Tutorial-steps .button-label { display: none; }
 
 .Tutorial-steps .button-num{
-  background: var(--White);
-  color: var(--accent);
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .Tutorial-steps .button--viewing{
+  padding: 0 20px 0 8px;
   background: var(--accent);
+  border-color: var(--accent);
   color: var(--White);
 }
+.Tutorial-steps .button--viewing .button-label { display: inline; }
+.Tutorial-steps .button--viewing .button-num{
+  background: var(--White);
+  color: var(--accent);
+}
+/* a finished step */
 .Tutorial-steps .button--green{
-  background: green;
-  color: var(--White);
+  border-color: #3aa676;
+  background: #e3f4ec;
+  color: #1f5f43;
 }
 /*Styles concerning the 4 tutorial buttons to indicate progress*/
 
@@ -241,7 +323,8 @@ button:disabled {
 }
 
 .room-trigger {
-  display: flex; align-items: center; gap: 12px;
+  /* icon beside the two text lines (the older .room-trigger rule above stacks them) */
+  display: flex; flex-direction: row; align-items: center; gap: 12px; max-width: 320px;
   padding: 6px 10px 6px 6px; border: none; border-radius: 14px;
   background: transparent; cursor: pointer; font: inherit; text-align: left;
 }
@@ -1423,28 +1506,9 @@ button:disabled {
     gap: 16px;
   }
   .top-actions { gap: 6px; }
-  /* Steps: numbers only, except the step being viewed (full label stays in the tooltip) */
-  .Tutorial-steps .button { padding: 0 10px; } /* 24px number + 20px = a 44px circle */
-  .Tutorial-steps .button-label { display: none; }
-  .Tutorial-steps .button--viewing { padding-right: 14px; }
-  .Tutorial-steps .button--viewing .button-label { display: inline; }
-  .top-more-toggle { display: inline-block; }
-  .top-more-items {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    z-index: 50;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    padding: 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--White);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
-  .top-more.open .top-more-items { display: flex; }
+  .top-icon-button { width: 42px; height: 42px; }
+  .top-play,
+  .top-publish { height: 42px; padding: 0 16px; font-size: 15px; }
 
   .floating-controls { gap: 6px; }
   .float-group {
