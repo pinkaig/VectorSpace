@@ -615,9 +615,8 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
   const current = project.scenes.find((scene) => scene.id === project.activeSceneId) ?? project.scenes[0]
   const currentIndex = project.scenes.indexOf(current)
 
-  // Saving happens only on blur (Enter blurs too), so it runs once; Escape marks the edit
-  // cancelled first, because removing the input can still fire a blur. An empty name keeps
-  // the old one (onRenameRoom ignores it).
+  // Saving happens only on blur (Enter blurs too), so it runs once; Escape marks the edit cancelled first, because removing the input can still fire a blur.
+  //  An empty name keeps the old one (onRenameRoom ignores it).
   const nameCancelledRef = useRef(false)
   const startRename = () => {
     nameCancelledRef.current = false
@@ -685,7 +684,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
           </span>
         </span>
       </button>
-
       {isOpen && (
         <div className="rooms-popup" role="dialog" aria-label="Your rooms">
           <div className="rooms-head">{/* TITLE and close */}
@@ -695,7 +693,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
             </div>
             <button type="button" className="rooms-close" onClick={() => setIsOpen(false)} title="Close"><X size={16} /></button>
           </div>
-
           <div className="rooms-grid">{/* THE MAP: the room being edited in the middle, a room or "+" on each side */}
             {ROOM_SIDES.map((side) => sideCell(side))}
             {nameDraft === null ? (
@@ -719,14 +716,12 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
               </form>
             )}
           </div>
-
           {/* NOTE: where the room just added went */}
           {justAdded && justAddedRoom && (
             <p className="rooms-note">
               {labelOf(justAddedRoom.id)} is {SIDE_PLACE[justAdded.side].words} {current.name}. Click it to start building there.
             </p>
           )}
-
           {/* VISIT ORDER: the order visitors see the rooms; the arrows move the room being edited */}
           {project.scenes.length > 1 && (
             <div className="room-order">
@@ -744,7 +739,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
               <button type="button" className="room-order-move" disabled={currentIndex === project.scenes.length - 1} onClick={() => onMoveRoom(current.id, 1)} title="Visit this room later" aria-label="Visit this room later"><ChevronRight size={16} /></button>
             </div>
           )}
-
           {/* DELETE the room being edited (never the only room), after a "Delete?" check */}
           {project.scenes.length > 1 && (confirmDeleteId === current.id ? (
             <div className="rooms-delete confirm">
@@ -762,7 +756,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
               </button>
             </div>
           ))}
-
           <div className="rooms-music">{/* BACKGROUND MUSIC for the room being edited (on screen only for now) */}
             <div className="rooms-music-head">
               <Music size={18} />
@@ -781,7 +774,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
             <RoomChoiceRow label="Walls" options={STYLE_OPTIONS} value={material.walls} onPick={(walls) => setMaterial({ walls })} />
             <RoomChoiceRow label="Floor" options={STYLE_OPTIONS} value={material.floor} onPick={(floor) => setMaterial({ floor })} />
           </div>
-
           <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
         </div>
       )}

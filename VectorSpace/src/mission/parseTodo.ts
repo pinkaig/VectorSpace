@@ -210,8 +210,7 @@ const KIND_TEXT: Record<GoalKind, [string, string, string]> = {
 
 /**
  * Short words for what the app will count, shown in the chip beside the to-do so the teacher
- * can see it understood them: "5 exhibits placed", "a fact card on every exhibit",
- * "no sounds", "at most 5 exhibits".
+ * can see it understood them: "5 exhibits placed", "a fact card on every exhibit", "no sounds", "at most 5 exhibits".
  */
 export function describeGoal(goal: MissionGoal): string {
   const [one, many, done] = KIND_TEXT[goal.kind]
