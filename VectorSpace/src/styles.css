@@ -336,6 +336,25 @@ button:disabled {
   width: 44px; height: 44px; display: grid; place-items: center;
   border-radius: 12px; background: #5b4bd6; color: #fff;
 }
+
+/* the logo: its own button that goes back to your home page (EditorPage's goHome) */
+.topbar-home {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-right: -12px;      /* keeps the logo close to the project name (the top bar's gap is 18px) */
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.topbar-home:hover {
+  background: var(--purple-600);
+}
+
 .room-trigger-copy { display: flex; flex-direction: column; gap: 2px; }
 .room-trigger-copy strong { color: var(--text-main); font-size: 16px; }
 .room-trigger-copy small {

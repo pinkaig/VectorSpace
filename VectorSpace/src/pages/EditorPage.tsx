@@ -141,6 +141,7 @@ const VIEW_BAR_CLEARANCE = 58
 // the page opens the draft saved in this browser
 export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}) {
   const navigate = useNavigate()
+  const goHome = () => navigate('/student')
   // Read the saved draft once per mount, not once at import. This page unmounts when the
   // visitor leaves /editor, and coming back must start from the latest autosave; a
   // module-level read would hand back the first visit's data and autosave would then
@@ -252,6 +253,9 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
   return (
     <main className="app-shell">
       <header className="topbar">
+        <button className="topbar-home" onClick={goHome} title="Back to home" aria-label="Home">
+          <Box size={20} strokeWidth={1.75} />
+        </button>
         <SceneRoomPopUp
           project={project}
           onSelectScene={(id) => {
@@ -307,7 +311,6 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
             <button className="top-icon-button" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen} title="More" aria-label="More"><MoreHorizontal size={18} /></button>
             <div className="top-more-items" onClick={() => setMoreMenuOpen(false)}>
-              <button className="button ghost" onClick={() => navigate('/teacher')}>Home</button>
               <button className="button ghost" onClick={loadDraft}>Load draft</button>
               <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
             </div>
@@ -588,7 +591,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
   return(
     <div className="room-popup-anchor" ref={anchorRef}>
       <button className="room-trigger" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}>
-        <span className="room-trigger-icon"><Box size={20} strokeWidth={1.75} /></span>
         <span className="room-trigger-copy">
           <strong>{project.name}</strong>
           <small>{roomLabel(sceneIndex)}{project.scenes.length > 1 ? ` (${project.scenes.length} rooms)` : ''} <ChevronDown size={14} /></small>
