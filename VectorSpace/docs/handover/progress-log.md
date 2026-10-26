@@ -98,3 +98,46 @@ One entry per step group, newest last. The plan these follow is in the three han
 **Needs you**
 - The navigation e2e failure belongs to whoever owns the editor top bar. It is outside my scope.
 - Plain pop-ups also lost "any press closes". I took the suggested answer of one behaviour everywhere. Say if plain pop-ups should keep it.
+
+---
+
+## 2026-10-26 · B2 + B3: media library entry and backend routes
+
+**Changed**
+- `apps/api/app/models.py`: new `MediaLink` model, the `media_links` table, for external links with an approval state.
+- `apps/api/alembic/versions/0004_media_links.py` (new): creates that table.
+- `apps/api/app/media_policy.py` (new): the backend's upload allowlist and `parse_media_link`, the server-side YouTube link parser.
+- `apps/api/app/storage.py`: adds `head_object` (size and type of an uploaded file) and `delete_object`.
+- `apps/api/app/routers/media.py`: the four routes are implemented, plus `POST /{id}/confirm`, `POST /links` and `PATCH /links/{id}`.
+- `apps/api/tests/test_media.py`, `test_media_policy.py` (new): 39 tests.
+
+**Decision**
+- **Separate links table:** links live in a sibling `media_links` table, as the handover suggests. `media_assets` and its upload path are unchanged.
+- **Who does what:** these are the handover's suggestions, plus what the code shows.
+  - Teachers and admins who can change a project upload files and add links. Students cannot, as B3 says.
+  - Any teacher or admin who can see the project may approve or send back a link.
+  - Approval is per project.
+  - The backend already has an `admin` role, which answers open question 4.
+- **New links start pending, even a teacher's own.** The same teacher may approve it straight away. Rejected alternative: auto-approving a teacher's own link. That would skip the approval state that decision 5 asks for.
+- **Students see only playable entries:** uploaded files and approved links. Pending, failed and sent-back entries return 404 for them.
+- **Upload confirmation:** a presigned PUT, a time-limited upload link straight to storage, cannot limit the file size. So `confirm` reads the stored object's real size and type. On any mismatch it marks the row `failed` and deletes the object.
+- **Link storage:** the stored `url` is rebuilt from the YouTube id. The pasted text is never stored.
+- **Kinds:** only `image` and `video` are uploaded through this API. Audio has its own library (out of scope) and text is inline.
+
+**Method**
+1. The browser asks `POST /projects/{id}/media` with kind, content type, size and file name.
+2. The server checks them against `MEDIA_KIND_SPECS`, creates a `pending` row, and returns a presigned PUT URL.
+3. The browser PUTs the file.
+4. `POST …/confirm` checks storage and flips the row to `uploaded`.
+5. `GET …/{id}` then returns a download URL that lasts 900 seconds.
+
+Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `provider: youtube`, `provider_id: dQw4w9WgXcQ`, `url: https://www.youtube.com/watch?v=dQw4w9WgXcQ`, `approval: pending`.
+
+**Check**
+- `python -m pytest apps/api/tests`: 102 passed (63 before, plus 39 new). These include the allowlist parity test, which reads `packages/assets/src/mediaKinds.ts` and fails if the two lists drift, and the hostile-link list.
+- `alembic upgrade 0003:0004 --sql` renders the expected `CREATE TABLE`. The migration was not run against a real Postgres database. There is none here.
+- The Python test packages are not in the repo's setup. I installed `requirements.txt` into a separate environment outside the repo to run them.
+
+**Needs you**
+- Please confirm the table shape and the permissions above with the backend owner.
+- Storage is faked in the tests. Nothing has been checked against real MinIO, including B10's range requests.
