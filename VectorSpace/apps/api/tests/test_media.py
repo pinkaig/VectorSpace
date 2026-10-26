@@ -144,3 +144,35 @@ def test_delete_removes_the_row_and_the_stored_file(client, project, fake_storag
     assert client.delete(media_url(project, f"/{entry['id']}"), headers=as_user("t1")).status_code == 204
     assert fake_storage == {}
     assert client.get(media_url(project, f"/{entry['id']}"), headers=as_user("t1")).status_code == 404
+
+
+def test_a_students_copy_plays_the_templates_media(client, project, fake_storage, school) -> None:
+    """The copy keeps the card's media ids; entries stay with the template and are shared through it."""
+    image = upload(client, project, fake_storage)
+    approved = client.post(media_url(project, "/links"), json={"url": "https://youtu.be/dQw4w9WgXcQ"}, headers=as_user("t1")).json()
+    client.patch(media_url(project, f"/links/{approved['id']}"), json={"approval": "approved"}, headers=as_user("t1"))
+    pending = client.post(media_url(project, "/links"), json={"url": "https://youtu.be/M7lc1UVf-VE"}, headers=as_user("t1")).json()
+
+    sent = client.post(f"/projects/{project['id']}/assign", json={"student_id": str(school["s1"].id)}, headers=as_user("t1"))
+    assert sent.status_code == 201, sent.text
+    copy = sent.json()
+
+    opened = client.get(media_url(copy, f"/{image['id']}"), headers=as_user("s1"))
+    assert opened.status_code == 200 and opened.json()["download_url"]
+    assert client.get(media_url(copy, f"/{approved['id']}"), headers=as_user("s1")).status_code == 200
+    assert client.get(media_url(copy, f"/{pending['id']}"), headers=as_user("s1")).status_code == 404
+    assert {entry["id"] for entry in client.get(media_url(copy), headers=as_user("s1")).json()} == {image["id"], approved["id"]}
+
+    # revoking on the template reaches the copy at once
+    client.patch(media_url(project, f"/links/{approved['id']}"), json={"approval": "rejected"}, headers=as_user("t1"))
+    assert client.get(media_url(copy, f"/{approved['id']}"), headers=as_user("s1")).status_code == 404
+
+    # the copy cannot delete or confirm what the template owns
+    assert client.delete(media_url(copy, f"/{image['id']}"), headers=as_user("t1")).status_code in (403, 404)
+
+
+def test_another_projects_media_is_not_reachable(client, project, fake_storage, school) -> None:
+    image = upload(client, project, fake_storage)
+    other = client.post("/projects", json={"name": "Unrelated", "kind": "template"}, headers=as_user("t2")).json()
+    client.patch(f"/projects/{other['id']}", json={"status": "published"}, headers=as_user("t2"))
+    assert client.get(media_url(other, f"/{image['id']}"), headers=as_user("t2")).status_code == 404

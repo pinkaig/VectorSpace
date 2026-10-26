@@ -320,3 +320,40 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 **Needs you**
 - **Mounting the panel:** it must be mounted by a teacher-facing page with the project id, the session's `getToken`, and `canEdit`/`canReview` from the user's role. The Teacher Review page or the project editor page could host it. Both are outside my scope. Its `onChange` gives the entries, and `playableChoices(entries)` is exactly what the card editor's `mediaChoices` prop needs.
 - **Student proposals:** whether students may propose links (handover question 1) is still open. Today only teachers and admins can add links, as B3 says.
+
+---
+
+## 2026-10-26 · B9 + B10: sync and scrubbing
+
+**Changed**
+- `apps/api/app/routers/media.py`:
+  - A project now reads and lists its template's media entries as well as its own.
+  - Confirm and delete act only on the project's own entries.
+  - Review stays on the owning project, as before.
+- `apps/api/tests/test_media.py`: 2 new tests. A student's copy plays its template's media, and revoking reaches the copy. Another project's media is not reachable.
+
+**Decision**
+- **B9, how media travels with a save.** A project save carries only ids: the card's `media.assetId`, inside the project JSON. The library entries live as database rows and are never copied.
+  - Checked: the editor's save sends the whole project as JSON (`src/project/remoteProject.ts`, `POST /projects/{id}/versions` with `data: project`). The server stores it as given (`data: dict[str, Any]` in `publish.py`). So nothing drops the new `card`, `media`, `fields` or `marker` fields. The serializer accepts them on load (A1 and A4).
+  - **Template to student copy:** the copy keeps the template's content, and therefore its media ids, and records `template_id`. The media routes now treat the project and its template as one family. This follows the handover's suggestion. Rejected alternative: copying the entries for every student. It multiplies storage and loses the "revoke once, every copy responds" property.
+  - **Gap:** a teacher's own non-template project that is sent to a student keeps `template_id` from its own template, if it has one. Media uploaded to that non-template project is therefore not reachable from the copy. Copying from templates is the expected path. Say if non-template sending matters.
+- **B10, scrubbing.** Uploaded videos use the browser's own `<video controls preload="metadata">`, which seeks with HTTP range requests by itself. No custom seek bar was built. The handover says to build one only if the native one is not accessible enough. Embeds use YouTube's player, which scrubs and buffers itself.
+
+**Method**
+- Teacher t1 uploads `stone.png` to a template and approves a YouTube link, then sends the template to student s1. s1 opens their copy, and the card asks `GET /projects/{copy}/media/{image id}`. The route finds the entry in the copy's template and returns a download URL.
+- When t1 sets the link to `rejected`, s1's copy gets 404 for it, and the card shows "Video unavailable".
+
+**Check**
+- `pytest apps/api/tests`: 107 pass.
+- B10 **not verified**. There is no Docker or MinIO on this machine. On the real deployment, run these against an uploaded MP4:
+  ```
+  # 1. the download URL the API returns for an uploaded video
+  curl -s -H "Authorization: Bearer <token>" https://<api>/projects/<id>/media/<media id> | jq -r .download_url
+  # 2. ask for the first 100 bytes through that URL
+  curl -s -D - -o /dev/null -H "Range: bytes=0-99" "<download_url>"
+  ```
+  Expect `HTTP/1.1 206 Partial Content`, `Accept-Ranges: bytes` and `Content-Range: bytes 0-99/<size>`. A `200` with the full body means seeking will not work. The signed URL signs only the host, so a `Range` header does not break the signature.
+
+**Needs you**
+- Run the B10 check on the deployment.
+- **Storage CORS:** the browser PUTs uploads straight to MinIO from the app's address, so MinIO must allow that origin. MinIO allows all origins by default unless `MINIO_API_CORS_ALLOW_ORIGIN` narrows it. This has not been tested end to end.

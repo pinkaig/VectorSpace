@@ -9,6 +9,11 @@ Who may do what (app.access decides who can see a project at all):
 - everyone who can see the project lists and opens entries, but a student only ever sees
   uploaded files and approved links, never pending, failed or sent-back ones.
 
+A project copied from a template (a student's copy) keeps the card's media ids, so entries
+are shared across that family: a copy reads and lists its template's entries as well as its
+own. Only the project that owns an entry can confirm, delete or review it. Revoking a link on
+the template therefore reaches every copy at once.
+
 Uploading is three calls: POST "" returns a presigned PUT URL, the browser PUTs the file to
 storage, then POST "/{id}/confirm" checks what actually arrived and marks it uploaded.
 """
@@ -131,10 +136,16 @@ def _link_entry(link: MediaLink) -> MediaEntryResponse:
     )
 
 
-def _find(db: Session, project: Project, media_id: uuid.UUID) -> MediaAsset | MediaLink | None:
+def _family(project: Project) -> list[uuid.UUID]:
+    """The project and, for a copy, the template it came from. Seeing the copy is what grants seeing these entries."""
+    return [project.id] + ([project.template_id] if project.template_id else [])
+
+
+def _find(db: Session, project: Project, media_id: uuid.UUID, own_only: bool = False) -> MediaAsset | MediaLink | None:
+    allowed = [project.id] if own_only else _family(project)
     for model in (MediaAsset, MediaLink):
         entry = db.get(model, media_id)
-        if entry is not None and entry.project_id == project.id:
+        if entry is not None and entry.project_id in allowed:
             return entry
     return None
 
@@ -150,8 +161,9 @@ def list_media(
     project_id: uuid.UUID, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)
 ) -> list[MediaEntryResponse]:
     project = _load_project(db, actor, project_id)
-    assets = db.scalars(select(MediaAsset).where(MediaAsset.project_id == project.id, MediaAsset.kind.in_(list(MEDIA_KIND_SPECS))))
-    links = db.scalars(select(MediaLink).where(MediaLink.project_id == project.id))
+    family = _family(project)
+    assets = db.scalars(select(MediaAsset).where(MediaAsset.project_id.in_(family), MediaAsset.kind.in_(list(MEDIA_KIND_SPECS))))
+    links = db.scalars(select(MediaLink).where(MediaLink.project_id.in_(family)))
     entries = [_file_entry(a) for a in assets if _visible(actor, a)] + [_link_entry(l) for l in links if _visible(actor, l)]
     return sorted(entries, key=lambda entry: entry.created_at)
 
@@ -197,7 +209,7 @@ def confirm_media_upload(
     """Check what actually landed in storage, then mark the file uploaded or failed."""
     project = _load_project(db, actor, project_id)
     _require_editor(actor, project)
-    asset = _find(db, project, media_id)
+    asset = _find(db, project, media_id, own_only=True)
     if not isinstance(asset, MediaAsset):
         raise HTTPException(status_code=404, detail="Upload not found")
     if asset.status != "pending":
@@ -242,7 +254,7 @@ def delete_media(
 ) -> None:
     project = _load_project(db, actor, project_id)
     _require_editor(actor, project)
-    entry = _find(db, project, media_id)
+    entry = _find(db, project, media_id, own_only=True)
     if entry is None:
         raise HTTPException(status_code=404, detail="Media not found")
     storage_key = entry.storage_key if isinstance(entry, MediaAsset) else None
