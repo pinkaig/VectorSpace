@@ -36,6 +36,9 @@ const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplicatio
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
+// The motion board (/motion-board, dev only). The ternary, not a bare lazy(), so a production build folds
+// this to null and never emits the board's chunk.
+const MotionBoard = import.meta.env.DEV ? lazy(() => import('./debug/MotionBoard')) : null
 
 // where a signed-in visitor lands when the URL is empty or unknown, signed-out goes to login
 function Landing() {
@@ -162,6 +165,7 @@ export default function App() {
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
           <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
+          {import.meta.env.DEV && MotionBoard && <Route path="/motion-board" element={<Suspense fallback={<p>Loading board…</p>}><MotionBoard /></Suspense>} />}
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           <Route path="*" element={<Landing />} />
         </Routes>

@@ -1,0 +1,98 @@
+/**
+ * @file        motionBoard.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for the development-only motion board. Plain on purpose: it is a tool, not a page.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.motion-board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.motion-board h1 { margin: 0; font-size: 28px; }
+.motion-board h2 { margin: 0 0 8px; font-size: 20px; }
+.motion-board h3 { margin: 14px 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+
+.motion-board-panel {
+  padding: 18px 20px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.motion-board-note { margin: 2px 0 8px; font-size: 13px; color: var(--text-muted); }
+
+.motion-board-slider {
+  display: grid;
+  grid-template-columns: 240px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.motion-board-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 12px; }
+
+.motion-board-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius-box);
+  background: var(--bg-app);
+}
+
+.motion-board-sample {
+  padding: 12px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.motion-board-table { width: 100%; border-collapse: collapse; }
+.motion-board-table td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--purple-50); font-size: 14px; vertical-align: middle; }
+.motion-board-selected td { background: var(--purple-50); }
+
+.motion-board-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--amber-50);
+  color: var(--amber-900);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.motion-board-problems { margin: 6px 0; padding-left: 18px; color: var(--red-700); font-size: 14px; }
+
+.motion-board-field { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; font-size: 14px; font-weight: 700; }
+.motion-board-field input,
+.motion-board-field select,
+.motion-board-field textarea,
+.motion-board-export { padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-btn-sm); font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+
+.motion-board-export { width: 100%; margin-top: 8px; box-sizing: border-box; }
+
+.motion-board button {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+.motion-board button:disabled { opacity: 0.4; cursor: not-allowed; }
