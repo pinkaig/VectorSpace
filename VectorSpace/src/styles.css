@@ -1303,6 +1303,29 @@ button:disabled {
   font-family: var(--font-body);
   font-size: 10px;
 }
+.runtime-audio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.runtime-audio-mute {
+  color: #a4bbb7;
+  background: transparent;
+  border: 1px solid #365158;
+  border-radius: 2px;
+  padding: 3px 8px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  cursor: pointer;
+}
+.runtime-audio-mute[aria-pressed="true"] {
+  color: #81989b;
+  border-style: dashed;
+}
+.runtime-audio input[type="range"] {
+  width: 90px;
+  accent-color: #a4bbb7;
+}
 .runtime-actions kbd {
   color: #a4bbb7;
   border: 1px solid #365158;
