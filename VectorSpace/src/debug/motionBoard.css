@@ -96,3 +96,10 @@
   cursor: pointer;
 }
 .motion-board button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.motion-board-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}

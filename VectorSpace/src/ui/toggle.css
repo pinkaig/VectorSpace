@@ -24,13 +24,6 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--border-strong);
-  cursor: pointer;
-  transition: background var(--mo-dur-fast) var(--mo-ease-standard);
-}
-
-.ui-toggle:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .ui-toggle-on {
@@ -45,7 +38,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--surface);
-  transition: transform var(--mo-dur-fast) var(--mo-ease-standard);
+  transition: transform 0.12s;
 }
 
 .ui-toggle-on .ui-toggle-knob {

@@ -50,22 +50,11 @@
   color: var(--ink-2);
   font-weight: 800;
   text-decoration: none;
-  cursor: pointer;
-  transition:
-    background var(--mo-dur-fast) var(--mo-ease-standard),
-    color var(--mo-dur-fast) var(--mo-ease-standard);
 }
 
 .admin-nav-active {
   background: var(--purple-100);
   color: var(--purple-700);
-}
-
-/* a tint on the three pages you are not on, so it is clear they are links */
-@media (hover: hover) and (pointer: fine) {
-  .admin-nav-link:not(.admin-nav-active):hover {
-    background: var(--purple-50);
-  }
 }
 
 /* ── Page area: a title, then panels; the panels hold the scrolling lists ── */
@@ -147,19 +136,6 @@
   padding: 9px 14px 9px 0;
   border-bottom: 1px solid var(--purple-50);
   font-size: 14px;
-}
-
-.admin-table tbody tr {
-  transition: background var(--mo-dur-fast) var(--mo-ease-standard);
-}
-
-/* the last column of most tables is buttons, so light the row they belong to. The tint is on the
-   row, not its cells: the actions cell is display:flex and would not fill. The sticky header
-   cells live in thead, so they are untouched. */
-@media (hover: hover) and (pointer: fine) {
-  .admin-table tbody tr:hover {
-    background: var(--purple-50);
-  }
 }
 
 /* action buttons sit in the last column, right-aligned, and never wrap */

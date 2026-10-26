@@ -22,6 +22,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { motion, setPreviewReducedMotion } from "../motion/motion";
 import type { DurationToken, MotionDef, MotionRecipe } from "../motion/types";
+import { Button } from "../ui/button";
+import { Toggle, TickBox } from "../ui/toggle";
 import "./motionBoard.css";
 
 // the sliders: one per token the board may retune (see src/styles/motion.css)
@@ -116,6 +118,11 @@ export default function MotionBoard() {
       </section>
 
       <section className="motion-board-panel">
+        <h2>Controls (hover, press and click them)</h2>
+        <ControlsDemo />
+      </section>
+
+      <section className="motion-board-panel">
         <h2>Preview</h2>
         <div className="motion-board-controls">
           <strong>{cueId}</strong>
@@ -164,6 +171,24 @@ export default function MotionBoard() {
 
       <ExportPanel />
     </main>
+  );
+}
+
+// the real shared controls, so the response layer (motion/response.css) and the control.* cues can be felt here
+function ControlsDemo() {
+  const [on, setOn] = useState(false);
+  const [ticked, setTicked] = useState(false);
+  return (
+    <div className="motion-board-controls">
+      <Button variant="primary">Primary</Button>
+      <Button>Secondary</Button>
+      <Button variant="danger">Danger</Button>
+      <Button variant="add">+ Add</Button>
+      <Button disabled>Disabled</Button>
+      <Toggle checked={on} onChange={setOn} label="Demo switch" />
+      <Toggle checked label="Disabled switch" disabled onChange={() => undefined} />
+      <TickBox checked={ticked} onChange={setTicked} label="Demo tick" />
+    </div>
   );
 }
 

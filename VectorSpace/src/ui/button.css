@@ -22,24 +22,6 @@
   font-family: var(--font-body);
   font-weight: 800;
   white-space: nowrap;
-  cursor: pointer;
-  /* response layer: the browser interrupts and reverses these correctly mid-flight */
-  transition:
-    background var(--mo-dur-fast) var(--mo-ease-standard),
-    border-color var(--mo-dur-fast) var(--mo-ease-standard),
-    transform var(--mo-dur-instant) var(--mo-ease-standard);
-}
-
-/* manual: disabled = 40% opacity, no pointer */
-.ui-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* press feedback. Left outside the hover guard so it also works on touch; the size of the dip
-   is multiplied by --mo-scale, so a reduced-motion visitor gets no dip at all */
-.ui-btn:active:not(:disabled) {
-  transform: scale(calc(1 - 0.03 * var(--mo-scale)));
 }
 
 .ui-btn-normal {
@@ -61,6 +43,10 @@
   color: var(--surface);
 }
 
+.ui-btn-primary:hover:not(:disabled) {
+  background: var(--purple-600);
+}
+
 .ui-btn-danger {
   border-color: var(--red-200);
   color: var(--red-700);
@@ -70,22 +56,6 @@
   border-style: dashed;
   border-color: var(--purple-300);
   color: var(--purple-700);
-}
-
-/* hover only where there is a real pointer, so a touch screen does not keep a button tinted
-   after a tap */
-@media (hover: hover) and (pointer: fine) {
-  .ui-btn:hover:not(:disabled) {
-    background: var(--purple-50);
-  }
-
-  .ui-btn-primary:hover:not(:disabled) {
-    background: var(--purple-600);
-  }
-
-  .ui-btn-danger:hover:not(:disabled) {
-    background: var(--red-50);
-  }
 }
 
 .ui-btn:focus-visible {

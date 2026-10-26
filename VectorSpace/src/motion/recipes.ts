@@ -57,6 +57,28 @@ export const RECIPES: Record<string, MotionRecipe> = {
     easing: "standard",
     reducedMotion: "skip",
   },
+  // a click landing: squeeze, overshoot, settle. Plays after the CSS press dip lets go.
+  "click-bounce": {
+    keyframes: [
+      { transform: `scale(${shrink(0.05)})` },
+      { transform: `scale(${grow(0.05)})`, offset: 0.6 },
+      { transform: "scale(1)" },
+    ],
+    duration: "base",
+    easing: "emphasis",
+    reducedMotion: "skip",
+  },
+  // a tick box being ticked: starts small and overshoots
+  "check-pop": {
+    keyframes: [
+      { transform: `scale(${shrink(0.25)})` },
+      { transform: `scale(${grow(0.2)})`, offset: 0.55 },
+      { transform: "scale(1)" },
+    ],
+    duration: "base",
+    easing: "emphasis",
+    reducedMotion: "skip",
+  },
   "cross-fade": {
     keyframes: [{ opacity: 1 }, { opacity: 0 }],
     duration: "fast",

@@ -46,6 +46,11 @@ export const CUES: MotionDef[] = [
   { id: "feedback.saved", label: "A change is saved", group: "feedback", tier: 1, recipe: "chip-pulse" },
   { id: "feedback.error", label: "An error message appears", group: "feedback", tier: 1, recipe: "chip-pulse", note: "Defined, not wired yet: the role=alert paragraphs are plain <p> tags." },
 
+  // control: the shared widgets in src/ui. Each pairs with a CSS hover/press response in its stylesheet.
+  { id: "control.button.click", label: "A button is clicked", group: "control", tier: 2, recipe: "click-bounce" },
+  { id: "control.toggle.change", label: "A switch is flipped", group: "control", tier: 2, recipe: "chip-pulse" },
+  { id: "control.tick.change", label: "A tick box is ticked or cleared", group: "control", tier: 2, recipe: "check-pop" },
+
   // tile
   { id: "tile.value.change", label: "A stat tile's number changes", group: "tile", tier: 3, recipe: "", placeholder: true },
 ];

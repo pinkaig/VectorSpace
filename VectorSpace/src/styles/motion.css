@@ -32,6 +32,10 @@
   --mo-dist-md: 8px;
   --mo-dist-lg: 16px;
 
+  /* hover feedback: how far a control rises toward the pointer, and the shadow it casts */
+  --mo-lift: 2px;
+  --mo-shadow-hover: 0 6px 14px rgba(31, 27, 58, 0.16);
+
   /* one global amplitude dial: 0 collapses every movement to a plain fade */
   --mo-scale: 1;
 
