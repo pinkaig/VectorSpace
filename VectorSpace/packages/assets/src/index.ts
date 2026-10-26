@@ -19,6 +19,7 @@ export {
   idleAssetDescriptor,
   loadingAssetDescriptor,
   readyAssetDescriptor,
+  embedAssetDescriptor,
   errorAssetDescriptor,
 } from './AssetDescriptor'
 export type { AssetResolver } from './AssetResolver'
@@ -33,6 +34,9 @@ export {
 } from './PlaceholderAssetResolver'
 export {
   MEDIA_KIND_SPECS,
+  EMBED_PROVIDERS,
+  isAllowedEmbed,
+  type EmbedProvider,
   isAllowedContentType,
   isMediaKind,
   kindForContentType,

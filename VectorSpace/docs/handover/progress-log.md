@@ -141,3 +141,32 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 **Needs you**
 - Please confirm the table shape and the permissions above with the backend owner.
 - Storage is faked in the tests. Nothing has been checked against real MinIO, including B10's range requests.
+
+---
+
+## 2026-10-26 · B5: remote media resolver
+
+**Changed**
+- `packages/assets/src/resolvers/RemoteMediaResolver.ts`: implemented. It asks the API for an entry and returns a ready descriptor (file), an embed descriptor (approved link) or an error descriptor.
+- `packages/assets/src/AssetDescriptor.ts`: an optional `embed: { provider, providerId }` field, plus `embedAssetDescriptor()`.
+- `packages/assets/src/mediaKinds.ts`: `EMBED_PROVIDERS`, the embed host allowlist with YouTube only, and `isAllowedEmbed()`.
+- `packages/assets/src/ContentGuardResolver.ts`: an embed passes only if its provider and id are allowlisted and it carries no `url` or `blob`.
+- `packages/assets/src/index.ts`: exports the new names.
+- Tests: `RemoteMediaResolver.test.ts` rewritten with 6 cases, plus 3 new cases in `ContentGuardResolver.test.ts`.
+
+**Decision**
+- **Embeds get a field, not a content type.** An embed is a descriptor with an `embed` field and no `contentType`. Rejected alternative: a made-up content type such as `video/x-youtube`. That would add a content type to the security table, which needs the owner's sign-off. An embed downloads nothing, so it has nothing to type-check.
+- **The embed allowlist has its own table.** `EMBED_PROVIDERS` sits next to `MEDIA_KIND_SPECS`. Its YouTube id rule matches the server's parser.
+- **Signed URLs expire early in the cache.** A file's `expiresAt` is set 60 seconds before the signed URL expires. The existing cache already drops expired entries, so the next resolve fetches a fresh URL. No change to the cache was needed.
+- **Pending links don't play for anyone.** A pending link resolves to an error, even for a teacher, so the card shows the fallback. This is the strictest reading of "a link needs approval before it plays".
+
+**Method**
+- Example: the card refers to `media-1`, and the resolver calls `GET {api}/projects/{id}/media/media-1` with the bearer token. The reply `{source: 'file', status: 'uploaded', download_url, download_expires_in: 900}` becomes `{status: 'ready', url, contentType, expiresAt: now + 840 s}`.
+- For `{source: 'external', provider: 'youtube', provider_id: 'dQw4w9WgXcQ', approval: 'approved'}` it returns `{status: 'ready', embed: {provider: 'youtube', providerId: 'dQw4w9WgXcQ'}}`.
+
+**Check**
+- `npx vitest run packages/assets`: 43 tests pass, including "expired URL is refetched" and "an error becomes a descriptor, never a throw".
+- `npx tsc --noEmit -p tsconfig.app.json`: clean. A strict standalone check of `packages/assets` and `packages/project`: clean.
+
+**Needs you**
+- The resolver is not yet wired into the app. The app's asset chain still sends images and videos to the local catalog. Wiring happens in B6, through `MediaView`.
