@@ -1998,6 +1998,57 @@ button:disabled {
   color: #E2A845;
   font-style: italic;
 }
+/* Info card (mode 'card'): a softer, rounder panel with its media under the title.
+   Long text scrolls inside .text-panel-body, so the title and media stay in view. */
+.text-panel.text-card {
+  width: min(480px, 100%);
+  border-radius: var(--radius);
+}
+.text-card .text-panel-header {
+  border-bottom: none;
+}
+.text-card .text-panel-header h2 {
+  font-size: 18px;
+}
+/* MediaView: the media slot and its caption (placeholder box until the media track lands) */
+.media-view {
+  flex: none;
+  margin: 0 16px;
+}
+/* loading and unavailable keep the slot's 16:9 shape, so the card never jumps or shows a blank box */
+.media-view-loading,
+.media-view-fallback {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.media-view-image,
+.media-view-video,
+.media-view-embed {
+  display: block;
+  width: 100%;
+  max-height: 40vh;
+  border: 0;
+  border-radius: var(--radius);
+  background: #000;
+  object-fit: contain;
+}
+.media-view-embed {
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
+.media-view-caption {
+  padding-top: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-style: italic;
+}
 /* links above the placeholder pages (WithNav in App.tsx); goes when each page has its own */
 .page-nav {
   display: flex;
