@@ -14,6 +14,7 @@
 /******************************************************************************/
 
 import { useLoad } from "../api/useLoad";
+import { Motion } from "../motion/useMotion";
 import { NOT_STORED_YET } from "../api/admin";
 import { useAdmin } from "../sections/admin/adminContext";
 import { RoomListSection } from "../sections/admin/rooms/RoomListSection";
@@ -54,7 +55,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
     <>
       {error && <p role="alert">Could not load rooms: {error}</p>}
       {data && (
-        <div className="admin-rooms">
+        <Motion cue="panel.content.enter" className="admin-rooms">
           {/*ENVIRONMENTS: room shells, each on or off for this school*/}
           <RoomListSection
             title="Environments"
@@ -71,7 +72,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
             items={data.packs}
             onToggle={(id, enabled) => setEnabled("pack", id, enabled)}
           />
-        </div>
+        </Motion>
       )}
     </>
   );

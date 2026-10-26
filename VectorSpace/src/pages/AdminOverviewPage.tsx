@@ -13,6 +13,7 @@
 /******************************************************************************/
 
 import { useLoad } from "../api/useLoad";
+import { Motion } from "../motion/useMotion";
 import { useAdmin } from "../sections/admin/adminContext";
 import { StatTilesSection } from "../sections/admin/overview/StatTilesSection";
 import { SchoolsSection } from "../sections/admin/overview/SchoolsSection";
@@ -41,7 +42,7 @@ export default function AdminOverviewPage() {
 
       {error && <p role="alert">Could not load the overview: {error}</p>}
       {data && (
-        <div className="admin-overview">
+        <Motion cue="panel.content.enter" className="admin-overview">
           {/*TILES: Schools, Educators, Students, Published*/}
           <StatTilesSection tiles={data.tiles} />
 
@@ -53,7 +54,7 @@ export default function AdminOverviewPage() {
 
           {/*RECENTLY PUBLISHED: title, where, visits, access level*/}
           <RecentlyPublishedSection items={data.recent} />
-        </div>
+        </Motion>
       )}
     </>
   );

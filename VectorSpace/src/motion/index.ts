@@ -24,6 +24,10 @@
  */
 /******************************************************************************/
 
+export { CUES } from "./cues";
+export { exitAsGhost } from "./exitAsGhost";
+export { motion } from "./motion";
+export { Motion, useMotionIn, useMotionOnChange } from "./useMotion";
 export { MotionBank, STAGGER_CAP, validateMotionMap } from "./MotionBank";
 export type { MotionBankOptions, MotionPlayEvent } from "./MotionBank";
 export { FakeMotionDriver } from "./fakeDriver";
