@@ -2,9 +2,10 @@
  * @file        TeacherHomePage.css
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
- * @brief       Styles for the teacher home (Classes tab): greeting, class
- *              card, published rows and the new project card. The frame
- *              around it is TeacherLayout's. Values from the V3 manual.
+ * @brief       Styles for the teacher home (Classes tab): greeting with New
+ *              project, the last project's card, and the All projects box that
+ *              scrolls on its own. The frame around it is TeacherLayout's.
+ *              Values from the V3 manual and the 2.03 prototype.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -12,15 +13,26 @@
  */
 /******************************************************************************/
 
-/* ── Content column: narrower, centred, with space under the top bar ──── */
+/* ── Content column: centred, a column so All projects can take the rest ── */
 .teacher-home-content {
-  width: 100%; 
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   max-width: 1100px;
+  min-height: 0;
   margin: 0 auto;
   padding: 12px 0 24px;
 }
 
-/* ── Greeting and section labels ──────────────────────────────────────── */
+/* ── Greeting on the left, New project on the right ───────────────────── */
+.teacher-home-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 .teacher-home-greeting {
   margin: 0;
   font-family: var(--font-heading);
@@ -31,7 +43,7 @@
 }
 
 .teacher-home-lead {
-  margin: 6px 0 24px;
+  margin: 6px 0 0;
   font-size: 17px;
   color: var(--text-muted);
 }
@@ -45,8 +57,10 @@
   color: var(--text-muted);
 }
 
-/* ── Class card: picture left, info right ─────────────────────────────── */
+/* ── Last project card: picture left, info right, ⋯ top right ─────────── */
 .teacher-home-class {
+  position: relative;          /* so the ⋯ can sit in its corner */
+  flex: 0 0 auto;              /* never squashed by the All projects box */
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 24px;
@@ -55,6 +69,12 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
+}
+
+.teacher-home-class-more {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .teacher-home-class-image {
@@ -70,6 +90,7 @@
 }
 
 .teacher-home-chip {
+  flex: 0 0 auto;
   padding: 3px 10px;
   border: 1px solid var(--amber-200);
   border-radius: var(--radius-pill);
@@ -77,12 +98,20 @@
   color: var(--amber-900);
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .teacher-home-chip-dark {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--surface);
+}
+
+/* manual's grey chip, for "No class yet" */
+.teacher-home-chip-muted {
+  border-color: var(--border);
+  background: var(--bg-app);
+  color: var(--text-muted);
 }
 
 .teacher-home-class-title {
@@ -156,32 +185,16 @@
 
 .teacher-home-secondary:hover { background: var(--purple-50); }
 
-/* ── Published row: one compact strip per published project ───────────── */
-.teacher-home-published {
+.teacher-home-new-button {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  gap: 6px;
+  flex: 0 0 auto;
 }
 
-.teacher-home-published-name {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.teacher-home-published-stats {
-  margin-left: auto;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--green-800);
-}
-
-/* ── Small button (manual: 32–36px, 13px ExtraBold, never wraps) ───────── */
+/* small buttons (manual: 32–36px, 13px ExtraBold, never wraps) */
 .teacher-home-small {
+  flex: 0 0 auto;
   height: 36px;
   padding: 0 12px;
   border: 1px solid var(--border);
@@ -197,59 +210,119 @@
 
 .teacher-home-small:hover { background: var(--purple-50); }
 
-/* ── Start a new project: dashed card ─────────────────────────────────── */
-.teacher-home-new-section {
-  margin-top: 24px;
+.teacher-home-small-primary {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
 }
 
-.teacher-home-new {
+.teacher-home-small-primary:hover { background: var(--purple-600); }
+
+/* the ⋯ buttons: square, icon only */
+.teacher-home-more {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.teacher-home-more:hover { background: var(--purple-50); }
+
+/* ── All projects: a white box that takes the rest of the height ──────── */
+.teacher-home-all {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+/* when opened, the dev tools scroll inside themselves instead of stretching the page */
+.teacher-home-dev[open] {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.teacher-home-all-title {
+  margin: 0 0 12px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.teacher-home-all-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;            /* only this list scrolls */
+  padding-right: 4px;          /* a little air between rows and bar */
+}
+
+/* Firefox: no ::-webkit-scrollbar, so it uses the standard properties instead */
+@supports not selector(::-webkit-scrollbar) {
+  .teacher-home-all-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--purple-300) transparent;
+  }
+}
+
+.teacher-home-all-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.teacher-home-all-list::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--purple-300);
+}
+
+.teacher-home-all-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* one project: chip, name, details on the right, button, ⋯ */
+.teacher-home-row {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 16px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
 }
 
-.teacher-home-new-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-btn);
-  background: var(--purple-100);
-  color: var(--purple-600);
-}
-
-.teacher-home-new-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.teacher-home-new-text strong {
+.teacher-home-row-name {
   font-size: 16px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
-.teacher-home-new-text span {
+.teacher-home-row-details {
+  margin-left: auto;           /* pushes details and buttons to the right */
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
+  text-align: right;
 }
 
-.teacher-home-new-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
+.teacher-home-row-details-published {
+  color: var(--green-800);
 }
 
 /* ── Temporary dev section (remove with ProjectListsSection) ──────────── */
 .teacher-home-dev {
-  margin-top: 24px;
+  margin-top: 16px;
   font-size: 13px;
   color: var(--text-muted);
 }

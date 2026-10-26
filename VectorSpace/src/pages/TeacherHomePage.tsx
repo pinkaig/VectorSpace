@@ -2,12 +2,11 @@
  * @file        TeacherHomePage.tsx
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
- * @brief       Teacher home (Classes tab): greeting, the teacher's active
- *              class card (with Set up project and Review), published
- *              projects, and starting a new project from the museum template.
- *              Shown inside TeacherLayout, which draws the top bar. Uses fake
- *              data until the backend has classes, due dates and submission
- *              counts.
+ * @brief       Teacher home (Classes tab): greeting with New project, the last
+ *              project the teacher worked on (with Set up project and Review),
+ *              and every project in a box that scrolls on its own. Shown inside
+ *              TeacherLayout, which draws the top bar. Uses fake data until the
+ *              backend has classes, due dates and submission counts.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -15,7 +14,7 @@
  */
 /******************************************************************************/
 
-import { Box, Plus } from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { useSession } from "../session/session";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
 import { MuseumPreview } from "../ui/museumPreview";
@@ -32,13 +31,32 @@ const activeClass = {
   notStarted: 3,
 };
 
-const publishedProjects = [
+type ProjectRow = {
+  id: string;
+  className: string | null; // null = not assigned to a class yet
+  name: string;
+  details: string;
+  published?: boolean;
+  action: string;
+  actionIsPrimary?: boolean;
+};
+
+const allProjects: ProjectRow[] = [
   {
-    projectId: "fake-2",
+    id: "fake-2",
     className: "Class 3A",
-    projectName: "Ancient Egypt tour",
-    visits: 34,
-    mostClicked: "the mummy case",
+    name: "Ancient Egypt tour",
+    details: "Published · 34 visits · most clicked: the mummy case",
+    published: true,
+    action: "See results",
+  },
+  {
+    id: "fake-3",
+    className: null,
+    name: "Copy of Dinosaur museum",
+    details: "Rooms, exhibits and brief copied · no student work",
+    action: "Set up and assign",
+    actionIsPrimary: true,
   },
 ];
 
@@ -54,12 +72,20 @@ export default function TeacherHomePage() {
 
   return (
     <main className="teacher-home-content">
-      <h1 className="teacher-home-greeting">
-        {greetingForTime()}, {displayName}
-      </h1>
-      <p className="teacher-home-lead">One class is building right now.</p>
+      <div className="teacher-home-header">
+        <div>
+          <h1 className="teacher-home-greeting">
+            {greetingForTime()}, {displayName}
+          </h1>
+          <p className="teacher-home-lead">One class is building right now.</p>
+        </div>
+        <button type="button" className="teacher-home-primary teacher-home-new-button">
+          <Plus size={18} />
+          New project
+        </button>
+      </div>
 
-      <h2 className="teacher-home-label">Your classes</h2>
+      <h2 className="teacher-home-label">Pick up where you left off</h2>
 
       <article className="teacher-home-class">
         <div className="teacher-home-class-image">
@@ -68,93 +94,76 @@ export default function TeacherHomePage() {
 
         <div className="teacher-home-class-info">
           <div className="teacher-home-chips">
-            <span className="teacher-home-chip teacher-home-chip-dark">
-              {activeClass.className}
-            </span>
+            <span className="teacher-home-chip teacher-home-chip-dark">{activeClass.className}</span>
             <span className="teacher-home-chip">{activeClass.due}</span>
           </div>
 
-          <h3 className="teacher-home-class-title">
-            {activeClass.projectName}
-          </h3>
+          <h3 className="teacher-home-class-title">{activeClass.projectName}</h3>
 
           <div className="teacher-home-progress">
-            <span
-              className="teacher-home-progress-sent"
-              style={{ flex: activeClass.sent }}
-            />
-            <span
-              className="teacher-home-progress-building"
-              style={{ flex: activeClass.building }}
-            />
-            <span
-              className="teacher-home-progress-not-started"
-              style={{ flex: activeClass.notStarted }}
-            />
+            <span className="teacher-home-progress-sent" style={{ flex: activeClass.sent }} />
+            <span className="teacher-home-progress-building" style={{ flex: activeClass.building }} />
+            <span className="teacher-home-progress-not-started" style={{ flex: activeClass.notStarted }} />
           </div>
 
           <p className="teacher-home-progress-legend">
-            <span className="teacher-home-legend-sent">
-              <strong>{activeClass.sent}</strong> sent for approval
-            </span>
-            <span className="teacher-home-legend-building">
-              <strong>{activeClass.building}</strong> building
-            </span>
-            <span className="teacher-home-legend-not-started">
-              <strong>{activeClass.notStarted}</strong> not started
-            </span>
+            <span className="teacher-home-legend-sent"><strong>{activeClass.sent}</strong> sent for approval</span>
+            <span className="teacher-home-legend-building"><strong>{activeClass.building}</strong> building</span>
+            <span className="teacher-home-legend-not-started"><strong>{activeClass.notStarted}</strong> not started</span>
           </p>
 
           <div className="teacher-home-class-actions">
-            <button type="button" className="teacher-home-primary">
-              Set up project
-            </button>
+            <button type="button" className="teacher-home-primary">Set up project</button>
             <button type="button" className="teacher-home-secondary">
               Review {activeClass.sent} submissions
             </button>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="teacher-home-more teacher-home-class-more"
+          aria-label={`More actions for ${activeClass.projectName}`}
+        >
+          <MoreHorizontal size={18} />
+        </button>
       </article>
 
-      {publishedProjects.map((project) => (
-        <div key={project.projectId} className="teacher-home-published">
-          <span className="teacher-home-chip teacher-home-chip-dark">
-            {project.className}
-          </span>
-          <span className="teacher-home-published-name">
-            {project.projectName}
-          </span>
-          <span className="teacher-home-published-stats">
-            Published · {project.visits} visits · most clicked:{" "}
-            {project.mostClicked}
-          </span>
-          <button type="button" className="teacher-home-small">
-            See results
-          </button>
-        </div>
-      ))}
-
-      <section className="teacher-home-new-section">
-        <h2 className="teacher-home-label">Start a new project</h2>
-
-        <div className="teacher-home-new">
-          <div className="teacher-home-new-icon">
-            <Box size={22} />
-          </div>
-          <div className="teacher-home-new-text">
-            <strong>Museum template</strong>
-            <span>
-              Two rooms ready for exhibits. You get your own copy to set up for
-              your class.
-            </span>
-          </div>
-          <button
-            type="button"
-            className="teacher-home-primary teacher-home-new-button"
-          >
-            <Plus size={18} />
-            New project
-          </button>
+      <section className="teacher-home-all">
+        <h2 className="teacher-home-all-title">All projects ({allProjects.length})</h2>
+        <div className="teacher-home-all-list">
+          {allProjects.map((project) => (
+            <div key={project.id} className="teacher-home-row">
+              <span
+                className={
+                  project.className
+                    ? "teacher-home-chip teacher-home-chip-dark"
+                    : "teacher-home-chip teacher-home-chip-muted"
+                }
+              >
+                {project.className ?? "No class yet"}
+              </span>
+              <span className="teacher-home-row-name">{project.name}</span>
+              <span
+                className={
+                  project.published
+                    ? "teacher-home-row-details teacher-home-row-details-published"
+                    : "teacher-home-row-details"
+                }
+              >
+                {project.details}
+              </span>
+              <button
+                type="button"
+                className={project.actionIsPrimary ? "teacher-home-small teacher-home-small-primary" : "teacher-home-small"}
+              >
+                {project.action}
+              </button>
+              <button type="button" className="teacher-home-more" aria-label={`More actions for ${project.name}`}>
+                <MoreHorizontal size={18} />
+              </button>
+            </div>
+          ))}
         </div>
       </section>
 
