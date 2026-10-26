@@ -67,11 +67,29 @@ type AssignState = "idle" | "assigned" | "failed";
 
 export default function TeacherTemplateSetupPage() {
   const navigate = useNavigate();
-  // a brief handed back by Exit preview (it may hold edits not assigned yet)
-  const returnedBrief = (useLocation().state as PreviewState)?.brief;
+  // what arrived with the visit: a brief handed back by Exit preview, or the
+  // name, class and due date picked in the teacher home's New project popup
+  const routeState = useLocation().state as
+    | (PreviewState & { newProject?: { name: string; className: string; due: string } })
+    | null;
+  const returnedBrief = routeState?.brief;
+  const newProject = routeState?.newProject;
 
-  // the mission brief lives here, not in its panel, so Project details reads the same one
-  const [brief, setBrief] = useState<MissionBrief>(() => returnedBrief ?? startingBrief());
+  // the project in the header: the one just created, or the sample
+  const project = newProject
+    ? { ...SAMPLE_PROJECT, title: newProject.name, className: newProject.className }
+    : SAMPLE_PROJECT;
+
+  // the mission brief lives here, not in its panel, so Project details reads the same one.
+  // A new project starts from the sample brief with the due date picked in the popup.
+  const [brief, setBrief] = useState<MissionBrief>(() => {
+    if (returnedBrief) return returnedBrief;
+    if (newProject) {
+      const [year, month, day] = newProject.due.split("-").map(Number);
+      return { ...SAMPLE_BRIEF, due: formatDueDate(new Date(year, month - 1, day)) };
+    }
+    return startingBrief();
+  });
   const [assign, setAssign] = useState<AssignState>("idle");
 
   // any edit after assigning means the editor's copy is out of date again
@@ -80,10 +98,24 @@ export default function TeacherTemplateSetupPage() {
     if (assign !== "idle") setAssign("idle");
   };
 
-  // hand the brief to the editor: put it on the editor's saved draft (empty rows left out)
+  // hand the brief to the editor (put it on the editor's saved draft, empty rows left
+  // out), then go back to the teacher home, which shows the "assigned" banner
   const assignBrief = () => {
     const result = saveProject({ ...loadProject(), missionBrief: tidyBrief(brief) });
-    setAssign(result === "failed" ? "failed" : "assigned");
+    if (result === "failed") {
+      setAssign("failed");
+      return;
+    }
+    navigate("/teacher", {
+      state: {
+        assigned: {
+          id: crypto.randomUUID(),
+          projectName: project.title,
+          className: project.className,
+          due: brief.due,
+        },
+      },
+    });
   };
 
   // show the brief as a student sees it; it travels with the visit, nothing is saved
@@ -98,24 +130,19 @@ export default function TeacherTemplateSetupPage() {
         <div className="setup-header-project">
           <Link to="/teacher" className="setup-header-icon" title="Back to home"><Box size={22} /></Link>{/* the cube goes back to the teacher home page */}
           <div>
-            <h1 className="setup-header-title">{SAMPLE_PROJECT.title}</h1>
+            <h1 className="setup-header-title">{project.title}</h1>
             <p className="setup-header-sub">
-              Your copy of the {SAMPLE_PROJECT.templateName} · {SAMPLE_PROJECT.room}
+              Your copy of the {project.templateName} · {project.room}
             </p>
           </div>
           <StatusChip tone="amber">Teacher view</StatusChip>
         </div>
         <div className="setup-header-actions">
           <Button onClick={previewAsStudent}>Preview as a student</Button>
-          <Button variant="primary" onClick={assignBrief}>Assign to {SAMPLE_PROJECT.className}</Button>
+          <Button variant="primary" onClick={assignBrief}>Assign to {project.className}</Button>
         </div>
       </header>
       {/*WHAT HAPPENED: one line after Assign*/}
-      {assign === "assigned" && (
-        <p className="setup-notice setup-notice-green">
-          The mission brief has been assigned to {SAMPLE_PROJECT.className}.
-        </p>
-      )}
       {assign === "failed" && (
         <p className="setup-notice setup-notice-red">
           Couldn't save the brief: this browser's storage is full or turned off.
@@ -124,7 +151,7 @@ export default function TeacherTemplateSetupPage() {
       <div className="setup-body">{/*THE THREE PANELS, side by side*/}
         <MissionBriefSection brief={brief} onChange={editBrief} />
         <SetupViewportSection />
-        <ProjectDetailsSection className={SAMPLE_PROJECT.className} due={brief.due} />
+                <ProjectDetailsSection className={project.className} due={brief.due} />
       </div>
     </main>
   );
