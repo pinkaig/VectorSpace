@@ -27,7 +27,8 @@ import type { DriverOpts, MotionDef, MotionDriver, MotionHandle, MotionMap, Moti
 /** A table of 200 rows with a 20 ms stagger would take four seconds, so rows past this share the last delay. */
 export const STAGGER_CAP = 12;
 
-const settledHandle = (): MotionHandle => ({ finished: Promise.resolve(true), cancel: () => {}, reverse: () => {} });
+/** What a skipped or silent play() returns, so callers can always wait on `finished`. */
+export const settledHandle = (): MotionHandle => ({ finished: Promise.resolve(true), cancel: () => {} });
 
 export interface MotionBankOptions {
   /** Where "unknown cue" warnings go. Defaults to console.warn. */

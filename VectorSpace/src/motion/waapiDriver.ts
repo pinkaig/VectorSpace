@@ -18,8 +18,9 @@
  */
 /******************************************************************************/
 
+import { settledHandle } from "./MotionBank";
 import { resolveRecipe, type ReadToken } from "./resolve";
-import type { MotionDriver, MotionHandle } from "./types";
+import type { MotionDriver } from "./types";
 
 export interface WaapiDriverOptions {
   /** The visitor's prefers-reduced-motion. Read on every play, so a changed setting applies at once. */
@@ -27,8 +28,6 @@ export interface WaapiDriverOptions {
   /** How to read a CSS custom property. */
   readToken?: ReadToken;
 }
-
-const settledHandle = (): MotionHandle => ({ finished: Promise.resolve(true), cancel: () => {}, reverse: () => {} });
 
 // which play() last touched an element, so an older animation finishing late cannot remove the gain a newer one set
 const latestPlay = new WeakMap<Element, number>();
@@ -70,7 +69,6 @@ export function createWaapiDriver(options: WaapiDriverOptions = {}): MotionDrive
       return {
         finished,
         cancel: () => animation.cancel(),
-        reverse: () => animation.reverse(),
       };
     },
   };

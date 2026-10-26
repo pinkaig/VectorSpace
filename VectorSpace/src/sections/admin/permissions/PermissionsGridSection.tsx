@@ -59,7 +59,7 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
         </div>
       </div>
 
-      {error && <p role="alert">Could not load permissions: {error}</p>}
+      {error && <Motion as="p" cue="feedback.error" role="alert">Could not load permissions: {error}</Motion>}
       <LoadingRows loading={loading} />
       {/* the key changes when the answer arrives, so the grid fades in then and not before */}
       <Motion key={saved ? "loaded" : "loading"} cue="panel.content.enter" className="admin-scroll">

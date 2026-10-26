@@ -54,7 +54,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
 
   return (
     <>
-      {error && <p role="alert">Could not load rooms: {error}</p>}
+      {error && <Motion as="p" cue="feedback.error" role="alert">Could not load rooms: {error}</Motion>}
       <LoadingRows loading={loading} />
       {data && (
         <Motion cue="panel.content.enter" className="admin-rooms">

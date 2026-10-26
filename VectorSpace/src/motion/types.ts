@@ -81,7 +81,6 @@ export interface MotionHandle {
   /** true if it ran to the end, false if it was cancelled first. */
   finished: Promise<boolean>;
   cancel: () => void;
-  reverse: () => void;
 }
 
 /** The thing that makes pixels move. The real one calls element.animate(); the fake records calls. */

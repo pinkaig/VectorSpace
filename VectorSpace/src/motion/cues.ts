@@ -44,7 +44,7 @@ export const CUES: MotionDef[] = [
 
   // feedback: one shared recipe; the colour difference between saved and error is CSS
   { id: "feedback.saved", label: "A change is saved", group: "feedback", tier: 1, recipe: "chip-pulse" },
-  { id: "feedback.error", label: "An error message appears", group: "feedback", tier: 1, recipe: "chip-pulse", note: "Defined, not wired yet: the role=alert paragraphs are plain <p> tags." },
+  { id: "feedback.error", label: "An error message appears", group: "feedback", tier: 1, recipe: "chip-pulse", note: "Wired to the admin pages' role=alert load and save errors." },
 
   // control: the shared widgets in src/ui. Each pairs with a CSS hover/press response in its stylesheet.
   { id: "control.button.click", label: "A button is clicked", group: "control", tier: 2, recipe: "click-bounce" },

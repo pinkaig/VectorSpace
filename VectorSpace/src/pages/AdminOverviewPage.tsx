@@ -41,7 +41,7 @@ export default function AdminOverviewPage() {
         <p>{school ? school.name : "All schools"}</p>
       </div>
 
-      {error && <p role="alert">Could not load the overview: {error}</p>}
+      {error && <Motion as="p" cue="feedback.error" role="alert">Could not load the overview: {error}</Motion>}
       <LoadingRows loading={loading} />
       {data && (
         <Motion cue="panel.content.enter" className="admin-overview">

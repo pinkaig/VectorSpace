@@ -56,13 +56,13 @@ export function useMotionOnChange<T extends Element = HTMLDivElement>(cueId: str
   return ref;
 }
 
-type MotionProps<Tag extends "div" | "span" | "tr"> = { as?: Tag; cue: string } & PlayOpts & ComponentPropsWithoutRef<Tag>;
+type MotionProps<Tag extends "div" | "span" | "tr" | "p"> = { as?: Tag; cue: string } & PlayOpts & ComponentPropsWithoutRef<Tag>;
 
 /**
  * An element that plays `cue` when it mounts. For data that arrives into a spot: render it only
  * once the data is there (or give it a `key` that changes when the data arrives) and it fades in.
  */
-export function Motion<Tag extends "div" | "span" | "tr" = "div">({ as, cue, gain, staggerIndex, ...rest }: MotionProps<Tag>) {
+export function Motion<Tag extends "div" | "span" | "tr" | "p" = "div">({ as, cue, gain, staggerIndex, ...rest }: MotionProps<Tag>) {
   const ref = useMotionIn<HTMLElement>(cue, { gain, staggerIndex });
   return createElement(as ?? "div", { ref, ...rest });
 }

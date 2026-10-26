@@ -42,7 +42,6 @@ export class FakeMotionDriver implements MotionDriver {
         record.cancelled = true;
         settle(false);
       },
-      reverse: () => {},
     };
   }
 }
