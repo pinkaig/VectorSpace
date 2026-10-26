@@ -33,6 +33,18 @@
   gap: 12px;
 }
 
+.landing-top-bar-home {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.landing-top-bar-home:hover .landing-top-bar-logo {
+  background: var(--purple-600, var(--purple-500));
+}
+
 .landing-top-bar-logo {
   display: grid;
   place-items: center;

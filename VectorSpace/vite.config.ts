@@ -30,4 +30,16 @@ export const audioManifestPlugin = (): Plugin => {
 
 export default defineConfig({
   plugins: [react(), audioManifestPlugin()],
+  build: {
+    // three.js alone is ~630 kB minified (~160 kB gzipped) and can't be split further;
+    // the warning still fires if our own code grows past this
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        // three.js in a file of its own: it rarely changes, so after an update returning
+        // visitors keep it cached and only download the app code that did change
+        manualChunks: (id) => (id.includes('/node_modules/three/') ? 'three' : undefined),
+      },
+    },
+  },
 })

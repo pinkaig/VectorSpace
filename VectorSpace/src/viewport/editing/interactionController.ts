@@ -65,6 +65,9 @@ export interface ViewportInteractionData {
   // for input is decided here: pointer picking, look, drags, runtime key
   // triggers, and walk movement all pause until the panel closes.
   modalOpen: boolean
+  // How the visitor moves in play mode ('tap' to go, 'walk', 'tour' spots); look is a drag
+  // in all three. null keeps the older pointer-lock look.
+  playMove: 'tap' | 'walk' | 'tour' | null
 }
 
 export interface ViewportInteractionCallbacks {
@@ -93,6 +96,9 @@ export interface ViewportInteractionCallbacks {
    * listeners do no runtime work at all while authoring.
    */
   onRuntimeEvent?: (event: RuntimeEvent) => void
+  // Play mode, Tap to go: a click that hit no object, as a world ray; the viewport walks
+  // the visitor to where it meets the floor.
+  tapFloor?: (ray: THREE.Ray) => void
 }
 
 export interface ViewportInteractionInput {
@@ -357,7 +363,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       if (event.button !== 0) return
       // Run simulation: mouse-look is driven by pointer lock (in onPointerMove), not
       // click-and-drag.
-      if (!interactive && data.runtimeActive) {
+      // Play's Walk with a mouse is first-person too; touch keeps drag-to-look.
+      const mouseLook = data.playMove === null || (data.playMove === 'walk' && event.pointerType === 'mouse')
+      if (!interactive && data.runtimeActive && mouseLook) {
         if (document.pointerLockElement !== element) element.requestPointerLock()
         return
       }
@@ -506,7 +514,16 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (event.button === 0) pointerDownAt = null
     if (looking) {
       const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY); looking = null
-      if (moved < 4) callbacks.select(pick(event)?.name ?? null)
+      if (moved >= 4) return
+      const hit = pick(event)
+      const data = callbacks.getData()
+      // a tap on an object already fired its click above; a tap on nothing walks there
+      if (!hit && data.runtimeActive && data.playMove === 'tap') {
+        raycaster.setFromCamera(pointer, activeCamera.current)
+        callbacks.tapFloor?.(raycaster.ray.clone())
+        return
+      }
+      callbacks.select(hit?.name ?? null)
       return
     }
 

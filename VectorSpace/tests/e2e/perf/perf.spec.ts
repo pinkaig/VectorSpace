@@ -53,10 +53,10 @@ const measure = async (page: Page, view: 'runtime' | 'editor', objects: number):
   }, buildPerfProject(objects))
   await openEditor(page)
   if (view === 'runtime') {
-    await page.getByRole('button', { name: 'Run simulation' }).click()
-    await expect(page.getByText('Visitor view')).toBeVisible()
+    await page.getByRole('button', { name: 'Play', exact: true }).click()
+    await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
   } else {
-    await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
   }
   await page.waitForTimeout(WARMUP_MS) // shader compile, first uploads, GC settle
 
