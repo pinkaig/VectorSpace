@@ -33,6 +33,16 @@ type StudentProject = {
   templateName?: string;
 };
 
+// "Due Friday" when it's within a week, otherwise "Due 30 Oct"
+const dueLabel = (iso: string): string => {
+  const [year, month, day] = iso.split("-").map(Number);
+  const due = new Date(year, month - 1, day);
+  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+  if (days >= 0 && days < 7)
+    return `Due ${due.toLocaleDateString("en-GB", { weekday: "long" })}`;
+  return `Due ${due.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+};
+
 const assigned: StudentProject = {
   id: "fake-1",
   name: "Dinosaur museum",
@@ -63,8 +73,10 @@ export default function StudentHomePage() {
   // NEW: the student's projects, without archived ones
   const myProjects = (projects ?? []).filter((p) => p.status !== "archived");
 
-  // NEW: stand-in until the backend marks which project is assigned: the newest draft
-  const assignedProject = myProjects.find((p) => p.status === "draft");
+  // the project the teacher assigned; until every student has one, fall back to the newest draft
+  const assignedProject =
+    myProjects.find((p) => p.assignment_id) ??
+    myProjects.find((p) => p.status === "draft");
 
   // CHANGED: everything except the stand-in goes under "Your other projects"
   const otherProjects = myProjects.filter((p) => p.id !== assignedProject?.id);
@@ -82,8 +94,10 @@ export default function StudentHomePage() {
           You have one project waiting for you.
         </p>
 
-        {assigned.teacherName && (
-          <h2 className="student-home-label">From {assigned.teacherName}</h2>
+        {assignedProject?.assigned_by_name && (
+          <h2 className="student-home-label">
+            From {assignedProject.assigned_by_name}
+          </h2>
         )}
 
         <article className="student-home-assigned">
@@ -93,8 +107,10 @@ export default function StudentHomePage() {
 
           <div className="student-home-assigned-info">
             <div className="student-home-chips">
-              {assigned.due && (
-                <span className="student-home-chip">{assigned.due}</span>
+              {assignedProject?.due_at && (
+                <span className="student-home-chip">
+                  {dueLabel(assignedProject.due_at)}
+                </span>
               )}
               <span className="student-home-chip student-home-chip-muted">
                 {assigned.statusLabel}
@@ -106,8 +122,8 @@ export default function StudentHomePage() {
               {assignedProject?.name ?? assigned.name}
             </h3>
 
-            {assigned.task && (
-              <p className="student-home-task">{assigned.task}</p>
+            {assignedProject?.task && (
+              <p className="student-home-task">{assignedProject.task}</p>
             )}
             {assigned.templateName && (
               <p className="student-home-template">
@@ -120,7 +136,9 @@ export default function StudentHomePage() {
               type="button"
               className="student-home-start"
               disabled={!assignedProject}
-              onClick={() => assignedProject && navigate(`/editor/${assignedProject.id}`)}
+              onClick={() =>
+                assignedProject && navigate(`/editor/${assignedProject.id}`)
+              }
             >
               Start building
             </button>
@@ -141,7 +159,9 @@ export default function StudentHomePage() {
                   className="student-home-other"
                   onClick={() => navigate(`/editor/${project.id}`)}
                 >
-                  <span className="student-home-other-name">{project.name}</span>
+                  <span className="student-home-other-name">
+                    {project.name}
+                  </span>
                   {project.status === "published" ? (
                     <span className="student-home-other-sub student-home-other-sub-published">
                       Published

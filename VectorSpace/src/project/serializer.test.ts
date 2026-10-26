@@ -218,6 +218,64 @@ describe('deserializeProject attachments and text assets', () => {
     expect(restored.scenes[0].zones?.[0].attachments).toHaveLength(1)
   })
 
+  it('round-trips image and video attachments on objects and zones', () => {
+    const original = deserializeProject(projectJson(
+      [objectJson('cube-1', [{ id: 'att-1', kind: 'image', assetId: 'media-photo', name: 'Photo' }, { id: 'att-2', kind: 'video', assetId: 'media-clip' }])],
+      {},
+      { zones: [{ id: 'zone-a', name: 'Z', shape: { kind: 'box', size: [1, 1, 1] }, position: [0, 0, 0], attachments: [{ id: 'att-3', kind: 'video', assetId: 'media-clip' }] }] },
+    ))
+    const restored = deserializeProject(serializeProject(original))
+    expect(restored.scenes[0].objects[0].attachments).toEqual([
+      { id: 'att-1', kind: 'image', assetId: 'media-photo', name: 'Photo' },
+      { id: 'att-2', kind: 'video', assetId: 'media-clip' },
+    ])
+    expect(restored.scenes[0].zones?.[0].attachments).toEqual([{ id: 'att-3', kind: 'video', assetId: 'media-clip' }])
+  })
+
+  it('loads a save written before image and video existed with its attachments unchanged', () => {
+    // the attachment shapes a save could hold before Step 0: audio and text only
+    const before = [{ id: 'att-1', kind: 'audio', assetId: 'creak' }, textAttachment('att-2', { mode: 'panel', title: 'Info', autoCloseMs: 3000 })]
+    const project = deserializeProject(projectJson([objectJson('cube-1', before)]))
+    expect(project.scenes[0].objects[0].attachments).toEqual(before)
+  })
+
+  it('rejects an image or video attachment without a library entry id', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'image' }])]))).toThrow(/invalid attachment/)
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'video', assetId: '' }])]))).toThrow(/invalid attachment/)
+  })
+
+  it('round-trips an info card with media and reserved fields', () => {
+    const card = textAttachment('att-1', {
+      mode: 'card',
+      title: 'The Rosetta Stone',
+      autoCloseMs: 8000,
+      media: { kind: 'image', assetId: 'media-stone', caption: 'Found in 1799', alt: 'A dark stone slab covered in writing' },
+      fields: [{ key: 'reflection', label: 'What surprised you?', prompt: 'Write one sentence' }, { key: 'intro', label: 'Intro', locked: true }],
+    })
+    const original = deserializeProject(projectJson([objectJson('cube-1', [card])]))
+    const restored = deserializeProject(serializeProject(original))
+    expect(restored.scenes[0].objects[0].attachments).toEqual([card])
+  })
+
+  it('accepts a card with no media and no fields', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [textAttachment('att-1', { mode: 'card', title: 'Plain card' })])]))).not.toThrow()
+  })
+
+  it('rejects card media that is not an image or video library reference', () => {
+    const withMedia = (media: unknown) => projectJson([objectJson('cube-1', [textAttachment('att-1', { mode: 'card', media })])])
+    expect(() => deserializeProject(withMedia({ kind: 'audio', assetId: 'creak' }))).toThrow(/invalid media/)
+    expect(() => deserializeProject(withMedia({ kind: 'image' }))).toThrow(/invalid media/)
+    expect(() => deserializeProject(withMedia({ kind: 'video', assetId: 'clip', caption: 'x'.repeat(501) }))).toThrow(/invalid caption/)
+    expect(() => deserializeProject(withMedia({ kind: 'image', assetId: 'photo', alt: 42 }))).toThrow(/invalid alt text/)
+  })
+
+  it('rejects malformed reserved card fields', () => {
+    const withFields = (fields: unknown) => projectJson([objectJson('cube-1', [textAttachment('att-1', { mode: 'card', fields })])])
+    expect(() => deserializeProject(withFields('blank'))).toThrow(/invalid field list/)
+    expect(() => deserializeProject(withFields([{ key: '', label: 'Empty key' }]))).toThrow(/invalid field/)
+    expect(() => deserializeProject(withFields([{ key: 'a', label: 'A', locked: 'yes' }]))).toThrow(/invalid field/)
+  })
+
   it('accepts an attachment whose assetId is in no catalog', () => {
     expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'audio', assetId: 'missing-forever' }])]))).not.toThrow()
   })

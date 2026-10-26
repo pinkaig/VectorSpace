@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Actor, ClassMember, ContentSnapshot, Project, ProjectVersion
+from .models import Actor, Assignment, ClassMember, ContentSnapshot, Project, ProjectVersion
 from .routers.projects import distinct_name
 
 # the two seeded people the sign-in picker maps to, so whatever is interesting is reachable
@@ -244,6 +244,53 @@ def seed_focus(db: Session, teacher: Actor, student: Actor, templates: list[Proj
                       label=f"Sent by {teacher.display_name}", author=teacher)
     return created
 
+# the task Ms Tan gives the class she shares with Aisyah; matches the Gallery walk template
+ASSIGNMENT_TASK = (
+    "Build a gallery walk about something you learned this term. Add at least 3 exhibits "
+    "with facts, and one thing that reacts when visitors click."
+)
+
+
+def seed_assignment(db: Session, teacher: Actor, student: Actor, templates: list[Project], now: datetime) -> None:
+    """Ms Tan assigns Gallery walk to the class she shares with Aisyah, due in four days, and
+    Aisyah's first sent copy belongs to it, so the student home shows a real task and due date.
+
+    Runs after seed_focus, which makes that copy. Re-running adds nothing: the assignment is
+    looked up before it is made, and the copy is only linked once.
+    """
+    source = next((t for t in templates if t.name == "Gallery walk"), None)
+    shared = db.scalar(
+        select(ClassMember.class_id)
+        .where(ClassMember.actor_id == student.id)
+        .where(ClassMember.class_id.in_(select(ClassMember.class_id).where(ClassMember.actor_id == teacher.id)))
+    )
+    if source is None or shared is None:
+        return
+
+    assignment = db.scalar(
+        select(Assignment).where(Assignment.class_id == shared, Assignment.project_id == source.id)
+    )
+    if assignment is None:
+        assignment = Assignment(
+            class_id=shared,
+            project_id=source.id,
+            task=ASSIGNMENT_TASK,
+            due_at=(now + timedelta(days=4)).date(),
+            created_by_id=teacher.id,
+        )
+        db.add(assignment)
+        db.flush()
+
+    # the first copy Ms Tan sent ("Gallery walk"; the second is "Gallery walk (2)")
+    copy = db.scalar(
+        select(Project).where(
+            Project.created_by_id == student.id, Project.kind == "project", Project.name == source.name
+        )
+    )
+    if copy is not None and copy.assignment_id is None:
+        copy.assignment_id = assignment.id
+        db.flush()
+
 
 def seed_content(db: Session, teachers: list[Actor], students: list[Actor]) -> tuple[int, int]:
     """Templates, one project per person, then the focus states. Returns (templates, projects created)."""
@@ -255,5 +302,6 @@ def seed_content(db: Session, teachers: list[Actor], students: list[Actor]) -> t
     created = seed_projects(db, [p for p in teachers + students if p.email not in focus], templates, now)
     if teacher is not None and student is not None:
         created += seed_focus(db, teacher, student, templates, now)
+        seed_assignment(db, teacher, student, templates, now)
     db.commit()
     return len(templates), created

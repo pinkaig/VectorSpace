@@ -8,10 +8,11 @@ conflict resolution) belong in Stage 3+ service/repository layers.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Boolean,
@@ -19,6 +20,7 @@ from sqlalchemy import (
     Integer,
     JSON,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -112,6 +114,31 @@ class ClassMember(Base):
     classroom: Mapped["Classroom"] = relationship(back_populates="members")
     actor: Mapped["Actor"] = relationship()
 
+class Assignment(Base):
+    """A project a teacher gives to a class, with the task and due date the students see.
+    Each student's copy points back here (projects.assignment_id), so the task is stored
+    once per class instead of once per student."""
+
+    __tablename__ = "assignments"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    class_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False
+    )
+    # the teacher's project or template the students' copies were made from
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="RESTRICT"), nullable=False
+    )
+    task: Mapped[str] = mapped_column(Text, nullable=False)
+    # a day, not a time: the student home shows "Due Friday"
+    due_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
 class Project(Base):
     __tablename__ = "projects"
@@ -139,6 +166,12 @@ class Project(Base):
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("project_versions.id", ondelete="SET NULL", use_alter=True), nullable=True
     )
+    # the assignment this student copy belongs to; None for a teacher's own projects and templates
+    assignment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("assignments.id", ondelete="SET NULL", use_alter=True, name="fk_projects_assignment_id"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
@@ -150,6 +183,7 @@ class Project(Base):
         back_populates="project", foreign_keys="ProjectVersion.project_id"
     )
     media_assets: Mapped[list["MediaAsset"]] = relationship(back_populates="project")
+    media_links: Mapped[list["MediaLink"]] = relationship(back_populates="project")
     interaction_rules: Mapped[list["InteractionRule"]] = relationship(back_populates="project")
     analytics_events: Mapped[list["AnalyticsEvent"]] = relationship(back_populates="project")
 
@@ -212,6 +246,50 @@ class MediaAsset(Base):
         CheckConstraint("kind in ('model', 'image', 'audio', 'video', 'other')", name="ck_media_assets_kind"),
         CheckConstraint("status in ('pending', 'uploaded', 'failed')", name="ck_media_assets_status"),
         CheckConstraint("size_bytes >= 0", name="ck_media_assets_size_nonnegative"),
+    )
+
+
+class MediaLink(Base):
+    """An external video or image (YouTube first) a teacher added to a project's media library.
+
+    A sibling of media_assets rather than extra columns on it, so the upload path and its
+    storage_key/kind constraints stay untouched. Only the parsed provider and id are trusted:
+    url is rebuilt from them, never the text the teacher pasted. A link plays for students
+    only once approval is 'approved'.
+    """
+
+    __tablename__ = "media_links"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    created_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    approval: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    approved_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="SET NULL"), nullable=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    project: Mapped["Project"] = relationship(back_populates="media_links")
+    created_by: Mapped["Actor"] = relationship(foreign_keys=[created_by_id])
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "provider", "provider_id", name="uq_media_links_project_provider_id"),
+        CheckConstraint("kind in ('image', 'video')", name="ck_media_links_kind"),
+        CheckConstraint("provider in ('youtube')", name="ck_media_links_provider"),
+        CheckConstraint("approval in ('pending', 'approved', 'rejected')", name="ck_media_links_approval"),
     )
 
 

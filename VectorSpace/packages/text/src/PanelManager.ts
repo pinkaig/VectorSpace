@@ -15,7 +15,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System section 7
  * Links point at the project wiki; migration is still in progress.
  */
-import type { TextPresentation } from '@vectorspace/project'
+import type { CardMedia, TextPresentation } from '@vectorspace/project'
 import type { PanelStatus, TextStateStore } from './TextStateStore'
 
 export interface OpenPanelInput {
@@ -28,6 +28,7 @@ export interface OpenPanelInput {
   pageCount?: number
   title?: string
   lang?: string
+  media?: CardMedia
 }
 
 export type PanelSelector = { panelId: string } | { attachmentId: string } | { assetId: string } | { top: true }
@@ -73,6 +74,7 @@ export class PanelManager {
       pageCount: Math.max(1, input.pageCount ?? 1),
       title: input.title,
       lang: input.lang,
+      media: input.media,
       modal: input.modal ?? false,
       autoCloseAt: input.autoCloseMs === undefined ? undefined : this.clock() + input.autoCloseMs,
     }
