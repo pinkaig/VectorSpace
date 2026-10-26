@@ -16,6 +16,7 @@
 /******************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useNavigate } from "react-router";
 import {
   Archive,
   Copy,
@@ -223,6 +224,7 @@ function ProjectMenu({
 
 export default function TeacherHomePage() {
   const { displayName } = useSession();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState(startingProjects);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ProjectRow | null>(null);
@@ -366,7 +368,7 @@ export default function TeacherHomePage() {
             <button type="button" className="teacher-home-primary">
               Set up project
             </button>
-            <button type="button" className="teacher-home-secondary">
+            <button type="button" className="teacher-home-secondary" onClick={()=>navigate("/teacher/review")}>
               Review {activeClass.sent} submissions
             </button>
           </div>
@@ -449,11 +451,10 @@ export default function TeacherHomePage() {
               ) : (
                 <button
                   type="button"
-                  className={
-                    project.actionIsPrimary
-                      ? "teacher-home-small teacher-home-small-primary"
-                      : "teacher-home-small"
-                  }
+                  className={project.actionIsPrimary ? "teacher-home-small teacher-home-small-primary" : "teacher-home-small"}
+                  onClick={() => {
+                    if (project.action === "See results") navigate("/teacher/results");
+                  }}
                 >
                   {project.action}
                 </button>
