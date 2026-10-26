@@ -1538,6 +1538,7 @@ button:disabled {
   border-radius: 8px;
 }
 .float-segment button {
+  flex: 1;
   height: 24px;
   padding: 0 9px;
   border: 0;
