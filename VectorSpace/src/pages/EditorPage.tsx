@@ -15,7 +15,7 @@
 /****************************************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
-import { useNavigate,Link } from 'react-router'
+import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
@@ -291,7 +291,6 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
             <button className="top-icon-button" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen} title="More" aria-label="More"><MoreHorizontal size={18} /></button>
             <div className="top-more-items" onClick={() => setMoreMenuOpen(false)}>
-              <button className="button ghost" onClick={() => navigate('/teacher')}>Home</button>
               <button className="button ghost" onClick={loadDraft}>Load draft</button>
               <button className="button ghost" onClick={loadAudioDemo} disabled={isAudioDemoLoaded} title={isAudioDemoLoaded ? 'Audio demo is already loaded in this project' : 'Add the bundled audio demo zones, rules, and SFX targets'}>{isAudioDemoLoaded ? 'Audio demo loaded' : 'Load audio demo'}</button>
             </div>
