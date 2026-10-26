@@ -86,6 +86,8 @@ export class TextSystem {
       autoCloseMs: opts.autoCloseMs ?? att.presentation.autoCloseMs,
       title: opts.title ?? att.presentation.title ?? meta?.title,
       lang: meta?.lang,
+      // only a card shows media; other modes ignore the field even if a save carries it
+      media: att.presentation.mode === 'card' ? att.presentation.media : undefined,
     })
     if (nodes) this.nodesByPanel.set(status.id, nodes)
     return {

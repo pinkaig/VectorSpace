@@ -415,3 +415,51 @@
   color: var(--purple-300);
   font-size: 32px;
 }
+
+/* ── Info tab: card form and preview (InfoCardSection.tsx) ────────────── */
+
+.info-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.info-card-field input,
+.info-card-field textarea,
+.info-card-field select {
+  padding: 7px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.info-card-field textarea {
+  resize: vertical;
+}
+
+.info-card-field :focus {
+  border-color: var(--purple-500);
+  outline: none;
+}
+
+.info-card-message.error {
+  color: var(--red-700);
+}
+
+.info-card-message.saved {
+  color: var(--green-800);
+}
+
+/* the preview reuses the run-time card's classes, but sits in the panel instead of floating */
+.object-panel .info-card-preview {
+  width: 100%;
+  max-height: none;
+  box-shadow: none;
+}
