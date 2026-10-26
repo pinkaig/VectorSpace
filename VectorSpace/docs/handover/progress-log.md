@@ -357,3 +357,35 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 **Needs you**
 - Run the B10 check on the deployment.
 - **Storage CORS:** the browser PUTs uploads straight to MinIO from the app's address, so MinIO must allow that origin. MinIO allows all origins by default unless `MINIO_API_CORS_ALLOW_ORIGIN` narrows it. This has not been tested end to end.
+
+---
+
+## 2026-10-26 · Walkthrough and status
+
+**Done:** Step 0, A1–A3, A6 (types only), B2–B10. A4 and A5 are done in part: the data, operations and UI are built, but they are not yet mounted in the editor or the 3D view.
+**Skipped:** B11 (stretch), as the handover says unless asked. A7 (`showPanel wait:true`) is recorded only. It needs a wait-for-event step in the sequencer, which is in the rules/interaction packages and out of scope. `registerTextActions.ts` still warns when it is used.
+
+**Try it today**
+1. `npm run dev`, sign in as a teacher, open the editor, then press Play.
+2. Load `tests/e2e/fixtures/text-demo-project.json` through Import JSON, then press Play. A panel opens. Click the scene: it stays open. Press Escape: the top panel closes. Press X: it closes.
+3. To see a card, edit the fixture so `att-welcome` has `"presentation": { "mode": "card", "title": "Welcome", "media": { "kind": "image", "assetId": "x", "caption": "Hello" } }`, then import it and press Play. The card shows "Image unavailable" with the caption, because the local editor has no media server.
+4. API: run `uvicorn app.main:app` in `apps/api` with MinIO up, then follow `apps/api/tests/test_media.py`. It walks through upload, confirm, link, approve and the student's view in order.
+
+**Read the code in this order**
+1. `packages/project/src/index.ts`: `CardMedia`, `MediaViewProps`, `TextPresentation` (mode `card`), `ZoneDefinition.marker`. Then `capabilities.ts`.
+2. `src/runtime/TextPanelHost.tsx` and `panelKeys.ts`: how a card draws and closes.
+3. `src/runtime/MediaView.tsx`, then `mediaLibrary.tsx` and `youtube.ts`: how a media reference becomes an image, a video or an embed.
+4. `packages/assets/src/resolvers/RemoteMediaResolver.ts` and `ContentGuardResolver.ts`: the path from id to signed URL, and the safety check.
+5. `apps/api/app/routers/media.py` and `media_policy.py`: who may do what, and which links and files are allowed.
+6. `src/editor/cardEditorOperations.ts`, `src/sections/objectPanel/InfoCardSection.tsx` and `src/sections/mediaLibrary/MediaLibraryPanel.tsx`: the authoring side, waiting to be mounted.
+
+**Open items, collected**
+1. **Mounting** (other owners' files):
+   - `EditorPage.tsx`: render `ObjectPanel` with the four card props.
+   - A teacher page: mount `MediaLibraryPanel`.
+   - The page that opens a server project: wrap it in `MediaLibraryProvider`.
+2. **Run-time click opens a card**, for objects and hotspots. This is the rules owner's job, using the capability table.
+3. **Hotspot marker drawing and picking** in `src/viewport`.
+4. **Owner confirmation:** the A-questions (A1 entry), the table shape and permissions (B2/B3 entry), and whether students may propose links.
+5. **Deployment checks:** B10 range requests, MinIO CORS, and YouTube on a school network.
+6. **Existing failure:** `navigation.spec.ts` "a teacher can walk login…" still looks for the removed "Home" button. It was failing before this work.
