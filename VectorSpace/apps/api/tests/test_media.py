@@ -52,6 +52,7 @@ def upload(client, project, fake_storage, **overrides):
 def test_teacher_uploads_a_file_in_three_steps(client, project, fake_storage) -> None:
     entry = upload(client, project, fake_storage)
     assert entry["status"] == "uploaded" and entry["source"] == "file"
+    assert entry["label"] == "stone.png"
     opened = client.get(media_url(project, f"/{entry['id']}"), headers=as_user("s1")).json()
     assert opened["download_url"].startswith("https://store.test/get/projects/")
     assert opened["download_expires_in"] == 900
@@ -112,6 +113,7 @@ def test_link_is_stored_by_id_never_as_pasted(client, project, fake_storage) -> 
     link = client.post(media_url(project, "/links"), json={"url": pasted}, headers=as_user("t1")).json()
     assert link["provider"] == "youtube" and link["provider_id"] == "dQw4w9WgXcQ"
     assert link["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    assert link["label"] == "YouTube video dQw4w9WgXcQ"
     again = client.post(media_url(project, "/links"), json={"url": "https://www.youtube.com/embed/dQw4w9WgXcQ"}, headers=as_user("t1"))
     assert again.status_code == 409
 

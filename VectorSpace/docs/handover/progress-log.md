@@ -282,3 +282,41 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 
 **Needs you**
 - Nothing new.
+
+---
+
+## 2026-10-26 · B4 + B8: upload and link approval
+
+**Changed**
+- `src/api/media.ts` (new): the browser client for the media routes.
+  - `listMedia`, `addMediaLink`, `reviewMediaLink`, `deleteMedia`.
+  - `uploadMediaFile`: ask for a URL, PUT the file with progress, then confirm.
+  - `checkUploadFile`: refuses a wrong-type or over-size file before sending.
+  - `playableChoices`: picker choices for the card editor.
+- `src/sections/mediaLibrary/MediaLibraryPanel.tsx` + `.css` (new): upload with a progress bar, add a YouTube link with live feedback, a "Waiting for approval" list with Approve / Send back and an optional comment, a list of all entries with status chips, and delete.
+- `apps/api/app/routers/media.py`: entries now carry a `label`, the file name or "YouTube video ‹id›", so pickers can show names.
+- Tests: `src/api/media.test.ts`, 6 cases. Two assertions were added in `apps/api/tests/test_media.py`.
+
+**Decision**
+- **Approval lives in the media library panel for now.** `src/pages/TeacherReviewPage.tsx`, which the handover names, does not exist in the repo, so the panel copies the Approve / Send back pattern. Rejected alternative: building a review page. Pages and routes are not in my scope.
+- **Upload progress uses `XMLHttpRequest`.** `fetch` cannot report upload progress. No library was added.
+- **Students see a read-only list.** `canEdit` and `canReview` hide the controls. The server enforces the same rules either way, so a hidden button is never the only protection.
+
+**Method**
+- Choosing `new.png` runs `POST /projects/p1/media {kind:'image', content_type:'image/png', size_bytes:3, filename:'new.png'}`. Then it runs `PUT <presigned URL>` with `Content-Type: image/png` and progress, then `POST …/f2/confirm`, then refreshes the list. The file shows as "Ready".
+- Choosing `bad.svg` shows "Only PNG, JPEG or WebP images and MP4 or WebM videos can be uploaded" and sends nothing.
+
+**Check**
+- `npx vitest run`: 59 files, 465 tests pass. `tsc`: clean. `pytest apps/api/tests`: 105 pass.
+- A one-off browser check used a temporary page and a fake API, both deleted before commit. Every request had the bearer token and the expected body.
+  - A bad link showed the parser's message.
+  - Adding a good link worked.
+  - Approve with a comment worked, and so did Send back with a comment. Both comments show on the entry.
+  - Uploading a PNG produced POST, then PUT to storage with the right type, then confirm.
+  - An SVG was refused with no request.
+  - Delete removed the entry. No page errors.
+- Not checked: a real MinIO upload (needs the deployment) and real upload progress on a large file.
+
+**Needs you**
+- **Mounting the panel:** it must be mounted by a teacher-facing page with the project id, the session's `getToken`, and `canEdit`/`canReview` from the user's role. The Teacher Review page or the project editor page could host it. Both are outside my scope. Its `onChange` gives the entries, and `playableChoices(entries)` is exactly what the card editor's `mediaChoices` prop needs.
+- **Student proposals:** whether students may propose links (handover question 1) is still open. Today only teachers and admins can add links, as B3 says.

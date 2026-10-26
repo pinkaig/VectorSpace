@@ -66,6 +66,7 @@ class MediaEntryResponse(BaseModel):
     project_id: uuid.UUID
     kind: str
     source: str  # 'file' or 'external'
+    label: str  # what a picker shows: the uploaded file's name, or "YouTube video <id>"
     # file only
     status: str | None = None  # pending, uploaded or failed
     content_type: str | None = None
@@ -114,6 +115,7 @@ def _visible(actor: Actor, entry: MediaAsset | MediaLink) -> bool:
 def _file_entry(asset: MediaAsset) -> MediaEntryResponse:
     return MediaEntryResponse(
         id=asset.id, project_id=asset.project_id, kind=asset.kind, source="file",
+        label=asset.storage_key.rsplit("/", 1)[-1],
         status=asset.status, content_type=asset.content_type, size_bytes=asset.size_bytes,
         created_at=asset.created_at, updated_at=asset.updated_at,
     )
@@ -122,6 +124,7 @@ def _file_entry(asset: MediaAsset) -> MediaEntryResponse:
 def _link_entry(link: MediaLink) -> MediaEntryResponse:
     return MediaEntryResponse(
         id=link.id, project_id=link.project_id, kind=link.kind, source="external",
+        label=f"YouTube video {link.provider_id}",
         provider=link.provider, provider_id=link.provider_id, url=link.url,
         approval=link.approval, approved_by_id=link.approved_by_id, approved_at=link.approved_at,
         review_comment=link.review_comment, created_at=link.created_at, updated_at=link.updated_at,
