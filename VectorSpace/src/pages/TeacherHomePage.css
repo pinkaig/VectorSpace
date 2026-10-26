@@ -57,10 +57,9 @@
   color: var(--text-muted);
 }
 
-/* ── Last project card: picture left, info right, ⋯ top right ─────────── */
 .teacher-home-class {
   position: relative;          /* so the ⋯ can sit in its corner */
-  flex: 0 0 auto;              /* never squashed by the All projects box */
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 24px;
@@ -69,6 +68,13 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
+}
+
+/* the class card's ⋯ sits in its top-right corner */
+.teacher-home-class > .teacher-home-menu-anchor {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .teacher-home-class-more {
@@ -255,12 +261,164 @@
 }
 
 .teacher-home-all-title {
-  margin: 0 0 12px;
+  margin: 0;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 22px;
   line-height: 1.15;
 }
+
+/* ── All projects head: title left, Archived toggle right ──────────────── */
+.teacher-home-all-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.teacher-home-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* a project that was just duplicated */
+.teacher-home-row-new {
+  border-color: var(--purple-300);
+  background: var(--purple-50);
+}
+
+/* ── ⋯ menu: opens under its button, right-aligned ────────────────────── */
+.teacher-home-menu-anchor {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.teacher-home-menu {
+  position: fixed;             /* floats above everything, so the list can't cut it off */
+  z-index: 50;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.teacher-home-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-btn-sm);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.teacher-home-menu-item:hover:not(:disabled) { background: var(--bg-app); }
+
+.teacher-home-menu-item:disabled {
+  opacity: 0.4;                 /* manual: disabled = 40% opacity */
+  cursor: not-allowed;
+}
+
+.teacher-home-menu-item svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.teacher-home-menu-item span {
+  display: flex;
+  flex-direction: column;
+}
+
+.teacher-home-menu-item strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.teacher-home-menu-item small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.teacher-home-menu-item-danger { color: var(--red-700); }
+
+/* ── Delete confirm popup ─────────────────────────────────────────────── */
+.teacher-home-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: var(--overlay);
+}
+
+.teacher-home-dialog {
+  width: min(420px, 100%);
+  padding: 24px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.teacher-home-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--red-50);
+  color: var(--red-500);
+}
+
+.teacher-home-dialog-title {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.teacher-home-dialog-text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.teacher-home-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.teacher-home-danger {
+  height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--red-500);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.teacher-home-danger:hover { background: var(--red-700); }
 
 .teacher-home-all-list {
   display: flex;
@@ -318,6 +476,27 @@
 
 .teacher-home-row-details-published {
   color: var(--green-800);
+}
+
+/* an archived project: faded, with an outlined chip */
+.teacher-home-row-archived {
+  border-style: dashed;
+  background: var(--bg-app);
+}
+
+.teacher-home-row-archived .teacher-home-row-name {
+  color: var(--text-muted);
+}
+
+.teacher-home-chip-outline {
+  border-color: var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+/* Restore: a white small button with purple text */
+.teacher-home-small-restore {
+  color: var(--purple-600);
 }
 
 /* ── Temporary dev section (remove with ProjectListsSection) ──────────── */
