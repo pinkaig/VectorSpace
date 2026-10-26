@@ -342,7 +342,7 @@ export const setObjectEnabled = (project: ProjectData, input: ObjectFlagInput): 
 export const updateScene = (
   project: ProjectData,
   input: SceneUpdateInput,
-  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera'>>,
+  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout'>>,
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const scene = requireScene(next, input.sceneId)
@@ -382,6 +382,46 @@ export const setActiveScene = (
   const next = cloneProject(project)
   requireScene(next, sceneId)
   next.activeSceneId = sceneId
+  return { project: next }
+}
+
+export const removeScene = (
+  project: ProjectData,
+  sceneId: string,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const scene = requireScene(next, sceneId)
+  // a project always has a scene to show and to make active
+  if (next.scenes.length === 1) {
+    throw new ObjectOperationError('A project needs at least one scene')
+  }
+  const index = next.scenes.indexOf(scene)
+  next.scenes.splice(index, 1)
+  // rules targeting the scene's objects or zones would fail validateRules on the
+  // next load, so they go with the scene (same reason as removeObject)
+  const objectIds = new Set(scene.objects.map((object) => object.id))
+  const zoneIds = new Set((scene.zones ?? []).map((zone) => zone.id))
+  if (Array.isArray(next.rules)) {
+    next.rules = next.rules.filter((rule) =>
+      !(rule.objectId !== undefined && objectIds.has(rule.objectId))
+      && !(rule.zoneId !== undefined && zoneIds.has(rule.zoneId)))
+  }
+  if (next.activeSceneId === sceneId) {
+    next.activeSceneId = next.scenes[Math.max(0, index - 1)].id
+  }
+  return { project: next }
+}
+
+// Scene order is the visit order; this moves one scene to `toIndex` (clamped to the list).
+export const moveScene = (
+  project: ProjectData,
+  sceneId: string,
+  toIndex: number,
+): ObjectOperationResult => {
+  const next = cloneProject(project)
+  const scene = requireScene(next, sceneId)
+  next.scenes.splice(next.scenes.indexOf(scene), 1)
+  next.scenes.splice(Math.min(Math.max(0, toIndex), next.scenes.length), 0, scene)
   return { project: next }
 }
 

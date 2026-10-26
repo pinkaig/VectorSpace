@@ -50,6 +50,7 @@ export function ViewportHint({ text }: { text: string | null }) {
 
 // only in Run Simulation only: a fixed center-screen aim reference for mouse-look, since the
 // cursor is hidden while pointer-locked (in interactionController file, funtion: onPointerLockChange).
-export function ViewportCrosshair() {
-  return <div className="viewport-crosshair" />
+// `ring` is play mode's Walk: a small hollow circle instead of the cross.
+export function ViewportCrosshair({ ring = false }: { ring?: boolean }) {
+  return <div className={ring ? 'viewport-crosshair ring' : 'viewport-crosshair'} />
 }

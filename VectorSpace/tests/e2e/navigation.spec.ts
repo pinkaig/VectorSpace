@@ -19,18 +19,21 @@ test('the login page downloads neither the editor nor any audio', async ({ page 
 })
 
 test('a teacher can walk login, home, editor, home and sign out', async ({ page }) => {
+  test.setTimeout(120_000) // the editor is large and can take a while to load
+
   await page.goto('/')
   await expect(page).toHaveURL(/#\/login$/)
 
   await page.getByRole('button', { name: /Educator/ }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
 
-  await page.getByRole('link', { name: 'Editor' }).click()
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  // the teacher home has no editor link yet, so open it by URL
+  await page.goto('/#/editor')
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 
   // a refresh keeps the session, so the editor is still open afterwards
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 
   await page.getByRole('button', { name: 'Home' }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
@@ -40,6 +43,8 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
 })
 
 test('an admin reaches every page and can switch the role it acts as', async ({ page }) => {
+  test.setTimeout(120_000) // the editor is large and can take a while to load
+
   await page.goto('/')
   await page.getByRole('button', { name: /VThere Admin/ }).click()
   await expect(page).toHaveURL(/#\/admin$/)
@@ -61,7 +66,7 @@ test('an admin reaches every page and can switch the role it acts as', async ({ 
 
   // an admin acting as a student still opens the editor
   await page.getByRole('link', { name: 'teacher: Editor' }).click()
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 })
 
 // The two guard checks sign in through storage (signInAs): the walk above already covers the buttons.

@@ -31,6 +31,8 @@ import {
   createScene,
   duplicateObject,
   removeObject,
+  removeScene,
+  moveScene,
   renameObject,
   reparentObject,
   setActiveScene,
@@ -130,7 +132,7 @@ export const setEditorObjectEnabled = (project: ProjectData, sceneId: string, ob
 export const updateEditorScene = (
   project: ProjectData,
   sceneId: string,
-  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera'>>,
+  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout'>>,
 ): ObjectOperationResult => updateScene(project, { sceneId }, changes)
 
 export const selectEditorScene = (project: ProjectData, sceneId: string): ObjectOperationResult =>
@@ -138,3 +140,9 @@ export const selectEditorScene = (project: ProjectData, sceneId: string): Object
 
 export const createEditorScene = (project: ProjectData, scene: ProjectData['scenes'][number]): ObjectOperationResult =>
   createScene(project, scene)
+
+export const removeEditorScene = (project: ProjectData, sceneId: string): ObjectOperationResult =>
+  removeScene(project, sceneId)
+
+export const moveEditorScene = (project: ProjectData, sceneId: string, toIndex: number): ObjectOperationResult =>
+  moveScene(project, sceneId, toIndex)

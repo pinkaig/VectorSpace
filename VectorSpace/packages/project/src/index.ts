@@ -192,6 +192,14 @@ export interface SceneData {
   startCamera: CameraPose
   // absent in files written before zones existed; the serializer backfills to []
   zones?: ZoneDefinition[]
+  // Cell on the rooms map: x grows east, z grows south. Absent on scenes made before
+  // the map existed; the editor treats an unplaced first scene as the origin.
+  layout?: RoomCell
+}
+
+export interface RoomCell {
+  x: number
+  z: number
 }
 
 /** A mix group with its own volume and mute. The four below always exist; a project may add custom ids. */

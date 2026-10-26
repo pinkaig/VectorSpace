@@ -34,7 +34,7 @@ import { setUniformScaleHandleColor, UNIFORM_SCALE_COLOR, UNIFORM_SCALE_HOVER_CO
 import { setOriginHandleColor } from '../../gizmo/originHandle'
 import type { ViewportOverlays } from './overlayWidgets'
 import { createDragSessions } from './dragSessions'
-import { ndcInRect, overlayDims, overlayRect, pointInRect } from './overlayWidgets'
+import { ndcInRect, overlayRect, pointInRect, type OverlayLayout } from './overlayWidgets'
 
 export type InteractionCameraMode = 'orbit' | 'walk'
 export type InteractionGizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -50,6 +50,8 @@ export interface ViewportInteractionData {
   showAxisIndicator: boolean
   // Widgets shrink in the quad layout (overlayDims), so their hit boxes must too.
   compactOverlays: boolean
+  // Where the widget column starts (OverlayLayout.insetTop).
+  overlayInsetTop: number
   // Object ids whose asset is still resolving or failed to resolve. Raycasting
   // skips these so a click can't select or drag an object with no confirmed
   // visual representation yet — see https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Asset-Manager.
@@ -63,6 +65,9 @@ export interface ViewportInteractionData {
   // for input is decided here: pointer picking, look, drags, runtime key
   // triggers, and walk movement all pause until the panel closes.
   modalOpen: boolean
+  // How the visitor moves in play mode ('tap' to go, 'walk', 'tour' spots); look is a drag
+  // in all three. null keeps the older pointer-lock look.
+  playMove: 'tap' | 'walk' | 'tour' | null
 }
 
 export interface ViewportInteractionCallbacks {
@@ -91,6 +96,9 @@ export interface ViewportInteractionCallbacks {
    * listeners do no runtime work at all while authoring.
    */
   onRuntimeEvent?: (event: RuntimeEvent) => void
+  // Play mode, Tap to go: a click that hit no object, as a world ray; the viewport walks
+  // the visitor to where it meets the floor.
+  tapFloor?: (ray: THREE.Ray) => void
 }
 
 export interface ViewportInteractionInput {
@@ -228,11 +236,14 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     return hit && hit.object !== body ? hit : undefined
   }
 
+  const overlayLayout = (data: ViewportInteractionData): OverlayLayout =>
+    ({ compact: data.compactOverlays, insetTop: data.overlayInsetTop, showOctaOrb: data.showOctaOrb })
+
   const tryOverlayPointerDown = (event: PointerEvent): boolean => {
     const data = callbacks.getData()
     const rect = element.getBoundingClientRect()
     if (data.showOctaOrb) {
-      const box = overlayRect('top-right', overlayDims(data.compactOverlays).octaOrb, rect)
+      const box = overlayRect('octaOrb', overlayLayout(data), rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
         overlays.octaOrb.scene.updateMatrixWorld(true)
@@ -254,21 +265,22 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
               ? rollView(currentDirection, currentUp, kind.replace('roll-', '') as 'left' | 'right')
               : nudgeView(currentDirection, currentUp, kind as 'up' | 'down' | 'left' | 'right')
             callbacks.applyOrientation(next.direction, next.up)
-            callbacks.setOrthographic(true)
+            // face views stay perspective, like the View bar's Top / Front / Side
+            callbacks.setOrthographic(false)
             return true
           }
         }
         const vertexHit = pickOctaOrbTarget()
         if (vertexHit) {
           callbacks.snapTo(vertexHit.object.userData.direction as THREE.Vector3)
-          // Orthographic only suits flat face views; an edge view keeps its perspective.
-          callbacks.setOrthographic(overlays.octaOrb.vertexMeshes.includes(vertexHit.object as THREE.Mesh))
+          // face and edge views alike stay perspective, like the View bar's Top / Front / Side
+          callbacks.setOrthographic(false)
         }
         return true
       }
     }
     if (data.showAxisIndicator) {
-      const box = overlayRect('bottom-left', overlayDims(data.compactOverlays).axisIndicator, rect)
+      const box = overlayRect('axisIndicator', overlayLayout(data), rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
         overlays.axisIndicator.group.updateMatrixWorld(true)
@@ -288,7 +300,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     const rect = element.getBoundingClientRect()
     let overlayHovered = false
     if (data.showOctaOrb) {
-      const box = overlayRect('top-right', overlayDims(data.compactOverlays).octaOrb, rect)
+      const box = overlayRect('octaOrb', overlayLayout(data), rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         overlayHovered = true
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
@@ -315,7 +327,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       }
     }
     if (data.showAxisIndicator) {
-      const box = overlayRect('bottom-left', overlayDims(data.compactOverlays).axisIndicator, rect)
+      const box = overlayRect('axisIndicator', overlayLayout(data), rect)
       if (pointInRect(event.clientX, event.clientY, box)) {
         overlayHovered = true
         const ndc = ndcInRect(event.clientX, event.clientY, box, overlayPointer)
@@ -351,7 +363,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       if (event.button !== 0) return
       // Run simulation: mouse-look is driven by pointer lock (in onPointerMove), not
       // click-and-drag.
-      if (!interactive && data.runtimeActive) {
+      // Play's Walk with a mouse is first-person too; touch keeps drag-to-look.
+      const mouseLook = data.playMove === null || (data.playMove === 'walk' && event.pointerType === 'mouse')
+      if (!interactive && data.runtimeActive && mouseLook) {
         if (document.pointerLockElement !== element) element.requestPointerLock()
         return
       }
@@ -500,7 +514,16 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     if (event.button === 0) pointerDownAt = null
     if (looking) {
       const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY); looking = null
-      if (moved < 4) callbacks.select(pick(event)?.name ?? null)
+      if (moved >= 4) return
+      const hit = pick(event)
+      const data = callbacks.getData()
+      // a tap on an object already fired its click above; a tap on nothing walks there
+      if (!hit && data.runtimeActive && data.playMove === 'tap') {
+        raycaster.setFromCamera(pointer, activeCamera.current)
+        callbacks.tapFloor?.(raycaster.ray.clone())
+        return
+      }
+      callbacks.select(hit?.name ?? null)
       return
     }
 
