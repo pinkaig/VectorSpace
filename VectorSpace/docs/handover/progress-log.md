@@ -258,3 +258,27 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 2. **Opening a card on click (A4/A5 at run time).** Clicking an object or hotspot must call `text.open(cardAttachment)`. Today only a WHEN→DO rule opens text, and wiring that is the rules owner's job. The capability table already lists `hotspot-card` with `click` → `showPanel`.
 3. **Drawing hotspots.** `src/viewport/zoneVisuals.ts` and `src/viewport/Viewport.tsx` need to draw a visible marker for `marker: 'hotspot'` zones and let a click on it pick the zone. A catalogue entry, in the catalogue's file, should call `createHotspotCard`.
 4. **Card text cleanup on delete.** Deleting an object leaves its card's text asset behind. It is small, harmless and still loads. Object removal belongs to the authoring engine, so I left it.
+
+---
+
+## 2026-10-26 · B7: link parsing, browser and server in step
+
+**Changed**
+- `packages/assets/src/parseMediaLink.ts` (new): the browser's link parser. It returns `{ provider, providerId }` or `{ error }`.
+- `packages/assets/src/mediaLinkCases.json` (new): 7 links that must be accepted and 20 that must be refused, shared by both test suites.
+- `apps/api/app/media_policy.py`: also refuses a backslash, whitespace, or any `@` or `:` in the host part, including `:443`.
+- `packages/assets/src/parseMediaLink.test.ts` (new). `apps/api/tests/test_media_policy.py` now reads the shared file instead of its own list.
+
+**Decision**
+- **One test list for two parsers.** Rejected alternative: two hand-kept lists. They would drift, and a link the browser accepts but the server refuses, or the reverse, is a confusing bug at best.
+- **Both parsers refuse a few tricky inputs.** A browser reads `https://youtu.be\x` as `https://youtu.be/x`, but Python does not. A browser also silently drops `:443`. Refusing both in both parsers keeps them identical. A real YouTube link never contains either.
+
+**Method**
+- `parseMediaLink('https://youtu.be/dQw4w9WgXcQ?si=abc')` returns `{ provider: 'youtube', providerId: 'dQw4w9WgXcQ' }`.
+- `parseMediaLink('https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ')` returns `{ error: 'Only YouTube links can be added for now' }`.
+
+**Check**
+- `npx vitest run packages/assets`: 70 tests pass. `python -m pytest apps/api/tests`: 105 pass. `tsc`: clean.
+
+**Needs you**
+- Nothing new.

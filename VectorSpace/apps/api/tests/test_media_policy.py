@@ -1,5 +1,6 @@
 """The upload allowlist must match the client's, and the link parser must refuse anything unexpected."""
 
+import json
 import re
 from pathlib import Path
 
@@ -31,46 +32,18 @@ def test_svg_is_never_allowed() -> None:
     assert all("image/svg+xml" not in spec["content_types"] for spec in MEDIA_KIND_SPECS.values())
 
 
-@pytest.mark.parametrize(
-    "url",
-    [
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://youtube.com/watch?v=dQw4w9WgXcQ&t=42s&list=PL123",
-        "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://youtu.be/dQw4w9WgXcQ?si=abc",
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",
-        "https://www.youtube.com/shorts/dQw4w9WgXcQ",
-        "  https://YOUTU.BE/dQw4w9WgXcQ  ",
-    ],
-)
+# the same list the browser's parser is tested against, so the two can never disagree
+LINK_CASES = json.loads((Path(__file__).resolve().parents[3] / "packages" / "assets" / "src" / "mediaLinkCases.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("url", LINK_CASES["accept"])
 def test_youtube_links_parse_to_the_same_id(url) -> None:
     parsed = parse_media_link(url)
     assert (parsed.provider, parsed.provider_id, parsed.kind) == ("youtube", "dQw4w9WgXcQ", "video")
     assert parsed.canonical_url == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 
-@pytest.mark.parametrize(
-    "url",
-    [
-        "javascript:alert(1)",
-        "data:text/html,<script>alert(1)</script>",
-        "http://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ",
-        "https://evil.test/youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://www.youtube.com@evil.test/watch?v=dQw4w9WgXcQ",
-        "https://user@www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://www.youtube.com:8443/watch?v=dQw4w9WgXcQ",
-        "https://www.youtube.com/watch?v=short",
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ&v=aaaaaaaaaaa",
-        "https://www.youtube.com/watch?v=dQw4w9WgXc%22",
-        "https://www.youtube.com/channel/UC123",
-        "https://youtu.be/",
-        "https://youtu.be/dQw4w9WgXcQ/extra",
-        "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
-        "",
-        "https://youtu.be/" + "a" * 600,
-    ],
-)
+@pytest.mark.parametrize("url", LINK_CASES["reject"])
 def test_hostile_or_unsupported_links_are_refused(url) -> None:
     with pytest.raises(LinkError):
         parse_media_link(url)

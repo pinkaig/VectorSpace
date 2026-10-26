@@ -47,14 +47,19 @@ def parse_media_link(url: str) -> ParsedLink:
     """Turn a pasted link into (provider, id). Allowed: YouTube watch, youtu.be, embed and shorts links over https."""
     if not isinstance(url, str) or not url.strip() or len(url) > MAX_LINK_LENGTH:
         raise LinkError("Paste a link to a YouTube video")
+    text = url.strip()
+    # browsers read a backslash as a slash and Python does not; refusing it (and any
+    # whitespace) keeps this parser and the browser's (parseMediaLink.ts) in agreement
+    if any(character in text for character in "\\ \t\r\n"):
+        raise LinkError("That is not a valid link")
     try:
-        parts = urlsplit(url.strip())
+        parts = urlsplit(text)
     except ValueError as error:
         raise LinkError("That is not a valid link") from error
     if parts.scheme != "https":
         raise LinkError("Only https links can be added")
-    # a username/password or port in the link is never needed and hides the real host
-    if parts.username or parts.password or parts.port is not None:
+    # a username, password or port (even :443) is never needed and can hide the real host
+    if "@" in parts.netloc or ":" in parts.netloc:
         raise LinkError("That is not a valid link")
     host = (parts.hostname or "").lower()
     segments = [segment for segment in parts.path.split("/") if segment]
