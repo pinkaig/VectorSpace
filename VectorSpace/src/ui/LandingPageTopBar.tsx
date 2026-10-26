@@ -14,10 +14,7 @@
 
 import type { ReactNode } from "react";
 import { Box } from "lucide-react";
-import { Link } from "react-router";
 import "./LandingPageTopBar.css";
-
-const HOME = { teacher: "/teacher", admin: "/admin", student: "/student" } as const;
 
 type LandingPageTopBarProps = {
   roleBadge?: "teacher" | "admin"; // students have no badge
@@ -38,14 +35,14 @@ export function LandingPageTopBar({
 }: LandingPageTopBarProps) {
   return (
     <header className="landing-top-bar">
-      <div className="landing-top-bar-brand">
-        {/* logo and name take you back to this role's home page */}
-        <Link to={HOME[roleBadge ?? "student"]} className="landing-top-bar-home" aria-label="VectorSpace home">
+            <div className="landing-top-bar-brand">
+        {/* logo and name: not a link, per the design (only template setup's logo goes home) */}
+        <div className="landing-top-bar-home">
           <div className="landing-top-bar-logo">
             <Box size={22} />
           </div>
           <span className="landing-top-bar-name">VectorSpace</span>
-        </Link>
+        </div>
         {roleBadge === "teacher" && (
           <span className="landing-top-bar-badge teacher">Teacher</span>
         )}

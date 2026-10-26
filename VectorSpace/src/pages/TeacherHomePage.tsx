@@ -2,12 +2,15 @@
  * @file        TeacherHomePage.tsx
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
- * @brief       Teacher home (Classes tab): greeting with New project, the last
- *              project the teacher worked on, and every project in a box that
- *              scrolls on its own. Each project has a ⋯ menu: Duplicate,
- *              Archive (after it is due) and Delete (only when no student has
- *              started it, confirmed first). Shown inside TeacherLayout. Uses
- *              fake data until the backend has classes and submission counts.
+ * @brief       Teacher home (Classes tab): greeting with New project (a popup
+ *              that names the project, picks the class and due date, then opens
+ *              template setup), the last project the teacher worked on, and
+ *              every project in a box that scrolls on its own. Each project has
+ *              a ⋯ menu: Duplicate, Archive (after it is due) and Delete (only
+ *              when no student has started it, confirmed first). Shows a banner
+ *              after a project is assigned on template setup. Shown inside
+ *              TeacherLayout. Uses fake data until the backend has classes and
+ *              submission counts.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -16,14 +19,18 @@
 /******************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import {
   Archive,
+  Box,
+  Check,
   Copy,
+  Info,
   MoreHorizontal,
   Plus,
   RotateCcw,
   Trash2,
+  X,
 } from "lucide-react";
 import { useSession } from "../session/session";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
@@ -53,6 +60,7 @@ type ProjectRow = {
   isPastDue: boolean; // only then can it be archived
   archived?: boolean;
   isNew?: boolean; // just duplicated: shown with a purple border
+  justAssigned?: boolean; // just assigned from template setup: shown with a green border
 };
 
 const startingProjects: ProjectRow[] = [
@@ -77,6 +85,32 @@ const startingProjects: ProjectRow[] = [
     isPastDue: false,
   },
 ];
+
+// The list as the teacher left it. It lives outside the component, so leaving the page
+// (Results, template setup) and coming back keeps new, archived and deleted projects.
+// Fake until the API stores projects; a page refresh starts over.
+let savedProjects: ProjectRow[] = startingProjects;
+
+// what template setup's Assign sends back
+type AssignedNote = {
+  id: string;
+  projectName: string;
+  className: string;
+  due?: string;
+};
+
+// the "assigned" banner, kept until the teacher clicks OK (even across tab switches)
+let savedBanner: AssignedNote | null = null;
+
+// Fake until the frontend loads the teacher's real classes (GET /classes).
+const classOptions = ["Class 2B", "Class 3A", "Class 3B"];
+
+// a week from today as "2026-11-02", the format a date box uses
+const inAWeek = (): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  return date.toISOString().slice(0, 10);
+};
 
 function greetingForTime(): string {
   const hour = new Date().getHours();
@@ -225,12 +259,68 @@ function ProjectMenu({
 export default function TeacherHomePage() {
   const { displayName } = useSession();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState(startingProjects);
+  const location = useLocation();
+
+  // set by template setup's Assign button: which project just went to which class
+  const assigned = (location.state as { assigned?: AssignedNote } | null)
+    ?.assigned;
+
+  // a project just assigned shows first in the list, with a green border
+  const [projects, setProjects] = useState<ProjectRow[]>(() => savedProjects);
+
+  // shows the banner from this visit, or the one still waiting for OK
+  const [banner, setBanner] = useState<AssignedNote | null>(
+    () => assigned ?? savedBanner,
+  );
+
+  // keep the saved copy up to date after every change
+  useEffect(() => {
+    savedProjects = projects;
+  }, [projects]);
+
+  // a project just assigned on template setup goes first in the list, with a green border.
+  // Its id makes sure it's only added once, even if this runs twice.
+  useEffect(() => {
+    if (!assigned) return;
+    savedBanner = assigned;
+    setBanner(assigned);
+    setProjects((current) =>
+      current.some((p) => p.id === assigned.id)
+        ? current
+        : [
+            {
+              id: assigned.id,
+              className: assigned.className,
+              name: assigned.projectName,
+              details: `${assigned.due ? `Due ${assigned.due} · ` : ""}Assigned just now · 0 of 24 started`,
+              action: "Set up project",
+              hasStudentWork: false,
+              isPastDue: false,
+              justAssigned: true,
+            },
+            ...current.map((p) => ({ ...p, justAssigned: false })),
+          ],
+    );
+  }, [assigned]);
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ProjectRow | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  // close the open menu on a click outside any menu, or on Escape
+  // the New project popup
+  const [newOpen, setNewOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newClass, setNewClass] = useState(classOptions[0]);
+  const [newDue, setNewDue] = useState(inAWeek);
+
+  // OK hides the banner for good, and clears it from this visit so Back doesn't bring it back
+  const dismissAssigned = () => {
+    savedBanner = null;
+    setBanner(null);
+    navigate(location.pathname, { replace: true, state: null });
+  };
+
+  // close the open ⋯ menu on a click outside any menu, on Escape, scroll or resize
   useEffect(() => {
     if (!openMenuId) return;
     const close = () => setOpenMenuId(null);
@@ -252,6 +342,16 @@ export default function TeacherHomePage() {
       window.removeEventListener("resize", close);
     };
   }, [openMenuId]);
+
+  // Escape closes the New project popup
+  useEffect(() => {
+    if (!newOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNewOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [newOpen]);
 
   const toggleMenu = (id: string) =>
     setOpenMenuId((current) => (current === id ? null : id));
@@ -293,6 +393,27 @@ export default function TeacherHomePage() {
     setConfirmDelete(null);
   };
 
+  // opens the popup with empty fields each time
+  const openNewProject = () => {
+    setNewName("");
+    setNewClass(classOptions[0]);
+    setNewDue(inAWeek());
+    setNewOpen(true);
+  };
+
+  // goes to template setup with what was picked; an empty name becomes "New museum"
+  const createAndSetUp = () => {
+    navigate("/teacher/template", {
+      state: {
+        newProject: {
+          name: newName.trim() || "New museum",
+          className: newClass,
+          due: newDue,
+        },
+      },
+    });
+  };
+
   const activeProjects = projects.filter((p) => !p.archived);
   const archivedProjects = projects.filter((p) => p.archived);
   // archived ones go at the bottom, only when shown
@@ -302,6 +423,23 @@ export default function TeacherHomePage() {
 
   return (
     <main className="teacher-home-content">
+      {banner && (
+        <div className="teacher-home-banner" role="status">
+          <Check size={18} />
+          <span>
+            <strong>{banner.projectName}</strong> is assigned to{" "}
+            {banner.className}. Students will see it the next time they sign in.
+          </span>
+          <button
+            type="button"
+            className="teacher-home-small"
+            onClick={dismissAssigned}
+          >
+            OK
+          </button>
+        </div>
+      )}
+
       <div className="teacher-home-header">
         <div>
           <h1 className="teacher-home-greeting">
@@ -312,6 +450,7 @@ export default function TeacherHomePage() {
         <button
           type="button"
           className="teacher-home-primary teacher-home-new-button"
+          onClick={openNewProject}
         >
           <Plus size={18} />
           New project
@@ -365,10 +504,18 @@ export default function TeacherHomePage() {
           </p>
 
           <div className="teacher-home-class-actions">
-            <button type="button" className="teacher-home-primary" onClick={() => navigate("/teacher/template")}>
+            <button
+              type="button"
+              className="teacher-home-primary"
+              onClick={() => navigate("/teacher/template")}
+            >
               Set up project
             </button>
-            <button type="button" className="teacher-home-secondary" onClick={()=>navigate("/teacher/review")}>
+            <button
+              type="button"
+              className="teacher-home-secondary"
+              onClick={() => navigate("/teacher/review")}
+            >
               Review {activeClass.sent} submissions
             </button>
           </div>
@@ -414,6 +561,7 @@ export default function TeacherHomePage() {
               className={[
                 "teacher-home-row",
                 project.isNew ? "teacher-home-row-new" : "",
+                project.justAssigned ? "teacher-home-row-assigned" : "",
                 project.archived ? "teacher-home-row-archived" : "",
               ].join(" ")}
             >
@@ -451,9 +599,19 @@ export default function TeacherHomePage() {
               ) : (
                 <button
                   type="button"
-                  className={project.actionIsPrimary ? "teacher-home-small teacher-home-small-primary" : "teacher-home-small"}
+                  className={
+                    project.actionIsPrimary
+                      ? "teacher-home-small teacher-home-small-primary"
+                      : "teacher-home-small"
+                  }
                   onClick={() => {
-                    if (project.action === "See results") navigate("/teacher/results");
+                    if (project.action === "See results")
+                      navigate("/teacher/results");
+                    if (
+                      project.action === "Set up and assign" ||
+                      project.action === "Set up project"
+                    )
+                      navigate("/teacher/template");
                   }}
                 >
                   {project.action}
@@ -516,6 +674,132 @@ export default function TeacherHomePage() {
                 onClick={deleteConfirmed}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {newOpen && (
+        <div className="teacher-home-overlay" onClick={() => setNewOpen(false)}>
+          <div
+            className="teacher-home-dialog teacher-home-dialog-wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="teacher-home-new-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="teacher-home-dialog-head">
+              <div>
+                <h2
+                  id="teacher-home-new-title"
+                  className="teacher-home-dialog-title"
+                >
+                  New project
+                </h2>
+                <p className="teacher-home-dialog-text">
+                  Name it and pick the class. You'll write the brief and rules
+                  next.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="teacher-home-more"
+                aria-label="Close"
+                onClick={() => setNewOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="teacher-home-template">
+              <span className="teacher-home-template-icon">
+                <Box size={18} />
+              </span>
+              <span className="teacher-home-template-text">
+                <strong>Museum template</strong>
+                <small>Two rooms ready for exhibits</small>
+              </span>
+            </div>
+
+            <label
+              className="teacher-home-field-label"
+              htmlFor="new-project-name"
+            >
+              Project name
+            </label>
+            <input
+              id="new-project-name"
+              className="teacher-home-input"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="e.g. Volcano museum"
+              autoFocus
+            />
+
+            <div className="teacher-home-new-row">
+              <div>
+                <span className="teacher-home-field-label">Class</span>
+                <div
+                  className="teacher-home-class-picks"
+                  role="radiogroup"
+                  aria-label="Class"
+                >
+                  {classOptions.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      role="radio"
+                      aria-checked={newClass === name}
+                      className={
+                        newClass === name
+                          ? "teacher-home-pick teacher-home-pick-selected"
+                          : "teacher-home-pick"
+                      }
+                      onClick={() => setNewClass(name)}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label
+                  className="teacher-home-field-label"
+                  htmlFor="new-project-due"
+                >
+                  Due
+                </label>
+                <input
+                  id="new-project-due"
+                  type="date"
+                  className="teacher-home-input"
+                  value={newDue}
+                  onChange={(event) => setNewDue(event.target.value)}
+                />
+              </div>
+            </div>
+
+            <p className="teacher-home-note">
+              <Info size={15} />
+              This makes your own copy. The VThere template stays the same for
+              every teacher.
+            </p>
+
+            <div className="teacher-home-dialog-actions">
+              <button
+                type="button"
+                className="teacher-home-secondary"
+                onClick={() => setNewOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="teacher-home-primary"
+                onClick={createAndSetUp}
+              >
+                Create and set up
               </button>
             </div>
           </div>
