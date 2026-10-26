@@ -40,6 +40,10 @@ export interface Project {
   saved_at: string | null
   saved_by_name: string
   template_name: string | null
+  assignment_id?: string | null
+  task?: string | null
+  due_at?: string | null        // "2026-10-30"
+  assigned_by_name?: string | null
 }
 
 /** One save in a project's history, newest first from GET /projects/:id/versions. */

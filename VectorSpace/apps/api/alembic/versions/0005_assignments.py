@@ -5,8 +5,8 @@ assignment is one row per class: which project the students' copies come from, t
 task text and the due date. Each student copy points back to it through
 projects.assignment_id, so the task is stored once per class, not once per student.
 
-Revision ID: 0004
-Revises: 0003
+Revision ID: 0005
+Revises: 0004
 Create Date: 2026-10-26
 
 """
@@ -17,8 +17,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision: str = "0004"
-down_revision: Union[str, None] = "0003"
+revision: str = "0005"
+down_revision: Union[str, None] = "0004"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
