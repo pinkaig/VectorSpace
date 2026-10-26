@@ -6,9 +6,11 @@
  * Core playback slice of the design in https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System:
  * master + four channels, play/pause/resume/stop/setVolume, autoplay unlock
  * with a queue, and a queryable state store. Deliberately does not implement
- * spatial audio, captions, LRU/budget cache eviction, ducking, retrigger
- * gating, mixer snapshots, or the rule-engine event bridge — see that doc's
- * "Feature tiers" table for what is deferred and why.
+ * spatial audio, captions, ducking, retrigger gating, fades, mixer
+ * snapshots, or the rule-engine event bridge — see that doc's "Feature
+ * tiers" table, and docs/handover/audio-system-status.md for how each
+ * deferred feature was judged. (Decoded-buffer LRU eviction is built; see
+ * maxCachedBuffers and src/content/audioByteCache.ts.)
  *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Audio-System
@@ -35,6 +37,8 @@ export interface PlayRequest {
   loop?: boolean
   rate?: number
   startAt?: number
+  /** Seconds to ramp from silence up to the voice's volume once it starts. Default 0 (no fade). */
+  fadeIn?: number
 }
 
 export interface VoiceSelector {
@@ -72,6 +76,9 @@ export class AudioSystem {
   private readonly maxCachedBuffers: number
   private unlocked = false
   private readonly unlockQueue: QueuedPlay[] = []
+  // A voice fading out is stopped by a timer; keyed by voice id so an immediate stop can cancel it.
+  private readonly fadeTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private hidden = false
 
   constructor(opts: AudioSystemOptions) {
     this.backend = opts.backend
@@ -100,8 +107,24 @@ export class AudioSystem {
     if (this.unlocked) return
     await this.backend.resume()
     this.unlocked = true
+    // Unlocked while the tab was hidden (a gesture can resolve late): keep it frozen until it is shown.
+    if (this.hidden) await this.backend.suspend()
     const queued = this.unlockQueue.splice(0, this.unlockQueue.length)
     for (const { request, voice } of queued) this.startVoice(voice, request)
+    this.notify()
+  }
+
+  /**
+   * Call with `true` when the page is hidden and `false` when it is visible again. Hiding suspends the
+   * whole audio context, so music freezes in place instead of playing from a background tab, and showing
+   * resumes it from the same spot. Before the first unlock there is nothing to freeze or resume.
+   */
+  async setHidden(hidden: boolean): Promise<void> {
+    this.hidden = hidden
+    if (!this.unlocked) return
+    if (hidden) await this.backend.suspend()
+    // The tab may have been hidden again while resume was pending; the latest call wins.
+    else if (!this.hidden) await this.backend.resume()
     this.notify()
   }
 
@@ -125,7 +148,7 @@ export class AudioSystem {
     const voice = new AudioVoice(
       this.backend,
       channelBus.gain,
-      { assetId: req.assetId, channel: resolved.channel, volume: resolved.volume, loop: resolved.loop, rate: resolved.rate, startAtSeconds: req.startAt ?? 0 },
+      { assetId: req.assetId, channel: resolved.channel, volume: resolved.volume, loop: resolved.loop, rate: resolved.rate, startAtSeconds: req.startAt ?? 0, fadeInSeconds: req.fadeIn },
       () => this.notify(),
     )
     this.voices.set(voice.id, voice)
@@ -194,12 +217,32 @@ export class AudioSystem {
     })
   }
 
-  stop(sel: VoiceSelector): void {
+  /**
+   * Stops matching voices. With `fadeOutSeconds` > 0 a playing voice ramps to silence first and is
+   * removed when the ramp ends; a voice still loading, or one already fading, is handled so it never
+   * outlives the fade or restarts it.
+   */
+  stop(sel: VoiceSelector, opts: { fadeOutSeconds?: number } = {}): void {
+    const fadeOutSeconds = opts.fadeOutSeconds ?? 0
     for (const voice of this.selectVoices(sel)) {
-      voice.stop()
-      this.voices.delete(voice.id)
-      this.removeFromUnlockQueue(voice.id)
+      if (fadeOutSeconds > 0 && voice.status === 'playing') {
+        if (voice.isFadingOut) continue
+        voice.fadeOut(fadeOutSeconds)
+        this.fadeTimers.set(voice.id, setTimeout(() => this.finishStop(voice), fadeOutSeconds * 1000))
+      } else {
+        this.finishStop(voice)
+      }
     }
+    this.notify()
+  }
+
+  private finishStop(voice: AudioVoice): void {
+    const timer = this.fadeTimers.get(voice.id)
+    if (timer !== undefined) clearTimeout(timer)
+    this.fadeTimers.delete(voice.id)
+    voice.stop()
+    this.voices.delete(voice.id)
+    this.removeFromUnlockQueue(voice.id)
     this.notify()
   }
 
@@ -254,6 +297,8 @@ export class AudioSystem {
 
   /** Stops and releases every voice. Used by resetRuntime()/scene restart. */
   stopAll(): void {
+    for (const timer of this.fadeTimers.values()) clearTimeout(timer)
+    this.fadeTimers.clear()
     for (const voice of this.voices.values()) voice.stop()
     this.voices.clear()
     this.unlockQueue.length = 0
