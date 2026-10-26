@@ -1996,7 +1996,9 @@ button:disabled {
   flex: none;
   margin: 0 16px;
 }
-.media-view-placeholder {
+/* loading and unavailable keep the slot's 16:9 shape, so the card never jumps or shows a blank box */
+.media-view-loading,
+.media-view-fallback {
   display: grid;
   place-items: center;
   aspect-ratio: 16 / 9;
@@ -2006,6 +2008,21 @@ button:disabled {
   color: var(--text-2);
   font-size: 12px;
   font-weight: 600;
+}
+.media-view-image,
+.media-view-video,
+.media-view-embed {
+  display: block;
+  width: 100%;
+  max-height: 40vh;
+  border: 0;
+  border-radius: var(--radius);
+  background: #000;
+  object-fit: contain;
+}
+.media-view-embed {
+  aspect-ratio: 16 / 9;
+  height: auto;
 }
 .media-view-caption {
   padding-top: 6px;

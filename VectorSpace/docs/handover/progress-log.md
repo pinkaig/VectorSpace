@@ -170,3 +170,42 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 
 **Needs you**
 - The resolver is not yet wired into the app. The app's asset chain still sends images and videos to the local catalog. Wiring happens in B6, through `MediaView`.
+
+---
+
+## 2026-10-26 · B6: MediaView
+
+**Changed**
+- `src/runtime/MediaView.tsx`: the real player replaces the placeholder. It handles an image, an uploaded video, a YouTube embed, and the "unavailable" fallback. `MediaViewBody` draws one resolved state.
+- `src/runtime/mediaLibrary.tsx` (new): `MediaLibraryContext`, which says how a media id is resolved, plus `MediaLibraryProvider` and `createMediaLibrary` for a server project.
+- `src/runtime/youtube.ts` (new): `youtubeEmbedUrl` rebuilds the embed address from the video id. `loadYouTubeApi` loads YouTube's player script once, on first use.
+- `src/styles.css`: styles for loading, fallback, image, video and embed.
+- `src/runtime/mediaView.test.ts` (new): 8 tests. The card e2e test now expects the offline fallback.
+
+**Decision**
+- **No test packages added.** Rendering tests use `react-dom/server`, which is already installed, instead of adding a DOM test library. That would be a new npm dependency.
+- **The sandbox allows only what the player needs.** That is `allow-scripts allow-same-origin allow-presentation`. There are no popups and no top navigation, so YouTube's "Watch on YouTube" link does nothing. That is deliberate.
+- **The YouTube player script is used only to hear state.** It reports ready, playing, paused, ended and errors, so a dead or blocked video switches to "Video unavailable". If the script itself is blocked, the iframe still shows but its state is unknown.
+- **Offline by default.** Until a page wraps itself in `MediaLibraryProvider`, every media slot shows "unavailable" with its caption. This includes the local editor, which has no server.
+
+**Method**
+- `MediaView` resolves `{kind, assetId}` through the context, then draws the result.
+- Example: `{kind: 'video', assetId: 'm2'}` resolves to `embed: {provider: 'youtube', providerId: 'M7lc1UVf-VE'}`. That draws `<iframe src="https://www.youtube-nocookie.com/embed/M7lc1UVf-VE?rel=0&playsinline=1&enablejsapi=1&origin=…" sandbox="…">`, and `onState` reports `loading`, then `ready`.
+- Closing the card unmounts the player, which stops the video.
+
+**Check**
+- `npx vitest run`: 56 files, 425 tests pass. `npx tsc --noEmit -p tsconfig.app.json`: clean.
+- `textPanels.spec.ts` e2e: both tests pass.
+- A one-off browser check used a temporary page with a fake library. That page and its test files were deleted before commit.
+  - A PNG loaded (loading, then ready).
+  - A WebM played, paused and could seek (loading, ready, playing, paused).
+  - A real YouTube video loaded through the player script (loading, then ready).
+  - A dead YouTube id became "Video unavailable" with its caption.
+  - A missing file and a pending link both showed the fallback.
+  - No page errors.
+- Not checked: pressing play inside the YouTube player, and any real MinIO file.
+
+**Needs you**
+- **Wiring is outside my scope.** For media to load in the app, the page that opens a server project must wrap its tree in `MediaLibraryProvider`. It needs the project id, `apiUrl` and the session's `getToken`. That page is `src/pages/ProjectEditorPage.tsx`, or wherever the runtime view mounts for a server project. Both are outside my scope, so I have not touched them. The change is one wrapper element.
+- **Security policy:** the site sends no Content-Security-Policy header today. If one is added, it must allow `frame-src https://www.youtube-nocookie.com` and `script-src https://www.youtube.com`.
+- **School networks:** check that YouTube embeds load on a school machine (handover question B7.5).
