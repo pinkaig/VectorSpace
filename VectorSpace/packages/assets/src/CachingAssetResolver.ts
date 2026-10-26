@@ -52,4 +52,9 @@ export class CachingAssetResolver implements AssetResolver {
   invalidate(ref: AssetRef): void {
     this.cache.invalidate(ref)
   }
+
+  /** Every descriptor this resolver has cached, for the asset inventory. */
+  listCached(): AssetDescriptor[] {
+    return this.cache.list()
+  }
 }

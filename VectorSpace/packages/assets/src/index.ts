@@ -14,7 +14,7 @@
  * Links point at the project wiki; migration is still in progress.
  */
 export type { AssetRef } from './AssetRef'
-export type { AssetDescriptor, AssetStatus } from './AssetDescriptor'
+export type { AssetDescriptor, AssetModerationState, AssetScope, AssetStatus, AssetTier } from './AssetDescriptor'
 export {
   idleAssetDescriptor,
   loadingAssetDescriptor,
