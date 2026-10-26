@@ -26,6 +26,7 @@ import TeacherLayout from './pages/TeacherLayout'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
 import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
+import TeacherPreviewPage from './pages/TeacherPreviewPage'
 import { ApiError } from './api/client'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
 
@@ -158,7 +159,9 @@ export default function App() {
             <Route path="review" element={<TeacherReviewPage />} />
             <Route path="results" element={<TeacherResultsPage />} />
           </Route>
-          <Route path="/teacher/template" element={<RequireRole role="teacher"><WithNav><TeacherTemplateSetupPage /></WithNav></RequireRole>} />
+          <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><TeacherTemplateSetupPage /></AdminNav></RequireRole>} />
+          {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
+          <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
           <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />

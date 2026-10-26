@@ -35,7 +35,8 @@ test('a teacher can walk login, home, editor, home and sign out', async ({ page 
   await page.reload()
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({ timeout: 30_000 })
 
-  await page.getByRole('button', { name: 'Home' }).click()
+  // the cube at the top left of the editor goes back home
+  await page.getByRole('link', { name: 'Back to home' }).click()
   await expect(page).toHaveURL(/#\/teacher$/)
 
   await page.getByRole('button', { name: 'Sign out' }).click()

@@ -365,7 +365,7 @@ export default function TeacherHomePage() {
           </p>
 
           <div className="teacher-home-class-actions">
-            <button type="button" className="teacher-home-primary">
+            <button type="button" className="teacher-home-primary" onClick={() => navigate("/teacher/template")}>
               Set up project
             </button>
             <button type="button" className="teacher-home-secondary" onClick={()=>navigate("/teacher/review")}>
