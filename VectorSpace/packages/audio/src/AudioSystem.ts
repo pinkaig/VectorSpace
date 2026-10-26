@@ -8,7 +8,8 @@
  * with a queue, and a queryable state store. Deliberately does not implement
  * spatial audio, captions, ducking, retrigger gating, fades, mixer
  * snapshots, or the rule-engine event bridge — see that doc's "Feature
- * tiers" table, and docs/handover/audio-system-status.md for how each
+ * tiers" table, and the audio-system-status handover brief (kept outside
+ * the repo, with the other handover docs) for how each
  * deferred feature was judged. (Decoded-buffer LRU eviction is built; see
  * maxCachedBuffers and src/content/audioByteCache.ts.)
  *
