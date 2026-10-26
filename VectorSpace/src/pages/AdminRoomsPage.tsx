@@ -16,6 +16,7 @@
 import { useLoad } from "../api/useLoad";
 import { Motion } from "../motion/useMotion";
 import { NOT_STORED_YET } from "../api/admin";
+import { LoadingRows } from "../ui/loadingRows";
 import { useAdmin } from "../sections/admin/adminContext";
 import { RoomListSection } from "../sections/admin/rooms/RoomListSection";
 import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
@@ -42,7 +43,7 @@ export default function AdminRoomsPage() {
 // split out so the data is only fetched once a school is picked
 function RoomsForSchool({ schoolId }: { schoolId: string }) {
   const { api } = useAdmin();
-  const { data, setData, error } = useLoad(() => api.getRooms(schoolId), schoolId);
+  const { data, setData, error, loading } = useLoad(() => api.getRooms(schoolId), schoolId);
 
   // switches take effect at once: update the screen, then tell the API
   const setEnabled = async (kind: "environment" | "pack", itemId: string, enabled: boolean) => {
@@ -54,6 +55,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
   return (
     <>
       {error && <p role="alert">Could not load rooms: {error}</p>}
+      <LoadingRows loading={loading} />
       {data && (
         <Motion cue="panel.content.enter" className="admin-rooms">
           {/*ENVIRONMENTS: room shells, each on or off for this school*/}

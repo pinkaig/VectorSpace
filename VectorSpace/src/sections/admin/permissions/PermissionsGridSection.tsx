@@ -16,13 +16,14 @@ import { useState } from "react";
 import type { PermissionRow } from "../../../api/admin";
 import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
+import { LoadingRows } from "../../../ui/loadingRows";
 import { TickBox, Toggle } from "../../../ui/toggle";
 import { useLoad } from "../../../api/useLoad";
 import { useAdmin } from "../adminContext";
 
 export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
   const { api } = useAdmin();
-  const { data: saved, setData: setSaved, error } = useLoad(() => api.getPermissions(schoolId), schoolId);
+  const { data: saved, setData: setSaved, error, loading } = useLoad(() => api.getPermissions(schoolId), schoolId);
 
   // the admin's changes so far, or null before the first click; what is shown is the changed
   // copy if there is one, otherwise what was saved
@@ -59,6 +60,7 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
       </div>
 
       {error && <p role="alert">Could not load permissions: {error}</p>}
+      <LoadingRows loading={loading} />
       {/* the key changes when the answer arrives, so the grid fades in then and not before */}
       <Motion key={saved ? "loaded" : "loading"} cue="panel.content.enter" className="admin-scroll">
         <table className="admin-table">
