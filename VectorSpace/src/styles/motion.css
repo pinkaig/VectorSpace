@@ -34,6 +34,9 @@
 
   /* one global amplitude dial: 0 collapses every movement to a plain fade */
   --mo-scale: 1;
+
+  /* a cue's own amplitude, set on the element while it animates (see src/motion/waapiDriver.ts) */
+  --mo-gain: 1;
 }
 
 /* A visitor who asked their system for less motion. Handled here once, not rule by rule. */
