@@ -17,6 +17,9 @@
  *
  * @members
  * AssetKind, TransformData, SceneObject, SceneData, ProjectData,
+ * MediaKind, AssetRefKind, Attachment (audio/text), TextAssetMeta,
+ * TextPresentation, MissionBrief (todos/rules), defaultProject, cloneProject,
+ * emptyMissionBrief, and makeObject.
  * MediaKind, AssetRefKind, Attachment (audio/text/image/video), CardMedia,
  * MediaViewProps, AttachmentCapabilities, TextAssetMeta, TextPresentation, CardField,
  * defaultProject, cloneProject, and makeObject.
@@ -345,6 +348,29 @@ export interface MediaViewProps {
   onState?: (state: MediaViewState) => void
 }
 
+/**
+ * The mission brief a teacher writes on a template: what students must do (to-dos), what they
+ * must keep to (rules), and when it is due. Copied with the template into every student's
+ * project. To-do text is the teacher's own words; src/mission/parseTodo.ts works out what to
+ * count from it each time, so nothing derived is stored here.
+ */
+export interface MissionTodo {
+  id: string
+  text: string
+}
+
+export interface MissionRule {
+  id: string
+  text: string
+}
+
+export interface MissionBrief {
+  // shown as written, e.g. "Friday, 16 Oct"
+  due: string
+  todos: MissionTodo[]
+  rules: MissionRule[]
+}
+
 export interface ProjectData {
   schemaVersion: 1
   id: string
@@ -359,6 +385,9 @@ export interface ProjectData {
   audioSettings?: AudioSettings
   // absent in files written before text existed; the serializer backfills to []
   textAssets?: TextAssetMeta[]
+  // absent = no brief (any project not made from a template, and files written before briefs
+  // existed); left undefined rather than backfilled, so those files keep their exact shape
+  missionBrief?: MissionBrief
 }
 
 export const defaultAudioSettings = (): AudioSettings => ({
@@ -370,6 +399,8 @@ export const defaultAudioSettings = (): AudioSettings => ({
     ambient: { volume: 1, muted: false },
   },
 })
+
+export const emptyMissionBrief = (): MissionBrief => ({ due: '', todos: [], rules: [] })
 
 export const makeScene = (id: string, name: string): SceneData => ({
   id,
