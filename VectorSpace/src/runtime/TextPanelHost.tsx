@@ -71,6 +71,11 @@ const renderBlock = (node: TextNode, index: number): ReactNode => {
   }
 }
 
+/** Draws a parsed text as React elements; shared with the editor's card preview so both look the same. */
+export function TextNodes({ nodes }: { nodes: TextNode[] }) {
+  return <>{nodes.map(renderBlock)}</>
+}
+
 function PanelDialog({ panel, nodes, modal, onClose }: {
   panel: PanelStatus
   nodes: TextNode[] | undefined

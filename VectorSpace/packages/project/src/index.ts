@@ -159,6 +159,9 @@ export interface ZoneDefinition {
   // same contract as SceneObject.attachments; a zone attachment has no
   // transform of its own — the zone's position and shape apply
   attachments?: Attachment[]
+  // 'hotspot': a visible marker visitors click to open the zone's info card.
+  // Absent = an ordinary invisible trigger zone, as in every save before hotspots.
+  marker?: 'hotspot'
 }
 
 /**

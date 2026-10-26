@@ -209,3 +209,52 @@ Example: `POST …/links {"url": "https://youtu.be/dQw4w9WgXcQ?si=x"}` stores `p
 - **Wiring is outside my scope.** For media to load in the app, the page that opens a server project must wrap its tree in `MediaLibraryProvider`. It needs the project id, `apiUrl` and the session's `getToken`. That page is `src/pages/ProjectEditorPage.tsx`, or wherever the runtime view mounts for a server project. Both are outside my scope, so I have not touched them. The change is one wrapper element.
 - **Security policy:** the site sends no Content-Security-Policy header today. If one is added, it must allow `frame-src https://www.youtube-nocookie.com` and `script-src https://www.youtube.com`.
 - **School networks:** check that YouTube embeds load on a school machine (handover question B7.5).
+
+---
+
+## 2026-10-26 · A4 + A5: hotspot data and the card editor (in-scope parts)
+
+**Changed**
+- `src/editor/cardEditorOperations.ts` (new):
+  - `saveObjectCard` adds or edits an object's card.
+  - `removeObjectCard` removes the card and its text.
+  - `createHotspotCard` adds a hotspot zone that holds a card.
+  - `checkCardInput` checks the form against the save-file limits.
+  - `findCard` returns the card on a host.
+- `src/sections/objectPanel/InfoCardSection.tsx` (new): the Info tab form, with title, text, media picker, caption, image description, timer, save and remove, plus a live preview.
+- `src/sections/objectPanel/objectPanel.tsx` / `.css`: optional props `infoCard`, `mediaChoices`, `onSaveCard` and `onRemoveCard`. With `onSaveCard`, the Info tab shows the card form. Without it, the tab shows the old placeholders.
+- `packages/project/src/index.ts`: `ZoneDefinition.marker?: 'hotspot'`.
+- `src/project/serializer.ts`: rejects an unknown marker. Zones without one load as before.
+- `src/runtime/TextPanelHost.tsx`: exports `TextNodes`, so the editor preview draws text exactly like the run-time card.
+- Tests: `cardEditorOperations.test.ts`, 7 cases.
+
+**Decision**
+- **One card per object.** Pressing "Add info card" on an object that already has one edits it. Rejected alternative: stacking several cards. Only one card can open per click, so a second card would be unreachable.
+- **Card text assets use a `card-` prefix.** The rule clean-up in `ruleEditorOperations.ts` only deletes `message-` assets, so it can never sweep up a card's text.
+- **Images need a description.** The form requires one before saving, which follows the handover's suggestion for question 5. Video descriptions are optional.
+- **A hotspot is a sphere zone with `marker: 'hotspot'` and one card attachment.** This follows the handover's suggestion for question 3. Only the data exists so far (see Needs you).
+
+**Method**
+- Example: `saveObjectCard(project, sceneId, 'obj-1', { title: 'The Rosetta Stone', body: 'Found in **1799**.', media: { kind: 'image', assetId: 'm1', alt: 'A dark stone slab' } })` returns one new project value. It holds both the attachment `att-card-…` (mode `card`) and the text asset `card-…`. EditorPage commits it once, so one undo removes both.
+
+**Check**
+- `npx vitest run`: 57 files, 432 tests pass. `npx tsc --noEmit -p tsconfig.app.json`: clean.
+- e2e `textPanels.spec.ts` and `smoke.spec.ts`: 3 passed.
+- A one-off browser check used a temporary page wired to the real operations, deleted before commit.
+  - An empty title is refused.
+  - An image without a description is refused.
+  - Saving writes the attachment and text asset shown above, and the button becomes "Save card".
+  - The preview shows bold text and the https link, and drops the `javascript:` link.
+  - Remove clears both the attachment and the text. No page errors.
+
+**Needs you** (all outside my scope; I made none of these edits)
+1. `src/pages/EditorPage.tsx`, to show the card editor in the real editor. EditorPage currently renders the old Inspector and does not mount `ObjectPanel` at all. Whoever owns it needs to render `ObjectPanel` for step 2 and pass the four props:
+   ```tsx
+   infoCard={selectedCard}                      // from findCard(project, selected)
+   mediaChoices={[]}                            // library entries once a server project is open
+   onSaveCard={(input) => { const r = saveObjectCard(project, scene.id, selected.id, input); if (!r.ok) return r.error; commit('Save info card', r.project); return null }}
+   onRemoveCard={() => commit('Remove info card', removeObjectCard(project, scene.id, selected.id))}
+   ```
+2. **Opening a card on click (A4/A5 at run time).** Clicking an object or hotspot must call `text.open(cardAttachment)`. Today only a WHEN→DO rule opens text, and wiring that is the rules owner's job. The capability table already lists `hotspot-card` with `click` → `showPanel`.
+3. **Drawing hotspots.** `src/viewport/zoneVisuals.ts` and `src/viewport/Viewport.tsx` need to draw a visible marker for `marker: 'hotspot'` zones and let a click on it pick the zone. A catalogue entry, in the catalogue's file, should call `createHotspotCard`.
+4. **Card text cleanup on delete.** Deleting an object leaves its card's text asset behind. It is small, harmless and still loads. Object removal belongs to the authoring engine, so I left it.

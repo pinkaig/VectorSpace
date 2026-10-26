@@ -17,6 +17,8 @@ import { useState } from 'react'
 import type { InteractionRule } from '@vectorspace/project'
 import type { ClickRuleChoice } from '../../editor/ruleEditorOperations'
 import { WhenDoRuleSection } from './WhenDoRuleSection'
+import { InfoCardSection, type MediaChoice } from './InfoCardSection'
+import type { CardInput } from '../../editor/cardEditorOperations'
 import './objectPanel.css'
 
 export type Vec3 = [number, number, number]
@@ -57,6 +59,12 @@ export type ObjectPanelProps = {
   rules: InteractionRule[]
   onAddRule: (choice: ClickRuleChoice) => void
   onRemoveRule: (ruleId: string) => void
+  // Info tab. Optional so a caller that has not connected cards yet still works; without
+  // onSaveCard the tab shows placeholders. onSaveCard returns an error to show, or null.
+  infoCard?: CardInput | null
+  mediaChoices?: MediaChoice[]
+  onSaveCard?: (input: CardInput) => string | null
+  onRemoveCard?: () => void
 }
 
 const tabs = [
@@ -122,7 +130,10 @@ export function ObjectPanel(props: ObjectPanelProps) {
 
       <div className="object-panel-body" role="tabpanel">
         {activeStep === 1 && <PositionTab {...props} object={object} />}
-        {activeStep === 2 && <InfoTab />}
+        {activeStep === 2 && (props.onSaveCard
+          // keyed by object, so switching objects starts from that object's card, not the last draft
+          ? <InfoCardSection key={object.id} card={props.infoCard ?? null} mediaChoices={props.mediaChoices ?? []} onSave={props.onSaveCard} onRemove={props.onRemoveCard ?? (() => undefined)} />
+          : <InfoTab />)}
         {activeStep === 3 && <ReactionsTab {...props} />}
       </div>
     </section>
@@ -217,7 +228,7 @@ function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, sn
   )
 }
 
-// placeholders until the Info step is designed
+// shown until EditorPage connects onSaveCard
 function InfoTab() {
   return (
     <>
