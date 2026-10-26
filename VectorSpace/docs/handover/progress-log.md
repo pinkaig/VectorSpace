@@ -66,3 +66,35 @@ One entry per step group, newest last. The plan these follow is in the three han
 
 **Needs you**
 - Please confirm or overturn the four answers above.
+
+---
+
+## 2026-10-26 · A2 + A3: close behaviour and the card view
+
+**Changed**
+- `src/runtime/TextPanelHost.tsx`: draws `panel` and `card` modes. The "any press closes every panel" listener is gone. Escape now goes through `panelKeys.ts`. A card shows `MediaView` under its title.
+- `src/runtime/panelKeys.ts` (new): the Escape rule as a plain function. Escape closes the top panel only, and every other key does nothing.
+- `src/runtime/MediaView.tsx` (new): a placeholder that draws a labelled box plus the caption. Track B replaces its body.
+- `packages/text/src/TextStateStore.ts`, `PanelManager.ts`, `TextSystem.ts`: a panel's status now carries `media`, for cards only.
+- `src/styles.css`: card and media-box styles.
+- Tests: `panelKeys.test.ts`, five new cases in `TextSystem.test.ts`, and a new e2e test in `tests/e2e/textPanels.spec.ts`.
+
+**Decision**
+- No new timer for `autoCloseMs`. The 3D view's frame loop already calls `text.tick()` while playing, and closing a panel removes its deadline. A second timer would race the first. A test checks that a card closes on time and that a card closed by hand stays closed.
+- Escape is caught in the capture phase on `window`, the phase that runs before any other listener, and stopped there. So one press closes one panel and does not also leave Play. Rejected alternative: Escape only on the focused panel, which was the old behaviour. It did nothing once focus moved into the scene.
+- Card layout is title, then media and caption, then text. The work package says both "media slot under the title" (section 4) and "title, text, then MediaView" (A3). I chose "under the title" so the picture stays in view when the text scrolls.
+- The caption is drawn by `MediaView`, not the card, because the caption must stay visible when the media is unavailable (overview decision 6).
+- The X button's accessible name is now "Close", as the work package asks. It was "Close panel", and no test used the old name.
+
+**Method**
+- Example: two cards are open and the visitor presses Escape. `handlePanelKey` sees a top panel, closes it and returns `true`, so the host stops the key. The second Escape closes the other card. The third finds no panel, returns `false`, and RuntimeView leaves Play.
+- Clicking the scene no longer closes anything.
+
+**Check**
+- `npx vitest run`: 55 files, 409 tests pass.
+- `npx tsc --noEmit -p tsconfig.app.json`: clean.
+- `npx playwright test --project=chromium`: 10 passed, 1 skipped, 1 failed. Both text panel tests pass, including the existing "Escape closes in order" one. The failure is `navigation.spec.ts` "a teacher can walk login, home, editor…". It clicks a "Home" button the new editor top bar no longer has. It fails the same way with my changes stashed, so this work did not cause it.
+
+**Needs you**
+- The navigation e2e failure belongs to whoever owns the editor top bar. It is outside my scope.
+- Plain pop-ups also lost "any press closes". I took the suggested answer of one behaviour everywhere. Say if plain pop-ups should keep it.

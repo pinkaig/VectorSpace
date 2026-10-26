@@ -13,7 +13,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Text-System sections 8 and "Modal input boundary"
  * Links point at the project wiki; migration is still in progress.
  */
-import type { TextPresentation } from '@vectorspace/project'
+import type { CardMedia, TextPresentation } from '@vectorspace/project'
 
 export interface PanelStatus {
   id: string
@@ -28,6 +28,8 @@ export interface PanelStatus {
   title?: string
   /** BCP 47 language of the content, set on the panel container for screen readers. */
   lang?: string
+  /** Card mode only: the image or video reference the card shows under its title. */
+  media?: CardMedia
 }
 
 export interface TextSnapshot {

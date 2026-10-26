@@ -1979,6 +1979,40 @@ button:disabled {
   color: #E2A845;
   font-style: italic;
 }
+/* Info card (mode 'card'): a softer, rounder panel with its media under the title.
+   Long text scrolls inside .text-panel-body, so the title and media stay in view. */
+.text-panel.text-card {
+  width: min(480px, 100%);
+  border-radius: var(--radius);
+}
+.text-card .text-panel-header {
+  border-bottom: none;
+}
+.text-card .text-panel-header h2 {
+  font-size: 18px;
+}
+/* MediaView: the media slot and its caption (placeholder box until the media track lands) */
+.media-view {
+  flex: none;
+  margin: 0 16px;
+}
+.media-view-placeholder {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.media-view-caption {
+  padding-top: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-style: italic;
+}
 /* links above the placeholder pages (WithNav in App.tsx); goes when each page has its own */
 .page-nav {
   display: flex;

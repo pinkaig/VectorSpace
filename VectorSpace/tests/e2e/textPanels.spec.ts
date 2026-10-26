@@ -67,3 +67,32 @@ test('rule-driven text panels render safely and close on Escape in order', async
   await page.keyboard.press('Escape')
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
 })
+
+test('an info card shows its media slot, ignores clicks elsewhere, and closes on its X', async ({ page }) => {
+  // the same demo project, with the welcome panel turned into a card and only its start rule kept
+  const project = structuredClone(demoProject) as { rules: { id: string }[]; scenes: { objects: { attachments?: { id: string; presentation?: Record<string, unknown> }[] }[] }[] }
+  project.rules = project.rules.filter((rule) => rule.id === 'rule-welcome-on-start')
+  const welcomeAttachment = project.scenes[0].objects.flatMap((object) => object.attachments ?? []).find((item) => item.id === 'att-welcome')!
+  welcomeAttachment.presentation = { mode: 'card', title: 'Welcome', media: { kind: 'image', assetId: 'media-hall', caption: 'The main hall', alt: 'The main hall of the museum' } }
+  await page.addInitScript((value) => {
+    localStorage.setItem('vectorspace-project-v1', JSON.stringify(value))
+  }, project)
+
+  await openEditor(page)
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+
+  const card = page.getByRole('dialog', { name: 'Welcome' })
+  await expect(card).toBeVisible()
+  await expect(card).toHaveClass(/text-card/)
+  await expect(card.getByRole('img', { name: 'The main hall of the museum' })).toBeVisible()
+  await expect(card.getByText('The main hall')).toBeVisible()
+
+  // a press anywhere else, or any key but Escape, no longer closes it
+  await page.mouse.click(20, 300)
+  await page.keyboard.press('Enter')
+  await expect(card).toBeVisible()
+
+  await card.getByRole('button', { name: 'Close' }).click()
+  await expect(card).toBeHidden()
+  await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
+})
