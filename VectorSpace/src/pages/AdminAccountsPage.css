@@ -42,12 +42,23 @@
   background: var(--surface);
   color: var(--ink-2);
   font-size: 14px;
+  cursor: pointer;
+  transition:
+    background var(--mo-dur-fast) var(--mo-ease-standard),
+    border-color var(--mo-dur-fast) var(--mo-ease-standard),
+    color var(--mo-dur-fast) var(--mo-ease-standard);
 }
 
 .admin-accounts-tab-active {
   border-color: var(--purple-500);
   background: var(--purple-500);
   color: var(--surface);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .admin-accounts-tab:not(.admin-accounts-tab-active):hover {
+    background: var(--purple-50);
+  }
 }
 
 /* search: bg-app fill with the magnifier inside the left edge */
