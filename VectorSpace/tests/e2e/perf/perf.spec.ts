@@ -19,6 +19,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { harnessInit, type PerfSample } from './harness'
 import { buildPerfProject } from './perfScene'
 import { frameStats, type FrameStats } from './stats'
+import { openEditor } from '../../openEditor'
 
 const BASELINE_OBJECTS = 10
 const STRESS_OBJECTS = [150, 300]
@@ -50,12 +51,12 @@ const measure = async (page: Page, view: 'runtime' | 'editor', objects: number):
   await page.addInitScript((project) => {
     localStorage.setItem('vectorspace-project-v1', JSON.stringify(project))
   }, buildPerfProject(objects))
-  await page.goto('/')
+  await openEditor(page)
   if (view === 'runtime') {
-    await page.getByRole('button', { name: 'Run simulation' }).click()
-    await expect(page.getByText('Visitor view')).toBeVisible()
+    await page.getByRole('button', { name: 'Play', exact: true }).click()
+    await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
   } else {
-    await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
   }
   await page.waitForTimeout(WARMUP_MS) // shader compile, first uploads, GC settle
 

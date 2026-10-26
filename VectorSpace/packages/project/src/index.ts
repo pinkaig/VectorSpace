@@ -18,7 +18,8 @@
  * @members
  * AssetKind, TransformData, SceneObject, SceneData, ProjectData,
  * MediaKind, AssetRefKind, Attachment (audio/text), TextAssetMeta,
- * TextPresentation, defaultProject, cloneProject, and makeObject.
+ * TextPresentation, MissionBrief (todos/rules), defaultProject, cloneProject,
+ * emptyMissionBrief, and makeObject.
  *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Project-Serialization
@@ -117,6 +118,13 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     url: 'env/room_4.glb',
     description: 'Exhibition room 4.',
   },
+  {
+    id: 'env-room-5',
+    name: 'Room 5',
+    kind: 'glb',
+    url: 'env/the_hallwyl_museum_1st_floor_combined.glb',
+    description: 'Test environment.',
+  },
 ]
 
 export const defaultEnvironmentId =
@@ -179,6 +187,14 @@ export interface SceneData {
   startCamera: CameraPose
   // absent in files written before zones existed; the serializer backfills to []
   zones?: ZoneDefinition[]
+  // Cell on the rooms map: x grows east, z grows south. Absent on scenes made before
+  // the map existed; the editor treats an unplaced first scene as the origin.
+  layout?: RoomCell
+}
+
+export interface RoomCell {
+  x: number
+  z: number
 }
 
 /** A mix group with its own volume and mute. The four below always exist; a project may add custom ids. */
@@ -271,6 +287,29 @@ export interface AudioAttachment extends AttachmentBase { kind: 'audio'; assetId
 export interface TextAttachment extends AttachmentBase { kind: 'text'; assetId: string; presentation: TextPresentation }
 export type Attachment = AudioAttachment | TextAttachment
 
+/**
+ * The mission brief a teacher writes on a template: what students must do (to-dos), what they
+ * must keep to (rules), and when it is due. Copied with the template into every student's
+ * project. To-do text is the teacher's own words; src/mission/parseTodo.ts works out what to
+ * count from it each time, so nothing derived is stored here.
+ */
+export interface MissionTodo {
+  id: string
+  text: string
+}
+
+export interface MissionRule {
+  id: string
+  text: string
+}
+
+export interface MissionBrief {
+  // shown as written, e.g. "Friday, 16 Oct"
+  due: string
+  todos: MissionTodo[]
+  rules: MissionRule[]
+}
+
 export interface ProjectData {
   schemaVersion: 1
   id: string
@@ -285,6 +324,9 @@ export interface ProjectData {
   audioSettings?: AudioSettings
   // absent in files written before text existed; the serializer backfills to []
   textAssets?: TextAssetMeta[]
+  // absent = no brief (any project not made from a template, and files written before briefs
+  // existed); left undefined rather than backfilled, so those files keep their exact shape
+  missionBrief?: MissionBrief
 }
 
 export const defaultAudioSettings = (): AudioSettings => ({
@@ -296,6 +338,8 @@ export const defaultAudioSettings = (): AudioSettings => ({
     ambient: { volume: 1, muted: false },
   },
 })
+
+export const emptyMissionBrief = (): MissionBrief => ({ due: '', todos: [], rules: [] })
 
 export const makeScene = (id: string, name: string): SceneData => ({
   id,

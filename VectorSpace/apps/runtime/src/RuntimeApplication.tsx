@@ -13,7 +13,7 @@
  * Application boundary: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Contracts
  * Links point at the project wiki; migration is still in progress.
  */
-import RuntimeView from '../../../src/RuntimeView'
+import RuntimeView from '../../../src/runtime/RuntimeView'
 
 /** Transitional runtime application boundary; the visitor view still uses the shared prototype viewport. */
 export default RuntimeView

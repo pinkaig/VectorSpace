@@ -2,7 +2,7 @@
  * @file        main.tsx
  * @author      Sherman Goh Wee Hao
  * @date        2026-09-13
- * @reviewed    2026-09-13
+ * @reviewed    2026-10-12
  * @brief       Browser entry point for the VectorSpace React application.
  *
  * @responsibility
@@ -23,8 +23,8 @@
  */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from '../apps/editor/src/EditorApplication'
-import { validateAudioCatalog } from './audioAssets'
+import App from './App'
+import './styles/tokens.css'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -32,8 +32,3 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
-
-// Not awaited: the UI renders immediately with the full catalog, which then
-// shrinks in place (see audioAssets.ts) if any bundled file turns out not to
-// actually be decodable audio.
-void validateAudioCatalog()

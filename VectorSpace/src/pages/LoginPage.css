@@ -1,0 +1,331 @@
+/**
+ * @file        LoginPage.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for the sign-in page: purple showcase carousel on the
+ *              left, sign-in panel on the right. Values from the V3 manual.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── Page: two panels side by side, fits one screen ───────────────────── */
+.login-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(380px, 1fr);
+    gap: 12px;
+    max-width: 1440px;
+    height: 100vh;
+    margin: 0 auto;
+    padding: 12px;
+    background: var(--bg-app);
+    font-family: var(--font-body);
+    color: var(--ink);
+}
+
+/* ── Left: showcase ───────────────────────────────────────────────────── */
+.login-showcase {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 40px;
+    border-radius: var(--radius-panel);
+    background: var(--purple-500);
+    color: var(--surface);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-logo {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--purple-500);   /* the icon uses the text colour */
+}
+
+.login-brand-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 24px;
+}
+
+.login-museum {                     /* the big headline */
+  max-width: 50ch;                 
+  margin: 32px 0 8px;
+  font-family: var(--font-heading); /* overrides the old global Titillium */
+  font-weight: 600;
+  font-size: 35px;
+  line-height: 1.15;
+  color: var(--surface);
+}
+
+.login-lead {
+  margin: 0 0 24px;
+  font-size: 17px;
+}
+
+/* museum card */
+.login-museum-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;                          /* takes the leftover height */
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.login-museum-image {
+  position: relative;               /* chips are placed inside this box */
+  flex: 1;
+  min-height: 0;
+  background: var(--amber-50);
+}
+
+.login-museum-image .login-chip {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
+
+.login-museum-image .login-chip-dark {
+  left: auto;
+  right: 16px;
+}
+
+.login-museum-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.login-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--amber-50);
+  font-weight: 800;
+}
+
+.login-museum-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.login-museum-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.login-museum-meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* chips */
+.login-chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--purple-700);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.login-museum-info .login-chip {
+  background: var(--purple-100);
+}
+
+.login-chip-dark {
+  background: var(--overlay);
+  color: var(--surface);
+}
+
+/* carousel arrows and dots */
+.login-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.login-arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--surface) 50%, transparent);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--surface);
+}
+
+.login-arrow:hover {
+  background: color-mix(in srgb, var(--surface) 15%, transparent);
+}
+
+.login-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.login-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+}
+
+.login-dot.active {
+  width: 28px;                      /* the current one stretches into a pill */
+  background: var(--surface);
+}
+
+/* ── Right: sign-in panel ─────────────────────────────────────────────── */
+.login-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;          /* content sits in the middle vertically */
+  min-height: 0;
+  padding: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.login-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.login-subtitle {
+  margin: 8px 0 24px;
+  color: var(--text-muted);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form label {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.login-form input {
+  height: 48px;
+  margin-bottom: 16px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.login-form input:focus {
+  outline: 2px solid var(--purple-500);
+  outline-offset: -1px;
+}
+
+.login-primary {
+  height: 52px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: var(--radius-btn-lg);
+  background: var(--purple-500);
+  color: var(--surface);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.login-primary:hover {
+  background: var(--purple-600);
+}
+
+.login-note {
+  margin: 20px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* "PROTOTYPE: JUMP IN AS" with a line on each side */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-jump {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.login-jump-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+}
+
+.login-jump-button:hover {
+  background: var(--purple-50);
+}
+
+.login-jump-button strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.login-jump-button span {
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -1,0 +1,81 @@
+/**
+ * @file        editorLayout.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Grid layout for EditorLayout. Positions and sizes each
+ *              slot (top bar, stage, corners, right panel, catalogue).
+ *              Colours come from tokens.css variables.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* Fixed 3x2 grid. Panel and catalogue tracks are "auto", so they shrink
+   to 0 when their slot isn't rendered. Spacing uses margins, not gap,
+   so an empty slot leaves no leftover strip. */
+.editor-layout {
+  --editor-layout-space: 12px;
+
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "topbar    topbar"
+    "stage     panel"
+    "catalogue catalogue";
+
+  height: 100vh;
+  padding: var(--editor-layout-space);
+  background: var(--bg-page);
+}
+
+.editor-layout-topbar {
+  grid-area: topbar;
+  margin-bottom: var(--editor-layout-space);
+}
+
+/* Corners and viewport are positioned inside this box.
+   min-width/min-height let it shrink when the panel opens. */
+.editor-layout-stage {
+  grid-area: stage;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* display: grid stretches the single child to fill, giving the canvas
+   a definite height. z-index: 0 keeps everything drawn inside the 3D
+   view below the corner pieces. */
+.editor-layout-viewport {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  z-index: 0;
+}
+
+.editor-layout-corner {
+  position: absolute;
+  z-index: 1;
+}
+.editor-layout-corner--tl { top: var(--editor-layout-space);    left: var(--editor-layout-space); }
+.editor-layout-corner--tr { top: var(--editor-layout-space);    right: var(--editor-layout-space); }
+.editor-layout-corner--bl { bottom: var(--editor-layout-space); left: var(--editor-layout-space); }
+.editor-layout-corner--br { bottom: var(--editor-layout-space); right: var(--editor-layout-space); }
+
+.editor-layout-panel {
+  grid-area: panel;
+  width: 360px;
+  margin-left: var(--editor-layout-space);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.editor-layout-catalogue {
+  grid-area: catalogue;
+  margin-top: var(--editor-layout-space);
+}

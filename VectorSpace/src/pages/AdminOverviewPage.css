@@ -1,0 +1,47 @@
+/**
+ * @file        AdminOverviewPage.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Layout of the Overview page: tiles across the top, the schools table on the
+ *              left, "Needs your attention" over "Recently published" on the right.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.admin-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-areas:
+    "tiles tiles"
+    "schools attention"
+    "schools recent";
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.admin-overview-tiles { grid-area: tiles; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.admin-overview-schools { grid-area: schools; }
+.admin-overview-attention { grid-area: attention; }
+.admin-overview-recent { grid-area: recent; }
+.admin-overview-recent td:nth-child(2) { white-space: nowrap; }
+
+/* one row of "Needs your attention": the sentence, then its single action button */
+.admin-overview-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--purple-50);
+  font-size: 14px;
+}
+
+.admin-overview-empty {
+  margin: 0;
+  color: var(--text-muted);
+}

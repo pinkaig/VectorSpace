@@ -12,8 +12,8 @@
 import type { ActionSpec, InteractionRule } from '@vectorspace/project'
 import { addObjectRule, removeRule, type RuleOperationResult } from '@vectorspace/authoring-engine'
 import { playAudioAction } from '../../packages/audio/src/index'
-import { cloneProject, type ProjectData } from '../model'
-import { audioAssetCatalog } from '../audioAssets'
+import { cloneProject, type ProjectData } from '../project/model'
+import { audioAssetCatalog } from '../content/audioAssets'
 import { changeColorAction } from '../viewport/actions/changeColorActionBuilder'
 
 // what the author picked in the "then" dropdown, together with the setting that action needs

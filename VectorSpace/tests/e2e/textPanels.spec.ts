@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from '@playwright/test'
+import { openEditor } from '../openEditor'
 
 const demoProject = JSON.parse(
   readFileSync(fileURLToPath(new URL('./fixtures/text-demo-project.json', import.meta.url)), 'utf8'),
@@ -26,9 +27,9 @@ test('rule-driven text panels render safely and close on Escape in order', async
     localStorage.setItem('vectorspace-project-v1', JSON.stringify(project))
   }, demoProject)
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Run simulation' }).click()
-  await expect(page.getByText('Visitor view')).toBeVisible()
+  await openEditor(page)
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
 
   // sceneStart rule: the welcome panel opens with parsed markdown-lite
   const welcome = page.getByRole('dialog', { name: 'Welcome' })
@@ -61,8 +62,8 @@ test('rule-driven text panels render safely and close on Escape in order', async
 
   await page.keyboard.press('Escape')
   await expect(welcome).toBeHidden()
-  await expect(page.getByText('Visitor view')).toBeVisible()
+  await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
 })

@@ -11,8 +11,13 @@
  *    failures) or relative (warm vs cold, p95 vs median)
  *  - results are written to test-results/startup/ with the environment recorded
  *
+ * The app no longer fetches or decodes any audio at launch (audio loads on demand), so
+ * the audio columns are expected to be zero and the gates below assert exactly that.
+ * The probe still records them so a launch-time audio fetch coming back is caught here.
+ *
  * Run with: npx playwright test -c playwright.startup.config.ts
- * Override run count with STARTUP_RUNS (default 15).
+ * Default is 3 runs, enough for the structural gates (they are exact counts, not timings).
+ * For numbers worth quoting, run STARTUP_RUNS=15 (the spread gate only applies from 10 runs).
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -20,23 +25,26 @@ import path from 'node:path'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { summarizeRuns, toPhases, type StartupPhases } from './phases'
 import { startupProbeInit, type RawTimeline, type StartupProbe } from './startupProbe'
+import { openEditor } from '../openEditor'
 
-const RUNS = Number(process.env.STARTUP_RUNS ?? 15)
+const RUNS = Number(process.env.STARTUP_RUNS ?? 3)
 const SETTLE_MS = 300 // decode count must hold steady this long to count as done
 const MAX_SPREAD_RATIO = 3 // p95 over median on first draw; loose on purpose
+const MIN_RUNS_FOR_SPREAD = 10 // a p95 over fewer runs is just the slowest run
 const VIEWPORT = { width: 1280, height: 720 }
 
 type Probe = { __startup: StartupProbe }
 
 const waitForSettled = async (page: Page) => {
   // The app's own UI is the ready signal (same selector smoke.spec.ts relies on).
-  await expect(page.getByRole('button', { name: 'Run simulation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
   const interactiveMs = await page.evaluate(() => performance.now())
-  // Settled = a frame was drawn and no decode is in flight, held for SETTLE_MS.
+  // Settled = a frame was drawn and no decode is in flight, held for SETTLE_MS. There is
+  // no launch-time audio decode to wait for, so zero decodes is a valid settled state.
   const decodeCount = () => page.evaluate(() => (window as unknown as Probe).__startup.snapshot().decodes.length)
   await page.waitForFunction(() => {
     const s = (window as unknown as Probe).__startup.snapshot()
-    return s.firstDrawMs !== null && s.pendingDecodes === 0 && s.decodes.length > 0
+    return s.firstDrawMs !== null && s.pendingDecodes === 0
   })
   let last = await decodeCount()
   for (;;) {
@@ -58,7 +66,7 @@ const coldRun = async (browser: Browser): Promise<StartupPhases> => {
   try {
     const page = await context.newPage()
     await page.addInitScript(startupProbeInit)
-    await page.goto('/')
+    await openEditor(page)
     return await readPhases(page, await waitForSettled(page))
   } finally {
     await context.close()
@@ -70,7 +78,7 @@ const warmRun = async (browser: Browser): Promise<StartupPhases> => {
   try {
     const page = await context.newPage()
     await page.addInitScript(startupProbeInit)
-    await page.goto('/')
+    await openEditor(page)
     await waitForSettled(page) // priming load; its numbers are discarded
     await page.reload()
     return await readPhases(page, await waitForSettled(page))
@@ -134,16 +142,16 @@ test('startup: cold vs warm load, repeated', async ({ browser }, testInfo) => {
     for (const [i, r] of runs.entries()) {
       const where = `${label} run ${i}`
       expect(r.firstDrawMs, `${where}: a frame was drawn`).toBeGreaterThan(0)
-      expect(r.audioFileCount, `${where}: audio files were fetched`).toBeGreaterThan(0)
-      expect(r.audioDecodeFailures, `${where}: every audio file decodes`).toBe(0)
-      expect(r.audioDecodeCount, `${where}: one decode per fetched file`).toBe(r.audioFileCount)
+      expect(r.audioFileCount, `${where}: no audio is fetched at launch`).toBe(0)
+      expect(r.audioDecodeCount, `${where}: no audio is decoded at launch`).toBe(0)
+      expect(r.audioDecodeFailures, `${where}: nothing failed to decode`).toBe(0)
     }
   }
   // Relative gates.
   expect(summary.warm.audioTransferBytes.median, 'warm load transfers no more audio than cold').toBeLessThanOrEqual(
     summary.cold.audioTransferBytes.median,
   )
-  for (const [label, s] of [['cold', summary.cold], ['warm', summary.warm]] as const) {
+  for (const [label, s] of RUNS >= MIN_RUNS_FOR_SPREAD ? ([['cold', summary.cold], ['warm', summary.warm]] as const) : []) {
     expect(s.firstDrawMs.spreadRatio, `${label}: first-draw p95/median spread`).toBeLessThanOrEqual(MAX_SPREAD_RATIO)
   }
 })

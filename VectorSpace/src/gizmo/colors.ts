@@ -1,6 +1,6 @@
 /**
  * @file        colors.ts
- * @project     Spatial Experience Builder
+ * @project     VectorSpace
  * @author      Chloe Lau Rey En
  * @brief       per axis color constants for the gizmo.
  *              Base colors match the app's object palette,
