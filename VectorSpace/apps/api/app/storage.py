@@ -41,3 +41,25 @@ def generate_presigned_download_url(storage_key: str, expires_in: int = 900) -> 
         Params={"Bucket": settings.minio_bucket, "Key": storage_key},
         ExpiresIn=expires_in,
     )
+
+
+def head_object(storage_key: str) -> tuple[int, str] | None:
+    """(size in bytes, content type) of a stored object, or None if nothing is there yet.
+
+    Used to confirm an upload: a presigned PUT cannot cap the size, so the real size and type
+    are checked here after the browser says it finished.
+    """
+    settings = get_settings()
+    client = get_s3_client()
+    try:
+        response = client.head_object(Bucket=settings.minio_bucket, Key=storage_key)
+    except client.exceptions.ClientError as error:
+        if error.response.get("Error", {}).get("Code") in ("404", "NoSuchKey", "NotFound"):
+            return None
+        raise
+    return int(response.get("ContentLength", 0)), str(response.get("ContentType", ""))
+
+
+def delete_object(storage_key: str) -> None:
+    settings = get_settings()
+    get_s3_client().delete_object(Bucket=settings.minio_bucket, Key=storage_key)

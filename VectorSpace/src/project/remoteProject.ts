@@ -62,8 +62,10 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
   if (row.current_version_id) {
     const version = await apiFetch<VersionDetail>(getToken, `/projects/${projectId}/versions/${row.current_version_id}`, {}, base)
     revision = version.revision
-    // the project row is the authority on who this is, so a save that lacks id or name still opens
-    project = deserializeProject(JSON.stringify({ id: row.id, name: row.name, ...(version.data as object) }))
+    // the project row is the authority on who this is: its id and name win over whatever the
+    // saved scene carries (a scene started from a template keeps the template's name), and a
+    // save that lacks either still opens
+    project = deserializeProject(JSON.stringify({ ...(version.data as object), id: row.id, name: row.name }))
   }
   project = { ...project, id: row.id }
   registry.set(row.id, { revision, getToken })

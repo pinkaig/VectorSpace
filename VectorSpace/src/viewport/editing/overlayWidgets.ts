@@ -28,13 +28,13 @@ import { createOctaOrb, OctaOrbWidget } from '../../viewport/editing/octaOrb'
 import { createAxisIndicator, AxisIndicatorHandle } from '../../viewport/editing/axisIndicator'
 import { matchFaceView } from '../../viewport/editing/viewSnap'
 
-export const OCTAORB_DIM = 128
-export const AXIS_INDICATOR_DIM = 84
-// Compact sizes for the quad ("Orthographic") layout's quarter-size main pane — small
-// enough to get out of the way, but the targets stay easy mouse hits on a ~15" laptop
-// (OctaOrb tips ≈12px across, axis balls ≈9px).
-export const OCTAORB_DIM_COMPACT = 96
-export const AXIS_INDICATOR_DIM_COMPACT = 68
+// Kept small so they stay out of the way of the editor's floating panels; the targets
+// are still clean mouse hits (OctaOrb tips ≈8px across, axis balls ≈7px).
+export const OCTAORB_DIM = 88
+export const AXIS_INDICATOR_DIM = 60
+// Compact sizes for the quad ("Orthographic") layout's quarter-size main pane.
+export const OCTAORB_DIM_COMPACT = 72
+export const AXIS_INDICATOR_DIM_COMPACT = 52
 
 export interface OverlayDims {
   octaOrb: number
@@ -46,10 +46,38 @@ export const overlayDims = (compact: boolean): OverlayDims => compact
   ? { octaOrb: OCTAORB_DIM_COMPACT, axisIndicator: AXIS_INDICATOR_DIM_COMPACT }
   : { octaOrb: OCTAORB_DIM, axisIndicator: AXIS_INDICATOR_DIM }
 
-// Matches the CSS backdrop insets in styles.css.
+// Distance from the viewport's right edge, and between stacked widgets.
 export const OVERLAY_MARGIN = 8
+export const OVERLAY_GAP = 6
 
-export type OverlayCorner = 'top-right' | 'bottom-left'
+/**
+ * Both widgets stack in one column on the right edge: the OctaOrb on top, the axis
+ * indicator under it (moving up when the OctaOrb is hidden). `insetTop` lets a host
+ * start the column below its own floating controls.
+ */
+export interface OverlayLayout {
+  compact: boolean
+  insetTop: number
+  showOctaOrb: boolean
+}
+
+export type OverlayWidget = 'octaOrb' | 'axisIndicator'
+
+export interface OverlayBox {
+  left: number
+  top: number
+  size: number
+}
+
+// Position inside the viewport, CSS pixels from its top-left corner.
+export const overlayBox = (widget: OverlayWidget, layout: OverlayLayout, width: number): OverlayBox => {
+  const dims = overlayDims(layout.compact)
+  if (widget === 'octaOrb') {
+    return { left: width - OVERLAY_MARGIN - dims.octaOrb, top: layout.insetTop, size: dims.octaOrb }
+  }
+  const top = layout.insetTop + (layout.showOctaOrb ? dims.octaOrb + OVERLAY_GAP : 0)
+  return { left: width - OVERLAY_MARGIN - dims.axisIndicator, top, size: dims.axisIndicator }
+}
 
 export interface OverlayRect {
   left: number
@@ -58,10 +86,13 @@ export interface OverlayRect {
   bottom: number
 }
 
-export const overlayRect = (corner: OverlayCorner, dim: number, rect: DOMRect): OverlayRect =>
-  corner === 'top-right'
-    ? { left: rect.right - OVERLAY_MARGIN - dim, top: rect.top + OVERLAY_MARGIN, right: rect.right - OVERLAY_MARGIN, bottom: rect.top + OVERLAY_MARGIN + dim }
-    : { left: rect.left + OVERLAY_MARGIN, top: rect.bottom - OVERLAY_MARGIN - dim, right: rect.left + OVERLAY_MARGIN + dim, bottom: rect.bottom - OVERLAY_MARGIN }
+// The same box in client coordinates, for pointer hit-testing.
+export const overlayRect = (widget: OverlayWidget, layout: OverlayLayout, rect: DOMRect): OverlayRect => {
+  const box = overlayBox(widget, layout, rect.width)
+  const left = rect.left + box.left
+  const top = rect.top + box.top
+  return { left, top, right: left + box.size, bottom: top + box.size }
+}
 
 export const pointInRect = (x: number, y: number, r: OverlayRect): boolean =>
   x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
@@ -86,6 +117,8 @@ export interface OverlayRenderInput {
   showAxisIndicator: boolean
   /** Shrinks both widgets — see overlayDims. */
   compact: boolean
+  /** Where the widget column starts — see OverlayLayout. */
+  insetTop: number
 }
 
 export interface ViewportOverlays {
@@ -187,17 +220,20 @@ export const createViewportOverlays = (mount: HTMLElement, canvas: HTMLCanvasEle
   return {
     octaOrb,
     axisIndicator,
-    render: (renderer, { camera, target, width, height, showOctaOrb, showAxisIndicator, compact }) => {
-      const dims = overlayDims(compact)
+    render: (renderer, { camera, target, width, height, showOctaOrb, showAxisIndicator, compact, insetTop }) => {
+      const layout: OverlayLayout = { compact, insetTop, showOctaOrb }
+      // overlayBox measures from the top; WebGL's viewport origin is bottom-left
       if (showOctaOrb) {
         direction.copy(camera.position).sub(target).normalize()
         octaOrb.syncToCamera(direction, camera.up)
         octaOrb.setArrowsVisible(matchFaceView(direction) !== null)
-        renderInRect(renderer, panel, octaOrb.scene, octaOrb.camera, width - OVERLAY_MARGIN - dims.octaOrb, height - OVERLAY_MARGIN - dims.octaOrb, dims.octaOrb)
+        const box = overlayBox('octaOrb', layout, width)
+        renderInRect(renderer, panel, octaOrb.scene, octaOrb.camera, box.left, height - box.top - box.size, box.size)
       }
       if (showAxisIndicator) {
         axisIndicator.group.quaternion.copy(camera.quaternion).invert()
-        renderInRect(renderer, panel, axisIndicator.group, axisIndicator.camera, OVERLAY_MARGIN, OVERLAY_MARGIN, dims.axisIndicator)
+        const box = overlayBox('axisIndicator', layout, width)
+        renderInRect(renderer, panel, axisIndicator.group, axisIndicator.camera, box.left, height - box.top - box.size, box.size)
       }
       renderer.setScissorTest(false)
     },

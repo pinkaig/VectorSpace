@@ -54,10 +54,11 @@ import { loadEnvironmentIntoGroup } from '../viewport/environmentController'
 import { createFloorGrid } from './floorGrid'
 import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
 import { createViewportInteractionController } from '../viewport/editing/interactionController'
-import { EYE_HEIGHT } from '../viewport/viewportTypes'
+import { EYE_HEIGHT, getWalkDirection } from '../viewport/viewportTypes'
+import { createPlayMovement } from './playMovement'
 import { EDGE_VIEWS, FACE_VIEWS, matchEdgeView, matchFaceView } from '../viewport/editing/viewSnap'
 import { createGizmoSet } from '../viewport/editing/createGizmoSet'
-import { createViewportOverlays, overlayDims } from '../viewport/editing/overlayWidgets'
+import { createViewportOverlays, overlayBox, overlayDims, OVERLAY_GAP, OVERLAY_MARGIN } from '../viewport/editing/overlayWidgets'
 import type { EnvStatus } from '../viewport/renderTypes'
 import {
   getAssetDescriptor,
@@ -73,6 +74,8 @@ import { createRenderScheduler } from '../viewport/renderScheduler'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
+/** How a visitor moves in play mode: tap the floor, walk (keys/joystick), or hop between tour spots. */
+export type PlayMove = 'tap' | 'walk' | 'tour'
 
 interface ViewportProps {
   objects: SceneObject[]
@@ -125,6 +128,8 @@ interface ViewportProps {
   showAxisIndicator?: boolean
   // Shrinks the OctaOrb / axis indicator
   compactOverlays?: boolean
+  /** Where the right-edge column of OctaOrb, axis indicator and stats starts, so a host can keep it below its own controls. */
+  overlayInsetTop?: number
   /** Shows the FPS / object count */
   showStats?: boolean
   /** How much of the environment's walls to show; lower settings clip it horizontally. */
@@ -133,6 +138,8 @@ interface ViewportProps {
   onViewLabelChange?: (label: string | null) => void
   /** Draws the hint text in the viewport corner; the editor shows it in its footer instead. */
   showHint?: boolean
+  /** Play mode's movement; looking is a drag in every one. Absent keeps pointer-lock look. */
+  playMove?: PlayMove
 }
 
 // What the pointer and keys do right now, for the hint line in the viewport or editor footer.
@@ -161,6 +168,8 @@ const VIEW_PRESET_DIRECTIONS: Record<ViewPreset, THREE.Vector3> = {
   front: new THREE.Vector3(0, 0, 1),
   side: new THREE.Vector3(1, 0, 0),
 }
+
+const NO_KEYS: ReadonlySet<string> = new Set()
 
 // Fraction of the environment's height kept visible for each wall setting.
 const WALL_CUT_HEIGHT: Record<WallCut, number | null> = { full: null, half: 0.5, low: 0.12 }
@@ -207,6 +216,12 @@ export interface ViewportHandle {
   focusSelected: () => void
   /** Frames the environment plus every object (same as the H key). */
   frameAll: () => void
+  /** Play mode: the on-screen joystick, each axis -1..1 (x right, z forward); 0, 0 on release. */
+  setJoystick: (x: number, z: number) => void
+  /** Play mode: walk to a tour spot (null = the start view, else in front of that object) and face it. */
+  goToSpot: (objectId: string | null) => void
+  /** Play mode: a tour spot's floor marker in viewport pixels, or null when behind the visitor. */
+  spotScreenPoint: (objectId: string | null) => { x: number; y: number } | null
 }
 
 // 'TOP', 'FRONT', … when `direction` (target -> camera) is flat against a face,
@@ -250,10 +265,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     showOctaOrb = true,
     showAxisIndicator = true,
     compactOverlays = false,
+    overlayInsetTop = OVERLAY_MARGIN,
     showStats = false,
     walls = 'full',
     onViewLabelChange,
     showHint = true,
+    playMove,
   },
   ref,
 ) {
@@ -262,8 +279,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -312,9 +329,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // changes) wake the on-demand render loop.
   const requestRenderRef = useRef<() => void>(() => {})
   // Set by the setup effect; camera actions the floating view controls call through the handle.
-  const viewActionsRef = useRef<Omit<ViewportHandle, 'getCameraPose' | 'restartRuntime'>>({
+  const viewActionsRef = useRef<Pick<ViewportHandle, 'setViewPreset' | 'zoomBy' | 'focusSelected' | 'frameAll'>>({
     setViewPreset: () => {}, zoomBy: () => {}, focusSelected: () => {}, frameAll: () => {},
   })
+  // Set by the setup effect; play-mode movement the runtime's controls call through the handle.
+  const playActionsRef = useRef<Pick<ViewportHandle, 'goToSpot' | 'spotScreenPoint'>>({
+    goToSpot: () => {}, spotScreenPoint: () => null,
+  })
+  // The on-screen joystick, read every frame by the walk camera.
+  const joystickRef = useRef({ x: 0, z: 0 })
   const wallsRef = useRef(walls)
   wallsRef.current = walls
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
@@ -338,6 +361,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     zoomBy: (factor) => viewActionsRef.current.zoomBy(factor),
     focusSelected: () => viewActionsRef.current.focusSelected(),
     frameAll: () => viewActionsRef.current.frameAll(),
+    setJoystick: (x, z) => { joystickRef.current = { x, z } },
+    goToSpot: (objectId) => playActionsRef.current.goToSpot(objectId),
+    spotScreenPoint: (objectId) => playActionsRef.current.spotScreenPoint(objectId),
   }), [])
 
   // Scene/renderer/camera setup — created once. All per-render values are read from refs so
@@ -583,6 +609,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     restartRuntimeRef.current = () => {
       if (dataRef.current.runtimeMode !== 'play') return
       stopRun(true)
+      playMovement.cancel()
       applyPoseRef.current(dataRef.current.startCamera)
     }
 
@@ -599,8 +626,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         yawRef.current = orientation.yaw
         pitchRef.current = orientation.pitch
         setFaceLabel(preset === 'angled' ? null : faceLabelFor(direction))
-        // Same rule as the OctaOrb: face views are orthographic, free views perspective.
-        if (dataRef.current.orthographic !== (preset !== 'angled')) dataRef.current.onOrthographicChange?.(preset !== 'angled')
+        // Every view is perspective, face views included (same rule as the OctaOrb).
+        if (dataRef.current.orthographic) dataRef.current.onOrthographicChange?.(false)
         requestRender()
       },
       zoomBy: (factor) => {
@@ -621,6 +648,21 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         if (box.isEmpty()) box.setFromObject(grid)
         if (frameBox(camera, controls, box)) requestRender()
       },
+    }
+
+    // Play-mode gliding (Tap to go, Tour spots). Arriving at an exhibit's tour spot counts
+    // as clicking it, so its click rules (e.g. its info panel) run.
+    const playMovement = createPlayMovement({
+      scene, camera, mount, objectsGroup, environmentGroup,
+      yaw: yawRef, pitch: pitchRef, eyeHeight: walkHeightRef,
+      getStartCamera: () => dataRef.current.startCamera,
+    })
+    playActionsRef.current = {
+      goToSpot: (objectId) => {
+        if (dataRef.current.runtimeMode !== 'play') return
+        playMovement.goToSpot(objectId, objectId === null ? undefined : () => emitRuntimeEvent({ kind: 'click', objectId }))
+      },
+      spotScreenPoint: playMovement.spotScreenPoint,
     }
 
     let interactionController: ReturnType<typeof createViewportInteractionController>
@@ -674,11 +716,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
           compactOverlays: dataRef.current.compactOverlays,
+          overlayInsetTop: dataRef.current.overlayInsetTop,
           unpickableAssetIds: unpickableAssetIdsRef.current,
           runtimeActive: dataRef.current.runtimeMode === 'play',
           // one-way boolean per the modal-input-boundary decision: text
           // reports, this controller decides what the modal means for input
           modalOpen: text.store.getSnapshot().modalOpen,
+          playMove: dataRef.current.playMove ?? null,
         }),
         select: (id) => dataRef.current.onSelect(id),
         commitMove: (id, position) => dataRef.current.onMove(id, position),
@@ -705,6 +749,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         // Always supplied so a mode flip needs no listener rebinding; the
         // controller checks runtimeActive above before doing any picking for it.
         onRuntimeEvent: emitRuntimeEvent,
+        tapFloor: playMovement.tapFloor,
       },
     })
 
@@ -808,9 +853,17 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       }
 
       if (dataRef.current.cameraMode === 'walk') {
-        updateWalkCamera(camera, interactionController.pressedKeys, delta, yawRef.current, {
+        const joystick = joystickRef.current
+        // Tap to go and Tour spots move only by tapping or the tour controls: WASD is off there
+        const keysOff = playing && (dataRef.current.playMove === 'tap' || dataRef.current.playMove === 'tour')
+        const pressedKeys = keysOff ? NO_KEYS : interactionController.pressedKeys
+        const keys = getWalkDirection(pressedKeys)
+        // walking by hand takes over from a glide in progress
+        playMovement.update(delta, playing, joystick.x !== 0 || joystick.z !== 0 || keys.x !== 0 || keys.z !== 0)
+        updateWalkCamera(camera, pressedKeys, delta, yawRef.current, {
           groundLocked: dataRef.current.runtimeMode === 'play',
           eyeHeight: walkHeightRef.current,
+          joystick: playing ? joystick : undefined,
         })
       } else {
         controls.update()
@@ -852,6 +905,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
           compact: dataRef.current.compactOverlays,
+          insetTop: dataRef.current.overlayInsetTop,
         })
       }
     }
@@ -874,6 +928,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       text.closeAll()
       restartRuntimeRef.current = () => {}
       requestRenderRef.current = () => {}
+      playActionsRef.current = { goToSpot: () => {}, spotScreenPoint: () => null }
+      playMovement.dispose()
       observer.disconnect()
       inputEvents.forEach((type) => renderer.domElement.removeEventListener(type, requestRender))
       window.removeEventListener('keydown', requestRender)
@@ -892,6 +948,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactive])
+
+  // First-person look belongs to Walk only: leaving it hands the mouse back.
+  useEffect(() => {
+    if (playMove !== 'walk' && document.pointerLockElement && mountRef.current?.contains(document.pointerLockElement)) document.exitPointerLock()
+  }, [playMove])
 
   // Any prop change (gizmo mode, overlays, orthographic, …) may alter what the
   // frame shows, so wake one draw after every React render. Cheap: it only sets a flag.
@@ -1013,15 +1074,28 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
   const hint = showHint ? viewportHintText(cameraMode, interactive, gizmoMode) : null
 
+  // The widgets only draw in orbit; stats sit under whichever of them are showing.
   const dims = overlayDims(compactOverlays)
+  const orbShown = cameraMode === 'orbit' && showOctaOrb
+  const axisShown = cameraMode === 'orbit' && showAxisIndicator
+  const layout = { compact: compactOverlays, insetTop: overlayInsetTop, showOctaOrb: orbShown }
+  const statsTop = overlayInsetTop
+    + (orbShown ? dims.octaOrb + OVERLAY_GAP : 0)
+    + (axisShown ? dims.axisIndicator + OVERLAY_GAP : 0)
+  const backdropStyle = (widget: 'octaOrb' | 'axisIndicator') => {
+    const size = widget === 'octaOrb' ? dims.octaOrb : dims.axisIndicator
+    // every widget is right-aligned at OVERLAY_MARGIN, so only its top comes from the layout
+    return { width: size, height: size, top: overlayBox(widget, layout, 0).top, right: OVERLAY_MARGIN }
+  }
 
   return (
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
-      {cameraMode === 'walk' && !interactive && <ViewportCrosshair />}
-      {cameraMode === 'orbit' && showOctaOrb && <div className="octaorb-backdrop" style={{ width: dims.octaOrb, height: dims.octaOrb }} />}
-      {cameraMode === 'orbit' && showAxisIndicator && <div className="axis-indicator-backdrop" style={{ width: dims.axisIndicator, height: dims.axisIndicator }} />}
+      {/* Tap to go and Tour spots point with the cursor, so only walking aims from the centre */}
+      {cameraMode === 'walk' && !interactive && (playMove === undefined || playMove === 'walk') && <ViewportCrosshair ring={playMove === 'walk'} />}
+      {orbShown && <div className="octaorb-backdrop" style={backdropStyle('octaOrb')} />}
+      {axisShown && <div className="axis-indicator-backdrop" style={backdropStyle('axisIndicator')} />}
       {cameraMode === 'orbit' && faceLabel && (
         <div className="viewport-face-header" key={faceLabel}>
           <span className="viewport-face-header-name">{faceLabel}</span>
@@ -1029,7 +1103,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         </div>
       )}
       {showStats && stats && (
-      <div className="viewport-stats">
+      <div className="viewport-stats" style={{ top: statsTop, right: OVERLAY_MARGIN }}>
         <span><b>{stats.fps.toFixed(0)}</b> FPS</span>  
         <span>FT: {stats.frameMs.toFixed(1)} ms</span> {/* frame time */}
         <span>Objects: <b>{stats.objects}</b></span>

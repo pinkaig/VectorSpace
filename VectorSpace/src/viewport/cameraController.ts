@@ -193,6 +193,9 @@ export interface WalkCameraOptions {
   // of floating or flying. Editor walk-mode preview keeps free fly (in interactionController's VERTICAL_KEYS)
   groundLocked: boolean
   eyeHeight: number
+  // Play mode's on-screen joystick, each axis -1..1, added to the keys. A part-pushed
+  // stick walks slower; keys (and a full push) walk at full speed.
+  joystick?: { x: number; z: number }
 }
 
 export const updateWalkCamera = (
@@ -200,13 +203,16 @@ export const updateWalkCamera = (
   pressedKeys: Iterable<string>,
   delta: number,
   yaw: number,
-  { groundLocked, eyeHeight }: WalkCameraOptions,
+  { groundLocked, eyeHeight, joystick }: WalkCameraOptions,
 ): void => {
-  const { x: dx, z: dz } = getWalkDirection(pressedKeys)
+  const keys = getWalkDirection(pressedKeys)
+  const dx = keys.x + (joystick?.x ?? 0)
+  const dz = keys.z + (joystick?.z ?? 0)
   const isSprinting = Array.from(pressedKeys).some((key) => key === 'ShiftLeft' || key === 'ShiftRight')
   const speed = isSprinting ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED
   if (dx !== 0 || dz !== 0) {
-    const length = Math.hypot(dx, dz) || 1
+    // never faster than one key's worth, but a small joystick push stays small
+    const length = Math.max(1, Math.hypot(dx, dz))
     const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw))
     const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw))
     const step = (speed * delta) / length

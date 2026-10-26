@@ -28,6 +28,67 @@ Internet --443/80--> Caddy --> frontend (nginx, static build)
   — production should point `MINIO_ENDPOINT_URL` at a managed S3-compatible
   bucket rather than running MinIO as a single-node container.
 
+## Hosting on Render
+
+Defined by `render.yaml` at the repository root.
+
+```
+Browser --> vectorspace      (Render static site, CDN, always on)
+        \-> vectorspace-api  (Render free web service, Docker) --> Neon Postgres (free)
+cron-job.org --every 10 min--> vectorspace-api /health   (keeps it from sleeping)
+```
+
+Live: site https://vectorspace-tuw2.onrender.com, API
+https://vectorspace-api.onrender.com (Neon project "Vector Space", Singapore).
+
+| Piece    | Service                         | Free limits that matter                                   |
+|----------|---------------------------------|-----------------------------------------------------------|
+| Frontend | Render static site              | Never sleeps                                              |
+| API      | Render web service (free plan)  | Sleeps after 15 min idle, ~1 min to wake; 750 h/month     |
+| Database | Neon                            | 1 GB; wakes in under a second after 5 min idle            |
+| Pinger   | cron-job.org                    | Keeps the API awake (750 h covers one service all month)  |
+
+Media uploads (MinIO/S3) are not set up: the bundled models and audio ship
+with the frontend. Add an S3-compatible bucket later (e.g. Backblaze B2, 10 GB
+free) and set the `MINIO_*` variables on the API if uploads are needed.
+
+### Steps
+
+1. **Neon** (https://neon.tech, sign in with GitHub): create a project, region
+   closest to the Render region you will pick (e.g. both Singapore). Copy the
+   connection string from *Connect*; it looks like
+   `postgresql://user:pw@ep-xxx.aws.neon.tech/neondb?sslmode=require`.
+   The API accepts it as is (it switches the scheme to psycopg 3 itself).
+2. **Render** (https://render.com, sign in with GitHub, no card): *New >
+   Blueprint*, pick this repository. Render reads `render.yaml` and asks for:
+   - `DATABASE_URL`: the Neon string from step 1
+   - `CORS_ORIGINS`: the static site's address exactly, no trailing slash, e.g.
+     `https://vectorspace-tuw2.onrender.com` (Render adds a suffix to the name
+     when it is taken; the address cannot be changed later)
+   - `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`: leave empty until Auth0 exists
+
+   The Render GitHub app needs access to the repository, so the repo owner
+   installs it, or deploy from your own fork.
+3. Wait for both deploys, then check `https://vectorspace-api.onrender.com/health`
+   returns `{"status":"ok",...}` and the site loads. Migrations run each time the
+   API starts (`alembic upgrade head` in the API Dockerfile's `CMD`), since
+   Render's pre-deploy step is not on the free plan. Leave Render's *Docker
+   Command* field empty.
+4. **cron-job.org** (free, no card): create a job that GETs the `/health`
+   address above every 10 minutes. This keeps the API from sleeping, so visitors
+   never wait for a cold start. (A GitHub Actions schedule would do the same,
+   but on a private repo it would use more than the 2,000 free minutes.)
+
+Both services deploy from `Working`, after the team's CI checks pass, so a
+broken merge never goes live. The site uses `HashRouter`, so no rewrite rules
+are needed.
+
+**Sign-in:** the static site is built without `VITE_API_URL`, so it runs in its
+offline mode (role picker, saves in the browser). Production refuses the
+`dev|` sign-in the picker uses against a server, so connect the site to the API
+(uncomment `VITE_API_URL` in `render.yaml`) only once the browser app signs in
+through Auth0.
+
 ## One-time VM provisioning
 
 These are concrete commands for a fresh Ubuntu 22.04/24.04 VM (adjust package

@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     @property
     def sqlalchemy_database_url(self) -> str:
         if self.database_url:
+            # hosted Postgres (Neon, Render) hands out postgres:// or postgresql:// URLs, which
+            # SQLAlchemy would read as psycopg2; this app ships psycopg 3
+            for scheme in ("postgres://", "postgresql://"):
+                if self.database_url.startswith(scheme):
+                    return "postgresql+psycopg://" + self.database_url[len(scheme):]
             return self.database_url
         return (
             f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"

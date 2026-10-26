@@ -17,6 +17,7 @@
  * Links point at the project wiki; migration is still in progress.
  */
 import type { AssetRef } from './AssetRef'
+import type { EmbedProvider } from './mediaKinds'
 
 export type AssetStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -38,6 +39,12 @@ export interface AssetDescriptor {
   width?: number
   height?: number
   durationMs?: number
+  /**
+   * Set instead of url/blob when the media plays in a provider's own player
+   * (an approved YouTube link). Nothing is downloaded: the player rebuilds
+   * the embed address from providerId, so no pasted URL ever reaches an iframe.
+   */
+  embed?: { provider: EmbedProvider; providerId: string }
 }
 
 export const idleAssetDescriptor = (ref: AssetRef): AssetDescriptor => ({ ref, status: 'idle' })
@@ -48,6 +55,13 @@ export const readyAssetDescriptor = (
   ref: AssetRef,
   fields: { contentType: string; url?: string; blob?: Blob; expiresAt?: number; sizeBytes?: number; width?: number; height?: number; durationMs?: number },
 ): AssetDescriptor => ({ ref, status: 'ready', ...fields })
+
+/** A ready descriptor for an embed: no URL, no bytes, no content type, just the provider and its id. */
+export const embedAssetDescriptor = (
+  ref: AssetRef,
+  embed: { provider: EmbedProvider; providerId: string },
+  fields: { expiresAt?: number } = {},
+): AssetDescriptor => ({ ref, status: 'ready', embed, ...fields })
 
 export const errorAssetDescriptor = (ref: AssetRef, errorMessage: string): AssetDescriptor => ({
   ref,
