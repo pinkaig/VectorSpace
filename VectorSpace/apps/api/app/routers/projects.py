@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from ..access import can_read, can_write, class_ids, visible_projects
 from ..auth import get_current_actor
 from ..db import get_db
-from ..models import Actor, Classroom, ContentSnapshot, Project, ProjectVersion
+from ..models import Actor, Assignment, Classroom, ContentSnapshot, Project, ProjectVersion
 from ._skeleton import not_implemented
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -54,23 +54,37 @@ class ProjectResponse(BaseModel):
     saved_at: datetime | None = None
     saved_by_name: str = ""
     template_name: str | None = None
+    # the assignment this copy belongs to (None for a teacher's own projects): filled in by _describe
+    assignment_id: uuid.UUID | None = None
+    task: str | None = None
+    due_at: date | None = None
+    assigned_by_name: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
-    """The rows plus who made them, their class, their template and the latest save: four lookups for the lot."""
+    """The rows plus who made them, their class, their template, their assignment and the latest save: five lookups for the lot."""
     versions = {
         v.id: v
         for v in db.scalars(select(ProjectVersion).where(ProjectVersion.id.in_({p.current_version_id for p in projects if p.current_version_id})))
     }
-    people_ids = {p.created_by_id for p in projects} | {v.created_by_id for v in versions.values()}
+    assignments = {
+        a.id: a
+        for a in db.scalars(select(Assignment).where(Assignment.id.in_({p.assignment_id for p in projects if p.assignment_id})))
+    }
+    people_ids = (
+        {p.created_by_id for p in projects}
+        | {v.created_by_id for v in versions.values()}
+        | {a.created_by_id for a in assignments.values()}
+    )
     people = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_(people_ids)))}
     classes = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.id.in_({p.class_id for p in projects if p.class_id})))}
     templates = {t.id: t.name for t in db.scalars(select(Project).where(Project.id.in_({p.template_id for p in projects if p.template_id})))}
     rows = []
     for p in projects:
         saved = versions.get(p.current_version_id)
+        assignment = assignments.get(p.assignment_id) if p.assignment_id else None
         rows.append(
             ProjectResponse.model_validate(p).model_copy(
                 update={
@@ -80,11 +94,13 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
                     "saved_at": saved.created_at if saved else None,
                     "saved_by_name": people.get(saved.created_by_id, "") if saved else "",
                     "template_name": templates.get(p.template_id) if p.template_id else None,
+                    "task": assignment.task if assignment else None,
+                    "due_at": assignment.due_at if assignment else None,
+                    "assigned_by_name": people.get(assignment.created_by_id) if assignment else None,
                 }
             )
         )
     return rows
-
 
 def distinct_name(db: Session, owner_id: uuid.UUID, kind: str, name: str) -> str:
     """name, or "name (2)", "name (3)"... so one person's copies of the same thing can be told apart."""
