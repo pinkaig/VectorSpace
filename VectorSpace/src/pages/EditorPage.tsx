@@ -17,7 +17,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
-import { collectSubtreeIds } from '@vectorspace/authoring-engine'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
@@ -26,8 +25,7 @@ import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../co
 import { isUserAudioAsset } from '../content/userAudio'
 import { selectEditorScene } from '../editor/editorOperations'
 import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
-import { WhenDoRuleSection } from '../sections/objectPanel/WhenDoRuleSection'
-import type { ClickRuleChoice } from '../editor/ruleEditorOperations'
+import { findCard, saveObjectCard, removeObjectCard, type CardInput } from '../editor/cardEditorOperations'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import { cellBeside, roomAt, roomCell, ROOM_SIDES, type RoomSide } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
@@ -436,7 +434,45 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
         </section>
         {selected && TUTStep >= 2 && <aside className="inspector-popup">
-          <section className="panel inspector-panel"><div className="panel-heading"><div><span className="eyebrow">Properties</span><h2>Inspector</h2></div>{selected && <span className="selection-badge">Selected</span>}</div>{selected ? <Inspector object={selected} sceneObjects={scene.objects} onRename={renameSelected} onTransform={updateSelected} onDuplicate={duplicateSelected} onDelete={deleteSelected} onVisibleChange={setSelectedVisible} onEnabledChange={setSelectedEnabled} onReparent={(parentId) => reparentObjectTo(selected.id, parentId)} onAssetIdChange={setSelectedAssetId} onAddClickRule={addSelectedClickRule} rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)} onRemoveRule={removeRuleById} /> : <div className="inspector-empty"><div className="crosshair">＋</div><p>Select an object in the scene</p><span>Its transform will appear here.</span></div>}</section>
+          {/* The panel only shows things and calls back; every action below decides what happens. */}
+          <ObjectPanel
+            object={{
+              id: selected.id,
+              name: selected.name,
+              kind: selected.assetKind,
+              position: selected.transform.position,
+              rotation: selected.transform.rotation.map(radToDeg) as Vec3,
+              scale: selected.transform.scale,
+            }}
+            step={step}
+            onStepChange={setStep}
+            onClose={() => setSelectedId(null)}
+            tool={gizmoMode === 'select' ? null : gizmoMode}
+            onToolChange={setGizmoMode}
+            onRotateBy={(degrees) => {
+              const [x, y, z] = selected.transform.rotation
+              updateSelected({ rotation: [x, degToRad(wrapDegrees(radToDeg(y) + degrees)), z] })
+            }}
+            onExactChange={(field, value) => {
+              updateSelected({ [field]: field === 'rotation' ? value.map((degrees) => degToRad(wrapDegrees(degrees))) as Vec3 : value })
+            }}
+            snap={snapOn}
+            onSnapChange={setSnapOn}
+            onCopy={duplicateSelected}
+            onRemove={deleteSelected}
+            rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)}
+            onAddRule={addSelectedClickRule}
+            onRemoveRule={removeRuleById}
+            infoCard={cardInputFor(project, selected)}
+            mediaChoices={[]}
+            onSaveCard={(input) => {
+              const result = saveObjectCard(project, scene.id, selected.id, input)
+              if (!result.ok) return result.error
+              commit('Save info card', result.project)
+              return null
+            }}
+            onRemoveCard={() => commit('Remove info card', removeObjectCard(project, scene.id, selected.id))}
+          />
         </aside>}
       </div>
       <section className="catalogue">
@@ -498,45 +534,15 @@ export default function EditorPage({ start }: { start?: ProjectLoadResult } = {}
 const radToDeg = (radians: number) => radians * (180 / Math.PI)
 const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 
-function Inspector({ object, sceneObjects, onRename, onTransform, onDuplicate, onDelete, onVisibleChange, onEnabledChange, onReparent, onAssetIdChange, onAddClickRule, rules, onRemoveRule }: { object: SceneObject; sceneObjects: SceneObject[]; onRename: (name: string) => void; onTransform: (changes: Partial<SceneObject['transform']>) => void; onDuplicate: () => void; onDelete: () => void; onVisibleChange: (value: boolean) => void; onEnabledChange: (value: boolean) => void; onReparent: (parentId: string | null) => void; onAssetIdChange: (assetId: string) => void; onAddClickRule: (choice: ClickRuleChoice) => void; rules: NonNullable<ProjectData['rules']>; onRemoveRule: (ruleId: string) => void }) {
-  // An object cannot become its own or its own descendant's parent, or the tree would cycle.
-  const excludedParentIds = collectSubtreeIds(sceneObjects, object.id)
-  const parentChoices = sceneObjects.filter((item) => !excludedParentIds.has(item.id))
-  // A parented object's transform is local to its parent; a top-level object's
-  // transform is already world space (there's no parent to be local to).
-  const spaceLabel = object.parentId !== undefined ? 'local' : 'world'
-  const vectorInput = (label: string, values: [number, number, number], key: 'position' | 'rotation' | 'scale') => {
-    const isRotation = key === 'rotation'
-    const displayValues = isRotation ? values.map(radToDeg) : values
-    return (
-      <div className="field-group">
-        <label>{isRotation ? `${label} (°, ${spaceLabel})` : `${label} (${spaceLabel})`}</label>
-        <div className="vector-fields">
-          {displayValues.map((value, index) => (
-            <label className="number-field" key={`${key}-${index}`}>
-              <span>{['X', 'Y', 'Z'][index]}</span>
-              <input
-                type="number"
-                step={isRotation ? 1 : 0.1}
-                min={isRotation ? 0 : undefined}
-                max={isRotation ? 360 : undefined}
-                value={Number(value.toFixed(isRotation ? 1 : 2))}
-                onChange={(event) => {
-                  const entered = Number(event.target.value)
-                  const next = [...values] as [number, number, number]
-                  next[index] = isRotation ? degToRad(Math.min(360, Math.max(0, entered))) : entered
-                  onTransform({ [key]: next })
-                }}
-              />
-            </label>
-          ))}
-        </div>
-      </div>
-    )
-  }
-  return <div className="inspector-content"><label className="field-group"><span>Object name</span><input value={object.name} onChange={(event) => onRename(event.target.value)} /></label><label className="field-group"><span>Parent</span><select value={object.parentId ?? ''} onChange={(event) => onReparent(event.target.value === '' ? null : event.target.value)}><option value="">None (top-level)</option>{parentChoices.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field-group"><span>Asset ID</span><input onChange={(event) => onAssetIdChange(event.target.value)} /></label><div className="asset-id"><span className={`object-dot ${object.assetKind}`} />Library asset</div><div className="toggle-row"><label><input type="checkbox" checked={object.visible} onChange={(event) => onVisibleChange(event.target.checked)} /> Visible</label><label><input type="checkbox" checked={object.enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled</label></div>{vectorInput('Position', object.transform.position, 'position')}{vectorInput('Rotation', object.transform.rotation, 'rotation')}{vectorInput('Scale', object.transform.scale, 'scale')}<WhenDoRuleSection rules={rules} onAdd={onAddClickRule} onRemove={onRemoveRule} /><div className="inspector-actions"><button className="button subtle" onClick={onDuplicate}>Duplicate</button><button className="button ghost" onClick={onDelete}>Delete</button></div></div>
-}
+const wrapDegrees = (degrees: number) => ((degrees % 360) + 360) % 360
 
+// the card on an object as the form's input, or null when it has none
+const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
+  const card = findCard(project, object)
+  if (!card || card.attachment.presentation.mode !== 'card') return null
+  const { title, media, autoCloseMs } = card.attachment.presentation
+  return { title: title ?? '', body: card.meta?.content ?? '', ...(media ? { media } : {}), ...(autoCloseMs !== undefined ? { autoCloseMs } : {}) }
+}
 
 function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom, onEnvironmentChange }: RoomPopupProps){
   const [isOpen, setIsOpen] = useState(false)
