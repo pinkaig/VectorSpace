@@ -17,8 +17,9 @@
  *
  * @members
  * AssetKind, TransformData, SceneObject, SceneData, ProjectData,
- * MediaKind, AssetRefKind, Attachment (audio/text), TextAssetMeta,
- * TextPresentation, defaultProject, cloneProject, and makeObject.
+ * MediaKind, AssetRefKind, Attachment (audio/text/image/video), CardMedia,
+ * MediaViewProps, AttachmentCapabilities, TextAssetMeta, TextPresentation,
+ * defaultProject, cloneProject, and makeObject.
  *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Project-Serialization
@@ -27,6 +28,11 @@
 // attachment lookup helpers must be re-exported here to be importable.
 export { assetRefForAttachment, collectAttachments, findAttachment } from './attachments'
 export type { AttachmentHostRef, AttachmentLocation } from './attachments'
+export { getAttachmentCapabilities, listAttachmentCapabilities } from './capabilities'
+export type {
+  ActionParamSpec, AttachmentActionDescriptor, AttachmentCapabilities, AttachmentCapabilityKey,
+  AttachmentEventDescriptor, CapabilityStatus,
+} from './capabilities'
 
 export type AssetKind = 'cube' | 'sphere' | 'cylinder' | 'model'
 
@@ -210,11 +216,9 @@ export interface AudioSettings {
 }
 
 /**
- * The media kinds the attachment model can bind to a host. All four names are
- * reserved now so `MEDIA_KIND_SPECS` and the serializer allowlist stay
- * table-driven, but only `audio` and `text` have Attachment shapes yet —
- * image and video join the union when their design docs' presentation types
- * are approved (https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Attachment-Integration section 3).
+ * The media kinds the attachment model can bind to a host. Every kind now has
+ * an Attachment shape: audio and text from the start, image and video added
+ * for info cards (docs/handover/info-card-and-media-overview.md, Step 0).
  */
 export type MediaKind = 'audio' | 'image' | 'video' | 'text'
 
@@ -276,7 +280,40 @@ export interface AttachmentBase {
 }
 export interface AudioAttachment extends AttachmentBase { kind: 'audio'; assetId: string }
 export interface TextAttachment extends AttachmentBase { kind: 'text'; assetId: string; presentation: TextPresentation }
-export type Attachment = AudioAttachment | TextAttachment
+/**
+ * Image and video attachments hold only the id of a media library entry. The
+ * entry (an uploaded file or a teacher-approved link) is looked up at run
+ * time, so no bytes or URLs are ever stored in ProjectData.
+ */
+export interface ImageAttachment extends AttachmentBase { kind: 'image'; assetId: string }
+export interface VideoAttachment extends AttachmentBase { kind: 'video'; assetId: string }
+export type Attachment = AudioAttachment | TextAttachment | ImageAttachment | VideoAttachment
+
+/**
+ * The one media slot on an info card: an image or a video, by reference.
+ * assetId names a media library entry; caption and alt are short author text
+ * shown with it. Nothing reads this until the card mode lands (Track A1).
+ */
+export interface CardMedia {
+  kind: 'image' | 'video'
+  assetId: string
+  caption?: string
+  alt?: string
+}
+
+/** What MediaView reports as it loads and plays; 'unavailable' is the visible fallback, not an error. */
+export type MediaViewState = 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'unavailable'
+
+/**
+ * The fixed seam between the info card and the media player. Kept here, not
+ * in the component, so the card and the player can be built apart and joined
+ * with one import. Change it only with both sides agreeing.
+ */
+export interface MediaViewProps {
+  media: CardMedia
+  autoplay?: boolean   // video only; default false
+  onState?: (state: MediaViewState) => void
+}
 
 export interface ProjectData {
   schemaVersion: 1

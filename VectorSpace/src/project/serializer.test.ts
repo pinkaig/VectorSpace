@@ -218,6 +218,32 @@ describe('deserializeProject attachments and text assets', () => {
     expect(restored.scenes[0].zones?.[0].attachments).toHaveLength(1)
   })
 
+  it('round-trips image and video attachments on objects and zones', () => {
+    const original = deserializeProject(projectJson(
+      [objectJson('cube-1', [{ id: 'att-1', kind: 'image', assetId: 'media-photo', name: 'Photo' }, { id: 'att-2', kind: 'video', assetId: 'media-clip' }])],
+      {},
+      { zones: [{ id: 'zone-a', name: 'Z', shape: { kind: 'box', size: [1, 1, 1] }, position: [0, 0, 0], attachments: [{ id: 'att-3', kind: 'video', assetId: 'media-clip' }] }] },
+    ))
+    const restored = deserializeProject(serializeProject(original))
+    expect(restored.scenes[0].objects[0].attachments).toEqual([
+      { id: 'att-1', kind: 'image', assetId: 'media-photo', name: 'Photo' },
+      { id: 'att-2', kind: 'video', assetId: 'media-clip' },
+    ])
+    expect(restored.scenes[0].zones?.[0].attachments).toEqual([{ id: 'att-3', kind: 'video', assetId: 'media-clip' }])
+  })
+
+  it('loads a save written before image and video existed with its attachments unchanged', () => {
+    // the attachment shapes a save could hold before Step 0: audio and text only
+    const before = [{ id: 'att-1', kind: 'audio', assetId: 'creak' }, textAttachment('att-2', { mode: 'panel', title: 'Info', autoCloseMs: 3000 })]
+    const project = deserializeProject(projectJson([objectJson('cube-1', before)]))
+    expect(project.scenes[0].objects[0].attachments).toEqual(before)
+  })
+
+  it('rejects an image or video attachment without a library entry id', () => {
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'image' }])]))).toThrow(/invalid attachment/)
+    expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'video', assetId: '' }])]))).toThrow(/invalid attachment/)
+  })
+
   it('accepts an attachment whose assetId is in no catalog', () => {
     expect(() => deserializeProject(projectJson([objectJson('cube-1', [{ id: 'att-1', kind: 'audio', assetId: 'missing-forever' }])]))).not.toThrow()
   })
