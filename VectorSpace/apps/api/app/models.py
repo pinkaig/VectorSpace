@@ -8,10 +8,11 @@ conflict resolution) belong in Stage 3+ service/repository layers.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Boolean,
@@ -19,6 +20,7 @@ from sqlalchemy import (
     Integer,
     JSON,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -112,6 +114,31 @@ class ClassMember(Base):
     classroom: Mapped["Classroom"] = relationship(back_populates="members")
     actor: Mapped["Actor"] = relationship()
 
+class Assignment(Base):
+    """A project a teacher gives to a class, with the task and due date the students see.
+    Each student's copy points back here (projects.assignment_id), so the task is stored
+    once per class instead of once per student."""
+
+    __tablename__ = "assignments"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    class_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False
+    )
+    # the teacher's project or template the students' copies were made from
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="RESTRICT"), nullable=False
+    )
+    task: Mapped[str] = mapped_column(Text, nullable=False)
+    # a day, not a time: the student home shows "Due Friday"
+    due_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
 class Project(Base):
     __tablename__ = "projects"
@@ -138,6 +165,12 @@ class Project(Base):
     template_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("project_versions.id", ondelete="SET NULL", use_alter=True), nullable=True
+    )
+    # the assignment this student copy belongs to; None for a teacher's own projects and templates
+    assignment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("assignments.id", ondelete="SET NULL", use_alter=True, name="fk_projects_assignment_id"),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
