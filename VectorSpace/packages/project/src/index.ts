@@ -18,7 +18,7 @@
  * @members
  * AssetKind, TransformData, SceneObject, SceneData, ProjectData,
  * MediaKind, AssetRefKind, Attachment (audio/text/image/video), CardMedia,
- * MediaViewProps, AttachmentCapabilities, TextAssetMeta, TextPresentation,
+ * MediaViewProps, AttachmentCapabilities, TextAssetMeta, TextPresentation, CardField,
  * defaultProject, cloneProject, and makeObject.
  *
  * @documentation
@@ -248,8 +248,25 @@ export interface TextStyle {
   align?: 'left' | 'center' | 'right'
 }
 
+/**
+ * A teacher blank on an info card: a spot a student fills in. Reserved only so
+ * saves will not need a migration when teacher blanks arrive. Nothing reads it.
+ */
+export interface CardField {
+  key: string
+  label: string
+  locked?: boolean   // the teacher's text, which a student cannot change
+  prompt?: string    // the hint shown in an empty blank
+}
+
+/**
+ * How a text attachment is shown. 'panel' is the plain pop-up and 'card' is
+ * the info card (title, text, one media slot). 'label', 'surface' and
+ * 'dialogue' are reserved names that nothing renders yet; they stay so saves
+ * that already use them keep loading.
+ */
 export interface TextPresentation {
-  mode: 'panel' | 'label' | 'surface' | 'dialogue'
+  mode: 'panel' | 'card' | 'label' | 'surface' | 'dialogue'
   title?: string
   anchor?: 'center' | 'top' | 'bottom' | 'left' | 'right'
   size?: [number, number]
@@ -258,6 +275,8 @@ export interface TextPresentation {
   modal?: boolean
   autoCloseMs?: number
   paging?: 'none' | 'auto'
+  media?: CardMedia     // card mode only: the image or video under the title, by reference
+  fields?: CardField[]  // card mode only: reserved for teacher blanks, unused
 }
 
 /**

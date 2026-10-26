@@ -35,3 +35,34 @@ One entry per step group, newest last. The plan these follow is in the three han
 - `src/pages/EditorPage.tsx` does not compile on `weian_branch`. The merge of `Working` (commit `df90054`) brought back the old Inspector, which uses functions and imports that were removed earlier. This is outside my scope, so I did not touch it.
 - The overview says the serializer allowlist is in `packages/project`. It is actually in `src/project/serializer.ts`, and it is a validator that rejects unknown kinds, not a table. I edited it there because the allowlist is in scope.
 - `src/pages/TeacherReviewPage.tsx`, named in the handover for B8, does not exist in the repo.
+
+---
+
+## 2026-10-26 · A1: card shape
+
+**Changed**
+- `packages/project/src/index.ts`: `TextPresentation.mode` gains `'card'`, plus `media?: CardMedia` and `fields?: CardField[]`. Adds the new `CardField` type.
+- `src/project/serializer.ts`: accepts `card` mode and checks `media` and `fields` when a save loads.
+- `src/project/model.ts`: re-exports `CardField`.
+- `src/project/serializer.test.ts`: four new cases.
+
+**Decision**
+- These answer the work package's open questions. The owner did not answer them, so I used the handover's suggestions:
+  1. `label`, `surface` and `dialogue` stay in the type as reserved names. Nothing renders them. Deleting them would break saves that already use them; one existing test uses `dialogue`.
+  2. There is one close behaviour everywhere, with no "any press closes". This lands in A2.
+  3. A hotspot is a zone with a marker. This lands in A4.
+  4. A long card scrolls. `paging` stays unused.
+- No separate `caption` on the presentation. The work package lists one, but `CardMedia` already has `caption`, and two caption fields would drift apart. Rejected alternative: both fields.
+- The caption and alt text cap is 500 characters, separate from the 64 KB text cap, which stays unchanged.
+
+**Method**
+- A card is still a text attachment. It is just one whose `presentation.mode` is `'card'`.
+- Example save entry: `{ kind: 'text', assetId: 'text-1', presentation: { mode: 'card', title: 'Rosetta Stone', media: { kind: 'image', assetId: 'media-stone', alt: '…' } } }`. It loads and saves back identically.
+- `media: { kind: 'audio', … }` fails to load with "invalid media".
+
+**Check**
+- `npx vitest run src/project`: 49 tests pass, including the card round-trip and the old-save test from Step 0.
+- `npx tsc --noEmit -p tsconfig.app.json`: clean.
+
+**Needs you**
+- Please confirm or overturn the four answers above.
