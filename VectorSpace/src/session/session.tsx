@@ -57,7 +57,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Navigate } from 'react-router'
 import { Auth0Provider, useAuth0, type AppState } from '@auth0/auth0-react'
-import { apiFetch, apiUrl, type GetToken } from '../api/client'
+import { ApiError, apiFetch, apiUrl, type GetToken } from '../api/client'
 import { auth0Config, auth0Enabled, auth0RedirectUri } from './auth0'
 
 export type Role = 'teacher' | 'student'
@@ -133,9 +133,22 @@ export const homePath = (role: Role, admin: boolean): string => (admin ? '/admin
 export const adminRedirect = (role: Role | null, admin: boolean): string | null =>
   !role ? '/login' : admin ? null : `/${role}`
 
+// What to tell someone the login provider admitted but the roster does not know. A refusal
+// (403, from get_current_actor) is the expected case and names the identity that was used;
+// anything else is a fault, so it is shown as it came.
+const rejectionMessage = (error: unknown, who: string): string =>
+  error instanceof ApiError && error.status === 403
+    ? `${who || 'That login'} is signed in, but it has no account on this platform. Use the account your school gave you.`
+    : `Could not finish signing in: ${error instanceof Error ? error.message : String(error)}`
+
 type Session = {
   role: Role | null
   admin: boolean
+  // Set when the sign-in provider let someone in but this platform has no active account
+  // for that identity -- signing in with a personal Google account instead of the school
+  // one lands here. The message is for the login page, which must then offer a way out:
+  // the provider still holds that session, so "Sign in" alone would only fail again.
+  rejected: string | null
   // the name shown in the top bar: the server's display_name, or a fixed one while offline
   displayName: string
   // resolves with where the person landed (role and admin flag as the server decided them);
@@ -161,7 +174,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     <Auth0Provider
       domain={auth0Config.domain}
       clientId={auth0Config.clientId}
-      authorizationParams={{ audience: auth0Config.audience, redirect_uri: auth0RedirectUri() }}
+      authorizationParams={{
+        audience: auth0Config.audience,
+        redirect_uri: auth0RedirectUri(),
+        // with a connection configured the hosted page offers only that one, so nobody can
+        // sign in through a provider the roster cannot name (see auth0.ts)
+        ...(auth0Config.connection ? { connection: auth0Config.connection } : {}),
+      }}
       // refresh tokens rather than a hidden iframe: browsers that block third-party
       // cookies break silent authentication, and a classroom browser is likely to be one
       useRefreshTokens
@@ -186,10 +205,15 @@ const onRedirectCallback = (appState?: AppState) => {
  * holds neither credential nor permission of its own.
  */
 function Auth0SessionProvider({ children }: { children: ReactNode }) {
-  const { isLoading, isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0()
+  const { isLoading, isAuthenticated, user, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0()
   const [role, setRole] = useState<Role | null>(readStoredRole)
   const [admin, setAdmin] = useState<boolean>(readStoredAdmin)
   const [displayName, setDisplayName] = useState<string>(() => readStored(NAME_STORAGE_KEY) ?? '')
+  const [rejected, setRejected] = useState<string | null>(null)
+
+  // how to name the Auth0 identity back to the person, so a refusal says which account
+  // they used rather than only that something failed
+  const signedInAs = user?.email ?? user?.name ?? ''
 
   const getToken = useCallback<GetToken>(async () => {
     if (!isAuthenticated) return null
@@ -225,11 +249,20 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
   // is what sets the role and the admin flag.
   const askWhoIAm = useCallback(async () => {
     if (!apiUrl) throw new Error('Auth0 sign-in needs VITE_API_URL: there is no offline Auth0 mode')
-    const me = await apiFetch<Me>(getToken, '/me')
-    const landed = landingFor(me)
-    remember(landed, me.display_name)
-    return landed
-  }, [getToken, remember])
+    try {
+      const me = await apiFetch<Me>(getToken, '/me')
+      const landed = landingFor(me)
+      setRejected(null)
+      remember(landed, me.display_name)
+      return landed
+    } catch (error) {
+      // Auth0 proved who they are and the token verified; the roster simply has no active
+      // account for that subject. Record it so the login page stops offering a sign-in that
+      // cannot succeed and offers to sign this identity out instead.
+      setRejected(rejectionMessage(error, signedInAs))
+      throw error
+    }
+  }, [getToken, remember, signedInAs])
 
   // After the redirect back from Auth0 there is a token but no role yet, so fetch it. The
   // same effect clears a cached role once silent authentication has finished and found
@@ -238,22 +271,32 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
     if (isLoading) return
     if (!isAuthenticated) {
       if (role !== null || displayName !== '') forget()
+      if (rejected !== null) setRejected(null)
       return
     }
-    if (role === null) askWhoIAm().catch(() => forget())
-  }, [isLoading, isAuthenticated, role, displayName, askWhoIAm, forget])
+    // asked once per Auth0 session: a refusal is remembered, so this effect does not keep
+    // re-asking /me on every render for an identity the server has already turned away
+    if (role === null && rejected === null) askWhoIAm().catch(() => forget())
+  }, [isLoading, isAuthenticated, role, displayName, rejected, askWhoIAm, forget])
 
   const session = useMemo<Session>(
     () => ({
       role,
       admin,
       displayName,
+      rejected,
       // the role and admin arguments are ignored here: nobody chooses what they are in
       // Auth0 mode. They stay in the signature so the login page and every caller are
       // the same in both modes.
       signIn: async () => {
-        if (isAuthenticated) return askWhoIAm()
-        await loginWithRedirect({ appState: { returnTo: window.location.hash } })
+        // a refused identity is still signed in at Auth0, so asking it again would only be
+        // refused again: hand the browser back to the hosted page, where another account can
+        // be given. prompt=login stops Auth0 from silently reusing the same session.
+        if (isAuthenticated && rejected === null) return askWhoIAm()
+        await loginWithRedirect({
+          appState: { returnTo: window.location.hash },
+          authorizationParams: rejected === null ? undefined : { prompt: 'login' },
+        })
         // the browser is on its way to Auth0; nothing after this runs in this page
         return new Promise<{ role: Role; admin: boolean }>(() => {})
       },
@@ -266,10 +309,11 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
       },
       signOut: () => {
         forget()
+        setRejected(null)
         logout({ logoutParams: { returnTo: auth0RedirectUri() } })
       },
     }),
-    [role, admin, displayName, isAuthenticated, loginWithRedirect, logout, getToken, askWhoIAm, forget],
+    [role, admin, displayName, rejected, isAuthenticated, loginWithRedirect, logout, getToken, askWhoIAm, forget],
   )
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>
 }
@@ -287,6 +331,9 @@ function PickerSessionProvider({ children }: { children: ReactNode }) {
       role,
       admin,
       displayName,
+      // nothing to be stranded by: the picker's buttons stand for seeded people, and a
+      // server that refuses one is reported by signIn's rejection like any other failure
+      rejected: null,
       signIn: async (next, options) => {
         let landedAs = next
         let asAdmin = adminOverrideEnabled && options?.admin === true

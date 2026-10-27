@@ -15,4 +15,10 @@ interface ImportMetaEnv {
   readonly VITE_AUTH0_CLIENT_ID?: string
   /** The Auth0 API identifier the token is requested for; must equal the API's AUTH0_AUDIENCE. */
   readonly VITE_AUTH0_AUDIENCE?: string
+  /**
+   * Optional: the only connection the hosted login may offer, e.g.
+   * Username-Password-Authentication. Unset shows every connection the tenant enables,
+   * including social ones the roster cannot name. Should match the API's AUTH0_CONNECTION.
+   */
+  readonly VITE_AUTH0_CONNECTION?: string
 }

@@ -27,12 +27,19 @@ type LoginPageProps = {
   // are then collected by Auth0's own hosted page, not here, so this page shows one button
   // that hands the browser over, and the prototype role buttons are not offered at all.
   hostedLogin?: boolean;
+  // true when the hosted login admitted someone this platform has no account for. The
+  // provider still holds that session, so "Sign in" would be refused again: offer to sign
+  // that account out instead (session.tsx, rejected).
+  stranded?: boolean;
+  onUseAnotherAccount?: () => void;
 };
 
 export default function LoginPage({
   onSignIn,
   showAdmin = false,
   hostedLogin = false,
+  stranded = false,
+  onUseAnotherAccount,
 }: LoginPageProps) {
   const [museums, setMuseums] = useState<ShowcaseMuseum[]>([]);
   const [index, setIndex] = useState(0);
@@ -135,8 +142,18 @@ export default function LoginPage({
             }}
           >
             <button type="submit" className="login-primary">
-              Sign in
+              {stranded ? "Try another account" : "Sign in"}
             </button>
+
+            {stranded && (
+              <button
+                type="button"
+                className="login-secondary"
+                onClick={onUseAnotherAccount}
+              >
+                Sign out of this account
+              </button>
+            )}
           </form>
         ) : (
           /* not wired up yet: this build has no tenant, so the role buttons below are the sign-in */

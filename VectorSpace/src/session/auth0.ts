@@ -10,7 +10,8 @@
  * build has a tenant to sign in against. Nothing else in the app reads those variables.
  *
  * @inputs
- * VITE_AUTH0_DOMAIN, VITE_AUTH0_CLIENT_ID, VITE_AUTH0_AUDIENCE from the build environment.
+ * VITE_AUTH0_DOMAIN, VITE_AUTH0_CLIENT_ID, VITE_AUTH0_AUDIENCE from the build environment,
+ * and the optional VITE_AUTH0_CONNECTION.
  *
  * @outputs
  * auth0Config: the three values together, or null when any of them is missing.
@@ -33,6 +34,15 @@ export type Auth0Config = {
   domain: string
   clientId: string
   audience: string
+  /**
+   * The one Auth0 connection the hosted login may use, or '' to show every connection the
+   * tenant enables. Set it to the database connection the roster provisions into (the API's
+   * AUTH0_CONNECTION): a social login such as Google authenticates a subject that no roster
+   * row names, so it verifies and is then refused by GET /me. Pinning it here keeps that
+   * account off the hosted page in the first place. It is a convenience, not a control --
+   * the tenant's own connection settings are what actually decide who may sign in.
+   */
+  connection: string
 }
 
 const read = (value: string | undefined): string => (value ?? '').trim()
@@ -42,7 +52,8 @@ export const auth0Config: Auth0Config | null = (() => {
   const domain = read(import.meta.env.VITE_AUTH0_DOMAIN)
   const clientId = read(import.meta.env.VITE_AUTH0_CLIENT_ID)
   const audience = read(import.meta.env.VITE_AUTH0_AUDIENCE)
-  return domain && clientId && audience ? { domain, clientId, audience } : null
+  const connection = read(import.meta.env.VITE_AUTH0_CONNECTION)
+  return domain && clientId && audience ? { domain, clientId, audience, connection } : null
 })()
 
 /** True when this build signs in through Auth0 rather than the prototype picker. */

@@ -51,7 +51,7 @@ function Landing() {
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
-  const { signIn } = useSession()
+  const { signIn, rejected, signOut } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
   // where it navigates to is what signIn lands on, which the server decides when there is one:
@@ -62,10 +62,18 @@ function SignIn() {
       error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
     ))
   }
+  // a refusal from the sign-in provider's own session outlives a click, so it is shown
+  // whether or not anything was clicked, and it offers the way out that a retry cannot
   return (
     <>
-      <LoginPage showAdmin={adminOverrideEnabled} hostedLogin={auth0Enabled} onSignIn={onSignIn} />
-      {problem && <p role="alert" className="sign-in-problem">{problem}</p>}
+      <LoginPage
+        showAdmin={adminOverrideEnabled}
+        hostedLogin={auth0Enabled}
+        onSignIn={onSignIn}
+        stranded={rejected !== null}
+        onUseAnotherAccount={signOut}
+      />
+      {(rejected ?? problem) && <p role="alert" className="sign-in-problem">{rejected ?? problem}</p>}
     </>
   )
 }
