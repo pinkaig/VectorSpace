@@ -2,9 +2,11 @@
  * @file        objectPanel.tsx
  * @project     Spatial Experience Builder
  * @author      Weian Ching
- * @brief       Right-side panel for the selected object. Shows its name, a
- *              close button and three tabs that follow the first three editor
- *              steps: Position (step 1), Info (step 2) and Reactions (step 3).
+ * @brief       Right-side panel for the selected object, laid out like the V3
+ *              prototype (VectorSpace-V3.03_Demo.html): a header with the
+ *              object's icon, name and close button, then three tabs that follow
+ *              the first three editor steps: Position (step 1), Info (step 2)
+ *              and Reactions (step 3).
  *              Holds no editor logic. EditorPage passes in the object, the
  *              current step and every action, and decides what each one does.
  *
@@ -16,9 +18,9 @@
 import { useState } from 'react'
 import type { InteractionRule } from '@vectorspace/project'
 import type { ClickRuleChoice } from '../../editor/ruleEditorOperations'
-import { WhenDoRuleSection } from './WhenDoRuleSection'
-import { InfoCardSection, type MediaChoice } from './InfoCardSection'
 import type { CardInput } from '../../editor/cardEditorOperations'
+import { InfoCardSection, type MediaChoice } from './InfoCardSection'
+import { ReactionsSection } from './ReactionsSection'
 import './objectPanel.css'
 
 export type Vec3 = [number, number, number]
@@ -59,12 +61,15 @@ export type ObjectPanelProps = {
   rules: InteractionRule[]
   onAddRule: (choice: ClickRuleChoice) => void
   onRemoveRule: (ruleId: string) => void
-  // Info tab. Optional so a caller that has not connected cards yet still works; without
-  // onSaveCard the tab shows placeholders. onSaveCard returns an error to show, or null.
+  // Info tab. All optional, so a caller that has not connected them yet still works.
+  // onSaveCard and onSaveVideo return an error to show, or null when saved.
   infoCard?: CardInput | null
   mediaChoices?: MediaChoice[]
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
+  video?: { assetId: string; label: string } | null
+  onSaveVideo?: (assetId: string) => string | null
+  onRemoveVideo?: () => void
 }
 
 const tabs = [
@@ -74,16 +79,21 @@ const tabs = [
 ] as const
 
 const tools: { tool: ObjectPanelTool; label: string; hint: string }[] = [
-  { tool: 'move', label: 'Move', hint: 'Drag the arrows in the 3D view to move it' },
-  { tool: 'rotate', label: 'Rotate', hint: 'Drag the rings in the 3D view to turn it' },
-  { tool: 'scale', label: 'Size', hint: 'Drag the handles in the 3D view to resize it' },
+  { tool: 'move', label: 'Move', hint: 'Drag the coloured arrows. The yellow square slides it along the floor.' },
+  { tool: 'rotate', label: 'Rotate', hint: 'Drag the green ring to spin it around.' },
+  { tool: 'scale', label: 'Size', hint: 'Drag a white corner to make it bigger or smaller.' },
 ]
 
+// X, Y and Z keep the colours of the 3D view's axes: red, green, blue
 const exactRows: { field: ObjectPanelField; label: string; step: number; digits: number }[] = [
   { field: 'position', label: 'Position', step: 0.1, digits: 2 },
-  { field: 'rotation', label: 'Rotation °', step: 1, digits: 1 },
+  { field: 'rotation', label: 'Rotate', step: 1, digits: 1 },
   { field: 'scale', label: 'Size', step: 0.1, digits: 2 },
 ]
+const axes = ['X', 'Y', 'Z'] as const
+
+// the small word under the name; placed models are the museum's exhibits, primitives are shapes
+const kindLabel = (kind: string) => (kind === 'model' ? 'Exhibit' : 'Shape')
 
 export function ObjectPanel(props: ObjectPanelProps) {
   const { object, step, onStepChange, onClose } = props
@@ -92,7 +102,6 @@ export function ObjectPanel(props: ObjectPanelProps) {
     return (
       <section className="object-panel">
         <div className="object-panel-empty">
-          <div className="object-panel-empty-mark">＋</div>
           <p>Select an object in the scene</p>
           <span>Its position, info and reactions will appear here.</span>
         </div>
@@ -106,12 +115,21 @@ export function ObjectPanel(props: ObjectPanelProps) {
   return (
     <section className="object-panel" aria-label={`${object.name} settings`}>
       <header className="object-panel-header">
-        <span className={`object-panel-dot ${object.kind}`} />
-        <div className="object-panel-title">
-          <span className="object-panel-eyebrow">Selected</span>
-          <h2 title={object.name}>{object.name}</h2>
+        <div className="object-panel-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A3BC4" strokeWidth="2" strokeLinejoin="round">
+            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+            <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
+          </svg>
         </div>
-        <button className="object-panel-close" title="Close" aria-label="Close panel" onClick={onClose}>×</button>
+        <div className="object-panel-title">
+          <h2 title={object.name}>{object.name}</h2>
+          <span>{kindLabel(object.kind)}</span>
+        </div>
+        <button className="object-panel-close" aria-label="Close" onClick={onClose}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F1B3A" strokeWidth="2.6" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </header>
 
       <div className="object-panel-tabs" role="tablist">
@@ -128,14 +146,23 @@ export function ObjectPanel(props: ObjectPanelProps) {
         ))}
       </div>
 
-      <div className="object-panel-body" role="tabpanel">
-        {activeStep === 1 && <PositionTab {...props} object={object} />}
-        {activeStep === 2 && (props.onSaveCard
-          // keyed by object, so switching objects starts from that object's card, not the last draft
-          ? <InfoCardSection key={object.id} card={props.infoCard ?? null} mediaChoices={props.mediaChoices ?? []} onSave={props.onSaveCard} onRemove={props.onRemoveCard ?? (() => undefined)} />
-          : <InfoTab />)}
-        {activeStep === 3 && <ReactionsTab {...props} />}
-      </div>
+      {activeStep === 1 && <PositionTab {...props} object={object} />}
+      {/* keyed by object, so switching objects starts from that object's card, not the last draft */}
+      {activeStep === 2 && (
+        <InfoCardSection
+          key={object.id}
+          card={props.infoCard ?? null}
+          video={props.video ?? null}
+          mediaChoices={props.mediaChoices ?? []}
+          rules={props.rules}
+          onSaveCard={props.onSaveCard}
+          onRemoveCard={props.onRemoveCard}
+          onSaveVideo={props.onSaveVideo}
+          onRemoveVideo={props.onRemoveVideo}
+          onGoToReactions={() => onStepChange(3)}
+        />
+      )}
+      {activeStep === 3 && <ReactionsSection key={object.id} rules={props.rules} onAdd={props.onAddRule} onRemove={props.onRemoveRule} />}
     </section>
   )
 }
@@ -143,64 +170,66 @@ export function ObjectPanel(props: ObjectPanelProps) {
 function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, snap, onSnapChange, onCopy, onRemove }: ObjectPanelProps & { object: ObjectPanelItem }) {
   // open or closed is only how the panel looks, not editor data, so it can live here
   const [exactOpen, setExactOpen] = useState(false)
-  const activeHint = tools.find((item) => item.tool === tool)?.hint ?? 'Pick a tool, then drag in the 3D view'
+  const activeHint = tools.find((item) => item.tool === tool)?.hint ?? 'Pick what to change, then drag in the 3D view.'
 
   return (
-    <>
-      <div className="object-panel-box">
-        <span className="object-panel-label">Tool</span>
-        <div className="object-panel-segmented">
+    <div className="object-panel-tab-body">
+      <div>
+        <div className="object-panel-heading">What do you want to change?</div>
+        <div className="object-panel-tools">
           {tools.map((item) => (
             <button
               key={item.tool}
               aria-pressed={tool === item.tool}
-              className={tool === item.tool ? 'object-panel-segment active' : 'object-panel-segment'}
+              className={tool === item.tool ? 'object-panel-seg active' : 'object-panel-seg'}
               onClick={() => onToolChange(item.tool)}
             >
               {item.label}
             </button>
           ))}
         </div>
-        <small className="object-panel-hint">{activeHint}</small>
+        <div className="object-panel-hint">{activeHint}</div>
       </div>
 
-      <div className="object-panel-box">
-        <span className="object-panel-label">Turn</span>
-        <div className="object-panel-row">
-          <button className="object-panel-button" onClick={() => onRotateBy(-45)} title="Turn left by 45°">↺ 45°</button>
-          <button className="object-panel-button" onClick={() => onRotateBy(45)} title="Turn right by 45°">↻ 45°</button>
-        </div>
-      </div>
-
-      <div className="object-panel-box object-panel-switch-row">
-        <div>
-          <span className="object-panel-label">Snap to grid</span>
-          <small className="object-panel-hint">{snap ? 'Moves land on whole steps' : 'Moves are free'}</small>
-        </div>
-        <button
-          role="switch"
-          aria-checked={snap}
-          aria-label="Snap to grid"
-          className={snap ? 'object-panel-switch on' : 'object-panel-switch'}
-          onClick={() => onSnapChange(!snap)}
-        >
-          <span />
+      <div className="object-panel-turn-row">
+        <button className="object-panel-turn" title="Rotate left 45°" aria-label="Rotate left 45 degrees" onClick={() => onRotateBy(-45)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4v6h6" />
+            <path d="M20 15a8 8 0 01-14.9 2M4.5 10A8 8 0 0119 8" />
+          </svg>
+          45°
+        </button>
+        <button className="object-panel-turn" title="Rotate right 45°" aria-label="Rotate right 45 degrees" onClick={() => onRotateBy(45)}>
+          45°
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 4v6h-6" />
+            <path d="M4 15a8 8 0 0014.9 2M19.5 10A8 8 0 005 8" />
+          </svg>
+        </button>
+        <div className="object-panel-spacer" />
+        <button role="switch" aria-checked={snap} className="object-panel-snap" onClick={() => onSnapChange(!snap)}>
+          <span className={snap ? 'object-panel-snap-track on' : 'object-panel-snap-track'}><span className="object-panel-snap-knob" /></span>
+          Snap
         </button>
       </div>
 
-      <div className="object-panel-box">
-        <button className="object-panel-disclosure" aria-expanded={exactOpen} onClick={() => setExactOpen((open) => !open)}>
-          <span className="object-panel-label">Exact numbers</span>
-          <span className="object-panel-chevron">{exactOpen ? '▾' : '▸'}</span>
+      <div className="object-panel-exact">
+        <button className="object-panel-exact-toggle" aria-expanded={exactOpen} onClick={() => setExactOpen((open) => !open)}>
+          Exact numbers
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5878" strokeWidth="2.4" strokeLinecap="round">
+            <path d={exactOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+          </svg>
         </button>
-        {exactOpen && exactRows.map((row) => (
-          <div className="object-panel-vector" key={row.field}>
-            <span className="object-panel-vector-label">{row.label}</span>
-            <div className="object-panel-vector-fields">
-              {object[row.field].map((value, index) => (
-                <label className="object-panel-number" key={index}>
-                  <span>{['X', 'Y', 'Z'][index]}</span>
+        {exactOpen && (
+          <div className="object-panel-exact-rows">
+            {exactRows.map((row) => (
+              <div className="object-panel-exact-row" key={row.field}>
+                <div className="object-panel-exact-label">{row.label}</div>
+                {object[row.field].map((value, index) => (
                   <input
+                    key={index}
+                    className={`object-panel-exact-input axis-${axes[index].toLowerCase()}`}
+                    aria-label={`${row.label} ${axes[index]}`}
                     type="number"
                     step={row.step}
                     value={Number(value.toFixed(row.digits))}
@@ -213,46 +242,17 @@ function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, sn
                       onExactChange(row.field, next)
                     }}
                   />
-                </label>
-              ))}
-            </div>
+                ))}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      <div className="object-panel-row object-panel-actions">
-        <button className="object-panel-button" onClick={onCopy}>Copy</button>
-        <button className="object-panel-button danger" onClick={onRemove}>Remove</button>
+      <div className="object-panel-actions">
+        <button className="object-panel-action" onClick={onCopy}>Copy</button>
+        <button className="object-panel-action danger" onClick={onRemove}>Remove</button>
       </div>
-    </>
-  )
-}
-
-// shown until EditorPage connects onSaveCard
-function InfoTab() {
-  return (
-    <>
-      <div className="object-panel-box">
-        <span className="object-panel-label">Label</span>
-        <div className="object-panel-placeholder">Coming soon</div>
-      </div>
-      <div className="object-panel-box">
-        <span className="object-panel-label">Description</span>
-        <div className="object-panel-placeholder tall">Coming soon</div>
-      </div>
-      <div className="object-panel-box">
-        <span className="object-panel-label">Media</span>
-        <div className="object-panel-placeholder">Coming soon</div>
-      </div>
-    </>
-  )
-}
-
-// each rule shows as a card (RuleRow) under the When / Do builder
-function ReactionsTab({ rules, onAddRule, onRemoveRule }: ObjectPanelProps) {
-  return (
-    <div className="object-panel-box object-panel-reactions">
-      <WhenDoRuleSection rules={rules} onAdd={onAddRule} onRemove={onRemoveRule} />
     </div>
   )
 }
