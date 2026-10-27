@@ -35,6 +35,13 @@ services:
         sync: false
       - key: AUTH0_AUDIENCE
         sync: false
+      # Only needed if the provisioning tool (app/provision.py) is ever run from here
+      # rather than from a laptop. Management API client, create:users +
+      # create:user_tickets.
+      - key: AUTH0_MGMT_CLIENT_ID
+        sync: false
+      - key: AUTH0_MGMT_CLIENT_SECRET
+        sync: false
 
   - type: web
     name: vectorspace
@@ -47,9 +54,20 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # Left unset on purpose: the app then runs in its offline mode (role picker, saves in
-      # the browser), which is the full M1 experience. Set VITE_API_URL to the API's address
-      # only once the browser app signs in through Auth0, because production refuses the
-      # dev sign-in (AUTH_DEV_BYPASS) that the picker uses against a server.
+      # The three below and VITE_API_URL are one switch, flipped together. All three set
+      # (plus VITE_API_URL) makes the deployed app sign in through Auth0 and read its role
+      # from GET /me; any of them missing makes it fall back to the prototype role picker,
+      # which production refuses to serve because it has no AUTH_DEV_BYPASS. So do not set
+      # VITE_API_URL on its own. VITE_AUTH0_AUDIENCE must equal the API's AUTH0_AUDIENCE.
+      #
+      # Before flipping: the Neon roster has to carry real auth0|... subjects, written by
+      # app/provision.py --apply. The seeded dev|... ones can never authenticate.
+      # See Desktop/docs/handover/long auth0-integration.md, steps 3 and 5.
+      # - key: VITE_AUTH0_DOMAIN
+      #   sync: false
+      # - key: VITE_AUTH0_CLIENT_ID
+      #   sync: false
+      # - key: VITE_AUTH0_AUDIENCE
+      #   sync: false
       # - key: VITE_API_URL
       #   value: https://vectorspace-api.onrender.com
