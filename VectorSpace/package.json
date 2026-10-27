@@ -28,6 +28,7 @@
     "test:perf:gpu": "playwright test --project=perf-gpu --workers=1 --reporter=list"
   },
   "dependencies": {
+    "@auth0/auth0-react": "2.4.0",
     "@gltf-transform/core": "4.5.0",
     "@gltf-transform/extensions": "4.5.0",
     "@gltf-transform/functions": "4.5.0",

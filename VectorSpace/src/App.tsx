@@ -28,6 +28,7 @@ import TeacherResultsPage from './pages/TeacherResultsPage'
 import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
 import { ApiError } from './api/client'
+import { auth0Enabled } from './session/auth0'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
 
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
@@ -63,7 +64,7 @@ function SignIn() {
   }
   return (
     <>
-      <LoginPage showAdmin={adminOverrideEnabled} onSignIn={onSignIn} />
+      <LoginPage showAdmin={adminOverrideEnabled} hostedLogin={auth0Enabled} onSignIn={onSignIn} />
       {problem && <p role="alert" className="sign-in-problem">{problem}</p>}
     </>
   )

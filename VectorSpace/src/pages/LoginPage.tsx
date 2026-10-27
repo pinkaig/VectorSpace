@@ -23,11 +23,16 @@ type LoginPageProps = {
   onSignIn: (role: "teacher" | "student", admin?: boolean) => void;
   // offers the admin button; App passes true only while the sign-in is temporary (session.tsx)
   showAdmin?: boolean;
+  // true when this build signs in through Auth0 (session/auth0.ts). The email and password
+  // are then collected by Auth0's own hosted page, not here, so this page shows one button
+  // that hands the browser over, and the prototype role buttons are not offered at all.
+  hostedLogin?: boolean;
 };
 
 export default function LoginPage({
   onSignIn,
   showAdmin = false,
+  hostedLogin = false,
 }: LoginPageProps) {
   const [museums, setMuseums] = useState<ShowcaseMuseum[]>([]);
   const [index, setIndex] = useState(0);
@@ -119,60 +124,80 @@ export default function LoginPage({
         <h1 className="login-title">Sign in</h1>
         <p className="login-subtitle">Use the account your school gave you.</p>
 
-        {/* not wired up yet: real login would come w the cloud */}
-        <form className="login-form" onSubmit={(e) => e.preventDefault()}>
-          <label htmlFor="login-email">School email</label>
-          <input
-            id="login-email"
-            type="email"
-            placeholder="name@school.edu.sg"
-          />
+        {hostedLogin ? (
+          // Auth0 collects the credentials on its own page. The role argument is ignored
+          // by the Auth0 sign-in: who you are comes back from the server, not from here.
+          <form
+            className="login-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSignIn("student");
+            }}
+          >
+            <button type="submit" className="login-primary">
+              Sign in
+            </button>
+          </form>
+        ) : (
+          /* not wired up yet: this build has no tenant, so the role buttons below are the sign-in */
+          <form className="login-form" onSubmit={(e) => e.preventDefault()}>
+            <label htmlFor="login-email">School email</label>
+            <input
+              id="login-email"
+              type="email"
+              placeholder="name@school.edu.sg"
+            />
 
-          <label htmlFor="login-password">Password</label>
-          <input id="login-password" type="password" />
+            <label htmlFor="login-password">Password</label>
+            <input id="login-password" type="password" />
 
-          <button type="submit" className="login-primary">
-            Sign in
-          </button>
-        </form>
+            <button type="submit" className="login-primary">
+              Sign in
+            </button>
+          </form>
+        )}
 
         <p className="login-note">
           There's no sign-up. Your school creates your account. Forgot your
           password? Ask your teacher.
         </p>
 
-        <div className="login-divider">Prototype: jump in as</div>
+        {!hostedLogin && (
+          <>
+            <div className="login-divider">Prototype: jump in as</div>
 
-        <div className="login-jump">
-          <button
-            type="button"
-            className="login-jump-button"
-            onClick={() => onSignIn("student")}
-          >
-            <strong>Student</strong>
-            <span>Aisyah</span>
-          </button>
+            <div className="login-jump">
+              <button
+                type="button"
+                className="login-jump-button"
+                onClick={() => onSignIn("student")}
+              >
+                <strong>Student</strong>
+                <span>Aisyah</span>
+              </button>
 
-          <button
-            type="button"
-            className="login-jump-button"
-            onClick={() => onSignIn("teacher")}
-          >
-            <strong>Educator</strong>
-            <span>Ms Tan</span>
-          </button>
+              <button
+                type="button"
+                className="login-jump-button"
+                onClick={() => onSignIn("teacher")}
+              >
+                <strong>Educator</strong>
+                <span>Ms Tan</span>
+              </button>
 
-          {showAdmin && (
-            <button
-              type="button"
-              className="login-jump-button"
-              onClick={() => onSignIn("teacher", true)}
-            >
-              <strong>VThere Admin</strong>
-              <span>Platform team</span>
-            </button>
-          )}
-        </div>
+              {showAdmin && (
+                <button
+                  type="button"
+                  className="login-jump-button"
+                  onClick={() => onSignIn("teacher", true)}
+                >
+                  <strong>VThere Admin</strong>
+                  <span>Platform team</span>
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </section>
     </main>
   );
