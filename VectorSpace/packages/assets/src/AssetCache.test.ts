@@ -48,3 +48,19 @@ describe('AssetCache', () => {
     expect(cache.get({ assetId: 'a1', kind: 'sphere' })).toBeUndefined()
   })
 })
+
+describe('AssetCache.list', () => {
+  it('lists live entries and drops expired ones on the way out', () => {
+    let now = 1_000
+    const cache = new AssetCache(() => now)
+    const keep = { assetId: 'keep', kind: 'cube' as const }
+    const expire = { assetId: 'expire', kind: 'cube' as const }
+    cache.set(keep, readyAssetDescriptor(keep, { contentType: 'x' }))
+    cache.set(expire, readyAssetDescriptor(expire, { contentType: 'x', expiresAt: 1_500 }))
+    expect(cache.list()).toHaveLength(2)
+
+    now = 1_600
+
+    expect(cache.list().map((entry) => entry.ref.assetId)).toEqual(['keep'])
+  })
+})

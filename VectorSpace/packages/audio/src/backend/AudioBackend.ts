@@ -16,6 +16,8 @@
 /** A gain node: one volume knob in the graph, with a ramped set for click-free changes. */
 export interface BackendGain {
   setValue(value: number, rampSeconds?: number): void
+  /** Linear fade from the current value to `value` over `durationSeconds`; used for fades, where a fixed end time matters. */
+  rampTo(value: number, durationSeconds: number): void
   getValue(): number
   connect(target: BackendGain): void
   disconnect(): void
@@ -59,6 +61,8 @@ export type AudioContextState = 'suspended' | 'running' | 'closed' | 'unavailabl
 export interface AudioBackend {
   readonly state: AudioContextState
   resume(): Promise<void>
+  /** Freezes every sound in place (clocks included); `resume()` continues them. Used when the tab is hidden. */
+  suspend(): Promise<void>
   createGain(): BackendGain
   connectToDestination(gain: BackendGain): void
   decode(url: string): Promise<BackendBuffer>

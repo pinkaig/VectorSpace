@@ -41,6 +41,15 @@ class WebGain implements BackendGain {
     }
   }
 
+  rampTo(value: number, durationSeconds: number): void {
+    const context = this.node.context
+    const param = this.node.gain
+    param.cancelScheduledValues(context.currentTime)
+    // Anchor at the current value first: a linear ramp starts from the previous event, not from "now".
+    param.setValueAtTime(param.value, context.currentTime)
+    param.linearRampToValueAtTime(value, context.currentTime + Math.max(durationSeconds, 0.001))
+  }
+
   getValue(): number {
     return this.node.gain.value
   }
@@ -184,6 +193,10 @@ export class WebAudioBackend implements AudioBackend {
 
   async resume(): Promise<void> {
     if (this.context.state === 'suspended') await this.context.resume()
+  }
+
+  async suspend(): Promise<void> {
+    if (this.context.state === 'running') await this.context.suspend()
   }
 
   createGain(): BackendGain {

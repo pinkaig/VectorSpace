@@ -1,0 +1,182 @@
+/**
+ * @file        response.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       The "response" layer for the shared UI and the admin pages: hover, press, disabled,
+ *              pointer cursor. Everything here is motion-system work and lives ONLY in this file.
+ *
+ * @responsibility
+ * Component stylesheets (ui/button.css, ui/toggle.css, pages/Admin*.css) hold layout and colour
+ * and are not touched by the motion work. This sheet is loaded after them (src/main.tsx) and
+ * adds the feel on top. To remove the experiment, delete this file and its one import line.
+ * The JavaScript half of the same feel (click bounce, switch pulse) is the `control.*` cues in
+ * cues.ts, wired in ui/button.tsx and ui/toggle.tsx.
+ *
+ * Every selector starts with `:root` on purpose: it adds weight so these rules beat the
+ * component sheets whichever file the browser happens to load first.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ══ Button ═══════════════════════════════════════════════════════════════════ */
+
+:root .ui-btn {
+  cursor: pointer;
+  transition:
+    background var(--mo-dur-fast) var(--mo-ease-standard),
+    border-color var(--mo-dur-fast) var(--mo-ease-standard),
+    box-shadow var(--mo-dur-fast) var(--mo-ease-standard),
+    transform var(--mo-dur-fast) var(--mo-ease-emphasis);
+}
+
+/* manual: disabled = 40% opacity, no pointer */
+:root .ui-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* hover only where there is a real pointer, so a touch screen does not keep a button tinted
+   after a tap. The button rises toward the pointer, casts a shadow and its border darkens:
+   three cues at once, so the hover is felt and not only seen. --mo-scale 0 flattens the rise. */
+@media (hover: hover) and (pointer: fine) {
+  :root .ui-btn:hover:not(:disabled) {
+    background: var(--purple-100);
+    border-color: var(--purple-300);
+    box-shadow: var(--mo-shadow-hover);
+    transform: translateY(calc(var(--mo-lift) * -1 * var(--mo-scale)));
+  }
+
+  :root .ui-btn-primary:hover:not(:disabled) {
+    background: var(--purple-600);
+    border-color: var(--purple-600);
+    box-shadow: 0 8px 18px rgba(91, 75, 214, 0.4);
+  }
+
+  :root .ui-btn-danger:hover:not(:disabled) {
+    background: var(--red-50);
+    border-color: var(--red-500);
+    box-shadow: 0 6px 14px rgba(217, 58, 43, 0.22);
+  }
+
+  :root .ui-btn-add:hover:not(:disabled) {
+    border-style: solid;
+  }
+}
+
+/* press. Written AFTER the hover block: same weight, so the later rule wins while the pointer
+   is down. Outside the hover guard so it also works on touch. */
+:root .ui-btn:active:not(:disabled) {
+  transform: scale(calc(1 - 0.04 * var(--mo-scale)));
+  box-shadow: none;
+  transition-duration: var(--mo-dur-instant);
+}
+
+/* ══ Toggle switch and tick box ═══════════════════════════════════════════════ */
+
+:root .ui-toggle {
+  cursor: pointer;
+  transition:
+    background var(--mo-dur-fast) var(--mo-ease-standard),
+    box-shadow var(--mo-dur-fast) var(--mo-ease-standard);
+}
+
+:root .ui-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* The knob's position and size are two variables, so "on" (slide) and "hover" (grow) combine
+   instead of one transform replacing the other. */
+:root .ui-toggle .ui-toggle-knob {
+  box-shadow: 0 1px 3px rgba(31, 27, 58, 0.3);
+  transform: translateX(var(--knob-x, 0px)) scale(var(--knob-scale, 1));
+  transition:
+    transform var(--mo-dur-fast) var(--mo-ease-emphasis),
+    box-shadow var(--mo-dur-fast) var(--mo-ease-standard);
+}
+
+:root .ui-toggle-on .ui-toggle-knob {
+  --knob-x: 18px;
+}
+
+:root .ui-tick {
+  transition:
+    border-color var(--mo-dur-fast) var(--mo-ease-standard),
+    background-color var(--mo-dur-fast) var(--mo-ease-standard),
+    box-shadow var(--mo-dur-fast) var(--mo-ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* a halo around the track and a bigger knob: the switch "wakes up" under the pointer */
+  :root .ui-toggle:hover:not(:disabled) {
+    background: var(--purple-300);
+    box-shadow: 0 0 0 calc(4px * var(--mo-scale)) var(--purple-100);
+  }
+
+  :root .ui-toggle-on:hover:not(:disabled) {
+    background: var(--green-500);
+    box-shadow: 0 0 0 calc(4px * var(--mo-scale)) var(--green-50);
+  }
+
+  :root .ui-toggle:hover:not(:disabled) .ui-toggle-knob {
+    --knob-scale: calc(1 + 0.15 * var(--mo-scale));
+    box-shadow: 0 2px 6px rgba(31, 27, 58, 0.4);
+  }
+
+  :root .ui-tick:hover {
+    border-color: var(--purple-500);
+    background-color: var(--purple-100);
+    box-shadow: 0 0 0 calc(4px * var(--mo-scale)) var(--purple-100);
+  }
+
+  :root .ui-tick:checked:hover {
+    background-color: var(--purple-600);
+  }
+}
+
+/* press: the knob stretches sideways like a real switch being squeezed */
+:root .ui-toggle:active:not(:disabled) .ui-toggle-knob {
+  transform: translateX(var(--knob-x, 0px)) scale(calc(1 + 0.3 * var(--mo-scale)), calc(1 - 0.05 * var(--mo-scale)));
+}
+
+/* ══ Admin pages: nav links, filter tabs, table rows ═════════════════════════ */
+
+:root .admin-nav-link {
+  cursor: pointer;
+  transition:
+    background var(--mo-dur-fast) var(--mo-ease-standard),
+    color var(--mo-dur-fast) var(--mo-ease-standard);
+}
+
+:root .admin-accounts-tab {
+  cursor: pointer;
+  transition:
+    background var(--mo-dur-fast) var(--mo-ease-standard),
+    border-color var(--mo-dur-fast) var(--mo-ease-standard),
+    color var(--mo-dur-fast) var(--mo-ease-standard);
+}
+
+:root .admin-table tbody tr {
+  transition: background var(--mo-dur-fast) var(--mo-ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* a tint on the pages you are not on, so it is clear they are links */
+  :root .admin-nav-link:not(.admin-nav-active):hover {
+    background: var(--purple-100);
+  }
+
+  :root .admin-accounts-tab:not(.admin-accounts-tab-active):hover {
+    background: var(--purple-100);
+    border-color: var(--purple-300);
+  }
+
+  /* The tint is on the row, not its cells: the actions cell is display:flex and would not
+     fill. The sticky header cells live in thead, so they are untouched. */
+  :root .admin-table tbody tr:hover {
+    background: var(--purple-50);
+  }
+}
