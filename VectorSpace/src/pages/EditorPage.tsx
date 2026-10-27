@@ -15,8 +15,8 @@
 /****************************************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
-import { useNavigate } from 'react-router'
-import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
+import { Link } from 'react-router'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
@@ -548,7 +548,8 @@ const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | nu
   const { title, media, autoCloseMs } = card.attachment.presentation
   return { title: title ?? '', body: card.meta?.content ?? '', ...(media ? { media } : {}), ...(autoCloseMs !== undefined ? { autoCloseMs } : {}) }
 }
-  /*
+
+/*
  * The top-left of the editor: the cube (back to the home page), the project button
  * ("Dinosaur museum / Room 1 · Entrance hall") and the "Your rooms" popup it opens:
  *   - a 3x3 map centred on the ROOM BEING EDITED (purple, with a pencil to rename it). Each of
