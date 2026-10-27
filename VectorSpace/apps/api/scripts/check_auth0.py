@@ -27,7 +27,8 @@ from dotenv import dotenv_values  # noqa: E402
 from app.auth import decode_token, reset_jwks_cache  # noqa: E402
 from app.config import get_settings  # noqa: E402
 
-ROOT_ENV = API_DIR.parents[1] / ".env"
+BROWSER_ENV = API_DIR.parents[1] / ".env.auth0"  # Vite loads this only for --mode auth0
+ROOT_ENV = API_DIR.parents[1] / ".env"           # the VITE_ values lived here before .env.auth0
 ORIGIN = "http://localhost:5173"
 failures = 0
 
@@ -68,11 +69,15 @@ def check_tenant(s) -> bool:
 
 
 def check_browser_config(s) -> dict | None:
-    section("3. Browser config (root .env)")
-    if not ROOT_ENV.exists():
-        report(False, f"{ROOT_ENV.name} exists", f"not found at {ROOT_ENV}; create it with the VITE_ values")
+    section("3. Browser config (VectorSpace/.env.auth0)")
+    if not (BROWSER_ENV.exists() or ROOT_ENV.exists()):
+        report(False, f"{BROWSER_ENV.name} exists", f"not found at {BROWSER_ENV}; create it with the VITE_ values")
         return None
-    env = dotenv_values(ROOT_ENV)
+    # .env.auth0 is where `npm run dev:auth0` reads them; .env is the older home and still wins
+    # nothing, so it is only a fallback for a checkout that has not moved them yet.
+    env = {**dotenv_values(ROOT_ENV), **dotenv_values(BROWSER_ENV)}
+    report(BROWSER_ENV.exists(), f"{BROWSER_ENV.name} exists",
+           "" if BROWSER_ENV.exists() else f"falling back to {ROOT_ENV.name}; `npm run dev:auth0` reads .env.auth0")
     vite = {k: (env.get(k) or "").strip() for k in ("VITE_API_URL", "VITE_AUTH0_DOMAIN", "VITE_AUTH0_CLIENT_ID", "VITE_AUTH0_AUDIENCE")}
     for key, value in vite.items():
         report(bool(value), f"{key} set", value if key != "VITE_AUTH0_CLIENT_ID" else (value[:6] + "..." if value else "copy it from the SPA application in Auth0"))
