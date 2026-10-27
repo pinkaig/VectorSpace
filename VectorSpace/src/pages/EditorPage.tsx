@@ -15,8 +15,8 @@
 /****************************************************************************************************/
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
-import { useNavigate } from 'react-router'
-import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
+import { Link } from 'react-router'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
@@ -541,6 +541,14 @@ const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 
 const wrapDegrees = (degrees: number) => ((degrees % 360) + 360) % 360
 
+// the card on an object as the form's input, or null when it has none
+const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
+  const card = findCard(project, object)
+  if (!card || card.attachment.presentation.mode !== 'card') return null
+  const { title, media, autoCloseMs } = card.attachment.presentation
+  return { title: title ?? '', body: card.meta?.content ?? '', ...(media ? { media } : {}), ...(autoCloseMs !== undefined ? { autoCloseMs } : {}) }
+}
+
 /*
  * The top-left of the editor: the cube (back to the home page), the project button
  * ("Dinosaur museum / Room 1 · Entrance hall") and the "Your rooms" popup it opens:
@@ -566,13 +574,6 @@ interface RoomPopupProps {
   // move a room earlier (-1) or later (+1) in the visit order
   onMoveRoom: (sceneId: string, step: -1 | 1) => void
   onRenameRoom: (sceneId: string, name: string) => void
-}
-// the card on an object as the form's input, or null when it has none
-const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
-  const card = findCard(project, object)
-  if (!card || card.attachment.presentation.mode !== 'card') return null
-  const { title, media, autoCloseMs } = card.attachment.presentation
-  return { title: title ?? '', body: card.meta?.content ?? '', ...(media ? { media } : {}), ...(autoCloseMs !== undefined ? { autoCloseMs } : {}) }
 }
 
 // Fits the room box; the project file itself allows up to 200 characters.
