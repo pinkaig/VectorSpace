@@ -1,0 +1,54 @@
+{
+  "bindings": [
+    { "cue": "world.reaction-sound", "component": "Try it / Try it here in the Reactions panel, when THEN is 'play a sound'", "on": "click", "selector": "button", "text": "^Try it( here)?$", "if": [{ "watch": "state.act", "equals": "sound" }], "volumeBy": { "watch": "state.opt.vol", "default": "normal", "map": { "quiet": 0.45, "normal": 0.75, "loud": 1 } } },
+
+    { "cue": "review.approve", "component": "Approve and publish (teacher review)", "on": "click", "selector": "button", "text": "^Approve and publish$" },
+    { "cue": "review.send-back", "component": "Send back with comment (teacher review)", "on": "click", "selector": "button", "text": "^Send back with comment$" },
+
+    { "cue": "ui.close", "component": "X buttons on cards, dialogs and lists", "on": "click", "selector": "button", "aria": "^Close( card| list| rooms)?$" },
+    { "cue": "ui.close", "component": "Cancel, Not yet, Got it, OK, Skip tutorial, Back, Exit preview, Back to building", "on": "click", "selector": "button", "text": "^(Cancel|Not yet|Got it|OK|OK, got it|Skip tutorial|Exit preview|Back to building|Back to whole room|Back)$" },
+
+    { "cue": "ui.toggle.on", "component": "Any switch that is off (permissions, locks, snap, rooms, asset packs)", "on": "click", "selector": "button", "has": "[style*=\"justify-content: flex-start\"]" },
+    { "cue": "ui.toggle.off", "component": "Any switch that is on", "on": "click", "selector": "button", "has": "[style*=\"justify-content: flex-end\"]" },
+
+    { "cue": "editor.rotate", "component": "Rotate left / right 45 degrees", "on": "click", "selector": "button", "aria": "^Rotate (left|right) 45 degrees$" },
+    { "cue": "editor.undo", "component": "Undo and Redo", "on": "click", "selector": "button", "aria": "^(Undo|Redo)$" },
+    { "cue": "nav.carousel", "component": "Sign-in carousel arrows and dots", "on": "click", "selector": "button", "aria": "^(Previous museum|Next museum|Show .*)$" },
+    { "cue": "play.tap-go", "component": "The floor in Play mode, when Move by is 'Tap to go'", "on": "click", "selector": "svg polygon[points=\"300,340 700,340 1000,560 0,560\"]", "if": [{ "watch": "state.view", "equals": "play" }, { "watch": "state.move", "equals": "tap" }] },
+
+    { "cue": "ui.click.confirm", "component": "Commit buttons: Send to Ms Tan, Assign to Class, Save changes, Copy link, Create and set up", "on": "click", "selector": "button", "text": "^(Send to Ms Tan|Assign to Class .*|Save changes|Copy link|Create and set up)$" },
+    { "cue": "ui.click.primary", "component": "Purple main-action buttons: Start building, Sign in, Done, Next, + New project", "on": "click", "selector": "button[style*=\"background: #5B4BD6\"]" },
+    { "cue": "ui.click", "component": "Every other button and tab (the default)", "on": "click", "selector": "button, [role=\"tab\"]" },
+
+    { "cue": "ui.select", "component": "School picker (a dropdown menu)", "on": "change", "selector": "select" },
+
+    { "cue": "ui.hover", "component": "Every button, tab and select", "on": "hover", "selector": "button, [role=\"tab\"], select" },
+
+    { "cue": "play.footstep", "component": "W A S D or arrow keys in Play mode, when Move by is 'Walk'", "on": "key", "keys": "^(w|a|s|d|arrowup|arrowdown|arrowleft|arrowright)$", "if": [{ "watch": "state.view", "equals": "play" }, { "watch": "state.move", "equals": "walk" }] },
+
+    { "cue": "editor.pick-up", "component": "Picking an item from the catalogue", "on": "state", "watch": "state.dragging", "becomes": true },
+    { "cue": "editor.drop", "component": "'Fits here, click to drop it' chip", "on": "state", "watch": "state.placed", "becomes": true },
+    { "cue": "ui.error", "component": "Error popup (object dragged into a wall)", "on": "state", "watch": "state.popup", "becomes": "error" },
+    { "cue": "ui.loading", "component": "'Loading your room' popup", "on": "state", "watch": "state.popup", "becomes": "loading" },
+    { "cue": "ui.notify", "component": "Green 'assigned to Class' banner", "on": "state", "watch": "vals.justAssigned", "becomes": true },
+    { "cue": "ui.task-complete", "component": "Mission brief progress bars and ticks", "on": "state", "watch": "vals.briefDone", "increases": true, "layer": true },
+    { "cue": "publish.sent", "component": "'Waiting for Ms Tan to approve' state in Share your museum", "on": "state", "watch": "state.sent", "becomes": true },
+    { "cue": "editor.info-added", "component": "Done on a fact card or video panel", "on": "state", "watch": ["state.factAdded", "state.videoAdded"], "becomes": true },
+    { "cue": "editor.room-added", "component": "A + cell in Your rooms", "on": "state", "watch": "state.roomAdded", "becomes": true },
+    { "cue": "editor.step", "component": "Step pills and the Position / Info / Reactions tabs", "on": "state", "watch": "state.step", "changes": true, "if": [{ "watch": "state.view", "unchanged": true }] },
+    { "cue": "editor.camera", "component": "View: Angled, Top, Front, Side", "on": "state", "watch": "state.cam", "changes": true },
+    { "cue": "editor.zoom", "component": "Zoom in / out, Focus, Whole room", "on": "state", "watch": "state.zoom", "changes": true, "if": [{ "watch": "state.cam", "unchanged": true }] },
+    { "cue": "nav.screen", "component": "Sign-in, role jump, teacher tabs, admin pages", "on": "state", "watch": "state.view", "changes": true, "layer": true, "if": [{ "watch": "state.view", "notIn": ["play"] }, { "watch": "state.view", "notIn": ["play"], "prev": true }, { "watch": "state.popup", "notIn": ["loading", "error"] }] },
+    { "cue": "play.start", "component": "Play button and the step 4 pill", "on": "state", "watch": "state.view", "becomes": "play" },
+    { "cue": "play.stop", "component": "Stop and Back to building", "on": "state", "watch": "state.view", "leaves": "play" },
+    { "cue": "play.card-open", "component": "The 'Meet the T-rex' card in Play mode", "on": "state", "watch": "vals.playCardOpen", "becomes": true },
+    { "cue": "play.tour-move", "component": "Tour spot arrows in Play mode", "on": "state", "watch": "state.tourIdx", "changes": true },
+    { "cue": "ui.dialog.open", "component": "New project, Rooms, Share, Mission brief, tutorial, Step 3 tip, WHEN / THEN dropdowns", "on": "state", "watch": ["vals.newOpen", "vals.roomsOpen", "vals.publishOpen", "vals.briefOpen", "vals.tutorial", "vals.showReactTip", "vals.dropdownOpen"], "becomes": true },
+    { "cue": "ui.select", "component": "Segmented buttons, chips, radio rows, list rows, dropdown choices", "on": "state", "watch": ["state.gizmo", "state.cat", "state.opt", "state.move", "state.access", "state.mode", "state.bgm", "state.bgmVol", "state.when", "state.act", "state.range", "state.accFilter", "state.aPage", "state.reviewIdx", "state.resIdx", "state.walls", "state.soundWhere", "state.vmoves"], "changes": true },
+
+    { "cue": "play.bgm.hum", "component": "Entering Play mode with Music set to Museum hum (the default)", "on": "while", "if": [{ "watch": "state.view", "equals": "play" }, { "watch": "state.bgm", "equals": "hum", "default": "hum" }], "volumeBy": { "watch": "state.bgmVol", "default": "quiet", "map": { "quiet": 0.35, "normal": 0.6, "loud": 0.9 } }, "fadeOutMs": 500 },
+    { "cue": "play.bgm.piano", "component": "Entering Play mode with Music set to Soft piano", "on": "while", "if": [{ "watch": "state.view", "equals": "play" }, { "watch": "state.bgm", "equals": "piano", "default": "hum" }], "volumeBy": { "watch": "state.bgmVol", "default": "quiet", "map": { "quiet": 0.35, "normal": 0.6, "loud": 0.9 } }, "fadeOutMs": 500 },
+
+    { "cue": "play.door", "component": "Walking through a door (not wired in the mockup)", "on": "manual" }
+  ]
+}

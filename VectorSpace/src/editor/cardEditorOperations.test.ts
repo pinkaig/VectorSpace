@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeProject, serializeProject } from '../project/serializer'
 import { defaultProject, makeObject, type ProjectData } from '../project/model'
-import { createHotspotCard, findCard, removeObjectCard, saveObjectCard, type CardInput } from './cardEditorOperations'
+import { createHotspotCard, findCard, findVideo, removeObjectCard, removeObjectVideo, saveObjectCard, saveObjectVideo, type CardInput } from './cardEditorOperations'
 
 const build = (): ProjectData => {
   const project = defaultProject()
@@ -49,7 +49,7 @@ describe('saveObjectCard', () => {
     expect(saveObjectCard(project, 'scene-gallery', 'obj-1', { ...card, title: '  ' })).toMatchObject({ ok: false })
     expect(saveObjectCard(project, 'scene-gallery', 'obj-1', { ...card, title: 'x'.repeat(201) })).toMatchObject({ ok: false })
     expect(saveObjectCard(project, 'scene-gallery', 'obj-1', { ...card, body: 'x'.repeat(65_537) })).toMatchObject({ ok: false })
-    expect(saveObjectCard(project, 'scene-gallery', 'obj-1', { ...card, media: { kind: 'image', assetId: 'm', alt: '' } })).toMatchObject({ ok: false, error: /Describe the image/ })
+    expect(saveObjectCard(project, 'scene-gallery', 'obj-1', { ...card, media: { kind: 'image', assetId: 'm', alt: '', caption: ' ' } })).toMatchObject({ ok: false, error: /Add a caption/ })
     expect(saveObjectCard(project, 'scene-gallery', 'missing', card)).toMatchObject({ ok: false })
   })
 })
@@ -84,5 +84,25 @@ describe('createHotspotCard', () => {
     expect(() => deserializeProject(JSON.stringify(json))).toThrow(/unknown marker/)
     delete json.scenes[0].zones[0].marker
     expect(deserializeProject(JSON.stringify(json)).scenes[0].zones?.[0].marker).toBeUndefined()
+  })
+})
+
+describe('picture captions', () => {
+  it('uses the caption as the picture description when none is given', () => {
+    const { project } = ok(saveObjectCard(build(), 'scene-gallery', 'obj-1', { title: 'Stone', body: '', media: { kind: 'image', assetId: 'm', caption: 'A dark slab' } }))
+    expect(findCard(project, project.scenes[0].objects[0])?.attachment.presentation.media).toEqual({ kind: 'image', assetId: 'm', caption: 'A dark slab', alt: 'A dark slab' })
+  })
+})
+
+describe('object video', () => {
+  it('adds, changes and removes the one video on an object, and the save loads', () => {
+    const first = ok(saveObjectVideo(build(), 'scene-gallery', 'obj-1', 'media-clip'))
+    const second = ok(saveObjectVideo(first.project, 'scene-gallery', 'obj-1', 'media-other'))
+    expect(second.attachmentId).toBe(first.attachmentId)
+    expect(findVideo(second.project.scenes[0].objects[0])).toMatchObject({ kind: 'video', assetId: 'media-other' })
+    expect(deserializeProject(serializeProject(second.project)).scenes[0].objects[0].attachments).toEqual(second.project.scenes[0].objects[0].attachments)
+    const removed = removeObjectVideo(second.project, 'scene-gallery', 'obj-1')
+    expect(findVideo(removed.scenes[0].objects[0])).toBeUndefined()
+    expect(saveObjectVideo(build(), 'scene-gallery', 'obj-1', '')).toMatchObject({ ok: false })
   })
 })

@@ -2,8 +2,9 @@
  * @file        cardEditorOperations.ts
  * @project     Spatial Experience Builder
  * @author      Weian Ching
- * @brief       Editor adapters that add, change and remove an info card on an
- *              object, or create a hotspot that holds one.
+ * @brief       Editor adapters that add, change and remove an info card (the
+ *              "fact card") or a video on an object, or create a hotspot that
+ *              holds a card.
  *
  * @responsibility
  * A card is a text attachment in 'card' mode plus the text asset it shows.
@@ -19,7 +20,7 @@
  * docs/handover/info-card-work-package.md steps A4 and A5.
  */
 /******************************************************************************/
-import { cloneProject, type CardMedia, type ProjectData, type SceneObject, type TextAssetMeta, type TextAttachment, type ZoneDefinition } from '../project/model'
+import { cloneProject, type CardMedia, type ProjectData, type SceneObject, type TextAssetMeta, type TextAttachment, type VideoAttachment, type ZoneDefinition } from '../project/model'
 
 // every text asset a card creates starts with this; rule clean-up only touches 'message-' assets, so cards are never swept up by it
 const CARD_ASSET_PREFIX = 'card-'
@@ -59,7 +60,8 @@ export const checkCardInput = (input: CardInput): string | null => {
     if (!input.media.assetId) return 'Pick an image or video from the library'
     if ((input.media.caption?.length ?? 0) > MAX_CARD_CAPTION_LENGTH) return `The caption can be at most ${MAX_CARD_CAPTION_LENGTH} characters`
     if ((input.media.alt?.length ?? 0) > MAX_CARD_CAPTION_LENGTH) return `The description can be at most ${MAX_CARD_CAPTION_LENGTH} characters`
-    if (input.media.kind === 'image' && !input.media.alt?.trim()) return 'Describe the image for visitors who cannot see it'
+    // the caption doubles as the description for visitors who cannot see the picture
+    if (input.media.kind === 'image' && !input.media.caption?.trim() && !input.media.alt?.trim()) return 'Add a caption saying what is in the picture'
   }
   if (input.autoCloseMs !== undefined && (!Number.isFinite(input.autoCloseMs) || input.autoCloseMs <= 0)) return 'The timer must be a positive number of seconds'
   return null
@@ -73,12 +75,12 @@ const presentationFor = (input: CardInput): TextAttachment['presentation'] => ({
   ...(input.autoCloseMs !== undefined ? { autoCloseMs: input.autoCloseMs } : {}),
 })
 
-const cleanMedia = (media: CardMedia): CardMedia => ({
-  kind: media.kind,
-  assetId: media.assetId,
-  ...(media.caption?.trim() ? { caption: media.caption.trim() } : {}),
-  ...(media.alt?.trim() ? { alt: media.alt.trim() } : {}),
-})
+const cleanMedia = (media: CardMedia): CardMedia => {
+  const caption = media.caption?.trim()
+  // with no separate description, the caption is what a screen reader says
+  const alt = media.alt?.trim() || (media.kind === 'image' ? caption : undefined)
+  return { kind: media.kind, assetId: media.assetId, ...(caption ? { caption } : {}), ...(alt ? { alt } : {}) }
+}
 
 const metaFor = (assetId: string, input: CardInput): TextAssetMeta => ({
   assetId,
@@ -161,4 +163,41 @@ export const createHotspotCard = (project: ProjectData, sceneId: string, positio
   scene.zones = [...(scene.zones ?? []), zone]
   next.textAssets = [...(next.textAssets ?? []), metaFor(attachment.assetId, input)]
   return { ok: true, project: next, attachmentId: attachment.id }
+}
+
+const VIDEO_ATTACHMENT_PREFIX = 'att-video-'
+
+/** The video on an object, if it has one. An object holds at most one, like its card. */
+export const findVideo = (host: { attachments?: SceneObject['attachments'] }): VideoAttachment | undefined =>
+  host.attachments?.find((item): item is VideoAttachment => item.kind === 'video')
+
+/**
+ * Sets the object's video to a media library entry, adding the attachment or
+ * changing the one it has. Playing it (the "play a video" reaction) is the
+ * rules side's job; this only records which video belongs to the object.
+ */
+export const saveObjectVideo = (project: ProjectData, sceneId: string, objectId: string, assetId: string): CardOperationResult => {
+  if (!assetId) return { ok: false, error: 'Pick a video from the library' }
+  const next = cloneProject(project)
+  const object = findObject(next, sceneId, objectId)
+  if (!object) return { ok: false, error: 'That object is no longer in the scene' }
+  const existing = findVideo(object)
+  if (existing) {
+    existing.assetId = assetId
+    return { ok: true, project: next, attachmentId: existing.id }
+  }
+  if ((object.attachments?.length ?? 0) >= MAX_ATTACHMENTS_PER_HOST) return { ok: false, error: 'This object already has as many attachments as it can hold' }
+  const attachment: VideoAttachment = { id: `${VIDEO_ATTACHMENT_PREFIX}${crypto.randomUUID()}`, kind: 'video', assetId }
+  object.attachments = [...(object.attachments ?? []), attachment]
+  return { ok: true, project: next, attachmentId: attachment.id }
+}
+
+/** Removes the object's video attachment; the library entry itself stays. */
+export const removeObjectVideo = (project: ProjectData, sceneId: string, objectId: string): ProjectData => {
+  const next = cloneProject(project)
+  const object = findObject(next, sceneId, objectId)
+  const existing = object && findVideo(object)
+  if (!object || !existing) return project
+  object.attachments = object.attachments?.filter((item) => item.id !== existing.id)
+  return next
 }

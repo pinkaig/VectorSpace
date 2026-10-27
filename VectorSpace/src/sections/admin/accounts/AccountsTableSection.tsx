@@ -12,6 +12,7 @@
 /******************************************************************************/
 
 import type { Account } from "../../../api/admin";
+import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { StatusChip, type ChipTone } from "../../../ui/statusChip";
 
@@ -43,8 +44,8 @@ export function AccountsTableSection({ rows, onTurnOff, onNotice }: AccountsTabl
           <tr><th>Name</th><th>Role</th><th>Class</th><th>Last active</th><th>Status</th><th /></tr>
         </thead>
         <tbody>
-          {rows.map((account) => (
-            <tr key={account.id}>
+          {rows.map((account, index) => (
+            <Motion as="tr" cue="table.rows.enter" staggerIndex={index} key={account.id}>
               <td>
                 <div className="admin-accounts-person">
                   <strong>{account.name}</strong>
@@ -68,7 +69,7 @@ export function AccountsTableSection({ rows, onTurnOff, onNotice }: AccountsTabl
                   </Button>
                 )}
               </td>
-            </tr>
+            </Motion>
           ))}
         </tbody>
       </table>

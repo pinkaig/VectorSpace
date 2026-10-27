@@ -170,5 +170,17 @@ export const retryAsset = (object: SceneObject): Promise<AssetDescriptor> => {
   return resolveAsset(object)
 }
 
+/**
+ * Every descriptor the chain has cached, for the asset inventory. This is the
+ * manager's own record of what it has resolved, and unlike the descriptor store
+ * above it is keyed by asset rather than by placement — twenty objects from one
+ * GLB are one entry here and twenty there.
+ */
+export const listCachedDescriptors = (): AssetDescriptor[] => cachingResolver.listCached()
+
+/** Every assetId the local catalog can resolve: bundled models plus UI imports. */
+export const listLocalCatalog = (): Array<{ assetId: string; url: string; contentType?: string }> =>
+  [...localCatalog.entries()].map(([assetId, entry]) => ({ assetId, ...entry }))
+
 export { isPlaceholderDescriptor }
 export type { AssetDescriptor }

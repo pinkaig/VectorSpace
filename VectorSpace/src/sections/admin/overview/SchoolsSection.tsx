@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import type { School } from "../../../api/admin";
+import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { Field } from "../../../ui/field";
 import { Popup } from "../../../ui/popup";
@@ -87,7 +88,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
           <Field label="School name">
             <input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
           </Field>
-          {problem && <p role="alert">{problem}</p>}
+          {problem && <Motion as="p" cue="feedback.error" role="alert">{problem}</Motion>}
         </Popup>
       )}
     </section>

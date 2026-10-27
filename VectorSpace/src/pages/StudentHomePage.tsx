@@ -3,10 +3,11 @@
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
  * @brief       Student home: greeting, the project assigned by the teacher
- *              (with Start building, which opens the editor), and the
- *              student's other projects. Uses the shared LandingPageTopBar.
- *              Until the backend marks which project is assigned, the newest
- *              draft stands in for it; its due date and task are still fake.
+ *              (with Start building, which opens the editor), the student's
+ *              other projects, and the notification bell in the top bar. Uses
+ *              the shared LandingPageTopBar. The assigned project, its task,
+ *              due date and teacher come from the API (assignments); the status
+ *              chip and the notifications are still fake.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -14,10 +15,12 @@
  */
 /******************************************************************************/
 
-import { useSession } from "../session/session";
+import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useSession } from "../session/session";
 import { LandingPageTopBar } from "../ui/LandingPageTopBar";
 import { MuseumPreview } from "../ui/museumPreview";
+import { NotificationBell, type AppNotification } from "../ui/NotificationBell";
 import { listMyProjects } from "../api/projects";
 import { useLoad } from "../api/useLoad";
 import "./StudentHomePage.css";
@@ -33,16 +36,6 @@ type StudentProject = {
   templateName?: string;
 };
 
-// "Due Friday" when it's within a week, otherwise "Due 30 Oct"
-const dueLabel = (iso: string): string => {
-  const [year, month, day] = iso.split("-").map(Number);
-  const due = new Date(year, month - 1, day);
-  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
-  if (days >= 0 && days < 7)
-    return `Due ${due.toLocaleDateString("en-GB", { weekday: "long" })}`;
-  return `Due ${due.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-};
-
 const assigned: StudentProject = {
   id: "fake-1",
   name: "Dinosaur museum",
@@ -51,6 +44,38 @@ const assigned: StudentProject = {
   due: "Due Friday",
   task: "Build a virtual exhibition about dinosaurs. Add at least 3 exhibits with facts, and one thing that reacts when visitors click.",
   templateName: "the museum template",
+};
+
+// Fake until the backend sends notifications (new project, visits, approvals and grades).
+const notifications: AppNotification[] = [
+  {
+    id: "n1",
+    kind: "project",
+    title: "Ms Tan gave you a new project: Dinosaur museum",
+    meta: "Monday · due Friday",
+  },
+  {
+    id: "n2",
+    kind: "visits",
+    title: "Your Ancient Egypt tour had 5 new visits",
+    meta: "2 days ago",
+  },
+  {
+    id: "n3",
+    kind: "approved",
+    title: "Ms Tan approved your Ancient Egypt tour",
+    meta: "2 weeks ago · Grade B+",
+  },
+];
+
+// "Due Friday" when it's within a week, otherwise "Due 30 Oct"
+const dueLabel = (iso: string): string => {
+  const [year, month, day] = iso.split("-").map(Number);
+  const due = new Date(year, month - 1, day);
+  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+  if (days >= 0 && days < 7)
+    return `Due ${due.toLocaleDateString("en-GB", { weekday: "long" })}`;
+  return `Due ${due.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
 };
 
 // "today", "yesterday" or "3 days ago", from an ISO date string
@@ -70,7 +95,10 @@ export default function StudentHomePage() {
   const firstName = displayName.split(" ")[0];
   const navigate = useNavigate();
 
-  // NEW: the student's projects, without archived ones
+  // the bell's dot shows until the student opens the list
+  const [unread, setUnread] = useState(true);
+
+  // the student's projects, without archived ones
   const myProjects = (projects ?? []).filter((p) => p.status !== "archived");
 
   // the project the teacher assigned; until every student has one, fall back to the newest draft
@@ -78,7 +106,7 @@ export default function StudentHomePage() {
     myProjects.find((p) => p.assignment_id) ??
     myProjects.find((p) => p.status === "draft");
 
-  // CHANGED: everything except the stand-in goes under "Your other projects"
+  // everything except the assigned one goes under "Your other projects"
   const otherProjects = myProjects.filter((p) => p.id !== assignedProject?.id);
 
   return (
@@ -87,6 +115,14 @@ export default function StudentHomePage() {
         userName={firstName}
         userSubline="Sec 2B · Student"
         onSignOut={signOut}
+        actions={
+          <NotificationBell
+            notifications={notifications}
+            unread={unread}
+            onOpen={() => setUnread(false)}
+            footer="Grades show only to you, your teacher and VThere staff."
+          />
+        }
       />
       <main className="student-home-content">
         <h1 className="student-home-greeting">Hi {firstName}</h1>
@@ -117,7 +153,7 @@ export default function StudentHomePage() {
               </span>
             </div>
 
-            {/* CHANGED: the real project's name, the fake one while loading */}
+            {/* the real project's name, the fake one while loading */}
             <h3 className="student-home-assigned-title">
               {assignedProject?.name ?? assigned.name}
             </h3>
@@ -131,7 +167,7 @@ export default function StudentHomePage() {
               </p>
             )}
 
-            {/* CHANGED: opens the real project; greyed out while loading or with no draft */}
+            {/* opens the real project; greyed out while loading or with no draft */}
             <button
               type="button"
               className="student-home-start"

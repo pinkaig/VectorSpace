@@ -117,4 +117,11 @@ describe('audio action builders', () => {
       priority: 5,
     })
   })
+
+  it('carries fadeIn and cooldownMs on playAudio, and fadeOut on stopAudio, only when given', () => {
+    expect(playAudioAction('a', { fadeIn: 1.5, cooldownMs: 400 }).params).toEqual({ assetId: 'a', fadeIn: 1.5, cooldownMs: 400 })
+    expect(playAudioAction('a').params).toEqual({ assetId: 'a' })
+    expect(stopAudioAction({ assetId: 'a' }, { fadeOut: 2 }).params).toEqual({ assetId: 'a', fadeOut: 2 })
+    expect(stopAudioAction({ assetId: 'a' }).params).toEqual({ assetId: 'a' })
+  })
 })

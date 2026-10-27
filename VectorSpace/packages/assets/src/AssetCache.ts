@@ -39,6 +39,19 @@ export class AssetCache {
     this.entries.set(cacheKey(ref), descriptor)
   }
 
+  /**
+   * Every live entry, for the asset inventory. Expired entries are dropped on
+   * the way out, so listing cannot report bytes the cache would refuse to serve.
+   */
+  list(): AssetDescriptor[] {
+    const live: AssetDescriptor[] = []
+    for (const [key, entry] of this.entries) {
+      if (entry.expiresAt !== undefined && entry.expiresAt <= this.now()) this.entries.delete(key)
+      else live.push(entry)
+    }
+    return live
+  }
+
   invalidate(ref: AssetRef): void {
     this.entries.delete(cacheKey(ref))
   }
