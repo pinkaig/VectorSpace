@@ -61,7 +61,7 @@ export default function LoginPage({
         {museum && (
           <article className="login-museum-card">
             <div className="login-museum-image">
-              <MuseumPreview imageUrl={museum.imageUrl} title={museum.title} />
+              <MuseumPreview title={museum.title} />
               <span className="login-chip">Made by a student</span>
               <span className="login-chip login-chip-dark">
                 {museum.exhibitCount} exhibits · {museum.roomCount} rooms

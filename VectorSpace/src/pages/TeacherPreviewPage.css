@@ -1,0 +1,77 @@
+/* TeacherPreviewPage: the dark preview bar on top, the student page filling the rest */
+
+.preview-frame {
+  /* the bar's height plus the gap above it; the editor's Play mode subtracts this */
+  --preview-bar-space: 64px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+}
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  height: 52px;
+  margin: 12px 12px 0;
+  padding: 0 8px 0 18px;
+  border-radius: var(--radius-btn-lg);
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.preview-bar strong {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.preview-bar-text {
+  flex: 1;
+  min-width: 0;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-exit {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preview-exit:hover {
+  background: var(--purple-100);
+}
+
+/* the student page: the space under the bar; a long page (student home) scrolls here */
+.preview-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* the editor and Play mode are built to be the whole window tall (100vh); here they fit
+   under the bar instead */
+.preview-page .app-shell,
+.preview-page .runtime-shell {
+  height: 100%;
+}
+
+.preview-page .runtime-stage {
+  min-height: calc(100vh - 76px - var(--preview-bar-space));
+}
+
+.preview-page .runtime-stage .viewport {
+  height: calc(100vh - 76px - var(--preview-bar-space));
+}
