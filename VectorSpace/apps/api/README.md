@@ -41,3 +41,29 @@ Two things to know before running this against the cloud database:
 - `app.provision` creates accounts and classes only. The demo templates, projects and
   analytics that the landing and showcase pages list come from `app.seed_content`, which
   only `app.seed` calls. A provisioned school therefore starts empty.
+
+## Checking the wiring when a login fails
+
+Two scripts in `scripts/` answer "why can I not sign in", one on each side of the line
+Auth0 draws. Both print a layer per check, pass nothing to the next layer when one fails,
+and exit non-zero, so either can go in front of a deploy step.
+
+```
+python scripts/check_auth0.py --token <access_token> --api http://localhost:8000
+python scripts/check_roster.py --csv roster.csv --token <access_token>
+```
+
+`check_auth0.py` covers everything up to the token: the API's own config, the tenant's
+issuer and JWKS, the `VITE_` values the browser uses, the redirect Auth0 would answer when
+you click sign in, the SPA application's callback URLs, and finally `/me` on a running API.
+
+`check_roster.py` picks up where that stops — a valid token with no account behind it — and
+separates the four causes that all surface as the same 403: no school, no row for that
+person, a row whose `auth0_subject` belongs to a different login, or a row with
+`active=false`. The third is the common one, because of the seeded `dev|` subjects
+described above; `--relink --apply` moves the real subject onto that address's existing row
+(it refuses unless exactly one row matches, and it never creates a person — that stays
+`app.provision`'s job).
+
+Neither script writes anything without `--apply`, and `check_roster.py` prints the database
+URL with its password masked, so its output is safe to paste into a chat.
