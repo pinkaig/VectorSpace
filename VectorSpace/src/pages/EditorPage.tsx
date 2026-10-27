@@ -346,14 +346,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
           </div>
 
-          {/* Top-left: transform tools */}
+          {/* Top-left: which handle is showing is picked in the object panel (Position tab); only the
+              world/local choice for that handle lives here, since the panel has no equivalent. */}
           <div className="floating-controls top-left">
-            <div className="float-group">
-              <button className={gizmoMode === 'select' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('select')}>Select</button>
-              <button className={gizmoMode === 'move' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('move')}>Move</button>
-              <button className={gizmoMode === 'rotate' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('rotate')}>Rotate</button>
-              <button className={gizmoMode === 'scale' ? 'float-button active' : 'float-button'} onClick={() => setGizmoMode('scale')}>Scale</button>
-            </div>
             {gizmoMode === 'scale' && (
               <div className="float-group">
                 <button className={scaleSpace === 'world' ? 'float-button active' : 'float-button'} onClick={() => setScaleSpace('world')} title="Scale handles stay aligned to world X/Y/Z">World</button>
@@ -451,7 +446,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             }}
             step={step}
             onStepChange={setStep}
-            onClose={() => setSelectedId(null)}
+            onClose={() => { setSelectedId(null); setGizmoMode('select') }}
             tool={gizmoMode === 'select' ? null : gizmoMode}
             onToolChange={setGizmoMode}
             onRotateBy={(degrees) => {
