@@ -135,7 +135,9 @@ const createPrimitiveArtefact = (item: SceneObject): THREE.Mesh => {
 const createModelArtefact = (item: SceneObject, onModelLoaded?: () => void): THREE.Object3D | null => {
   const url = resolveModelUrl(item.assetId)
   const template = url ? getCachedModel(url) : undefined
-  if (url && !template) loadModel(url, resolveModelUrlModifier(item.assetId)).then(() => onModelLoaded?.())
+  // The assetId is passed through only so the Asset Manager can account for this
+  // load (engineAssetRegistry); the loader itself still keys on the URL.
+  if (url && !template) loadModel(url, resolveModelUrlModifier(item.assetId), item.assetId).then(() => onModelLoaded?.())
   if (!template) return null // not loaded yet (or a missing/unknown asset) — nothing to place this pass
   const mesh = cloneModel(template)
   mesh.name = item.id

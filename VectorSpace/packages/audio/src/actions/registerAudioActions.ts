@@ -21,13 +21,30 @@ import type { AudioSystem } from '../AudioSystem'
 
 const isChannelId = (value: unknown): value is ChannelId => typeof value === 'string' && value.length > 0
 
-export const registerAudioActions = (registry: ActionRegistry, audio: AudioSystem): void => {
+export interface RegisterAudioActionsOptions {
+  /** Clock for retrigger cooldowns, in milliseconds. Injectable so tests need no real waiting. */
+  now?: () => number
+}
+
+export const registerAudioActions = (registry: ActionRegistry, audio: AudioSystem, options: RegisterAudioActionsOptions = {}): void => {
+  const now = options.now ?? (() => Date.now())
+  // When each asset last started through playAudio, for the optional `cooldownMs` param. Kept per
+  // registration, so it outlives a scene restart but not the AudioSystem it belongs to.
+  const lastPlayedAt = new Map<string, number>()
+
   registry.register('playAudio', (action, ctx) => {
     const params = action.params ?? {}
     const assetId = params.assetId
     if (typeof assetId !== 'string' || !assetId) {
       console.warn('[audio] playAudio requires a string assetId', action)
       return ctx.state
+    }
+    // A repeat inside the cooldown is dropped, so mashing a trigger can't stack the same clip into a roar.
+    if (typeof params.cooldownMs === 'number' && params.cooldownMs > 0) {
+      const at = now()
+      const last = lastPlayedAt.get(assetId)
+      if (last !== undefined && at - last < params.cooldownMs) return ctx.state
+      lastPlayedAt.set(assetId, at)
     }
     const voice = audio.play({
       assetId,
@@ -36,6 +53,7 @@ export const registerAudioActions = (registry: ActionRegistry, audio: AudioSyste
       loop: typeof params.loop === 'boolean' ? params.loop : undefined,
       rate: typeof params.rate === 'number' ? params.rate : undefined,
       startAt: typeof params.startAt === 'number' ? params.startAt : undefined,
+      fadeIn: typeof params.fadeIn === 'number' ? params.fadeIn : undefined,
     })
     ctx.effects.add(() => audio.stop({ voiceId: voice.id }))
     return ctx.state
@@ -48,11 +66,14 @@ export const registerAudioActions = (registry: ActionRegistry, audio: AudioSyste
       console.warn('[audio] stopAudio requires one of voiceId, assetId, channel', action)
       return ctx.state
     }
-    audio.stop({
-      voiceId: typeof voiceId === 'string' ? voiceId : undefined,
-      assetId: typeof assetId === 'string' ? assetId : undefined,
-      channel: isChannelId(channel) ? channel : undefined,
-    })
+    audio.stop(
+      {
+        voiceId: typeof voiceId === 'string' ? voiceId : undefined,
+        assetId: typeof assetId === 'string' ? assetId : undefined,
+        channel: isChannelId(channel) ? channel : undefined,
+      },
+      { fadeOutSeconds: typeof params.fadeOut === 'number' ? params.fadeOut : undefined },
+    )
     return ctx.state
   })
 

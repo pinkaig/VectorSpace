@@ -12,6 +12,7 @@
 /******************************************************************************/
 
 import type { ButtonHTMLAttributes } from "react";
+import { motion } from "../motion/motion";
 import "./button.css";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -21,7 +22,18 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: "normal" | "small";
 };
 
-export function Button({ variant = "secondary", size = "normal", className = "", ...rest }: ButtonProps) {
+export function Button({ variant = "secondary", size = "normal", className = "", onClick, ...rest }: ButtonProps) {
   // type="button" so a button inside a form never submits it by accident
-  return <button type="button" className={`ui-btn ui-btn-${variant} ui-btn-${size} ${className}`} {...rest} />;
+  return (
+    <button
+      type="button"
+      className={`ui-btn ui-btn-${variant} ui-btn-${size} ${className}`}
+      onClick={(event) => {
+        // the click animation sits on top of the CSS hover and press response, which stay in button.css
+        motion.play("control.button.click", event.currentTarget);
+        onClick?.(event);
+      }}
+      {...rest}
+    />
+  );
 }

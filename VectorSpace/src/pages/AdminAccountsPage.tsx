@@ -14,7 +14,9 @@
 
 import { useState } from "react";
 import type { Account } from "../api/admin";
+import { Motion } from "../motion/useMotion";
 import { Button } from "../ui/button";
+import { LoadingRows } from "../ui/loadingRows";
 import { useNoLogic } from "../ui/noLogic";
 import { useLoad } from "../api/useLoad";
 import { useAdmin } from "../sections/admin/adminContext";
@@ -25,7 +27,7 @@ import "./AdminAccountsPage.css";
 
 export default function AdminAccountsPage() {
   const { api, school, schoolId } = useAdmin();
-  const { data: accounts, setData, error } = useLoad(() => api.listAccounts(schoolId), schoolId);
+  const { data: accounts, setData, error, loading } = useLoad(() => api.listAccounts(schoolId), schoolId);
 
   const [tab, setTab] = useState<AccountTab>("everyone");
   const [search, setSearch] = useState("");
@@ -57,7 +59,8 @@ export default function AdminAccountsPage() {
         </div>
 
         {/*TABLE: name and email, role, class, last active, status, row actions*/}
-        {error && <p role="alert">Could not load accounts: {error}</p>}
+        {error && <Motion as="p" cue="feedback.error" role="alert">Could not load accounts: {error}</Motion>}
+        <LoadingRows loading={loading} />
         {accounts && (
           <AccountsTableSection rows={shown} onTurnOff={turnOff} onNotice={noLogic} />
         )}

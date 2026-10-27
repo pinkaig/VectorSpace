@@ -29,6 +29,14 @@ class FakeGain implements BackendGain {
     this.value = value
   }
 
+  /** Test-only record of the last fade: the end value and how long it was asked to take. */
+  lastRamp: { value: number; durationSeconds: number } | null = null
+
+  rampTo(value: number, durationSeconds: number): void {
+    this.lastRamp = { value, durationSeconds }
+    this.value = value
+  }
+
   getValue(): number {
     return this.value
   }
@@ -129,6 +137,10 @@ export class FakeAudioBackend implements AudioBackend {
 
   async resume(): Promise<void> {
     this.state = 'running'
+  }
+
+  async suspend(): Promise<void> {
+    if (this.state === 'running') this.state = 'suspended'
   }
 
   createGain(): BackendGain {

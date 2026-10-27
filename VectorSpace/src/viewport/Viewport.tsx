@@ -117,6 +117,9 @@ interface ViewportProps {
   audioAssets?: readonly AudioAssetMeta[]
   /** Authored master/channel mix defaults; only read in play mode. */
   audioSettings?: AudioSettings
+  /** Visitor's own master volume (0 to 1) and mute, layered over the project's authored settings. */
+  audioMasterVolume?: number
+  audioMasterMuted?: boolean
   /** Authored inline text assets, fed to the text system and resolver. */
   textAssets?: readonly TextAssetMeta[]
   orthographic?: boolean
@@ -230,6 +233,12 @@ const faceLabelFor = (direction: THREE.Vector3): string | null => {
   return edgeIndex === null ? null : EDGE_VIEWS[edgeIndex].label
 }
 
+/** Layers the visitor's master volume and mute over the authored settings; an unset value leaves the authored one alone. */
+const applyAudioMaster = (audio: AudioSystem, master: { volume?: number; muted?: boolean }): void => {
+  if (master.volume !== undefined) audio.setMaster(master.volume)
+  if (master.muted !== undefined) audio.muteMaster(master.muted)
+}
+
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   {
     objects, selectedId, onSelect, onMove, onScale, onRotate,
@@ -248,6 +257,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     zones = [],
     audioAssets = [],
     audioSettings,
+    audioMasterVolume,
+    audioMasterMuted,
     textAssets = [],
     orthographic = false,
     onOrthographicChange,
@@ -309,6 +320,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const orbitPoseRef = useRef<{ position: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3 } | null>(null)
   // Set by the setup effect; lets the imperative handle reach the live run.
   const restartRuntimeRef = useRef<() => void>(() => {})
+  // The live AudioSystem (set by the setup effect) and the visitor's master settings, read by that
+  // effect at creation and applied by the effect below whenever the visitor changes them.
+  const audioRef = useRef<AudioSystem | null>(null)
+  const audioMasterRef = useRef({ volume: audioMasterVolume, muted: audioMasterMuted })
+  audioMasterRef.current = { volume: audioMasterVolume, muted: audioMasterMuted }
   // Set by the setup effect; lets effects outside it (environment swaps, prop
   // changes) wake the on-demand render loop.
   const requestRenderRef = useRef<() => void>(() => {})
@@ -496,6 +512,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     })
     audio.setProjectAudioAssets(dataRef.current.audioAssets as AudioAssetMeta[])
     registerAudioActions(actions, audio)
+    audioRef.current = audio
+    applyAudioMaster(audio, audioMasterRef.current)
 
     // showPanel/hidePanel/advancePanel executors. The lookup reads the live
     // scene feed, so a rule can address any text attachment on an object or
@@ -755,6 +773,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const onGestureUnlock = () => { void audio.unlock() }
     renderer.domElement.addEventListener('pointerdown', onGestureUnlock)
     window.addEventListener('keydown', onGestureUnlock)
+    // A hidden tab freezes its audio; showing it again carries on from the same spot.
+    const onVisibilityChange = () => { void audio.setHidden(document.hidden) }
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     // Update the FPS display twice per second.
     let statsFrames = 0
@@ -896,6 +917,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // Unmounting is an exit from play mode: stop sequencing and dispose every
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      renderer.domElement.removeEventListener('pointerdown', onGestureUnlock)
+      window.removeEventListener('keydown', onGestureUnlock)
+      audioRef.current = null
+      // The comment where the system is created says only unmount disposes it; closing the context
+      // here is what makes that true (browsers cap how many contexts a page can keep open).
+      audio.dispose()
       unsubscribeTextBridge()
       text.closeAll()
       restartRuntimeRef.current = () => {}
@@ -1002,6 +1030,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     if (envStatus.state === 'ready') applyPoseRef.current(dataRef.current.startCamera)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken])
+
+  // The visitor's master volume and mute apply live, without restarting the run.
+  useEffect(() => {
+    if (audioRef.current) applyAudioMaster(audioRef.current, { volume: audioMasterVolume, muted: audioMasterMuted })
+  }, [audioMasterVolume, audioMasterMuted])
 
   // Resolving the selected object's asset is what makes loading/ready/error
   // states observable — selection is the trigger the Stage 6 acceptance
