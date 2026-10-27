@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
+import json
 import re
 import uuid
 from datetime import date, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..access import can_read, can_write, class_ids, visible_projects
 from ..auth import get_current_actor
 from ..db import get_db
-from ..models import Actor, Assignment, Classroom, ContentSnapshot, Project, ProjectVersion
+from ..models import Actor, Assignment, ClassMember, Classroom, ContentSnapshot, Project, ProjectVersion
 from ._skeleton import not_implemented
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -59,6 +61,8 @@ class ProjectResponse(BaseModel):
     task: str | None = None
     due_at: date | None = None
     assigned_by_name: str | None = None
+    # the teacher's mission brief for that assignment; the editor shows it to the student
+    mission_brief: dict[str, Any] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -97,6 +101,7 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
                     "task": assignment.task if assignment else None,
                     "due_at": assignment.due_at if assignment else None,
                     "assigned_by_name": people.get(assignment.created_by_id) if assignment else None,
+                    "mission_brief": assignment.mission_brief if assignment else None,
                 }
             )
         )
@@ -230,10 +235,19 @@ def assign_project(
     if not shared:
         raise HTTPException(status_code=403, detail="That student is not in one of your classes")
 
+    copy = _send_copy(db, source, student, shared[0], actor)
+    db.commit()
+    db.refresh(copy)
+    return _describe(db, [copy])[0]
+
+
+def _send_copy(db: Session, source: Project, student: Actor, class_id: uuid.UUID, sender: Actor) -> Project:
+    """A new project owned by student holding source's current content, its first revision
+    labelled "Sent by <sender>". Flushed, not committed."""
     copy = Project(
-        organisation_id=actor.organisation_id,
+        organisation_id=sender.organisation_id,
         created_by_id=student.id,
-        class_id=shared[0],
+        class_id=class_id,
         name=distinct_name(db, student.id, "project", source.name),
         slug=_slug(source.name),
         template_id=source.id if source.kind == "template" else source.template_id,
@@ -245,10 +259,80 @@ def assign_project(
         origin = source if source.kind == "template" else db.get(Project, source.template_id)
         latest = db.get(ProjectVersion, origin.current_version_id) if origin and origin.current_version_id else None
         copy.template_revision = latest.revision if latest else None
-    _copy_current(db, source, copy, actor, label=f"Sent by {actor.display_name}")
+    _copy_current(db, source, copy, sender, label=f"Sent by {sender.display_name}")
+    return copy
+
+
+# a brief is a due date and a few dozen short lines; anything near this is not a brief
+MAX_MISSION_BRIEF_BYTES = 64 * 1024
+
+
+class AssignClassRequest(BaseModel):
+    class_id: uuid.UUID
+    # the editor's MissionBrief: {due, todos: [{id, text}], rules: [{id, text}]}
+    mission_brief: dict[str, Any] | None = None
+    task: str = Field("", max_length=2000)
+    due_at: date | None = None
+
+
+class AssignClassResponse(BaseModel):
+    assignment_id: uuid.UUID
+    # students in the class
+    students: int
+    # copies made by this call (students who already had one keep theirs)
+    sent: int
+
+
+@router.post("/{project_id}/assign-class", response_model=AssignClassResponse)
+def assign_class(
+    project_id: uuid.UUID, body: AssignClassRequest, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)
+) -> AssignClassResponse:
+    """Template setup's "Assign to <class>": the class's assignment of this project, with its
+    mission brief, and a copy for every student in the class who has none yet.
+
+    One assignment per (class, project): assigning again updates its brief, task and due date,
+    and because the brief is read from the assignment (not from each copy), students who
+    already have a copy see the new brief the next time they open it.
+    """
+    if actor.role == "student":
+        raise HTTPException(status_code=403, detail="Only teachers can assign work to a class")
+    source = _load(db, actor, project_id)
+    classroom = db.get(Classroom, body.class_id)
+    if classroom is None or classroom.organisation_id != actor.organisation_id:
+        raise HTTPException(status_code=404, detail="Class not found")
+    if actor.role != "admin" and body.class_id not in class_ids(db, actor):
+        raise HTTPException(status_code=403, detail="You are not in that class")
+    if body.mission_brief is not None and len(json.dumps(body.mission_brief)) > MAX_MISSION_BRIEF_BYTES:
+        raise HTTPException(status_code=422, detail="Mission brief is too large")
+
+    assignment = db.scalar(
+        select(Assignment).where(Assignment.class_id == body.class_id, Assignment.project_id == source.id)
+    )
+    if assignment is None:
+        assignment = Assignment(class_id=body.class_id, project_id=source.id, task=body.task, created_by_id=actor.id)
+        db.add(assignment)
+    assignment.task = body.task
+    assignment.due_at = body.due_at
+    assignment.mission_brief = body.mission_brief
+    db.flush()
+
+    students = list(
+        db.scalars(
+            select(Actor)
+            .join(ClassMember, ClassMember.actor_id == Actor.id)
+            .where(ClassMember.class_id == body.class_id, Actor.role == "student")
+        )
+    )
+    have_copy = set(db.scalars(select(Project.created_by_id).where(Project.assignment_id == assignment.id)))
+    sent = 0
+    for student in students:
+        if student.id in have_copy:
+            continue
+        copy = _send_copy(db, source, student, body.class_id, actor)
+        copy.assignment_id = assignment.id
+        sent += 1
     db.commit()
-    db.refresh(copy)
-    return _describe(db, [copy])[0]
+    return AssignClassResponse(assignment_id=assignment.id, students=len(students), sent=sent)
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)

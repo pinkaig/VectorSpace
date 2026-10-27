@@ -40,7 +40,8 @@ import { ApiError, apiFetch, type GetToken } from '../api/client'
 import { defaultProject, type ProjectData } from './model'
 import { deserializeProject } from './serializer'
 
-type ProjectRow = { id: string; name: string; current_version_id: string | null }
+// mission_brief: the teacher's brief, from the class assignment this copy belongs to
+type ProjectRow = { id: string; name: string; current_version_id: string | null; mission_brief?: unknown }
 type VersionSaved = { revision: number }
 type VersionDetail = VersionSaved & { data: unknown }
 
@@ -67,9 +68,24 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
     // save that lacks either still opens
     project = deserializeProject(JSON.stringify({ ...(version.data as object), id: row.id, name: row.name }))
   }
-  project = { ...project, id: row.id }
+  project = withAssignedBrief({ ...project, id: row.id }, row.mission_brief)
   registry.set(row.id, { revision, getToken })
   return { project, revision }
+}
+
+/**
+ * The assignment's brief replaces whatever brief the saved scene carries, so a brief the
+ * teacher changes after sending reaches copies already sent. It goes through the same
+ * checks as a brief in a file; a brief that fails them is left off rather than stopping
+ * the project from opening.
+ */
+function withAssignedBrief(project: ProjectData, brief: unknown): ProjectData {
+  if (!brief) return project
+  try {
+    return deserializeProject(JSON.stringify({ ...project, missionBrief: brief }))
+  } catch {
+    return project
+  }
 }
 
 export class ServerSyncTransport implements SyncTransport<ProjectData> {

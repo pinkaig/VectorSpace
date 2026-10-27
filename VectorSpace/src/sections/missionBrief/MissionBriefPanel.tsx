@@ -11,6 +11,8 @@
  *              The to-dos TICK THEMSELVES: each one's text is read by parseTodo and counted
  *              against the live project by checkGoal, so placing an exhibit updates it at once.
  *              A to-do parseTodo cannot read shows a dashed box: the teacher ticks it in review.
+ *              To-dos that clash (mission/conflicts.ts) still tick themselves here: not every
+ *              to-do has to be done, and the teacher was warned about the clash at setup.
  *
  *              The brief comes from project.missionBrief, which the teacher's template setup
  *              page writes. With no brief (or an empty one) nothing is shown.

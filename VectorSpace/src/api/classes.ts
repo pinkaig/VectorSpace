@@ -25,6 +25,18 @@ interface Member extends Student {
   role: string
 }
 
+/** One class the signed-in person is in, from GET /classes. */
+export interface ClassRow {
+  id: string
+  name: string
+  member_count: number
+}
+
+/** The signed-in person's classes, by name (template setup's "Assign to <class>"). */
+export function listMyClasses(getToken: GetToken, base?: string): Promise<ClassRow[]> {
+  return apiFetch<ClassRow[]>(getToken, '/classes', {}, base)
+}
+
 export async function listMyStudents(getToken: GetToken, base?: string): Promise<Student[]> {
   const classes = await apiFetch<{ id: string }[]>(getToken, '/classes', {}, base)
   const rosters = await Promise.all(classes.map((c) => apiFetch<Member[]>(getToken, `/classes/${c.id}/members`, {}, base)))

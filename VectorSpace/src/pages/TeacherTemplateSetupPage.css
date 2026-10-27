@@ -116,3 +116,13 @@
   background: var(--red-50);
   color: var(--red-900);
 }
+
+/* the class picker beside "Assign to <class>", shown when the teacher has more than one class */
+.setup-class-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}

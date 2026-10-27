@@ -6,9 +6,14 @@
  *              assigned to a class. A header bar over three panels:
  *                Mission brief (left)  |  Room preview (middle)  |  Project details (right)
  *
- *              "Assign to <class>" hands the mission brief to the editor by writing it into
- *              the editor's draft saved in this browser (saveProject). The editor shows it as
- *              the students' brief (sections/missionBrief/). Pressing Assign again replaces it.
+ *              "Assign to <class>" saves the scene to the server as the teacher's template,
+ *              then assigns it to the class with the mission brief (POST
+ *              /projects/{id}/assign-class): the brief is stored on the class's assignment
+ *              and every student without a copy gets one. Students open their copy at
+ *              /editor/:projectId, which reads the brief from the assignment, so the editor
+ *              shows it (sections/missionBrief/). Assigning again updates it for everyone.
+ *              It also still writes the brief into this browser's draft (saveProject), which
+ *              is all it does in offline mode (no VITE_API_URL).
  *              "Preview as a student" opens TeacherPreviewPage with the brief being edited
  *              (assigned or not). Nothing done in the preview is saved.
  *
@@ -18,10 +23,14 @@
  */
 /******************************************************************************/
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Box } from "lucide-react";
 import { loadProject, saveProject } from "../project/serializer";
+import { apiUrl } from "../api/client";
+import { listMyClasses, type ClassRow } from "../api/classes";
+import { assignToClass, createTemplate, listMyTemplates, saveRevision } from "../api/projects";
+import { useSession } from "../session/session";
 import { Button } from "../ui/button";
 import { StatusChip } from "../ui/statusChip";
 import { MissionBriefSection } from "../sections/templateSetup/MissionBriefSection";
@@ -63,10 +72,11 @@ const SAMPLE_BRIEF: MissionBrief = {
 const startingBrief = (): MissionBrief => loadProject().missionBrief ?? SAMPLE_BRIEF;
 
 // how the last Assign went
-type AssignState = "idle" | "assigned" | "failed";
+type AssignState = "idle" | "assigning";
 
 export default function TeacherTemplateSetupPage() {
   const navigate = useNavigate();
+  const { getToken } = useSession();
   // what arrived with the visit: a brief handed back by Exit preview, or the
   // name, class and due date picked in the teacher home's New project popup
   const routeState = useLocation().state as
@@ -91,27 +101,78 @@ export default function TeacherTemplateSetupPage() {
     return startingBrief();
   });
   const [assign, setAssign] = useState<AssignState>("idle");
+  // what went wrong with the last Assign, shown in the red notice
+  const [problem, setProblem] = useState("");
 
-  // any edit after assigning means the editor's copy is out of date again
+  // the teacher's real classes on the server (empty in offline mode). The class picked in
+  // the New project popup is used when a server class has the same name; else the first.
+  const [classes, setClasses] = useState<ClassRow[]>([]);
+  const [classId, setClassId] = useState("");
+  useEffect(() => {
+    if (!apiUrl) return;
+    let current = true;
+    listMyClasses(getToken).then(
+      (rows) => {
+        if (!current) return;
+        setClasses(rows);
+        setClassId((rows.find((c) => c.name === project.className) ?? rows[0])?.id ?? "");
+      },
+      () => current && setProblem("Couldn't load your classes from the server."),
+    );
+    return () => { current = false; };
+    // once per visit: getToken changes identity on re-render, the classes do not
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const chosenClass = classes.find((c) => c.id === classId);
+  const className = chosenClass?.name ?? project.className;
+
+  // any edit clears the red notice
   const editBrief = (next: MissionBrief) => {
     setBrief(next);
-    if (assign !== "idle") setAssign("idle");
+    if (problem) setProblem("");
   };
 
-  // hand the brief to the editor (put it on the editor's saved draft, empty rows left
-  // out), then go back to the teacher home, which shows the "assigned" banner
-  const assignBrief = () => {
-    const result = saveProject({ ...loadProject(), missionBrief: tidyBrief(brief) });
-    if (result === "failed") {
-      setAssign("failed");
-      return;
+  // save the brief (empty rows left out) to the server with the project, then back to the
+  // teacher home, which shows the "assigned" banner. The browser draft gets the brief too,
+  // so the local editor and the preview keep showing it.
+  const assignBrief = async () => {
+    const missionBrief = tidyBrief(brief);
+    const draft = { ...loadProject(), name: project.title, missionBrief };
+    const savedLocally = saveProject(draft) !== "failed";
+    const fail = (text: string) => {
+      setProblem(text);
+      setAssign("idle");
+    };
+
+    if (apiUrl) {
+      if (!chosenClass) return fail("You aren't in any class on the server, so there is no one to assign to.");
+      setAssign("assigning");
+      try {
+        // 1. the teacher's template with this name, or a new one in this class
+        const template =
+          (await listMyTemplates(getToken, project.title)).find((t) => t.name === project.title) ??
+          (await createTemplate(getToken, project.title, chosenClass.id));
+        // 2. the scene as its newest revision: what each student's copy starts from
+        await saveRevision(getToken, template.id, template.current_revision, { ...draft, id: template.id });
+        // 3. the brief onto the class's assignment, and a copy for each student without one
+        await assignToClass(getToken, template.id, {
+          classId: chosenClass.id,
+          missionBrief,
+          dueAt: newProject?.due ?? null,
+        });
+      } catch (error) {
+        return fail(`Couldn't assign on the server: ${error instanceof Error ? error.message : "unknown error"}`);
+      }
+    } else if (!savedLocally) {
+      return fail("Couldn't save the brief: this browser's storage is full or turned off.");
     }
+
     navigate("/teacher", {
       state: {
         assigned: {
           id: crypto.randomUUID(),
           projectName: project.title,
-          className: project.className,
+          className,
           due: brief.due,
         },
       },
@@ -139,19 +200,34 @@ export default function TeacherTemplateSetupPage() {
         </div>
         <div className="setup-header-actions">
           <Button onClick={previewAsStudent}>Preview as a student</Button>
-          <Button variant="primary" onClick={assignBrief}>Assign to {project.className}</Button>
+          {classes.length > 1 && (
+            <select
+              className="setup-class-select"
+              aria-label="Class to assign to"
+              value={classId}
+              onChange={(event) => setClassId(event.target.value)}
+              disabled={assign === "assigning"}
+            >
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+          <Button variant="primary" onClick={assignBrief} disabled={assign === "assigning"}>
+            {assign === "assigning" ? "Assigning…" : `Assign to ${className}`}
+          </Button>
         </div>
       </header>
       {/*WHAT HAPPENED: one line after Assign*/}
-      {assign === "failed" && (
+      {problem && (
         <p className="setup-notice setup-notice-red">
-          Couldn't save the brief: this browser's storage is full or turned off.
+          {problem}
         </p>
       )}
       <div className="setup-body">{/*THE THREE PANELS, side by side*/}
         <MissionBriefSection brief={brief} onChange={editBrief} />
         <SetupViewportSection />
-                <ProjectDetailsSection className={project.className} due={brief.due} />
+                <ProjectDetailsSection className={className} due={brief.due} />
       </div>
     </main>
   );
