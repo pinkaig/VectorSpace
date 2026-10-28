@@ -374,11 +374,6 @@
   color: var(--text-muted);
 }
 
-/* a project just assigned from template setup: green border, white inside */
-.teacher-home-row-assigned {
-  border-color: var(--green-200);
-}
-
 .teacher-home-row-name {
   font-size: 16px;
   font-weight: 800;

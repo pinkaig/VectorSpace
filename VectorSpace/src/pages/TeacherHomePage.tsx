@@ -4,13 +4,13 @@
  * @author      Chloe Lau Rey En
  * @brief       Teacher home (Classes tab): greeting with New project (a popup
  *              that names the project, picks the class and due date, then opens
- *              template setup), the last project the teacher worked on, and
- *              every project in a box that scrolls on its own. Each project has
- *              a ⋯ menu: Duplicate, Archive (after it is due) and Delete (only
- *              when no student has started it, confirmed first). Shows a banner
- *              after a project is assigned on template setup. Shown inside
- *              TeacherLayout. Uses fake data until the backend has classes and
- *              submission counts.
+ *              template setup) and every project in a box that scrolls on its
+ *              own. Each project has a ⋯ menu: Duplicate, Archive (after it is
+ *              due) and Delete (only when no student has started it, confirmed
+ *              first). Shows a banner after a project is assigned on template
+ *              setup. Shown inside TeacherLayout. The list starts empty until it
+ *              is loaded from the API; the real projects are in the Developer
+ *              section at the bottom for now.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -34,19 +34,7 @@ import {
 } from "lucide-react";
 import { useSession } from "../session/session";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
-import { MuseumPreview } from "../ui/museumPreview";
 import "./TeacherHomePage.css";
-
-// Fake data until the backend has classes, due dates and submission counts.
-const activeClass = {
-  projectId: "fake-1",
-  className: "Class 2B",
-  due: "Due Friday",
-  projectName: "Dinosaur museum",
-  sent: 6,
-  building: 15,
-  notStarted: 3,
-};
 
 type ProjectRow = {
   id: string;
@@ -60,36 +48,12 @@ type ProjectRow = {
   isPastDue: boolean; // only then can it be archived
   archived?: boolean;
   isNew?: boolean; // just duplicated: shown with a purple border
-  justAssigned?: boolean; // just assigned from template setup: shown with a green border
 };
-
-const startingProjects: ProjectRow[] = [
-  {
-    id: "fake-2",
-    className: "Class 3A",
-    name: "Ancient Egypt tour",
-    details: "Published · 34 visits · most clicked: the mummy case",
-    published: true,
-    action: "See results",
-    hasStudentWork: true,
-    isPastDue: true,
-  },
-  {
-    id: "fake-3",
-    className: null,
-    name: "Copy of Dinosaur museum",
-    details: "Rooms, exhibits and brief copied · no student work",
-    action: "Set up and assign",
-    actionIsPrimary: true,
-    hasStudentWork: false,
-    isPastDue: false,
-  },
-];
 
 // The list as the teacher left it. It lives outside the component, so leaving the page
 // (Results, template setup) and coming back keeps new, archived and deleted projects.
-// Fake until the API stores projects; a page refresh starts over.
-let savedProjects: ProjectRow[] = startingProjects;
+// Empty until it is loaded from the API; a page refresh starts over.
+let savedProjects: ProjectRow[] = [];
 
 // what template setup's Assign sends back
 type AssignedNote = {
@@ -265,7 +229,6 @@ export default function TeacherHomePage() {
   const assigned = (location.state as { assigned?: AssignedNote } | null)
     ?.assigned;
 
-  // a project just assigned shows first in the list, with a green border
   const [projects, setProjects] = useState<ProjectRow[]>(() => savedProjects);
 
   // shows the banner from this visit, or the one still waiting for OK
@@ -278,29 +241,11 @@ export default function TeacherHomePage() {
     savedProjects = projects;
   }, [projects]);
 
-  // a project just assigned on template setup goes first in the list, with a green border.
-  // Its id makes sure it's only added once, even if this runs twice.
+  // a project just assigned on template setup shows the banner
   useEffect(() => {
     if (!assigned) return;
     savedBanner = assigned;
     setBanner(assigned);
-    setProjects((current) =>
-      current.some((p) => p.id === assigned.id)
-        ? current
-        : [
-            {
-              id: assigned.id,
-              className: assigned.className,
-              name: assigned.projectName,
-              details: `${assigned.due ? `Due ${assigned.due} · ` : ""}Assigned just now · 0 of 24 started`,
-              action: "Set up project",
-              hasStudentWork: false,
-              isPastDue: false,
-              justAssigned: true,
-            },
-            ...current.map((p) => ({ ...p, justAssigned: false })),
-          ],
-    );
   }, [assigned]);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -445,7 +390,6 @@ export default function TeacherHomePage() {
           <h1 className="teacher-home-greeting">
             {greetingForTime()}, {displayName}
           </h1>
-          <p className="teacher-home-lead">One class is building right now.</p>
         </div>
         <button
           type="button"
@@ -456,84 +400,6 @@ export default function TeacherHomePage() {
           New project
         </button>
       </div>
-
-      <h2 className="teacher-home-label">Pick up where you left off</h2>
-
-      <article className="teacher-home-class">
-        <div className="teacher-home-class-image">
-          <MuseumPreview title={activeClass.projectName} />
-        </div>
-
-        <div className="teacher-home-class-info">
-          <div className="teacher-home-chips">
-            <span className="teacher-home-chip teacher-home-chip-dark">
-              {activeClass.className}
-            </span>
-            <span className="teacher-home-chip">{activeClass.due}</span>
-          </div>
-
-          <h3 className="teacher-home-class-title">
-            {activeClass.projectName}
-          </h3>
-
-          <div className="teacher-home-progress">
-            <span
-              className="teacher-home-progress-sent"
-              style={{ flex: activeClass.sent }}
-            />
-            <span
-              className="teacher-home-progress-building"
-              style={{ flex: activeClass.building }}
-            />
-            <span
-              className="teacher-home-progress-not-started"
-              style={{ flex: activeClass.notStarted }}
-            />
-          </div>
-
-          <p className="teacher-home-progress-legend">
-            <span className="teacher-home-legend-sent">
-              <strong>{activeClass.sent}</strong> sent for approval
-            </span>
-            <span className="teacher-home-legend-building">
-              <strong>{activeClass.building}</strong> building
-            </span>
-            <span className="teacher-home-legend-not-started">
-              <strong>{activeClass.notStarted}</strong> not started
-            </span>
-          </p>
-
-          <div className="teacher-home-class-actions">
-            <button
-              type="button"
-              className="teacher-home-primary"
-              onClick={() => navigate("/teacher/template")}
-            >
-              Set up project
-            </button>
-            <button
-              type="button"
-              className="teacher-home-secondary"
-              onClick={() => navigate("/teacher/review")}
-            >
-              Review {activeClass.sent} submissions
-            </button>
-          </div>
-        </div>
-
-        {/* students are building it and it isn't due yet: duplicate only */}
-        <ProjectMenu
-          name={activeClass.projectName}
-          open={openMenuId === activeClass.projectId}
-          onToggle={() => toggleMenu(activeClass.projectId)}
-          hasClass={true}
-          canArchive={false}
-          canDelete={false}
-          onDuplicate={() => duplicate(activeClass.projectName)}
-          onArchive={() => {}}
-          onDelete={() => {}}
-        />
-      </article>
 
       <section className="teacher-home-all">
         <div className="teacher-home-all-head">
@@ -555,13 +421,17 @@ export default function TeacherHomePage() {
         </div>
 
         <div className="teacher-home-all-list">
+          {visibleProjects.length === 0 && (
+            <p className="teacher-home-lead">
+              No projects yet.
+            </p>
+          )}
           {visibleProjects.map((project) => (
             <div
               key={project.id}
               className={[
                 "teacher-home-row",
                 project.isNew ? "teacher-home-row-new" : "",
-                project.justAssigned ? "teacher-home-row-assigned" : "",
                 project.archived ? "teacher-home-row-archived" : "",
               ].join(" ")}
             >
