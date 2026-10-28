@@ -5,8 +5,11 @@
  * @brief       Teacher Review tab: every student in the class with status
  *              tabs and pages of 8 on the left; the selected museum on the
  *              right with grade, comment, quick comments, and Approve and
- *              publish or Send back. Shown inside TeacherLayout. Uses fake
- *              data until the backend has submissions.
+ *              publish or Send back. Shown inside TeacherLayout. The list is
+ *              the students' museums in the teacher's classes (API); a
+ *              published one has a "Show on the sign-in page" switch. Sending
+ *              for approval, grades and review comments are not stored yet,
+ *              so nothing is Waiting or Sent back.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -14,9 +17,14 @@
  */
 /******************************************************************************/
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { apiUrl } from "../api/client";
+import { listStudentMuseums, setShowcase, type Project } from "../api/projects";
+import { useLoad } from "../api/useLoad";
+import { useSession } from "../session/session";
 import { MuseumPreview } from "../ui/museumPreview";
+import { Toggle } from "../ui/toggle";
 import "./TeacherReviewPage.css";
 
 type Status =
@@ -26,98 +34,50 @@ type Status =
   | "Building"
   | "Not started";
 
+// one student's museum, as the review list and detail show it
 type Submission = {
   id: string;
   studentName: string;
-  sent: string;
+  projectName: string;
+  sent: string; // e.g. "Sent 2 hours ago"
   status: Status;
+  shareWith?: string; // who the student wants to share it with
+  todos?: { label: string; count?: string; done: boolean }[]; // the mission brief, ticked
+  inside?: { value: number; label: string }[]; // counts: exhibits, fact cards, reactions, rooms
+  showcase?: boolean; // on the public sign-in page (published museums only)
 };
 
-// Fake data until the backend has submissions: the whole class, 24 students.
-const studentNames = [
-  "Aisyah Rahman",
-  "Daniel Koh",
-  "Priya Nair",
-  "Jun Wei Tan",
-  "Nur Aina",
-  "Sofia Lim",
-  "Marcus Lee",
-  "Ethan Wong",
-  "Kai Chen",
-  "Ryan Teo",
-  "Mei Ling",
-  "Hana Yusof",
-  "Arjun Pillai",
-  "Chloe Ng",
-  "Farah Ismail",
-  "Ivan Lim",
-  "Jasmine Goh",
-  "Lucas Tay",
-  "Nadia Hassan",
-  "Oliver Seah",
-  "Rachel Ong",
-  "Siti Nur",
-  "Tom Lee",
-  "Zara Khan",
-];
-const firstEightSent = [
-  "Sent 2 hours ago",
-  "Sent 3 hours ago",
-  "Sent yesterday",
-  "Sent yesterday",
-  "Sent 2 days ago",
-  "Sent 2 days ago",
-  "Sent 3 days ago",
-  "Sent 4 days ago",
-];
+// "today", "yesterday" or "3 days ago", from an ISO date string
+const daysAgo = (iso: string): string => {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+};
 
-// the teacher's saved quick comments; fake until they're stored per teacher
-const startingQuickComments = [
-  "Great facts!",
-  "Add a picture to each card",
-  "Check your spelling",
-  "Add a reaction to more exhibits",
-];
-
-// 6 waiting, 1 published, 1 sent back, 13 building, 3 not started
-const statusFor = (i: number): Status =>
-  i < 6
-    ? "Waiting"
-    : i === 6
-      ? "Published"
-      : i === 7
-        ? "Sent back"
-        : i < 21
-          ? "Building"
-          : "Not started";
-
-const startingSubmissions: Submission[] = studentNames.map(
-  (studentName, i) => ({
-    id: `s${i + 1}`,
-    studentName,
-    status: statusFor(i),
+// A student's project from the API. Nothing is sent for approval yet, so there are no Waiting
+// or Sent back rows: published, being built (the student has saved), or not started (only the
+// teacher's send is saved).
+const toSubmission = (project: Project): Submission => {
+  const started = project.current_revision > 0 && project.saved_by_name === project.created_by_name;
+  const status: Status = project.status === "published" ? "Published" : started ? "Building" : "Not started";
+  return {
+    id: project.id,
+    studentName: project.created_by_name,
+    projectName: project.name,
+    status,
     sent:
-      firstEightSent[i] ??
-      (statusFor(i) === "Building" ? "Edited today" : "Not opened yet"),
-  }),
-);
+      status === "Published"
+        ? `Published · updated ${daysAgo(project.updated_at)}`
+        : status === "Building" && project.saved_at
+          ? `Edited ${daysAgo(project.saved_at)}`
+          : "Not opened yet",
+    showcase: project.showcase,
+  };
+};
 
-// The same for every student until the backend has real counts.
-const shareWith = "Anyone with the link";
-
-const missionTodos = [
-  { label: "Place 3 exhibits", count: "4/3", done: true },
-  { label: "Give each exhibit a fact card", count: "3/3", done: true },
-  { label: "Add one reaction", done: true },
-  { label: "Add a second room", done: true },
-];
-
-const insideStats = [
-  { value: 4, label: "exhibits" },
-  { value: 3, label: "fact cards" },
-  { value: 2, label: "reactions" },
-  { value: 2, label: "rooms" },
-];
+// the teacher's saved quick comments: none until they're stored per teacher
+const startingQuickComments: string[] = [];
 
 // chip colour per status, from the manual
 const chipClass: Record<Status, string> = {
@@ -140,8 +100,32 @@ const tabs: Tab[] = [
 const PAGE_SIZE = 8;
 
 export default function TeacherReviewPage() {
-  const [submissions, setSubmissions] = useState(startingSubmissions);
-  const [selectedId, setSelectedId] = useState(startingSubmissions[0].id);
+  const { getToken } = useSession();
+  // the students' museums in this teacher's classes; none offline
+  const loaded = useLoad(
+    () => (apiUrl ? listStudentMuseums(getToken) : Promise.resolve([])),
+    "review-museums",
+  );
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!loaded.data) return;
+    const rows = loaded.data.map(toSubmission);
+    setSubmissions(rows);
+    setSelectedId((current) => current ?? rows[0]?.id ?? null);
+  }, [loaded.data]);
+  // why the sign-in page switch did not change, shown under it
+  const [showcaseError, setShowcaseError] = useState<string | null>(null);
+
+  const toggleShowcase = async (id: string, on: boolean) => {
+    setShowcaseError(null);
+    try {
+      const saved = await setShowcase(getToken, id, on);
+      setSubmissions((current) => current.map((s) => (s.id === id ? { ...s, showcase: saved.showcase } : s)));
+    } catch (problem) {
+      setShowcaseError((problem as Error).message);
+    }
+  };
   const [comment, setComment] = useState("");
   const [grade, setGrade] = useState("");
   const [quickComments, setQuickComments] = useState(startingQuickComments);
@@ -208,7 +192,7 @@ export default function TeacherReviewPage() {
   return (
     <main className="review">
       <section className="review-list-panel">
-        <h1 className="review-list-title">Class 2B · Dinosaur museum</h1>
+        <h1 className="review-list-title">Review</h1>
         <p className="review-list-sub">
           Every student's museum. Pick a tab to see who needs you.
         </p>
@@ -247,6 +231,7 @@ export default function TeacherReviewPage() {
               onClick={() => {
                 setSelectedId(s.id);
                 setMessage(null);
+                setShowcaseError(null);
                 setComment("");
                 setGrade("");
               }}
@@ -301,6 +286,15 @@ export default function TeacherReviewPage() {
       </section>
 
       <section className="review-detail-panel">
+        {!selected && (
+          <p className="review-empty">
+            {loaded.error
+              ? `Could not load your students' museums: ${loaded.error}`
+              : loaded.loading
+                ? "Loading your students' museums…"
+                : "No museums yet. Your students' museums show here once you assign them a project."}
+          </p>
+        )}
         {selected && (
           <>
             <header className="review-detail-header">
@@ -309,16 +303,38 @@ export default function TeacherReviewPage() {
               </span>
               <div>
                 <h2 className="review-detail-title">
-                  {firstName}'s Dinosaur museum
+                  {firstName}'s {selected.projectName}
                 </h2>
                 <p className="review-detail-sub">
-                  {selected.sent} · wants to share with: {shareWith}
+                  {selected.sent}
+                  {selected.shareWith && ` · wants to share with: ${selected.shareWith}`}
                 </p>
               </div>
               <span className={chipClass[selected.status]}>
                 {selected.status}
               </span>
             </header>
+
+            {selected.status === "Published" && (
+              <div className="review-showcase">
+                <span>
+                  <strong>Show on the sign-in page</strong>
+                  <small>
+                    Anyone can see it there, with {firstName}'s first name, class and school.
+                  </small>
+                </span>
+                <Toggle
+                  checked={Boolean(selected.showcase)}
+                  onChange={(on) => void toggleShowcase(selected.id, on)}
+                  label="Show on the sign-in page"
+                />
+                {showcaseError && (
+                  <p className="review-showcase-error" role="alert">
+                    {showcaseError}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="review-detail-body">
               <div className="review-preview">
@@ -329,9 +345,9 @@ export default function TeacherReviewPage() {
               </div>
 
               <aside className="review-side">
-                <h3 className="review-label">Mission brief</h3>
+                {selected.todos && <h3 className="review-label">Mission brief</h3>}
                 <ul className="review-todos">
-                  {missionTodos.map((todo) => (
+                  {selected.todos?.map((todo) => (
                     <li key={todo.label} className="review-todo">
                       <span
                         className={
@@ -350,9 +366,9 @@ export default function TeacherReviewPage() {
                   ))}
                 </ul>
 
-                <h3 className="review-label">Inside</h3>
+                {selected.inside && <h3 className="review-label">Inside</h3>}
                 <div className="review-tiles">
-                  {insideStats.map((stat) => (
+                  {selected.inside?.map((stat) => (
                     <div key={stat.label} className="review-tile">
                       <strong>{stat.value}</strong>
                       <span>{stat.label}</span>

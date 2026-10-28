@@ -1,0 +1,88 @@
+VECTORSPACE - LOCAL SETUP (NEON DATABASE)
+=========================================
+Frontend: http://localhost:5173
+Backend:  http://localhost:8000
+Database: Neon PostgreSQL
+
+Run commands in Windows Command Prompt (CMD). Nothing is deployed.
+
+ONE-TIME SETUP
+--------------
+
+1. CREATE NEON BRANCH
+   - Neon > Project > Branches
+   - Create branch "local" from "dev".
+   - Neon > Connect > select "local" > copy connection string.
+
+2. CONFIGURE BACKEND
+   Create: VectorSpace\apps\api\.env
+==============================================
+   DATABASE_URL=<PASTE_NEON_CONNECTION_STRING>
+   APP_ENV=local
+   AUTH_DEV_BYPASS=true
+   CORS_ORIGINS=http://localhost:5173
+==============================================
+3. CONFIGURE FRONTEND
+   Create: VectorSpace\.env.local
+=========================================
+   VITE_API_URL=http://localhost:8000
+=========================================
+4. INSTALL PYTHON DEPENDENCIES
+   Skip if apps\api\.venv already exists.
+
+   cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace\apps\api
+   python -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+5. UPDATE DATABASE TABLES
+   Run on first setup and after pulling code with new migrations.
+
+   cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace\apps\api
+   .\.venv\Scripts\python.exe -m alembic upgrade head
+
+***Not Necessary unless you are creating a new branch for testing purposes, scripts can be used to populate the tables***
+6. SEED DEMO DATA
+   .\.venv\Scripts\python.exe -m app.seed --apply
+
+   WARNING: Deletes and recreates ALL Demo School data,
+   including manually created projects and saves.
+
+   Test logins:
+   Admin:       dev|admin
+   Educator:    dev|teacher
+   Educator 2:  dev|teacher2
+   Students:    dev|student1 through dev|student5
+
+EVERY TIME YOU RUN THE APP
+--------------------------
+
+7. OPEN TWO COMMAND PROMPT TERMINALS
+
+   TERMINAL 1 - BACKEND
+   > cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace\apps\api
+   > .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+
+   TERMINAL 2 - FRONTEND
+   > cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace
+   > npm run dev
+
+   Open: http://localhost:5173
+
+8. QUICK CHECK
+   - http://localhost:8000/health  -> status: ok
+   - http://localhost:8000/docs    -> API routes
+   - Sign in as Educator -> name should be "Ms Tan Hui Min".
+   - Neon > Tables -> check seeded rows in "local" branch.
+
+TROUBLESHOOTING / NOTES
+-----------------------
+- Sign-in fails: check that the backend is running and use localhost:5173.
+- DB connection fails: check DATABASE_URL in apps\api\.env.
+- After pulling new code: rerun Step 5.
+- Wrong sign-in name: sign out and in again.
+- Windows blocks .exe tools: use .\.venv\Scripts\python.exe -m <tool>.
+- For offline frontend tests (npm test / npx playwright test),
+  temporarily rename or remove VectorSpace\.env.local.
+- Never put DATABASE_URL in the frontend .env.local file.
+
+NEXT TIME: Just do Step 7 (unless migrations or fresh seed are needed).

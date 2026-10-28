@@ -88,6 +88,8 @@ interface ViewportProps {
   gizmoMode?: GizmoMode
   scaleSpace?: 'world' | 'local'
   rotateSpace?: 'world' | 'local'
+  /** Drags land on the floor grid, in 15° turns and 0.25 size steps (editing/snapping.ts). */
+  snap?: boolean
   sceneId?: string
   environmentId?: string
   startCamera?: CameraPose
@@ -245,6 +247,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     gizmoMode = 'select',
     scaleSpace = 'world',
     rotateSpace = 'world',
+    snap = false,
     sceneId = '',
     environmentId = defaultEnvironmentId,
     startCamera = defaultCameraPose(),
@@ -279,8 +282,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -712,6 +715,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           gizmoMode: dataRef.current.gizmoMode,
           scaleSpace: dataRef.current.scaleSpace,
           rotateSpace: dataRef.current.rotateSpace,
+          snap: dataRef.current.snap,
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,

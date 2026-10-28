@@ -66,6 +66,19 @@ def test_student_cannot_file_work_under_a_class_they_are_not_in(client, school) 
     assert response.status_code == 403
 
 
+def test_teacher_moves_a_project_into_one_of_their_classes(client, school) -> None:
+    project = make(client, "t1")
+    response = client.patch(f"/projects/{project['id']}", json={"class_id": str(school["class1"].id)}, headers=as_user("t1"))
+    assert response.status_code == 200, response.text
+    assert response.json()["class_name"] == "1A"
+
+
+def test_teacher_cannot_move_a_project_into_a_class_they_are_not_in(client, school) -> None:
+    project = make(client, "t1")
+    response = client.patch(f"/projects/{project['id']}", json={"class_id": str(school["class2"].id)}, headers=as_user("t1"))
+    assert response.status_code == 403
+
+
 def test_students_cannot_create_templates(client, school) -> None:
     response = client.post("/projects", json={"name": "t", "kind": "template"}, headers=as_user("s1"))
     assert response.status_code == 403
@@ -124,6 +137,41 @@ def test_teacher_sends_a_template_to_a_student(client, school) -> None:
     assert (body["saved_by_name"], body["template_name"]) == (school["t1"].display_name, "Gallery walk")
     # it is now the student's own project, in their list
     assert [p["id"] for p in client.get("/projects?mine=true", headers=as_user("s1")).json()] == [body["id"]]
+
+
+def test_sending_marks_the_project_sent_and_files_the_copy_under_its_assignment(client, school) -> None:
+    project = make(client, "t1", "Lesson")
+    assert project["sent"] is False
+    copy = client.post(f"/projects/{project['id']}/assign", json={"student_id": str(school["s1"].id)}, headers=as_user("t1")).json()
+    again = client.post(f"/projects/{project['id']}/assign", json={"student_id": str(school["s2"].id)}, headers=as_user("t1")).json()
+    assert copy["assignment_id"] and copy["assignment_id"] == again["assignment_id"]  # one assignment per class
+    assert client.get(f"/projects/{project['id']}", headers=as_user("t1")).json()["sent"] is True
+
+
+def test_a_draft_nobody_was_sent_can_be_deleted_with_its_saves(client, school) -> None:
+    project = make(client, "t1", "Scratch")
+    client.post(f"/projects/{project['id']}/versions", json={"base_revision": 0, "data": {"schemaVersion": 1}}, headers=as_user("t1"))
+    assert client.delete(f"/projects/{project['id']}", headers=as_user("t1")).status_code == 204
+    assert client.get(f"/projects/{project['id']}", headers=as_user("t1")).status_code == 404
+
+
+def test_only_unsent_drafts_can_be_deleted(client, school) -> None:
+    published = make(client, "t1", "Shown")
+    client.patch(f"/projects/{published['id']}", json={"status": "published"}, headers=as_user("t1"))
+    assert client.delete(f"/projects/{published['id']}", headers=as_user("t1")).status_code == 409
+
+    sent = make(client, "t1", "Given out")
+    copy = client.post(f"/projects/{sent['id']}/assign", json={"student_id": str(school["s1"].id)}, headers=as_user("t1")).json()
+    assert client.delete(f"/projects/{sent['id']}", headers=as_user("t1")).status_code == 409
+    # the student's copy of assigned work is not theirs to delete either
+    assert client.delete(f"/projects/{copy['id']}", headers=as_user("s1")).status_code == 409
+
+
+def test_nobody_deletes_someone_elses_project(client, school) -> None:
+    project = make(client, "s1", "Mine", class_id=str(school["class1"].id))
+    assert client.delete(f"/projects/{project['id']}", headers=as_user("t1")).status_code == 403  # sees it through the class
+    assert client.delete(f"/projects/{project['id']}", headers=as_user("s2")).status_code == 404
+    assert client.delete(f"/projects/{project['id']}", headers=as_user("s1")).status_code == 204
 
 
 def test_send_is_refused_for_students_and_other_classes(client, school) -> None:

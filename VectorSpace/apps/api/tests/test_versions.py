@@ -1,5 +1,18 @@
-"""Saving and loading a project's scene: numbered revisions, with a refusal when two people collide."""
+"""Saving and loading a project's scene: numbered revisions, with a refusal when two people collide.
 
+Merging quick saves is off here, so every changed save is its own revision; test_save_history.py
+covers merging and trimming."""
+
+from datetime import timedelta
+
+import pytest
+
+from apps.api.app.routers import publish
+
+
+@pytest.fixture(autouse=True)
+def every_save_is_a_revision(monkeypatch) -> None:
+    monkeypatch.setattr(publish, "MERGE_WINDOW", timedelta(0))
 
 
 def as_user(key: str) -> dict[str, str]:

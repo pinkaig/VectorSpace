@@ -8,9 +8,12 @@
  *              own. Each project has a ⋯ menu: Duplicate, Archive (after it is
  *              due) and Delete (only when no student has started it, confirmed
  *              first). Shows a banner after a project is assigned on template
- *              setup. Shown inside TeacherLayout. The list starts empty until it
- *              is loaded from the API; the real projects are in the Developer
- *              section at the bottom for now.
+ *              setup. Shown inside TeacherLayout. With a server (VITE_API_URL),
+ *              the list is the teacher's own projects from the database, New
+ *              project creates one there for a real class, and Archive,
+ *              Duplicate and Delete are API calls. Delete is only for a draft
+ *              nobody was sent; anything published or sent is archived instead.
+ *              Offline, the list is this visit's only and the classes are made up.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -22,7 +25,6 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   Archive,
-  Box,
   Check,
   Copy,
   Info,
@@ -33,8 +35,32 @@ import {
   X,
 } from "lucide-react";
 import { useSession } from "../session/session";
+import { defaultEnvironmentId, environmentLibrary } from "../project/model";
+import { loadRemoteProject } from "../project/remoteProject";
+import { apiUrl } from "../api/client";
+import { listMyClasses } from "../api/classes";
+import {
+  createClassProject,
+  deleteProject,
+  listMyProjects,
+  saveProjectContent,
+  setProjectStatus,
+  type ClassSendResult,
+  type Project,
+} from "../api/projects";
+import { useLoad } from "../api/useLoad";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
 import "./TeacherHomePage.css";
+
+// Room 1 of a new project starts as Empty unless the teacher picks another room.
+const firstRoomDefault = defaultEnvironmentId;
+
+// Every room is on until the admin Rooms setting is stored per school (see api/adminFake.ts);
+// a room that is off is shown greyed out and can't be picked.
+const isTurnedOn = (_environmentId: string): boolean => true;
+
+// the same colours, in the same order, as the room chips on template setup (templateSetup.css)
+const ROOM_TONES = 6;
 
 type ProjectRow = {
   id: string;
@@ -48,11 +74,45 @@ type ProjectRow = {
   isPastDue: boolean; // only then can it be archived
   archived?: boolean;
   isNew?: boolean; // just duplicated: shown with a purple border
+  onServer?: boolean; // a row from the database: its menu calls the API
+  deleteHint?: string; // why Delete is off for a database row
 };
 
-// The list as the teacher left it. It lives outside the component, so leaving the page
-// (Results, template setup) and coming back keeps new, archived and deleted projects.
-// Empty until it is loaded from the API; a page refresh starts over.
+// The database's rule: only a draft nobody was sent can be deleted; anything else is archived.
+const deleteHintFor = (project: Project): string | undefined => {
+  if (project.sent) return "Sent to students, so archive it instead";
+  if (project.status !== "draft") return "Only drafts can be deleted: archive it instead";
+  return undefined;
+};
+
+// "today", "yesterday" or "3 days ago", from an ISO date string
+const daysAgo = (iso: string): string => {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+};
+
+// one of the teacher's projects from the database, as a row in All projects
+const rowFromServer = (project: Project): ProjectRow => ({
+  id: project.id,
+  className: project.class_name,
+  name: project.name,
+  details: project.saved_at
+    ? `Saved ${daysAgo(project.saved_at)} · revision ${project.current_revision}`
+    : "Not assigned yet",
+  action: "Set up project",
+  actionIsPrimary: !project.saved_at,
+  hasStudentWork: deleteHintFor(project) !== undefined,
+  isPastDue: true, // no due date is stored yet, so any project can be archived
+  archived: project.status === "archived",
+  onServer: true,
+  deleteHint: deleteHintFor(project),
+});
+
+// Offline mode only (no VITE_API_URL): the list as the teacher left it. It lives outside the
+// component, so leaving the page (Results, template setup) and coming back keeps new,
+// archived and deleted projects; a page refresh starts over.
 let savedProjects: ProjectRow[] = [];
 
 // what template setup's Assign sends back
@@ -61,13 +121,32 @@ type AssignedNote = {
   projectName: string;
   className: string;
   due?: string;
+  sent?: ClassSendResult; // how sending to the class's students went, for a server project
+  sendProblem?: string; // why sending to the class failed outright
+};
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+// the banner's sentence after "<project> is saved for <class>"
+const sentLine = (note: AssignedNote): string => {
+  if (note.sendProblem) return ` Couldn't send it to the students: ${note.sendProblem}`;
+  if (!note.sent) return "";
+  const { sent, alreadyHad, failed } = note.sent;
+  const parts = [];
+  if (sent > 0) parts.push(`sent to ${plural(sent, "student")}`);
+  if (alreadyHad > 0) parts.push(`${plural(alreadyHad, "student")} already had it`);
+  if (parts.length === 0 && failed === 0) parts.push("not sent to any students");
+  const line = ` ${parts.join(", ")}.`.replace(/^ \w/, (first) => first.toUpperCase());
+  return failed > 0 ? `${line} Couldn't send to ${plural(failed, "student")}: press Assign again to retry.` : line;
 };
 
 // the "assigned" banner, kept until the teacher clicks OK (even across tab switches)
 let savedBanner: AssignedNote | null = null;
 
-// Fake until the frontend loads the teacher's real classes (GET /classes).
-const classOptions = ["Class 2B", "Class 3A", "Class 3B"];
+type ClassOption = { id: string; name: string };
+
+// Offline mode only: with a server, the class picks are the teacher's real classes (GET /classes).
+const offlineClasses: ClassOption[] = ["Class 2B", "Class 3A", "Class 3B"].map((name) => ({ id: name, name }));
 
 // a week from today as "2026-11-02", the format a date box uses
 const inAWeek = (): string => {
@@ -91,6 +170,7 @@ type ProjectMenuProps = {
   archived?: boolean;
   canArchive: boolean; // only after it is due
   canDelete: boolean; // only when no student has started it
+  deleteHint?: string; // why Delete is off, when it is not because of student work
   onDuplicate: () => void;
   onArchive: () => void;
   onDelete: () => void;
@@ -106,6 +186,7 @@ function ProjectMenu({
   archived,
   canArchive,
   canDelete,
+  deleteHint,
   onDuplicate,
   onArchive,
   onDelete,
@@ -210,7 +291,7 @@ function ProjectMenu({
               <small>
                 {canDelete
                   ? "It has no student work yet"
-                  : "Has student work, so archive it instead"}
+                  : (deleteHint ?? "Has student work, so archive it instead")}
               </small>
             </span>
           </button>
@@ -221,7 +302,7 @@ function ProjectMenu({
 }
 
 export default function TeacherHomePage() {
-  const { displayName } = useSession();
+  const { displayName, getToken } = useSession();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -229,7 +310,24 @@ export default function TeacherHomePage() {
   const assigned = (location.state as { assigned?: AssignedNote } | null)
     ?.assigned;
 
-  const [projects, setProjects] = useState<ProjectRow[]>(() => savedProjects);
+  // With a server, the projects and the class picks come from the database; offline, the
+  // projects are this visit's list and the classes are made up.
+  const server = useLoad(
+    () => (apiUrl ? listMyProjects(getToken) : Promise.resolve([])),
+    "teacher-projects",
+  );
+  const serverClasses = useLoad(
+    () => (apiUrl ? listMyClasses(getToken) : Promise.resolve(offlineClasses)),
+    "teacher-classes",
+  );
+  const classOptions: ClassOption[] = serverClasses.data ?? [];
+
+  const [localProjects, setProjects] = useState<ProjectRow[]>(() => savedProjects);
+  const projects = apiUrl
+    ? (server.data ?? []).map(rowFromServer)
+    : localProjects;
+  // a menu action that the server refused, shown above the list
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // shows the banner from this visit, or the one still waiting for OK
   const [banner, setBanner] = useState<AssignedNote | null>(
@@ -238,8 +336,8 @@ export default function TeacherHomePage() {
 
   // keep the saved copy up to date after every change
   useEffect(() => {
-    savedProjects = projects;
-  }, [projects]);
+    savedProjects = localProjects;
+  }, [localProjects]);
 
   // a project just assigned on template setup shows the banner
   useEffect(() => {
@@ -254,9 +352,18 @@ export default function TeacherHomePage() {
 
   // the New project popup
   const [newOpen, setNewOpen] = useState(false);
+  // the environment Room 1 starts as; null = students pick it themselves
+  const [newRoom, setNewRoom] = useState<string | null>(firstRoomDefault);
   const [newName, setNewName] = useState("");
-  const [newClass, setNewClass] = useState(classOptions[0]);
+  // shown after Create and set up is pressed with no name, until one is typed
+  const [nameMissing, setNameMissing] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  // the picked class's id (offline, its name); null until the classes have loaded
+  const [newClass, setNewClass] = useState<string | null>(null);
   const [newDue, setNewDue] = useState(inAWeek);
+  // Create and set up waits for the server; a refusal is shown in the popup
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // OK hides the banner for good, and clears it from this visit so Back doesn't bring it back
   const dismissAssigned = () => {
@@ -301,8 +408,31 @@ export default function TeacherHomePage() {
   const toggleMenu = (id: string) =>
     setOpenMenuId((current) => (current === id ? null : id));
 
-  // a new "Copy of …" at the top of the list, marked as new
-  const duplicate = (name: string) => {
+  // runs one menu action against the server, then asks for the list again
+  const onServer = async (action: () => Promise<unknown>) => {
+    setOpenMenuId(null);
+    setActionError(null);
+    try {
+      await action();
+    } catch (problem) {
+      setActionError((problem as Error).message);
+    }
+    server.reload();
+  };
+
+  // a new "Copy of …" at the top of the list, marked as new. On the server it is a new
+  // project with no class, holding the same rooms and brief as the latest save.
+  const duplicate = (project: ProjectRow) => {
+    if (project.onServer) {
+      void onServer(async () => {
+        const source = await loadRemoteProject(getToken, project.id);
+        const copy = await createClassProject(getToken, `Copy of ${project.name}`, null);
+        if (source.revision > 0)
+          await saveProjectContent(getToken, copy.id, 0, { ...source.project, id: copy.id, name: copy.name });
+      });
+      return;
+    }
+    const name = project.name;
     setProjects((current) => [
       {
         id: crypto.randomUUID(),
@@ -320,7 +450,12 @@ export default function TeacherHomePage() {
     setOpenMenuId(null);
   };
 
-  const toggleArchived = (id: string) => {
+  const toggleArchived = (project: ProjectRow) => {
+    if (project.onServer) {
+      void onServer(() => setProjectStatus(getToken, project.id, project.archived ? "draft" : "archived"));
+      return;
+    }
+    const id = project.id;
     setProjects((current) =>
       current.map((p) => (p.id === id ? { ...p, archived: !p.archived } : p)),
     );
@@ -334,26 +469,64 @@ export default function TeacherHomePage() {
 
   const deleteConfirmed = () => {
     if (!confirmDelete) return;
-    setProjects((current) => current.filter((p) => p.id !== confirmDelete.id));
+    const project = confirmDelete;
     setConfirmDelete(null);
+    if (project.onServer) {
+      void onServer(() => deleteProject(getToken, project.id));
+      return;
+    }
+    setProjects((current) => current.filter((p) => p.id !== project.id));
   };
 
   // opens the popup with empty fields each time
   const openNewProject = () => {
+    setNewRoom(firstRoomDefault);
     setNewName("");
-    setNewClass(classOptions[0]);
+    setNameMissing(false);
+    setNewClass(classOptions[0]?.id ?? null);
     setNewDue(inAWeek());
+    setCreateError(null);
     setNewOpen(true);
   };
 
-  // goes to template setup with what was picked; an empty name becomes "New museum"
-  const createAndSetUp = () => {
+  // the classes can arrive after the popup opened: pick the first then
+  useEffect(() => {
+    if (newOpen && newClass === null && classOptions.length > 0) setNewClass(classOptions[0].id);
+  }, [newOpen, newClass, classOptions]);
+
+  // With a server, makes the project in the database first (named "x (2)" if the teacher
+  // already has an x), then goes to template setup with it; offline, just goes there.
+  // With no name it stays and asks for one.
+  const createAndSetUp = async () => {
+    const name = newName.trim();
+    if (!name) {
+      setNameMissing(true);
+      nameRef.current?.focus();
+      return;
+    }
+    const picked = classOptions.find((option) => option.id === newClass) ?? null;
+    let created: Project | null = null;
+    if (apiUrl) {
+      setCreating(true);
+      setCreateError(null);
+      try {
+        created = await createClassProject(getToken, name, picked?.id ?? null);
+      } catch (problem) {
+        setCreateError((problem as Error).message);
+        return;
+      } finally {
+        setCreating(false);
+      }
+    }
     navigate("/teacher/template", {
       state: {
         newProject: {
-          name: newName.trim() || "New museum",
-          className: newClass,
+          projectId: created?.id,
+          classId: created ? picked?.id ?? null : null,
+          name: created?.name ?? name,
+          className: picked?.name ?? "no class",
           due: newDue,
+          firstRoom: newRoom,
         },
       },
     });
@@ -372,8 +545,8 @@ export default function TeacherHomePage() {
         <div className="teacher-home-banner" role="status">
           <Check size={18} />
           <span>
-            <strong>{banner.projectName}</strong> is assigned to{" "}
-            {banner.className}. Students will see it the next time they sign in.
+            <strong>{banner.projectName}</strong> is saved for{" "}
+            {banner.className}.{sentLine(banner)}
           </span>
           <button
             type="button"
@@ -421,10 +594,21 @@ export default function TeacherHomePage() {
         </div>
 
         <div className="teacher-home-all-list">
-          {visibleProjects.length === 0 && (
-            <p className="teacher-home-lead">
-              No projects yet.
+          {actionError && (
+            <p className="teacher-home-field-error" role="alert">
+              That didn't work: {actionError}
             </p>
+          )}
+          {server.error ? (
+            <p className="teacher-home-field-error" role="alert">
+              Could not load your projects: {server.error}
+            </p>
+          ) : server.loading ? (
+            <p className="teacher-home-lead">Loading your projects…</p>
+          ) : (
+            visibleProjects.length === 0 && (
+              <p className="teacher-home-lead">No projects yet.</p>
+            )
           )}
           {visibleProjects.map((project) => (
             <div
@@ -462,7 +646,7 @@ export default function TeacherHomePage() {
                 <button
                   type="button"
                   className="teacher-home-small teacher-home-small-restore"
-                  onClick={() => toggleArchived(project.id)}
+                  onClick={() => toggleArchived(project)}
                 >
                   Restore
                 </button>
@@ -481,7 +665,9 @@ export default function TeacherHomePage() {
                       project.action === "Set up and assign" ||
                       project.action === "Set up project"
                     )
-                      navigate("/teacher/template");
+                      navigate("/teacher/template", {
+                        state: project.onServer ? { projectId: project.id } : null,
+                      });
                   }}
                 >
                   {project.action}
@@ -495,8 +681,9 @@ export default function TeacherHomePage() {
                 archived={project.archived}
                 canArchive={project.isPastDue}
                 canDelete={!project.hasStudentWork}
-                onDuplicate={() => duplicate(project.name)}
-                onArchive={() => toggleArchived(project.id)}
+                deleteHint={project.deleteHint}
+                onDuplicate={() => duplicate(project)}
+                onArchive={() => toggleArchived(project)}
                 onDelete={() => askToDelete(project)}
               />
             </div>
@@ -568,8 +755,8 @@ export default function TeacherHomePage() {
                   New project
                 </h2>
                 <p className="teacher-home-dialog-text">
-                  Name it and pick the class. You'll write the brief and rules
-                  next.
+                  Pick the first room, name it and pick the class. You'll write
+                  the brief and rules next.
                 </p>
               </div>
               <button
@@ -582,14 +769,57 @@ export default function TeacherHomePage() {
               </button>
             </div>
 
-            <div className="teacher-home-template">
-              <span className="teacher-home-template-icon">
-                <Box size={18} />
-              </span>
-              <span className="teacher-home-template-text">
-                <strong>Museum template</strong>
-                <small>Two rooms ready for exhibits</small>
-              </span>
+            <div className="teacher-home-rooms-head">
+              <span className="teacher-home-field-label">Room 1 starts as</span>
+              <small>From the rooms VThere turned on for your school</small>
+            </div>
+            <div
+              className="teacher-home-rooms"
+              role="radiogroup"
+              aria-label="Room 1 starts as"
+            >
+              {environmentLibrary.map((env, index) => {
+                const on = isTurnedOn(env.id);
+                const selected = newRoom === env.id;
+                return (
+                  <button
+                    key={env.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={!on}
+                    className={[
+                      "teacher-home-room",
+                      selected ? "teacher-home-room-selected" : "",
+                      on ? "" : "teacher-home-room-off",
+                    ].join(" ")}
+                    onClick={() => setNewRoom(env.id)}
+                  >
+                    <span
+                      className={`teacher-home-room-picture teacher-home-room-tone-${index % ROOM_TONES}`}
+                    />
+                    <strong>{env.name}</strong>
+                    <small>
+                      {selected ? "Selected" : on ? "Turned on" : "Not turned on"}
+                    </small>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={newRoom === null}
+                className={[
+                  "teacher-home-room",
+                  "teacher-home-room-students",
+                  newRoom === null ? "teacher-home-room-selected" : "",
+                ].join(" ")}
+                onClick={() => setNewRoom(null)}
+              >
+                <span className="teacher-home-room-picture" />
+                <strong>Students pick</strong>
+                <small>{newRoom === null ? "Selected" : "From your list"}</small>
+              </button>
             </div>
 
             <label
@@ -599,13 +829,28 @@ export default function TeacherHomePage() {
               Project name
             </label>
             <input
+              ref={nameRef}
               id="new-project-name"
-              className="teacher-home-input"
+              className={
+                nameMissing
+                  ? "teacher-home-input teacher-home-input-invalid"
+                  : "teacher-home-input"
+              }
               value={newName}
-              onChange={(event) => setNewName(event.target.value)}
+              onChange={(event) => {
+                setNewName(event.target.value);
+                if (event.target.value.trim()) setNameMissing(false);
+              }}
               placeholder="e.g. Volcano museum"
+              aria-invalid={nameMissing}
+              aria-describedby={nameMissing ? "new-project-name-error" : undefined}
               autoFocus
             />
+            {nameMissing && (
+              <p id="new-project-name-error" className="teacher-home-field-error" role="alert">
+                Give your project a name.
+              </p>
+            )}
 
             <div className="teacher-home-new-row">
               <div>
@@ -615,20 +860,33 @@ export default function TeacherHomePage() {
                   role="radiogroup"
                   aria-label="Class"
                 >
-                  {classOptions.map((name) => (
+                  {serverClasses.loading && (
+                    <span className="teacher-home-picks-note">Loading your classes…</span>
+                  )}
+                  {serverClasses.error && (
+                    <span className="teacher-home-picks-note">
+                      Could not load your classes, so it will have no class.
+                    </span>
+                  )}
+                  {serverClasses.data?.length === 0 && (
+                    <span className="teacher-home-picks-note">
+                      You're not in any class yet, so it will have no class.
+                    </span>
+                  )}
+                  {classOptions.map((option) => (
                     <button
-                      key={name}
+                      key={option.id}
                       type="button"
                       role="radio"
-                      aria-checked={newClass === name}
+                      aria-checked={newClass === option.id}
                       className={
-                        newClass === name
+                        newClass === option.id
                           ? "teacher-home-pick teacher-home-pick-selected"
                           : "teacher-home-pick"
                       }
-                      onClick={() => setNewClass(name)}
+                      onClick={() => setNewClass(option.id)}
                     >
-                      {name}
+                      {option.name}
                     </button>
                   ))}
                 </div>
@@ -668,10 +926,16 @@ export default function TeacherHomePage() {
                 type="button"
                 className="teacher-home-primary"
                 onClick={createAndSetUp}
+                disabled={creating}
               >
-                Create and set up
+                {creating ? "Creating…" : "Create and set up"}
               </button>
             </div>
+            {createError && (
+              <p className="teacher-home-field-error" role="alert">
+                Couldn't create the project: {createError}
+              </p>
+            )}
           </div>
         </div>
       )}

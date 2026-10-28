@@ -29,8 +29,9 @@ import "./TeacherPreviewPage.css";
 // the editor is large, so it is only downloaded when a preview shows it (as /editor does)
 const EditorApplication = lazy(() => import("../../apps/editor/src/EditorApplication"));
 
-// what the template setup page sends here, and gets back from Exit preview
-export type PreviewState = { brief?: MissionBrief } | null;
+// what the template setup page sends here, and gets back from Exit preview; projectId is the
+// server project being set up, so setup opens the same one again
+export type PreviewState = { brief?: MissionBrief; projectId?: string } | null;
 
 // WHICH PAGE THE PREVIEW SHOWS. Change this one word to switch:
 //   "editor"       the editor, as a student building the project sees it
@@ -40,7 +41,8 @@ const PREVIEW_SHOWS: PreviewTarget = "editor";
 
 export default function TeacherPreviewPage() {
   const navigate = useNavigate();
-  const brief = (useLocation().state as PreviewState)?.brief;
+  const handed = useLocation().state as PreviewState;
+  const brief = handed?.brief;
 
   // the project the editor opens: this browser's draft with the brief being set up on it.
   // In memory only; the editor's preview mode never writes it back.
@@ -61,7 +63,7 @@ export default function TeacherPreviewPage() {
 
   // back to template setup, handing the brief back
   const exitPreview = () => {
-    const state: PreviewState = { brief };
+    const state: PreviewState = { brief, projectId: handed?.projectId };
     navigate("/teacher/template", { state });
   };
 

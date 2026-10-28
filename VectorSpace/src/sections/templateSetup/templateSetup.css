@@ -607,3 +607,192 @@
   outline: 2px solid var(--purple-500);
   outline-offset: 2px;
 }
+
+/*Assign popup*/
+.setup-assign-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: var(--overlay);
+}
+
+.setup-assign-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 24px);
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  overflow-y: auto;
+}
+
+.setup-assign-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.setup-assign-title {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.setup-assign-text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.setup-assign-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.setup-assign-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.setup-assign-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setup-assign-pick {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.setup-assign-pick:hover { background: var(--purple-50); }
+
+/* selected = purple-100 fill + 2px purple-500 border, 1px less padding so it doesn't jump */
+.setup-assign-pick-on,
+.setup-assign-pick-on:hover {
+  border: 2px solid var(--purple-500);
+  padding: 0 13px;
+  background: var(--purple-100);
+  color: var(--purple-700);
+}
+
+.setup-assign-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.setup-assign-modes label,
+.setup-assign-students label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.setup-assign-students {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px 16px;
+  max-height: 240px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  list-style: none;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+.setup-assign-student-done {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.setup-assign-students small {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.setup-assign-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.setup-assign-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-700);
+}
+
+.setup-assign-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.setup-assign-primary,
+.setup-assign-secondary {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.setup-assign-primary {
+  border: none;
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.setup-assign-primary:hover:not(:disabled) { background: var(--purple-600); }
+
+.setup-assign-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.setup-assign-primary:disabled,
+.setup-assign-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -526,7 +526,7 @@
 
 /* ── New project popup ────────────────────────────────────────────────── */
 .teacher-home-dialog-wide {
-  width: min(640px, 100%);
+  width: min(700px, 100%);
 }
 
 .teacher-home-dialog-head {
@@ -537,42 +537,118 @@
   margin-bottom: 16px;
 }
 
-/* the template it starts from */
-.teacher-home-template {
+/* Room 1 starts as: one tile per room, then Students pick; scrolls sideways when there are many */
+.teacher-home-rooms-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 20px;
-  padding: 12px 14px;
-  border-radius: var(--radius-box);
-  background: var(--bg-app);
 }
 
-.teacher-home-template-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-btn-sm);
-  background: var(--surface);
-  color: var(--purple-600);
-}
-
-.teacher-home-template-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.teacher-home-template-text strong {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.teacher-home-template-text small {
+.teacher-home-rooms-head small {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+.teacher-home-rooms {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 120px;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 4px; /* room for the scrollbar under the tiles */
+  overflow-x: auto;
+}
+
+.teacher-home-room {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.teacher-home-room:hover { background: var(--purple-50); }
+
+.teacher-home-room strong {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.teacher-home-room small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* same as the class picks: purple-100 fill + 2px purple-500 border */
+.teacher-home-room-selected,
+.teacher-home-room-selected:hover {
+  border: 2px solid var(--purple-500);
+  padding: 7px 7px 9px; /* 1px less, so the thicker border doesn't make it jump */
+  background: var(--purple-100);
+}
+
+.teacher-home-room-selected small {
+  color: var(--purple-700);
+  font-weight: 600;
+}
+
+/* a room the school has not turned on: dashed and faded, can't be picked */
+.teacher-home-room-off,
+.teacher-home-room-students {
+  border-style: dashed;
+  border-color: var(--purple-300);
+}
+
+.teacher-home-room-off {
+  background: var(--purple-50);
+  cursor: not-allowed;
+}
+
+.teacher-home-room-off strong { color: var(--text-muted); }
+
+/* the picture: a coloured box with a little floor tile in the middle */
+.teacher-home-room-picture {
+  position: relative;
+  align-self: stretch;
+  height: 58px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-100);
+}
+
+.teacher-home-room-picture::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 26px;
+  height: 26px;
+  background: rgb(255 255 255 / 0.6);
+  transform: translate(-50%, -50%) scaleY(0.55) rotate(45deg);
+}
+
+.teacher-home-room-off .teacher-home-room-picture { background: #E3E3E6; }
+
+.teacher-home-room-students .teacher-home-room-picture {
+  background: repeating-linear-gradient(135deg, var(--purple-100) 0 8px, #F6F3FD 8px 16px);
+}
+
+/* the same colours as templateSetup.css's "Room colours", in the same order */
+.teacher-home-room-tone-0 { background: #B7D5F4; }
+.teacher-home-room-tone-1 { background: #C4E2A0; }
+.teacher-home-room-tone-2 { background: #F6CFAE; }
+.teacher-home-room-tone-3 { background: #D6CCF5; }
+.teacher-home-room-tone-4 { background: #F3C1CF; }
+.teacher-home-room-tone-5 { background: #B5E6EC; }
 
 .teacher-home-field-label {
   display: block;
@@ -604,6 +680,20 @@
   border-color: transparent;
 }
 
+/* a required field left empty: red border, red outline while typing in it */
+.teacher-home-input-invalid,
+.teacher-home-input-invalid:focus {
+  border-color: var(--red-500);
+  outline-color: var(--red-500);
+}
+
+.teacher-home-field-error {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-700);
+}
+
 /* class on the left, due date on the right */
 .teacher-home-new-row {
   display: grid;
@@ -614,7 +704,15 @@
 
 .teacher-home-class-picks {
   display: flex;
+  flex-wrap: wrap; /* a teacher with many classes gets a second row */
   gap: 8px;
+}
+
+/* loading, or no classes to pick from */
+.teacher-home-picks-note {
+  align-self: center;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .teacher-home-pick {
