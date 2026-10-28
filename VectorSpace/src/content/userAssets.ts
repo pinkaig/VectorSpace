@@ -98,6 +98,7 @@ const registerRecord = (record: StoredUserModel): AssetDefinition => {
     label: record.name,
     detail: `${record.entryFileName.toLowerCase().endsWith('.gltf') ? 'Imported glTF' : 'Imported GLB'}${record.optimisation ? ' · optimised' : ''}`,
     category: 'model',
+    categories: ['exhibits'], // a model the user brings in is taken to be one of their exhibits
     searchableText: `${record.name} imported model glb gltf user`.toLowerCase(),
     modelUrl: entryUrl,
   }

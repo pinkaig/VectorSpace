@@ -835,6 +835,19 @@ button:disabled {
   border-color: var(--text-2);
 }
 
+/* "Zones and markers": a mild yellow chip, so it reads as a different kind of thing */
+.chip.tone-zone {
+  background: var(--amber-50);
+  border-color: var(--amber-200);
+  color: var(--amber-900);
+}
+
+.chip.tone-zone.is-selected {
+  background: var(--amber-200);
+  border-color: var(--amber-500);
+  color: var(--amber-900);
+}
+
 
 
 

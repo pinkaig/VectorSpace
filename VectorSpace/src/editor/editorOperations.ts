@@ -132,7 +132,7 @@ export const setEditorObjectEnabled = (project: ProjectData, sceneId: string, ob
 export const updateEditorScene = (
   project: ProjectData,
   sceneId: string,
-  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout'>>,
+  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout' | 'surfaces'>>,
 ): ObjectOperationResult => updateScene(project, { sceneId }, changes)
 
 export const selectEditorScene = (project: ProjectData, sceneId: string): ObjectOperationResult =>

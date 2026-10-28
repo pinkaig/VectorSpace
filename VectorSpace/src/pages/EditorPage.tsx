@@ -17,9 +17,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
-import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type RoomCell } from '../project/model'
+import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type RoomCell, type RoomSurfaces } from '../project/model'
+import { DEFAULT_ROOM_SURFACES, ROOM_STYLE_OPTIONS, type RoomStyle } from '../content/roomSurfaces'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
-import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
+import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
 import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../content/audioAssets'
 import { isUserAudioAsset } from '../content/userAudio'
@@ -88,13 +89,7 @@ export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
 
 
 /** Catalogue assistance code */
-export type CatalogueIDTypes = 'exhibits' | 'signs' | 'misc'
-
-export const catalogueCategories: { id: CatalogueIDTypes; label: string; singular: string }[] = [
-    { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
-    { id: 'signs', label: 'Signs', singular: 'Sign' },
-    { id: 'misc', label: 'Misc', singular: 'Misc' },
-]
+// The category tabs, and which asset is in which, live in content/assets.ts.
 
 // Catalogue card icon per asset kind; the tile colour cycles so neighbouring cards differ.
 const catalogueIcons: Record<AssetKind, LucideIcon> = { model: Box, cube: Box, sphere: Circle, cylinder: Cylinder }
@@ -214,7 +209,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     setEnvironment, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
-    addSelectedClickRule, removeRuleById, addScene, removeScene, moveSceneInOrder, renameScene,
+    addSelectedClickRule, removeRuleById, addScene, removeScene, moveSceneInOrder, renameScene, setSceneSurfaces,
   } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -222,7 +217,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   })
 
   const { currentStep, TUTStep, viewStep } = useSimpleSteps()
-  const [category,setCategory]=useState<CatalogueIDTypes>('exhibits')
+  const [category,setCategory]=useState<CatalogueCategoryId>('exhibits')
+  // the cards under the picked tab, then narrowed by the search box
+  const shownAssets = filterAssets(assetQuery, assetsInCategory(category, visibleAssets))
 
   // The top bar's save badge: "Saved" unless a save is in flight or something went wrong.
   const saveProblem = savedAt === 'Save failed' || syncStatus === 'conflict'
@@ -245,6 +242,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           onDeleteRoom={removeScene}
           onMoveRoom={moveSceneInOrder}
           onRenameRoom={renameScene}
+          onSetSurfaces={setSceneSurfaces}
         />
         <span className="topbar-divider" />
         {/* Tutorial steps: the one being viewed shows its label, the rest only their number
@@ -322,6 +320,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               rotateSpace={rotateSpace}
               sceneId={scene.id}
               environmentId={scene.environmentId}
+              surfaces={scene.surfaces}
               startCamera={scene.startCamera}
               cameraMode={cameraMode}
               resetToken={resetToken}
@@ -483,6 +482,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                /* wait for asset panel assistance on moving over? const selected = item.id=== category*/
                   const selected = item.id ===category
                   const classes =['chip']
+                  if(item.tone) classes.push(`tone-${item.tone}`)
                   if(selected) classes.push('is-selected')
                   return (
                     <button
@@ -499,7 +499,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               {/**add no items found part here */}
               <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
                 <div className="catalogue-list">
-                  {filterAssets(assetQuery, visibleAssets).map((asset, index) => {
+                  {shownAssets.map((asset, index) => {
                     const Icon = catalogueIcons[asset.kind] ?? Box
                     return (
                     <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
@@ -521,7 +521,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     </button>
                     )
                   })}
-                  {filterAssets(assetQuery, visibleAssets).length === 0 && <div className="asset-empty">No approved assets match this search.</div>}
+                  {shownAssets.length === 0 && <div className="asset-empty">{assetQuery.trim() ? 'No approved assets match this search.' : 'Nothing here yet.'}</div>}
                 </div>
             </div>
         </div>
@@ -556,8 +556,9 @@ const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | nu
  * HOW A ROOM REMEMBERS ITS SIDE: each scene stores its cell on the rooms map
  * (SceneData.layout; see editor/roomLayout.ts), so rooms can spread out in any direction and
  * the map follows the room you are in.
- * FOR NOW: music, volume and material are ON SCREEN ONLY (they highlight per room, but nothing
- * is saved or played). The room's environment is picked in the bottom-left "Room" box.
+ * FOR NOW: music and volume are ON SCREEN ONLY (they highlight per room, but nothing is saved
+ * or played). The wall/floor style IS saved on the room (SceneData.surfaces) and shown in the
+ * viewport; see content/roomSurfaces.ts. The room's environment is picked in the bottom-left "Room" box.
  */
 interface RoomPopupProps {
   project: ProjectData
@@ -569,6 +570,8 @@ interface RoomPopupProps {
   // move a room earlier (-1) or later (+1) in the visit order
   onMoveRoom: (sceneId: string, step: -1 | 1) => void
   onRenameRoom: (sceneId: string, name: string) => void
+  // change a room's wall and/or floor style
+  onSetSurfaces: (sceneId: string, change: Partial<RoomSurfaces>) => void
 }
 
 // Fits the room box; the project file itself allows up to 200 characters.
@@ -583,15 +586,10 @@ const placeOf = (cell: RoomCell) => ({ gridRow: cell.z + 2, gridColumn: cell.x +
 
 const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano'] as const
 const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud'] as const
-// MATERIAL: placeholder style names. Picking one is on screen only and does not change the models.
-const STYLE_OPTIONS = ['Style 1', 'Style 2', 'Style 3', 'Style 4'] as const
-type RoomStyle = (typeof STYLE_OPTIONS)[number]
-type RoomMaterial = { walls: RoomStyle; floor: RoomStyle }
-const DEFAULT_ROOM_MATERIAL: RoomMaterial = { walls: 'Style 1', floor: 'Style 1' }
 type RoomSound = { music: (typeof MUSIC_OPTIONS)[number]; volume: (typeof VOLUME_OPTIONS)[number] }
 const DEFAULT_ROOM_SOUND: RoomSound = { music: 'Museum hum', volume: 'Quiet' }
 
-function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom }: RoomPopupProps) {
+function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom, onSetSurfaces }: RoomPopupProps) {
   const [isOpen, setIsOpen] = useState(false)
   // The current room's name while it is being edited; null when not renaming.
   const [nameDraft, setNameDraft] = useState<string | null>(null)
@@ -601,8 +599,6 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
   const [justAdded, setJustAdded] = useState<{ cell: RoomCell; words: string } | null>(null)
   // ON SCREEN ONLY: music and volume per room, by room id
   const [sounds, setSounds] = useState<Record<string, RoomSound>>({})
-  // ON SCREEN ONLY: the wall and floor style per room, by room id
-  const [materials, setMaterials] = useState<Record<string, RoomMaterial>>({})
   const anchorRef = useRef<HTMLDivElement>(null)
   // the cube goes home: /teacher for a teacher, /student for a student (the same rule as sign-in)
   const { role, admin } = useSession()
@@ -646,8 +642,9 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
 
   const sound = sounds[current.id] ?? DEFAULT_ROOM_SOUND
   const setSound = (change: Partial<RoomSound>) => setSounds((all) => ({ ...all, [current.id]: { ...sound, ...change } }))
-  const material = materials[current.id] ?? DEFAULT_ROOM_MATERIAL
-  const setMaterial = (change: Partial<RoomMaterial>) => setMaterials((all) => ({ ...all, [current.id]: { ...material, ...change } }))
+  // saved on the room itself; a style name the buttons do not know shows as the default
+  const surfaces = current.surfaces ?? DEFAULT_ROOM_SURFACES
+  const styleOf = (value: string): RoomStyle => (ROOM_STYLE_OPTIONS as readonly string[]).includes(value) ? value as RoomStyle : 'Style 1'
 
   const addRoom = (cell: RoomCell, words: string) => {
     onAddRoom(cell)
@@ -780,14 +777,14 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
             <RoomChoiceRow label="Music" options={MUSIC_OPTIONS} value={sound.music} onPick={(music) => setSound({ music })} />
             <RoomChoiceRow label="Volume" options={VOLUME_OPTIONS} value={sound.volume} onPick={(volume) => setSound({ volume })} />
           </div>
-          <div className="rooms-material">{/* MATERIAL for the room being edited (on screen only: the styles do not change the models) */}
+          <div className="rooms-material">{/* MATERIAL for the room being edited: saved on the room, and the viewport swaps the textures straight away */}
             <div className="rooms-material-head">
               <Palette size={18} />
               <h3>Material · {current.name}</h3>
             </div>
             <p className="rooms-sub">How the walls and floor of this room look.</p>
-            <RoomChoiceRow label="Walls" options={STYLE_OPTIONS} value={material.walls} onPick={(walls) => setMaterial({ walls })} />
-            <RoomChoiceRow label="Floor" options={STYLE_OPTIONS} value={material.floor} onPick={(floor) => setMaterial({ floor })} />
+            <RoomChoiceRow label="Walls" options={ROOM_STYLE_OPTIONS} value={styleOf(surfaces.walls)} onPick={(walls) => onSetSurfaces(current.id, { walls })} />
+            <RoomChoiceRow label="Floor" options={ROOM_STYLE_OPTIONS} value={styleOf(surfaces.floor)} onPick={(floor) => onSetSurfaces(current.id, { floor })} />
           </div>
           <p className="room-popup-note">Click a room above, or its door label in the room, to go there. In Play, visitors walk through the door.</p>
         </div>

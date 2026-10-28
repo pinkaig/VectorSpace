@@ -215,6 +215,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
         onMove={() => undefined}
         sceneId={scene.id}
         environmentId={scene.environmentId}
+        surfaces={scene.surfaces}
         startCamera={scene.startCamera}
         cameraMode="walk"
         interactive={false}
