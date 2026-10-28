@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
-import { ProjectData, SceneObject, environmentLibrary, type AssetKind } from '../project/model'
+import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type RoomCell } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
@@ -27,7 +27,7 @@ import { selectEditorScene } from '../editor/editorOperations'
 import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
 import { findCard, saveObjectCard, removeObjectCard, type CardInput } from '../editor/cardEditorOperations'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
-import { cellBeside, roomAt, roomCell, ROOM_SIDES, type RoomSide } from '../editor/roomLayout'
+import { cellBeside, roomAt, ROOM_SIDES } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
@@ -563,8 +563,8 @@ interface RoomPopupProps {
   project: ProjectData
   // go to (start editing) another room
   onSelectScene: (sceneId: string) => void
-  // add a room on this side of the room being edited, staying in the current one
-  onAddRoom: (side: RoomSide) => void
+  // add a room in this empty cell of the map, staying in the current one
+  onAddRoom: (cell: RoomCell) => void
   onDeleteRoom: (sceneId: string) => void
   // move a room earlier (-1) or later (+1) in the visit order
   onMoveRoom: (sceneId: string, step: -1 | 1) => void
@@ -574,14 +574,12 @@ interface RoomPopupProps {
 // Fits the room box; the project file itself allows up to 200 characters.
 const ROOM_NAME_MAX = 40
 
-// Where each side of the room being edited sits in the 3x3 map, and how the note describes it.
-const SIDE_PLACE: Record<RoomSide, { gridRow: number; gridColumn: number; words: string }> = {
-  north: { gridRow: 1, gridColumn: 2, words: 'above' },
-  west: { gridRow: 2, gridColumn: 1, words: 'left of' },
-  east: { gridRow: 2, gridColumn: 3, words: 'right of' },
-  south: { gridRow: 3, gridColumn: 2, words: 'below' },
-}
-const CENTRE_PLACE = { gridRow: 2, gridColumn: 2 }
+// The map is fixed: the five allowed cells, the origin in the middle of a 3x3 grid and one cell on each side.
+const MAP_CELLS: { cell: RoomCell; words: string }[] = [
+  { cell: { x: 0, z: 0 }, words: 'in the middle' },
+  ...ROOM_SIDES.map((side) => ({ cell: cellBeside({ x: 0, z: 0 }, side), words: { north: 'at the top', east: 'on the right', south: 'at the bottom', west: 'on the left' }[side] })),
+]
+const placeOf = (cell: RoomCell) => ({ gridRow: cell.z + 2, gridColumn: cell.x + 2 })
 
 const MUSIC_OPTIONS = ['None', 'Museum hum', 'Soft piano'] as const
 const VOLUME_OPTIONS = ['Quiet', 'Normal', 'Loud'] as const
@@ -599,8 +597,8 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
   const [nameDraft, setNameDraft] = useState<string | null>(null)
   // the room waiting on its "Delete?" check, or null
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  // the side a room was just added on (and the room it was added beside), for the note under the map
-  const [justAdded, setJustAdded] = useState<{ fromId: string; side: RoomSide } | null>(null)
+  // the map cell a room was just added in, for the note under the map
+  const [justAdded, setJustAdded] = useState<{ cell: RoomCell; words: string } | null>(null)
   // ON SCREEN ONLY: music and volume per room, by room id
   const [sounds, setSounds] = useState<Record<string, RoomSound>>({})
   // ON SCREEN ONLY: the wall and floor style per room, by room id
@@ -646,18 +644,14 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
     setNameDraft(null)
   }
 
-  // the room on one side of the room being edited, if there is one
-  const here = roomCell(project, current)
-  const neighbourOn = (side: RoomSide) => (here ? roomAt(project, cellBeside(here, side)) : undefined)
-
   const sound = sounds[current.id] ?? DEFAULT_ROOM_SOUND
   const setSound = (change: Partial<RoomSound>) => setSounds((all) => ({ ...all, [current.id]: { ...sound, ...change } }))
   const material = materials[current.id] ?? DEFAULT_ROOM_MATERIAL
   const setMaterial = (change: Partial<RoomMaterial>) => setMaterials((all) => ({ ...all, [current.id]: { ...material, ...change } }))
 
-  const addRoom = (side: RoomSide) => {
-    onAddRoom(side)
-    setJustAdded({ fromId: current.id, side })
+  const addRoom = (cell: RoomCell, words: string) => {
+    onAddRoom(cell)
+    setJustAdded({ cell, words })
   }
   const goTo = (sceneId: string) => {
     if (sceneId !== current.id) onSelectScene(sceneId)
@@ -671,25 +665,48 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
     setJustAdded(null)
   }
 
-  // one side of the map: the room already there (green, click to go), or a dashed "+"
-  const sideCell = (side: RoomSide) => {
-    const place = { gridRow: SIDE_PLACE[side].gridRow, gridColumn: SIDE_PLACE[side].gridColumn }
-    const neighbour = neighbourOn(side)
-    if (neighbour) {
+  // one cell of the map: the room being edited (purple, renamable), another room (green, click to select it), or a dashed "+"
+  const mapCell = ({ cell, words }: (typeof MAP_CELLS)[number]) => {
+    const key = `${cell.x},${cell.z}`
+    const place = placeOf(cell)
+    const room = roomAt(project, cell)
+    if (room && room.id === current.id) {
+      return nameDraft === null ? (
+        <div key={key} className="rooms-cell rooms-cell-current rooms-cell-renamable" style={place}>
+          <span>{labelOf(current.id)}</span>
+          <button type="button" className="room-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room"><Pencil size={13} /></button>
+        </div>
+      ) : (
+        <form key={key} className="rooms-cell rooms-cell-current rooms-cell-editing" style={place} onSubmit={(event) => { event.preventDefault(); (document.activeElement as HTMLElement | null)?.blur() }}>
+          <span className="room-rename-prefix">Room {currentIndex + 1} ·</span>
+          <input
+            autoFocus
+            aria-label="Room name"
+            value={nameDraft}
+            maxLength={ROOM_NAME_MAX}
+            onChange={(event) => setNameDraft(event.target.value)}
+            onFocus={(event) => event.target.select()}
+            onBlur={saveName}
+            onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); nameCancelledRef.current = true; setNameDraft(null) } }}
+          />
+        </form>
+      )
+    }
+    if (room) {
       return (
-        <button key={side} type="button" className="rooms-cell rooms-cell-other" style={place} onClick={() => goTo(neighbour.id)} title={`Go to ${labelOf(neighbour.id)}`}>
-          {labelOf(neighbour.id)} →
+        <button key={key} type="button" className="rooms-cell rooms-cell-other" style={place} onClick={() => goTo(room.id)} title={`Edit ${labelOf(room.id)}`}>
+          {labelOf(room.id)}
         </button>
       )
     }
-    const words = `Add a room ${SIDE_PLACE[side].words} this one`
+    const addWords = `Add a room ${words}`
     return (
-      <button key={side} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(side)} title={words} aria-label={words}>
+      <button key={key} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(cell, words)} title={addWords} aria-label={addWords}>
         <Plus size={18} />
       </button>
     )
   }
-  const justAddedRoom = justAdded && justAdded.fromId === current.id ? neighbourOn(justAdded.side) : undefined
+  const justAddedRoom = justAdded ? roomAt(project, justAdded.cell) : undefined
 
   return (
     <div className="rooms-anchor" ref={anchorRef}>
@@ -707,37 +724,17 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
           <div className="rooms-head">{/* TITLE and close */}
             <div>
               <h2 className="rooms-title">Your rooms</h2>
-              <p className="rooms-sub">Tap a + to add a room on that side. A door appears on that wall.</p>
+              <p className="rooms-sub">Tap a + to add a room there (up to 5). Tap a room to edit it.</p>
             </div>
             <button type="button" className="rooms-close" onClick={() => setIsOpen(false)} title="Close"><X size={16} /></button>
           </div>
-          <div className="rooms-grid">{/* THE MAP: the room being edited in the middle, a room or "+" on each side */}
-            {ROOM_SIDES.map((side) => sideCell(side))}
-            {nameDraft === null ? (
-              <div className="rooms-cell rooms-cell-current rooms-cell-renamable" style={CENTRE_PLACE}>
-                <span>{labelOf(current.id)}</span>
-                <button type="button" className="room-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room"><Pencil size={13} /></button>
-              </div>
-            ) : (
-              <form className="rooms-cell rooms-cell-current rooms-cell-editing" style={CENTRE_PLACE} onSubmit={(event) => { event.preventDefault(); (document.activeElement as HTMLElement | null)?.blur() }}>
-                <span className="room-rename-prefix">Room {currentIndex + 1} ·</span>
-                <input
-                  autoFocus
-                  aria-label="Room name"
-                  value={nameDraft}
-                  maxLength={ROOM_NAME_MAX}
-                  onChange={(event) => setNameDraft(event.target.value)}
-                  onFocus={(event) => event.target.select()}
-                  onBlur={saveName}
-                  onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); nameCancelledRef.current = true; setNameDraft(null) } }}
-                />
-              </form>
-            )}
+          <div className="rooms-grid">{/* THE MAP: always the same five cells; the room being edited is purple */}
+            {MAP_CELLS.map(mapCell)}
           </div>
           {/* NOTE: where the room just added went */}
           {justAdded && justAddedRoom && (
             <p className="rooms-note">
-              {labelOf(justAddedRoom.id)} is {SIDE_PLACE[justAdded.side].words} {current.name}. Click it to start building there.
+              {labelOf(justAddedRoom.id)} was added {justAdded.words}. Click it to start building there.
             </p>
           )}
           {/* VISIT ORDER: the order visitors see the rooms; the arrows move the room being edited */}
