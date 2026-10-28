@@ -1,13 +1,15 @@
 /**
  * @file        TeacherTemplateSetupPage.tsx
  * @project     VectorSpace
- * @author      <your name>
+ * @author      Goh Pin Kai
+ * @author      Daniel Tee
  * @brief       Teacher template setup: the teacher's copy of a template, set up before it is
  *              assigned to a class. A header bar over three panels:
  *                Mission brief (left)  |  Room preview (middle)  |  Project details (right)
  *
- *              "Assign to <class>" hands the mission brief to the editor by writing it into
- *              the editor's draft saved in this browser (saveProject). The editor shows it as
+ *              "Assign to <class>" hands the mission brief and the rooms added in the middle
+ *              panel to the editor by writing them into the editor's draft saved in this
+ *              browser (saveProject). The editor shows it as
  *              the students' brief (sections/missionBrief/). Pressing Assign again replaces it.
  *              "Preview as a student" opens TeacherPreviewPage with the brief being edited
  *              (assigned or not). Nothing done in the preview is saved.
@@ -22,6 +24,8 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Box } from "lucide-react";
 import { loadProject, saveProject } from "../project/serializer";
+import type { ProjectData } from "../project/model";
+import { removeEditorScene, selectEditorScene, updateEditorScene } from "../editor/editorOperations";
 import { Button } from "../ui/button";
 import { StatusChip } from "../ui/statusChip";
 import { MissionBriefSection } from "../sections/templateSetup/MissionBriefSection";
@@ -62,6 +66,13 @@ const SAMPLE_BRIEF: MissionBrief = {
 // the brief already in the editor's draft, if one was assigned before; else the sample
 const startingBrief = (): MissionBrief => loadProject().missionBrief ?? SAMPLE_BRIEF;
 
+// the draft with every room but Room 1 removed (removeEditorScene also drops what pointed at
+// them), and Room 1 in the middle of the rooms map
+const onlyFirstRoom = (from: ProjectData): ProjectData => {
+  const project = from.scenes.slice(1).reduce((next, room) => removeEditorScene(next, room.id).project, from);
+  return updateEditorScene(selectEditorScene(project, project.scenes[0].id).project, project.scenes[0].id, { layout: { x: 0, z: 0 } }).project;
+};
+
 // how the last Assign went
 type AssignState = "idle" | "assigned" | "failed";
 
@@ -90,6 +101,8 @@ export default function TeacherTemplateSetupPage() {
     }
     return startingBrief();
   });
+  
+  const [draft, setDraft] = useState(() => (newProject ? onlyFirstRoom(loadProject()) : loadProject()));
   const [assign, setAssign] = useState<AssignState>("idle");
 
   // any edit after assigning means the editor's copy is out of date again
@@ -97,11 +110,15 @@ export default function TeacherTemplateSetupPage() {
     setBrief(next);
     if (assign !== "idle") setAssign("idle");
   };
+  const editDraft = (next: ProjectData) => {
+    setDraft(next);
+    if (assign !== "idle") setAssign("idle");
+  };
 
-  // hand the brief to the editor (put it on the editor's saved draft, empty rows left
-  // out), then go back to the teacher home, which shows the "assigned" banner
+  // hand the brief and rooms to the editor (save them as the editor's draft, empty brief
+  // rows left out), then go back to the teacher home, which shows the "assigned" banner
   const assignBrief = () => {
-    const result = saveProject({ ...loadProject(), missionBrief: tidyBrief(brief) });
+    const result = saveProject({ ...draft, missionBrief: tidyBrief(brief) });
     if (result === "failed") {
       setAssign("failed");
       return;
@@ -150,8 +167,8 @@ export default function TeacherTemplateSetupPage() {
       )}
       <div className="setup-body">{/*THE THREE PANELS, side by side*/}
         <MissionBriefSection brief={brief} onChange={editBrief} />
-        <SetupViewportSection />
-                <ProjectDetailsSection className={project.className} due={brief.due} />
+        <SetupViewportSection draft={draft} onChange={editDraft} />
+        <ProjectDetailsSection className={project.className} due={brief.due} />
       </div>
     </main>
   );
