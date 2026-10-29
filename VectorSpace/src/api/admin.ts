@@ -21,6 +21,9 @@
  *   - classNames is a list, because class_members lets a person be in more than one class.
  *   - a published museum has no visit count and no access level, because nothing records either
  *     yet. When analytics and sharing arrive, add them to PublishedItem.
+ *   - addAccount answers a CreatedAccount, not an Account: the create reply alone carries the
+ *     new person's one-time password link, because Auth0 mints the ticket once and nothing
+ *     stores it. listAccounts therefore cannot show it again, by design and not omission.
  * addSchool answers 501: an admin belongs to one school, and the operator role the mock-up's
  * "All schools" implies does not exist yet. See apps/api/app/routers/admin.py.
  *
@@ -65,6 +68,14 @@ export type Account = {
 };
 
 export type NewAccount = Pick<Account, "schoolId" | "name" | "email" | "role" | "classNames">;
+
+/**
+ * What addAccount answers: the new account, plus the one-time password-set link Auth0 just
+ * minted for it. Nothing emails that link, so this reply is the only chance to hand it over;
+ * it is single-use and is never stored, so listAccounts cannot show it again. Null when there
+ * is no link at all, which is every local run: the dev login stand-in has no tenant to mint one.
+ */
+export type CreatedAccount = Account & { inviteLink: string | null };
 
 export type Tile = { value: number; sub: string };
 
@@ -120,7 +131,7 @@ export type AdminApi = {
   addSchool: (name: string) => Promise<School>;
   getOverview: (school: SchoolFilter) => Promise<Overview>;
   listAccounts: (school: SchoolFilter) => Promise<Account[]>;
-  addAccount: (account: NewAccount) => Promise<Account>;
+  addAccount: (account: NewAccount) => Promise<CreatedAccount>;
   setAccountOff: (accountId: string, off: boolean) => Promise<Account>;
   getPermissions: (schoolId: string) => Promise<PermissionRow[]>;
   savePermissions: (schoolId: string, rows: PermissionRow[]) => Promise<void>;
@@ -140,6 +151,7 @@ type AccountRow = {
   last_active: string | null;
   status: Account["status"];
 };
+type CreatedAccountRow = AccountRow & { invite_link: string | null };
 type AttentionRow = { id: string; text: string; action_label: string; go_to: AttentionItem["goTo"] };
 type PublishedRow = { id: string; title: string; where: string; published_at: string | null };
 type OverviewRow = {
@@ -158,6 +170,11 @@ const toAccount = (row: AccountRow): Account => ({
   classNames: row.class_names,
   lastActive: row.last_active,
   status: row.status,
+});
+
+const toCreatedAccount = (row: CreatedAccountRow): CreatedAccount => ({
+  ...toAccount(row),
+  inviteLink: row.invite_link,
 });
 
 const toOverview = (row: OverviewRow): Overview => ({
@@ -188,8 +205,8 @@ export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
       (await apiFetch<AccountRow[]>(getToken, `/admin/accounts${query(school)}`, {}, base)).map(toAccount),
 
     addAccount: async (account) =>
-      toAccount(
-        await apiFetch<AccountRow>(getToken, "/admin/accounts", {
+      toCreatedAccount(
+        await apiFetch<CreatedAccountRow>(getToken, "/admin/accounts", {
           method: "POST",
           body: {
             school_id: account.schoolId,

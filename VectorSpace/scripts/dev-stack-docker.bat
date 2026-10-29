@@ -1,8 +1,12 @@
 @echo off
 rem Starts the whole local stack in "dry mode" (no Auth0): Postgres in Docker, the API, the browser app.
-rem   scripts\dev-stack.bat         start everything (Docker Desktop must already be running)
-rem   scripts\dev-stack.bat stop    stop Postgres (the API and browser app run in their own windows: close them)
+rem   scripts\dev-stack-docker.bat         start everything (Docker Desktop must already be running)
+rem   scripts\dev-stack-docker.bat stop    stop Postgres (the API and browser app run in their own windows: close them)
 rem First run installs the API's Python packages into apps\api\.venv, which takes a minute.
+rem
+rem The database is the only difference from scripts\dev-stack-neon.bat, which runs the same API
+rem and browser app against hosted Neon Postgres instead, for a machine without Docker. This one
+rem is the better default: the data is local, disposable, and nobody else shares it.
 setlocal
 cd /d "%~dp0.."
 

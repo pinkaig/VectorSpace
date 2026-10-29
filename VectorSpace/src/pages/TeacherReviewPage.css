@@ -286,6 +286,42 @@
   margin-bottom: 12px;
 }
 
+/* a published museum: the switch that puts it on the public sign-in page */
+.review-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-50);
+}
+
+.review-showcase > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.review-showcase strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.review-showcase small {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.review-showcase-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-700);
+}
+
 .review-avatar-large {
   width: 52px;
   height: 52px;

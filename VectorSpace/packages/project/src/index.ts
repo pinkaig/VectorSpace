@@ -94,7 +94,7 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     name: 'Empty',
     kind: 'procedural',
     proceduralId: 'empty',
-    description: 'No walls or floor — just the grid, for working against a blank scene.',
+    description: 'a blank scene.',
   },
   // `url` for these is relative to the app's src/ — the app bundles src/env/*.glb and
   // resolves it to the built file (see loadGlb in src/environments.ts).

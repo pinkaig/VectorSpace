@@ -35,6 +35,13 @@ services:
         sync: false
       - key: AUTH0_AUDIENCE
         sync: false
+      # Only needed if the provisioning tool (app/provision.py) is ever run from here
+      # rather than from a laptop. Management API client, create:users +
+      # create:user_tickets.
+      - key: AUTH0_MGMT_CLIENT_ID
+        sync: false
+      - key: AUTH0_MGMT_CLIENT_SECRET
+        sync: false
 
   - type: web
     name: vectorspace
@@ -47,9 +54,25 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # Left unset on purpose: the app then runs in its offline mode (role picker, saves in
-      # the browser), which is the full M1 experience. Set VITE_API_URL to the API's address
-      # only once the browser app signs in through Auth0, because production refuses the
-      # dev sign-in (AUTH_DEV_BYPASS) that the picker uses against a server.
-      # - key: VITE_API_URL
-      #   value: https://vectorspace-api.onrender.com
+      # These four are one switch, flipped together, and every one of them is sync: false
+      # so that nothing takes effect until a person has entered all four in the dashboard.
+      # All four set makes the deployed app sign in through Auth0 and read its role from
+      # GET /me; any one missing makes the build fall back to the prototype role picker,
+      # which the production API refuses to serve because it has no AUTH_DEV_BYPASS, so
+      # the site would offer a sign-in that cannot succeed. That is why VITE_API_URL is
+      # sync: false here rather than carrying its value inline: a value would arrive with
+      # the blueprint and leave the switch half-flipped until someone typed the other
+      # three. Its value is https://vectorspace-api.onrender.com (the API service above).
+      # VITE_AUTH0_AUDIENCE must equal the API service's AUTH0_AUDIENCE, exactly.
+      #
+      # Before entering them: the Neon roster has to carry real auth0|... subjects, written
+      # by app/provision.py --apply. The seeded dev|... ones can never authenticate.
+      # See Desktop/docs/handover/short render-auth0-setup.md for the whole sequence.
+      - key: VITE_AUTH0_DOMAIN
+        sync: false
+      - key: VITE_AUTH0_CLIENT_ID
+        sync: false
+      - key: VITE_AUTH0_AUDIENCE
+        sync: false
+      - key: VITE_API_URL
+        sync: false

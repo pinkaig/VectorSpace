@@ -9,15 +9,28 @@ from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from pydantic import BaseModel,Field
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..access import can_read, can_write, class_ids, visible_projects
 from ..auth import get_current_actor
 from ..db import get_db
-from ..models import Actor, Assignment, ClassMember, Classroom, ContentSnapshot, Project, ProjectVersion
+from ..models import (
+    Actor,
+    AnalyticsEvent,
+    Assignment,
+    ClassMember,
+    Classroom,
+    ContentSnapshot,
+    InteractionRule,
+    MediaAsset,
+    MediaLink,
+    Project,
+    ProjectVersion,
+)
 from ._skeleton import not_implemented
+
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -32,6 +45,10 @@ class ProjectCreateRequest(BaseModel):
 class ProjectUpdateRequest(BaseModel):
     name: str | None = None
     status: str | None = None
+    # the class the project is for (a teacher's Assign picks it); only a class the caller is in
+    class_id: uuid.UUID | None = None
+    # shown on the public sign-in page: teachers and admins only, published museums only
+    showcase: bool | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -61,14 +78,25 @@ class ProjectResponse(BaseModel):
     task: str | None = None
     due_at: date | None = None
     assigned_by_name: str | None = None
-    # the teacher's mission brief for that assignment; the editor shows it to the student
-    mission_brief: dict[str, Any] | None = None
+    # a copy of this project has been sent to at least one student (it has an assignment)
+    sent: bool = False
+    # a teacher chose it for the public sign-in page
+    showcase: bool = False
 
     model_config = {"from_attributes": True}
 
 
 def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
-    """The rows plus who made them, their class, their template, their assignment and the latest save: five lookups for the lot."""
+    """The rows plus who made them, their class, their template, their assignment, the latest save and
+    whether they were sent to students: six lookups for the lot."""
+    # the teacher's own projects: the assignment made from each (one per class it was sent to)
+    given_out: dict[uuid.UUID, Assignment] = {}
+    for a in db.scalars(select(Assignment).where(Assignment.project_id.in_({p.id for p in projects}))):
+        kept = given_out.get(a.project_id)
+        # sent to more than one class: the latest due date counts
+        if kept is None or (a.due_at or date.min) > (kept.due_at or date.min):
+            given_out[a.project_id] = a
+    sent = set(given_out)
     versions = {
         v.id: v
         for v in db.scalars(select(ProjectVersion).where(ProjectVersion.id.in_({p.current_version_id for p in projects if p.current_version_id})))
@@ -81,6 +109,7 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
         {p.created_by_id for p in projects}
         | {v.created_by_id for v in versions.values()}
         | {a.created_by_id for a in assignments.values()}
+        | {a.created_by_id for a in given_out.values()}
     )
     people = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_(people_ids)))}
     classes = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.id.in_({p.class_id for p in projects if p.class_id})))}
@@ -88,7 +117,8 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
     rows = []
     for p in projects:
         saved = versions.get(p.current_version_id)
-        assignment = assignments.get(p.assignment_id) if p.assignment_id else None
+        # a student's copy points at its assignment; the teacher's own project is pointed at by one
+        assignment = assignments.get(p.assignment_id) if p.assignment_id else given_out.get(p.id)
         rows.append(
             ProjectResponse.model_validate(p).model_copy(
                 update={
@@ -101,7 +131,7 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
                     "task": assignment.task if assignment else None,
                     "due_at": assignment.due_at if assignment else None,
                     "assigned_by_name": people.get(assignment.created_by_id) if assignment else None,
-                    "mission_brief": assignment.mission_brief if assignment else None,
+                    "sent": p.id in sent,
                 }
             )
         )
@@ -213,6 +243,8 @@ def create_project(
 
 class AssignRequest(BaseModel):
     student_id: uuid.UUID
+    task: str | None = None  # the teacher's one-line task; left out = keep what's saved
+    due_at: date | None = None  # "YYYY-MM-DD"; left out = keep what's saved
 
 
 @router.post("/{project_id}/assign", response_model=ProjectResponse, status_code=201)
@@ -223,6 +255,8 @@ def assign_project(
 
     The copy belongs to the student (they can open and save it; the teacher can read it through the
     class). Its first revision is labelled with who sent it, so the history shows where it came from.
+    The copy joins the source's assignment for that class (made on the first send), which is what
+    marks the source as sent: it can no longer be deleted, only archived.
     """
     if actor.role == "student":
         raise HTTPException(status_code=403, detail="Only teachers can send work to a student")
@@ -235,15 +269,16 @@ def assign_project(
     if not shared:
         raise HTTPException(status_code=403, detail="That student is not in one of your classes")
 
-    copy = _send_copy(db, source, student, shared[0], actor)
-    db.commit()
-    db.refresh(copy)
-    return _describe(db, [copy])[0]
-
-
-def _send_copy(db: Session, source: Project, student: Actor, class_id: uuid.UUID, sender: Actor) -> Project:
-    """A new project owned by student holding source's current content, its first revision
-    labelled "Sent by <sender>". Flushed, not committed."""
+    assignment = db.scalar(select(Assignment).where(Assignment.class_id == shared[0], Assignment.project_id == source.id))
+    if assignment is None:
+        assignment = Assignment(class_id=shared[0], project_id=source.id, task="", created_by_id=actor.id)
+        db.add(assignment)
+    # the latest assign wins, so editing the brief and assigning again updates every student's card
+    if body.task is not None:
+        assignment.task = body.task
+    if body.due_at is not None:
+        assignment.due_at = body.due_at
+    db.flush()
     copy = Project(
         organisation_id=sender.organisation_id,
         created_by_id=student.id,
@@ -252,6 +287,7 @@ def _send_copy(db: Session, source: Project, student: Actor, class_id: uuid.UUID
         slug=_slug(source.name),
         template_id=source.id if source.kind == "template" else source.template_id,
         template_revision=None,
+        assignment_id=assignment.id,
     )
     db.add(copy)
     db.flush()
@@ -350,17 +386,53 @@ def update_project(
     db: Session = Depends(get_db),
 ) -> ProjectResponse:
     project = _load(db, actor, project_id)
-    if not can_write(actor, project):
+    changes = body.model_dump(exclude_none=True)
+    # everything but showcase is the owner's to change; showcase is the class teacher's
+    if set(changes) - {"showcase"} and not can_write(actor, project):
         raise HTTPException(status_code=403, detail="You cannot change this project")
     if body.status is not None and body.status not in ("draft", "published", "archived"):
         raise HTTPException(status_code=422, detail="Invalid status")
-    for field, value in body.model_dump(exclude_none=True).items():
+    if body.class_id and actor.role != "admin" and body.class_id not in class_ids(db, actor):
+        raise HTTPException(status_code=403, detail="You are not in that class")
+    if body.showcase is not None:
+        teaches_it = actor.role == "admin" or (
+            actor.role == "teacher" and (project.created_by_id == actor.id or project.class_id in class_ids(db, actor))
+        )
+        if not teaches_it:
+            raise HTTPException(status_code=403, detail="Only a teacher of its class can put a museum on the sign-in page")
+        if body.showcase and changes.get("status", project.status) != "published":
+            raise HTTPException(status_code=409, detail="Only a published museum can be shown on the sign-in page")
+    for field, value in changes.items():
         setattr(project, field, value)
+    # a museum that is no longer published comes off the sign-in page
+    if project.status != "published":
+        project.showcase = False
     db.commit()
     db.refresh(project)
     return _describe(db, [project])[0]
 
 
 @router.delete("/{project_id}", status_code=204, response_model=None)
-def delete_project(project_id: uuid.UUID) -> None:
-    raise not_implemented("delete_project is not implemented")
+def delete_project(project_id: uuid.UUID, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)) -> None:
+    """Deletes a draft nobody was sent: the project and everything saved on it.
+
+    Refused (409) for anything published or archived, for a project already sent to students (it
+    has an assignment), and for a student's copy of assigned work; those can only be archived.
+    Copies sent earlier are never touched: they belong to the students.
+    """
+    project = _load(db, actor, project_id)
+    if not can_write(actor, project):
+        raise HTTPException(status_code=403, detail="You cannot delete this project")
+    if project.status != "draft":
+        raise HTTPException(status_code=409, detail="Only a draft can be deleted: archive it instead")
+    if project.assignment_id or db.scalar(select(Assignment.id).where(Assignment.project_id == project.id).limit(1)):
+        raise HTTPException(status_code=409, detail="It was sent to students, so it can only be archived")
+
+    # let go of the current save first (the project and its saves point at each other), then the
+    # rows that hang off the project, then the project; copies made from it keep their content
+    project.current_version_id = None
+    db.flush()
+    for model in (InteractionRule, AnalyticsEvent, MediaLink, MediaAsset, ProjectVersion, ContentSnapshot):
+        db.execute(delete(model).where(model.project_id == project.id))
+    db.execute(delete(Project).where(Project.id == project.id))
+    db.commit()

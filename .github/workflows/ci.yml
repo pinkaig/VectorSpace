@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.55 cannot install on.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: VectorSpace
@@ -49,7 +50,7 @@ jobs:
         run: npm run test:e2e
 
   api:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16

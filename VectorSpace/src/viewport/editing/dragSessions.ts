@@ -17,6 +17,7 @@ import * as THREE from "three";
 import type { AxisName } from "../../gizmo/types";
 import { closestPointOnAxis, angleAroundAxis } from "../../gizmo/math";
 import { normalizeAngle } from "../interactionMath";
+import { snapAngle, snapScale, snapToFloorGrid } from "./snapping";
 
 export interface DragCommitCallbacks {
   commitMove: (id: string, position: [number, number, number]) => void;
@@ -36,6 +37,8 @@ export interface DragSessionsInput {
   gizmoGroup: THREE.Group;
   getPointer: (event: PointerEvent) => void;
   callbacks: DragCommitCallbacks;
+  /** The object panel's Snap switch, read on every move so flipping it mid-drag applies at once. */
+  getSnap?: () => boolean;
 }
 
 export interface AxisDragParams {
@@ -106,6 +109,22 @@ export const createDragSessions = (input: DragSessionsInput) => {
     getPointer,
     callbacks,
   } = input;
+  const snapping = () => input.getSnap?.() ?? false;
+
+  /**
+   * With Snap on, puts a world position on the floor grid, but only along the floor
+   * directions this drag moves in: an arrow drag snaps only its own axis (so lifting an
+   * object does not shift it sideways), a free drag snaps both x and z. Height is never snapped.
+   */
+  const snapPosition = (world: THREE.Vector3, direction?: THREE.Vector3) => {
+    if (!snapping()) return world;
+    const [x, , z] = snapToFloorGrid([world.x, world.y, world.z]);
+    return new THREE.Vector3(
+      !direction || Math.abs(direction.x) > 0.5 ? x : world.x,
+      world.y,
+      !direction || Math.abs(direction.z) > 0.5 ? z : world.z,
+    );
+  };
 
   /**
    * Converts a world-space position into the given mesh's parent's local
@@ -146,6 +165,11 @@ export const createDragSessions = (input: DragSessionsInput) => {
   let scaleDragging: ScaleDragParams | null = null;
   let lastScaleValue: [number, number, number] | null = null;
   let rotateDragging: RotateDragParams | null = null;
+  // the rotation at grab time and the total turn since, so a snapped angle comes from the whole
+  // turn instead of adding up rounded steps
+  let rotateStartRotation: [number, number, number] = [0, 0, 0];
+  let rotateStartQuaternion = new THREE.Quaternion();
+  let rotateTotal = 0;
   let lastRotateValue: [number, number, number] | null = null;
   let lastRotatePosition: [number, number, number] | null = null;
   let uniformScaleDragging: UniformScaleDragParams | null = null; // active uniform-scale session, if any
@@ -184,6 +208,9 @@ export const createDragSessions = (input: DragSessionsInput) => {
    */
   const beginRotateDrag = (params: RotateDragParams) => {
     rotateDragging = params;
+    rotateStartRotation = [...params.currentRotation];
+    rotateStartQuaternion = params.currentQuaternion.clone();
+    rotateTotal = 0;
   };
 
   /**
@@ -248,9 +275,12 @@ export const createDragSessions = (input: DragSessionsInput) => {
       // A camera looking down the constrained axis produces an unstable
       // closest-point solution; skip that frame instead of jumping.
       if (hitT === null) return;
-      const next = axisDragging.origin
-        .clone()
-        .addScaledVector(axisDragging.direction, hitT - axisDragging.grabT);
+      const next = snapPosition(
+        axisDragging.origin
+          .clone()
+          .addScaledVector(axisDragging.direction, hitT - axisDragging.grabT),
+        axisDragging.direction,
+      );
       const mesh = objectsGroup.getObjectByName(axisDragging.id);
       if (mesh) {
         const local = toLocalPosition(mesh, next);
@@ -273,10 +303,11 @@ export const createDragSessions = (input: DragSessionsInput) => {
       const scale = [...scaleDragging.startScale] as [number, number, number];
       const axisIndex =
         scaleDragging.axis === "x" ? 0 : scaleDragging.axis === "y" ? 1 : 2;
-      scale[axisIndex] = Math.max(
+      const raw = Math.max(
         0.05,
         scaleDragging.startScale[axisIndex] * (1 + hitT - scaleDragging.grabT),
       );
+      scale[axisIndex] = snapping() ? snapScale(raw) : raw;
       lastScaleValue = scale;
       objectsGroup.getObjectByName(scaleDragging.id)?.scale.set(...scale);
       return;
@@ -297,15 +328,19 @@ export const createDragSessions = (input: DragSessionsInput) => {
       if (step > Math.PI) step -= Math.PI * 2;
       if (step < -Math.PI) step += Math.PI * 2;
       rotateDragging.lastAngle = angle;
+      rotateTotal += step;
       let rotation: [number, number, number];
       if (rotateDragging.spaceMode === "local") {
         // A local-axis rotation must compose quaternions. Incrementing one
         // Euler component would be wrong after rotation on another axis.
-        // currentQuaternion accumulates in world space; convert to local only
-        // when writing to the mesh and when deriving the committed Euler.
-        rotateDragging.currentQuaternion.premultiply(
-          new THREE.Quaternion().setFromAxisAngle(rotateDragging.normal, step),
-        );
+        // currentQuaternion is the grab-time orientation turned by the whole
+        // drag so far (snapped to 15° steps with Snap on), in world space;
+        // convert to local only when writing to the mesh and when deriving
+        // the committed Euler.
+        const turn = snapping() ? snapAngle(rotateTotal) : rotateTotal;
+        rotateDragging.currentQuaternion
+          .setFromAxisAngle(rotateDragging.normal, turn)
+          .multiply(rotateStartQuaternion);
         const mesh = objectsGroup.getObjectByName(rotateDragging.id);
         const localQuaternion = mesh
           ? toLocalQuaternion(mesh, rotateDragging.currentQuaternion)
@@ -317,8 +352,10 @@ export const createDragSessions = (input: DragSessionsInput) => {
         rotation = [euler.x, euler.y, euler.z];
         mesh?.quaternion.copy(localQuaternion);
       } else {
-        rotation = [...rotateDragging.currentRotation];
-        rotation[rotateDragging.axisIndex] += step;
+        // with Snap on, the angle itself lands on a 15° step (0°, 15°, 30° ...), not just the turn
+        rotation = [...rotateStartRotation];
+        const target = rotateStartRotation[rotateDragging.axisIndex] + rotateTotal;
+        rotation[rotateDragging.axisIndex] = snapping() ? snapAngle(target) : target;
         rotateDragging.currentRotation = rotation;
         objectsGroup
           .getObjectByName(rotateDragging.id)
@@ -355,10 +392,13 @@ export const createDragSessions = (input: DragSessionsInput) => {
       if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
       const currentDistance = hitPoint.distanceTo(uniformScaleDragging.origin);
       // Clamp so it can't invert or vanish.
-      const ratio = Math.max(
+      const rawRatio = Math.max(
         0.05,
         currentDistance / uniformScaleDragging.grabDistance,
       );
+      // with Snap on, the whole object grows in steps of 0.25 of its original size; all three
+      // axes keep their proportions
+      const ratio = snapping() ? snapScale(rawRatio) : rawRatio;
       const nextScale: [number, number, number] = [
         uniformScaleDragging.startScale[0] * ratio,
         uniformScaleDragging.startScale[1] * ratio,
@@ -375,6 +415,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
       raycaster.setFromCamera(pointer, activeCamera.current);
       if (!raycaster.ray.intersectPlane(dragging.plane, dragPoint)) return;
       dragPoint.add(dragging.offset);
+      dragPoint.copy(snapPosition(dragPoint));
       const mesh = objectsGroup.getObjectByName(dragging.id);
       if (mesh) {
         const local = toLocalPosition(mesh, dragPoint);

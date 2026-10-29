@@ -131,7 +131,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // the editor step, Position = 1, Info = 2, Reactions = 3. The object panel's tabs set it
   // now, and the top bar's step strip will share this same value when it lands.
   const [step, setStep] = useState(1)
-  // the object panel's snap switch; not read by the viewport yet
+  // the object panel's Snap switch: the viewport's drags land on the floor grid, in 15° turns
+  // and 0.25 size steps while it is on (viewport/editing/snapping.ts)
   const [snapOn, setSnapOn] = useState(false)
   const {
     gizmoMode, setGizmoMode,
@@ -145,6 +146,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     showStats, setShowStats,
     resetToken,
   } = useViewportSettings()
+  // Selecting something starts on Move (the arrows show at once); a tool picked in the object
+  // panel carries over to the next selection. Nothing selected goes back to plain Select,
+  // the only mode where clicking empty space deselects.
+  const hasSelection = selectedId !== null
+  useEffect(() => {
+    setGizmoMode((mode) => (hasSelection ? (mode === 'select' ? 'move' : mode) : 'select'))
+  }, [hasSelection])
   const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source, !preview)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [assetQuery, setAssetQuery] = useState('')
@@ -318,6 +326,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               gizmoMode={gizmoMode}
               scaleSpace={scaleSpace}
               rotateSpace={rotateSpace}
+              snap={snapOn}
               sceneId={scene.id}
               environmentId={scene.environmentId}
               surfaces={scene.surfaces}

@@ -25,9 +25,9 @@ import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherLayout from './pages/TeacherLayout'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
-import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
 import { ApiError } from './api/client'
+import { auth0Enabled } from './session/auth0'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
 
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
@@ -35,6 +35,8 @@ import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homeP
 const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplication'))
 // the same editor opened by project id (/editor/:projectId), fetched from the API first
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
+// the template setup page embeds the 3D viewport, which pulls in the audio package, so it is lazy too
+const TeacherTemplateSetupPage = lazy(() => import('./pages/TeacherTemplateSetupPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 // The motion board (/motion-board, dev only). The ternary, not a bare lazy(), so a production build folds
@@ -50,7 +52,7 @@ function Landing() {
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
-  const { signIn } = useSession()
+  const { signIn, rejected, signOut } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
   // where it navigates to is what signIn lands on, which the server decides when there is one:
@@ -61,10 +63,18 @@ function SignIn() {
       error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
     ))
   }
+  // a refusal from the sign-in provider's own session outlives a click, so it is shown
+  // whether or not anything was clicked, and it offers the way out that a retry cannot
   return (
     <>
-      <LoginPage showAdmin={adminOverrideEnabled} onSignIn={onSignIn} />
-      {problem && <p role="alert" className="sign-in-problem">{problem}</p>}
+      <LoginPage
+        showAdmin={adminOverrideEnabled}
+        hostedLogin={auth0Enabled}
+        onSignIn={onSignIn}
+        stranded={rejected !== null}
+        onUseAnotherAccount={signOut}
+      />
+      {(rejected ?? problem) && <p role="alert" className="sign-in-problem">{rejected ?? problem}</p>}
     </>
   )
 }
@@ -163,7 +173,7 @@ export default function App() {
             <Route path="review" element={<TeacherReviewPage />} />
             <Route path="results" element={<TeacherResultsPage />} />
           </Route>
-          <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><TeacherTemplateSetupPage /></AdminNav></RequireRole>} />
+          <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><Suspense fallback={<p>Loading template setup…</p>}><TeacherTemplateSetupPage /></Suspense></AdminNav></RequireRole>} />
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
           <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />

@@ -5,9 +5,10 @@
  * @brief       Student home: greeting, the project assigned by the teacher
  *              (with Start building, which opens the editor), the student's
  *              other projects, and the notification bell in the top bar. Uses
- *              the shared LandingPageTopBar. The assigned project, its task,
- *              due date and teacher come from the API (assignments); the status
- *              chip and the notifications are still fake.
+ *              the shared LandingPageTopBar. Everything shown comes from the
+ *              API: the assigned project, its task, due date and teacher
+ *              (assignments), and its status, worked out from who saved it
+ *              last. There are no notifications until the backend sends them.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -21,52 +22,21 @@ import { useSession } from "../session/session";
 import { LandingPageTopBar } from "../ui/LandingPageTopBar";
 import { MuseumPreview } from "../ui/museumPreview";
 import { NotificationBell, type AppNotification } from "../ui/NotificationBell";
-import { listMyProjects } from "../api/projects";
+import { listMyProjects, type Project } from "../api/projects";
 import { useLoad } from "../api/useLoad";
 import "./StudentHomePage.css";
 
-// Fake data for what the backend doesn't have yet. The ? fields don't exist in the backend.
-type StudentProject = {
-  id: string;
-  name: string;
-  statusLabel: "Not started" | "Building" | "Published" | "Draft";
-  teacherName?: string; // missing in backend
-  due?: string; // missing in backend
-  task?: string; // missing in backend
-  templateName?: string;
-};
+// None until the backend sends notifications (new project, visits, approvals and grades).
+const notifications: AppNotification[] = [];
 
-const assigned: StudentProject = {
-  id: "fake-1",
-  name: "Dinosaur museum",
-  statusLabel: "Not started",
-  teacherName: "Ms Tan",
-  due: "Due Friday",
-  task: "Build a virtual exhibition about dinosaurs. Add at least 3 exhibits with facts, and one thing that reacts when visitors click.",
-  templateName: "the museum template",
+// the chip on the assigned project: published, untouched since the teacher sent it, or being built
+const statusLabel = (project: Project): string => {
+  if (project.status === "published") return "Published";
+  if (project.status === "archived") return "Archived";
+  if (project.current_revision === 0) return "Not started";
+  // a copy the teacher sent is saved once, by the teacher; the student's first save makes it theirs
+  return project.saved_by_name === project.created_by_name ? "Building" : "Not started";
 };
-
-// Fake until the backend sends notifications (new project, visits, approvals and grades).
-const notifications: AppNotification[] = [
-  {
-    id: "n1",
-    kind: "project",
-    title: "Ms Tan gave you a new project: Dinosaur museum",
-    meta: "Monday · due Friday",
-  },
-  {
-    id: "n2",
-    kind: "visits",
-    title: "Your Ancient Egypt tour had 5 new visits",
-    meta: "2 days ago",
-  },
-  {
-    id: "n3",
-    kind: "approved",
-    title: "Ms Tan approved your Ancient Egypt tour",
-    meta: "2 weeks ago · Grade B+",
-  },
-];
 
 // "Due Friday" when it's within a week, otherwise "Due 30 Oct"
 const dueLabel = (iso: string): string => {
@@ -88,15 +58,15 @@ const daysAgo = (iso: string): string => {
 
 export default function StudentHomePage() {
   const { signOut, displayName, getToken } = useSession();
-  const { data: projects, error } = useLoad(
+  const { data: projects, error, loading } = useLoad(
     () => listMyProjects(getToken),
     "my-projects",
   );
   const firstName = displayName.split(" ")[0];
   const navigate = useNavigate();
 
-  // the bell's dot shows until the student opens the list
-  const [unread, setUnread] = useState(true);
+  // the bell's dot shows while there is something new, until the student opens the list
+  const [unread, setUnread] = useState(notifications.length > 0);
 
   // the student's projects, without archived ones
   const myProjects = (projects ?? []).filter((p) => p.status !== "archived");
@@ -113,7 +83,7 @@ export default function StudentHomePage() {
     <div className="student-home">
       <LandingPageTopBar
         userName={firstName}
-        userSubline="Sec 2B · Student"
+        userSubline="Student"
         onSignOut={signOut}
         actions={
           <NotificationBell
@@ -126,9 +96,15 @@ export default function StudentHomePage() {
       />
       <main className="student-home-content">
         <h1 className="student-home-greeting">Hi {firstName}</h1>
-        <p className="student-home-lead">
-          You have one project waiting for you.
-        </p>
+        {!error && (
+          <p className="student-home-lead">
+            {loading
+              ? "Loading your projects…"
+              : assignedProject
+                ? "You have a project waiting for you."
+                : "No projects yet. Your teacher will send you one."}
+          </p>
+        )}
 
         {assignedProject?.assigned_by_name && (
           <h2 className="student-home-label">
@@ -136,50 +112,49 @@ export default function StudentHomePage() {
           </h2>
         )}
 
-        <article className="student-home-assigned">
-          <div className="student-home-assigned-image">
-            <MuseumPreview title={assignedProject?.name ?? assigned.name} />
-          </div>
-
-          <div className="student-home-assigned-info">
-            <div className="student-home-chips">
-              {assignedProject?.due_at && (
-                <span className="student-home-chip">
-                  {dueLabel(assignedProject.due_at)}
-                </span>
-              )}
-              <span className="student-home-chip student-home-chip-muted">
-                {assigned.statusLabel}
-              </span>
+        {assignedProject && (
+          <article className="student-home-assigned">
+            <div className="student-home-assigned-image">
+              <MuseumPreview title={assignedProject.name} />
             </div>
 
-            {/* the real project's name, the fake one while loading */}
-            <h3 className="student-home-assigned-title">
-              {assignedProject?.name ?? assigned.name}
-            </h3>
+            <div className="student-home-assigned-info">
+              <div className="student-home-chips">
+                {assignedProject.due_at && (
+                  <span className="student-home-chip">
+                    {dueLabel(assignedProject.due_at)}
+                  </span>
+                )}
+                <span className="student-home-chip student-home-chip-muted">
+                  {statusLabel(assignedProject)}
+                </span>
+              </div>
 
-            {assignedProject?.task && (
-              <p className="student-home-task">{assignedProject.task}</p>
-            )}
-            {assigned.templateName && (
-              <p className="student-home-template">
-                Starts from {assigned.templateName} · 2 rooms ready for you
-              </p>
-            )}
+              <h3 className="student-home-assigned-title">
+                {assignedProject.name}
+              </h3>
 
-            {/* opens the real project; greyed out while loading or with no draft */}
-            <button
-              type="button"
-              className="student-home-start"
-              disabled={!assignedProject}
-              onClick={() =>
-                assignedProject && navigate(`/editor/${assignedProject.id}`)
-              }
-            >
-              Start building
-            </button>
-          </div>
-        </article>
+              {assignedProject.task && (
+                <p className="student-home-task">{assignedProject.task}</p>
+              )}
+              {assignedProject.template_name && (
+                <p className="student-home-template">
+                  Starts from {assignedProject.template_name}
+                </p>
+              )}
+
+              <button
+                type="button"
+                className="student-home-start"
+                onClick={() => navigate(`/editor/${assignedProject.id}`)}
+              >
+                {statusLabel(assignedProject) === "Not started"
+                  ? "Start building"
+                  : "Keep building"}
+              </button>
+            </div>
+          </article>
+        )}
 
         {error && <p role="alert">Could not load your projects.</p>}
 

@@ -1,0 +1,9 @@
+email,display_name,role,classes
+admin@demo.test,Jasmine Ong (VThere),admin,
+teacher@demo.test,Ms Tan Hui Min,teacher,1A Science;2A Humanities;Art Club
+teacher2@demo.test,Mr Rahim Ismail,teacher,1B Science;2B Humanities
+student1@demo.test,Aisyah Rahman,student,1A Science;2A Humanities
+student2@demo.test,Ethan Lim,student,1B Science
+student3@demo.test,Chloe Tan,student,2A Humanities
+student4@demo.test,Ben Carter,student,2B Humanities
+student5@demo.test,Dmitri Volkov,student,Art Club

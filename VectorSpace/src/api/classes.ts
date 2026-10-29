@@ -3,10 +3,11 @@
  * @project     VectorSpace
  * @author      Sherman Goh Wee Hao
  * @date        2026-10-19
- * @brief       The students in the signed-in teacher's classes, for "send to student".
+ * @brief       The signed-in teacher's classes, and the students in them for "send to student".
  *
  * @responsibility
- * Reads GET /classes and each class roster, and returns the students once each.
+ * Reads GET /classes (the New project popup's class picks), and each class roster, returning
+ * the students once each.
  *
  * @boundary
  * Reading only. A student cannot list a roster (the API answers 403), so call this as a teacher.
@@ -25,16 +26,15 @@ interface Member extends Student {
   role: string
 }
 
-/** One class the signed-in person is in, from GET /classes. */
-export interface ClassRow {
+export interface ClassInfo {
   id: string
   name: string
   member_count: number
 }
 
-/** The signed-in person's classes, by name (template setup's "Assign to <class>"). */
-export function listMyClasses(getToken: GetToken, base?: string): Promise<ClassRow[]> {
-  return apiFetch<ClassRow[]>(getToken, '/classes', {}, base)
+/** The classes the signed-in person is in (every class in the school for an admin), by name. */
+export function listMyClasses(getToken: GetToken, base?: string): Promise<ClassInfo[]> {
+  return apiFetch<ClassInfo[]>(getToken, '/classes', {}, base)
 }
 
 export async function listMyStudents(getToken: GetToken, base?: string): Promise<Student[]> {
