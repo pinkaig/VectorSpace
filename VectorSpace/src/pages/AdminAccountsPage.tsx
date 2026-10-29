@@ -70,10 +70,9 @@ export default function AdminAccountsPage() {
       {adding && (
         <AddAccountPopup
           onClose={() => setAdding(false)}
-          onAdded={(account) => {
-            setData((rows) => rows && [...rows, account]);
-            setAdding(false);
-          }}
+          // the popup stays open after this: it shows the new person's one-time password link,
+          // which is minted once and is in no later reply (see AddAccountPopup.tsx)
+          onAdded={(account) => setData((rows) => rows && [...rows, account])}
         />
       )}
     </>
