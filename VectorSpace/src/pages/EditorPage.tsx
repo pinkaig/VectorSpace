@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
-import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type RoomCell } from '../project/model'
+import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, countAssetUses, filterAssets } from '../content/assets'
 import { isUserAsset } from '../content/userAssets'
@@ -27,7 +27,7 @@ import { selectEditorScene } from '../editor/editorOperations'
 import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
 import { findCard, saveObjectCard, removeObjectCard, type CardInput } from '../editor/cardEditorOperations'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
-import { cellBeside, roomAt, ROOM_SIDES } from '../editor/roomLayout'
+import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
@@ -41,6 +41,8 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
+import { setProjectStatus } from '../api/projects'
+import { isRemoteProject } from '../project/remoteProject'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -219,7 +221,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
 
 
   const {
-    setEnvironment, addObject, updateSelected, moveObject, scaleObject, rotateObject,
+    addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
     addSelectedClickRule, removeRuleById, addScene, removeScene, moveSceneInOrder, renameScene,
@@ -239,12 +241,44 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Play keeps the top bar (Play turns into Stop) and swaps the building stage for the visitor's view.
   const playing = viewMode === 'runtime'
 
+  // Publish: saves now, then marks the server project published (PATCH /projects/:id). A browser
+  // draft has no server row to publish, and a teacher preview changes nothing.
+  const { getToken, role } = useSession()
+  const [published, setPublished] = useState(initialLoad.status === 'published')
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
+  const canPublish = !preview && isRemoteProject(project.id) && !published && !publishing
+  const publishTitle = preview ? 'Publishing is off in a preview'
+    : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
+    : published ? 'This museum is published'
+    : publishError ? `Could not publish: ${publishError} (click to try again)`
+    : 'Publish this museum'
+  const publish = async () => {
+    if (!canPublish) return
+    setPublishing(true)
+    setPublishError(null)
+    save()
+    try {
+      const saved = await setProjectStatus(getToken, project.id, 'published')
+      setPublished(saved.status === 'published')
+    } catch (problem) {
+      setPublishError(problem instanceof Error ? problem.message : 'unknown error')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const limitRooms = preview || role === 'student'
+  const roomKinds = limitRooms ? studentRoomEnv(project) : environmentLibrary
+
   return (
     <main className="app-shell">
       <header className="topbar">
         {/* project name + room; opens "Your rooms" (SceneRoomPopUp, at the end of this file) */}
         <SceneRoomPopUp
           project={project}
+          roomKinds={roomKinds}
+          fromTeacher={limitRooms}
           onSelectScene={(id) => {
             commit('Select scene', selectEditorScene(project, id).project)
             setSelectedId(null)
@@ -291,8 +325,10 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
           <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => setViewMode(playing ? 'editor' : 'runtime')}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
-          {/* the Share flow (who can visit, teacher review) isn't built yet */}
-          <button className="top-publish" disabled title="Publishing is coming soon">Publish</button>
+          {/* who can visit and teacher review aren't built yet: Publish goes straight to published */}
+          <button className={publishError ? 'top-publish problem' : 'top-publish'} onClick={() => void publish()} disabled={!canPublish} title={publishTitle}>
+            {published ? <><Check size={15} /> Published</> : publishing ? 'Publishing…' : publishError ? <><AlertTriangle size={15} /> Publish</> : 'Publish'}
+          </button>
           {/* Less-used actions, out of the way */}
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
             <button className="top-icon-button" onClick={() => setMoreMenuOpen((open) => !open)} aria-expanded={moreMenuOpen} title="More" aria-label="More"><MoreHorizontal size={18} /></button>
@@ -384,8 +420,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               ))}
             </div>
           </div>
-          {/* Bottom-left: "Things in this room" (folded until clicked) over the room picker. The list
-              is the old Scene panel's object tree (commit 68caea5), for this room only. */}
+          {/* Bottom-left: "Things in this room" (folded until clicked). The list is the old Scene
+              panel's object tree (commit 68caea5), for this room only. A room's kind is picked
+              when it is added (the "+" in "Your rooms"), not changed afterwards. */}
           <div className="floating-controls bottom-left">
             <div className="float-group things-in-room">
               <button className="float-button things-toggle" aria-expanded={thingsOpen} onClick={() => setThingsOpen((open) => !open)}>
@@ -402,8 +439,6 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                   </button>
                 </div>
               ))}</div>}
-              {/* the room picker (switches this room's environment), along the bottom of the same box */}
-              <label className="float-select"><span className="float-label">Room </span><select value={scene.environmentId} onChange={(event) => setEnvironment(event.target.value)}>{environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}</select></label>
             </div>
           </div>
 
@@ -558,6 +593,8 @@ const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | nu
  * ("Dinosaur museum / Room 1 · Entrance hall") and the "Your rooms" popup it opens:
  *   - a 3x3 map centred on the ROOM BEING EDITED (purple, with a pencil to rename it). Each of
  *     its four sides shows the room already there (green, click to go) or "+" to add one.
+ *   - after a "+": "What kind of room?", the kinds on offer (roomKinds; for a student, only the
+ *     kinds the teacher turned on). A room's kind is chosen here, once, when it is added.
  *   - visit order: the rooms in the order visitors see them, with arrows to move this room
  *   - delete this room (after a "Delete?" check, since a room can hold a lot of work), as long
  *     as it is not the only room
@@ -566,14 +603,18 @@ const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | nu
  * (SceneData.layout; see editor/roomLayout.ts), so rooms can spread out in any direction and
  * the map follows the room you are in.
  * FOR NOW: music, volume and material are ON SCREEN ONLY (they highlight per room, but nothing
- * is saved or played). The room's environment is picked in the bottom-left "Room" box.
+ * is saved or played).
  */
 interface RoomPopupProps {
   project: ProjectData
+  // the kinds of room a "+" offers (EditorPage decides: the teacher's kinds for a student)
+  roomKinds: EnvironmentDefinition[]
+  // true when roomKinds are the teacher's pick, for the note under them
+  fromTeacher: boolean
   // go to (start editing) another room
   onSelectScene: (sceneId: string) => void
-  // add a room in this empty cell of the map, staying in the current one
-  onAddRoom: (cell: RoomCell) => void
+  // add a room of this kind in this empty cell of the map, staying in the current one
+  onAddRoom: (cell: RoomCell, kind: EnvironmentDefinition) => void
   onDeleteRoom: (sceneId: string) => void
   // move a room earlier (-1) or later (+1) in the visit order
   onMoveRoom: (sceneId: string, step: -1 | 1) => void
@@ -600,8 +641,14 @@ const DEFAULT_ROOM_MATERIAL: RoomMaterial = { walls: 'Style 1', floor: 'Style 1'
 type RoomSound = { music: (typeof MUSIC_OPTIONS)[number]; volume: (typeof VOLUME_OPTIONS)[number] }
 const DEFAULT_ROOM_SOUND: RoomSound = { music: 'Museum hum', volume: 'Quiet' }
 
-function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom }: RoomPopupProps) {
+// swatch colour per room kind, in library order (the same colours as template setup's room chips)
+const KIND_TONES = ['blue', 'green', 'peach', 'lilac', 'rose', 'sky']
+const kindTone = (environmentId: string) => KIND_TONES[Math.max(0, environmentLibrary.findIndex((env) => env.id === environmentId)) % KIND_TONES.length]
+
+function SceneRoomPopUp({ project, roomKinds, fromTeacher, onSelectScene, onAddRoom, onDeleteRoom, onMoveRoom, onRenameRoom }: RoomPopupProps) {
   const [isOpen, setIsOpen] = useState(false)
+  // the empty cell whose "+" was tapped, waiting on "What kind of room?"; null when not adding
+  const [addingAt, setAddingAt] = useState<{ cell: RoomCell; words: string } | null>(null)
   // The current room's name while it is being edited; null when not renaming.
   const [nameDraft, setNameDraft] = useState<string | null>(null)
   // the room waiting on its "Delete?" check, or null
@@ -658,12 +705,15 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
   const material = materials[current.id] ?? DEFAULT_ROOM_MATERIAL
   const setMaterial = (change: Partial<RoomMaterial>) => setMaterials((all) => ({ ...all, [current.id]: { ...material, ...change } }))
 
-  const addRoom = (cell: RoomCell, words: string) => {
-    onAddRoom(cell)
-    setJustAdded({ cell, words })
+  const addRoom = (kind: EnvironmentDefinition) => {
+    if (!addingAt) return
+    onAddRoom(addingAt.cell, kind)
+    setJustAdded(addingAt)
+    setAddingAt(null)
   }
   const goTo = (sceneId: string) => {
     if (sceneId !== current.id) onSelectScene(sceneId)
+    setAddingAt(null)
     setJustAdded(null)
     setConfirmDeleteId(null)
     setNameDraft(null)
@@ -671,6 +721,7 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
   const deleteRoom = (sceneId: string) => {
     onDeleteRoom(sceneId)
     setConfirmDeleteId(null)
+    setAddingAt(null)
     setJustAdded(null)
   }
 
@@ -709,8 +760,18 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
       )
     }
     const addWords = `Add a room ${words}`
+    const picking = addingAt !== null && addingAt.cell.x === cell.x && addingAt.cell.z === cell.z
     return (
-      <button key={key} type="button" className="rooms-cell rooms-cell-add" style={place} onClick={() => addRoom(cell, words)} title={addWords} aria-label={addWords}>
+      <button
+        key={key}
+        type="button"
+        className={picking ? 'rooms-cell rooms-cell-add picking' : 'rooms-cell rooms-cell-add'}
+        style={place}
+        onClick={() => { setJustAdded(null); setAddingAt(picking ? null : { cell, words }) }}
+        title={addWords}
+        aria-label={addWords}
+        aria-pressed={picking}
+      >
         <Plus size={18} />
       </button>
     )
@@ -733,13 +794,39 @@ function SceneRoomPopUp({ project, onSelectScene, onAddRoom, onDeleteRoom, onMov
           <div className="rooms-head">{/* TITLE and close */}
             <div>
               <h2 className="rooms-title">Your rooms</h2>
-              <p className="rooms-sub">Tap a + to add a room there (up to 5). Tap a room to edit it.</p>
+              <p className="rooms-sub">Tap a + to add a room on that side. A door appears on that wall.</p>
             </div>
             <button type="button" className="rooms-close" onClick={() => setIsOpen(false)} title="Close"><X size={16} /></button>
           </div>
           <div className="rooms-grid">{/* THE MAP: always the same five cells; the room being edited is purple */}
             {MAP_CELLS.map(mapCell)}
           </div>
+          {/* WHAT KIND: after a "+", the kinds of room on offer; picking one adds the room there */}
+          {addingAt && (
+            <div className="rooms-kinds" role="group" aria-label="What kind of room?">
+              <div className="rooms-kinds-head">
+                <h3>What kind of room?</h3>
+                <button type="button" className="rooms-kinds-cancel" onClick={() => setAddingAt(null)}>Cancel</button>
+              </div>
+              {roomKinds.length === 0 ? (
+                <p className="rooms-sub">{fromTeacher ? "Your teacher hasn't turned on any room types to add." : 'There are no kinds of room to pick from yet.'}</p>
+              ) : (
+                <div className="rooms-kinds-list">
+                  {roomKinds.map((kind) => (
+                    <button key={kind.id} type="button" className="rooms-kind" onClick={() => addRoom(kind)}>
+                      <span className={`rooms-kind-swatch tone-${kindTone(kind.id)}`} />
+                      <span>
+                        <strong>{kind.name}</strong>
+                        {/* most descriptions only repeat the name, so those are left out */}
+                        {kind.description && kind.description !== kind.name && <small>{kind.description}</small>}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="rooms-kinds-note">{fromTeacher ? 'Only rooms your teacher picked. ' : ''}A door appears on the shared wall.</p>
+            </div>
+          )}
           {/* NOTE: where the room just added went */}
           {justAdded && justAddedRoom && (
             <p className="rooms-note">

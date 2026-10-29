@@ -388,6 +388,8 @@ export interface ProjectData {
   // absent = no brief (any project not made from a template, and files written before briefs
   // existed); left undefined rather than backfilled, so those files keep their exact shape
   missionBrief?: MissionBrief
+  // the environment a student may add, set by the teacher in template setup.
+  validateEnvironment?: string[]
 }
 
 export const defaultAudioSettings = (): AudioSettings => ({
