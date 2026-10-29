@@ -19,6 +19,8 @@ import { MuseumPreview } from "../ui/museumPreview";
 // @ts-ignore CSS is loaded by the bundler; it has no TypeScript module declaration.
 import "./LoginPage.css";
 
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
 type LoginPageProps = {
   onSignIn: (role: "teacher" | "student", admin?: boolean) => void;
   // offers the admin button; App passes true only while the sign-in is temporary (session.tsx)
@@ -68,7 +70,9 @@ export default function LoginPage({
         </div>
 
         <h1 className="login-museum">Build a museum you can walk through.</h1>
-        <p className="login-lead">Here's what students have made this term.</p>
+        {museum && (
+          <p className="login-lead">Here's what students have made this term.</p>
+        )}
 
         {museum && (
           <article className="login-museum-card">
@@ -76,7 +80,7 @@ export default function LoginPage({
               <MuseumPreview title={museum.title} />
               <span className="login-chip">Made by a student</span>
               <span className="login-chip login-chip-dark">
-                {museum.exhibitCount} exhibits · {museum.roomCount} rooms
+                {plural(museum.exhibitCount, "exhibit")} · {plural(museum.roomCount, "room")}
               </span>
             </div>
             <div className="login-museum-info">
@@ -84,46 +88,50 @@ export default function LoginPage({
               <div className="login-museum-text">
                 <h2 className="login-museum-title">{museum.title}</h2>
                 <p className="login-museum-meta">
-                  {museum.studentName} · {museum.className}, {museum.schoolName}
+                  {museum.studentName} ·{" "}
+                  {museum.className ? `${museum.className}, ` : ""}
+                  {museum.schoolName}
                 </p>
               </div>
-              <span className="login-chip">{museum.subject}</span>
             </div>
           </article>
         )}
 
-        <div className="login-carousel-controls">
-          <button
-            type="button"
-            className="login-arrow"
-            aria-label="Previous museum"
-            onClick={showPrev}
-          >
-            <ChevronLeft size={22} />
-          </button>
-
-          <div className="login-dots">
-            {museums.map((m, i) => (
-              <button
-                key={m.id}
-                type="button"
-                className={i === index ? "login-dot active" : "login-dot"}
-                aria-label={`Show ${m.title}`}
-                aria-current={i === index}
-                onClick={() => setIndex(i)}
-              />
-            ))}
+        {/* arrows and dots only when there is more than one museum to move between */}
+        {museums.length > 1 && (
+          <div className="login-carousel-controls">
+            <button
+              type="button"
+              className="login-arrow"
+              aria-label="Previous museum"
+              onClick={showPrev}
+            >
+              <ChevronLeft size={22} />
+            </button>
+  
+            <div className="login-dots">
+              {museums.map((m, i) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={i === index ? "login-dot active" : "login-dot"}
+                  aria-label={`Show ${m.title}`}
+                  aria-current={i === index}
+                  onClick={() => setIndex(i)}
+                />
+              ))}
+            </div>
+  
+            <button
+              type="button"
+              className="login-arrow"
+              aria-label="Next museum"
+              onClick={showNext}
+            >
+              <ChevronRight size={22} />
+            </button>
           </div>
-
-          <button
-            type="button"
-            className="login-arrow"
-            aria-label="Next museum"
-            onClick={showNext}
-          >
-            <ChevronRight size={22} />
-          </button>
-        </div>
+        )}
       </section>
 
       {/* RIGHT: sign-in form */}

@@ -998,10 +998,13 @@ button:disabled {
   color: var(--text-2);
   font-size: 11px;
 }
+/* white on the purple row, so the selected object's name stays readable */
 .tree-item.selected {
   background: var(--accent);
-  color: var(--accent);
+  color: var(--White);
 }
+.tree-item.selected .tree-indent-btn,
+.tree-item.selected .tree-chevron { color: var(--White); }
 .tree-indent-controls {
   display: flex;
   gap: 1px;
@@ -2376,13 +2379,16 @@ button:disabled {
   color: var(--red-700);
 }
 
-/* Inspector pops up over the viewport when an object is selected (tutorial step 2+). */
+/* Inspector pops up over the viewport when an object is selected (tutorial step 2+). It starts
+   under the top-right View bar (EditorPage's VIEW_BAR_CLEARANCE) so the view angles stay
+   clickable, and stops above the bottom-right controls and the footer hints; taller content
+   scrolls inside it. */
 .inspector-popup {
   position: absolute;
-  top: 12px;
+  top: 80px;
   right: 12px;
   width: 286px;
-  max-height: calc(100% - 24px);
+  max-height: calc(100% - 58px - 96px);
   overflow: auto;
   z-index: 20;
   background: var(--White);

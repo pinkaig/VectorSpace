@@ -31,12 +31,12 @@ export default function TeacherLayout() {
         tabs={
           <>
             <NavLink to="/teacher" end className={tabClass}>Classes</NavLink>
-            <NavLink to="/teacher/review" className={tabClass}>Review (6)</NavLink>
+            <NavLink to="/teacher/review" className={tabClass}>Review</NavLink>
             <NavLink to="/teacher/results" className={tabClass}>Results</NavLink>
           </>
         }
         userName={displayName}
-        userSubline="Riverside Secondary"
+        userSubline="Teacher"
         onSignOut={signOut}
       />
       <Outlet />

@@ -30,7 +30,11 @@ import {
 } from '../../packages/sync/src/index'
 import type { ProjectData } from './model'
 import { createLogger } from '../../packages/debugging/src/index'
-import { ServerSyncTransport } from './remoteProject'
+import { isRemoteProject, ServerSyncTransport } from './remoteProject'
+
+// a server project is sent at most this often; the autosave runs 750 ms after every edit, and
+// each server save is a stored revision, so a burst of edits becomes one save instead of dozens
+const SERVER_SAVE_INTERVAL_MS = 30_000
 
 const QUEUE_STORAGE_KEY = 'vectorspace-sync-queue-v1'
 
@@ -76,6 +80,8 @@ export interface ProjectSync {
   stage(project: ProjectData): void
   /** Re-drives the queue — call on network reconnect or a manual "retry now". A no-op if nothing is queued. */
   retry(): void
+  /** Sends every held project now: on Save, on leaving the editor, and when the tab is hidden. */
+  flush(): void
   status(): ProjectSyncStatus
   subscribe(listener: ProjectSyncListener): () => void
 }
@@ -85,6 +91,14 @@ export interface ProjectSyncOptions {
   storage?: QueueStorage
   /** setTimeout-compatible scheduler, for tests to control retry timing. Default globalThis.setTimeout. */
   scheduleTimeout?: (callback: () => void, ms: number) => unknown
+  /**
+   * Holding: a project shouldHold picks is sent at most once per holdMs. Edits in between replace
+   * the copy waiting to go, so only the newest is sent. Default 0: everything is sent at once.
+   */
+  holdMs?: number
+  shouldHold?: (project: ProjectData) => boolean
+  /** The clock holding measures against, for tests. Default Date.now. */
+  now?: () => number
 }
 
 export const createProjectSync = (options: ProjectSyncOptions = {}): ProjectSync => {
@@ -142,26 +156,68 @@ export const createProjectSync = (options: ProjectSyncOptions = {}): ProjectSync
     return drainChain
   }
 
+  const send = (project: ProjectData) => {
+    revision += 1
+    // QueuedChange.id identifies this queue entry, not the project resource —
+    // reusing project.id across edits made every change to the same project
+    // collide in SyncQueue (remove()/incrementRetries() key off it), so a
+    // second staged edit would vanish instead of queuing behind the first.
+    client.stage({
+      id: `${project.id}-${revision}`,
+      op: 'update',
+      revision,
+      payload: project,
+      idempotencyKey: `${project.id}-${revision}-${Date.now()}`,
+      retries: 0,
+    })
+    setStatus(client.status)
+    void drain()
+  }
+
+  // Holding: the newest copy of each held project waiting to go, when each was last sent, and
+  // which have a send scheduled. A held copy is only in memory until it is sent (then it is in
+  // the stored queue), which is why flush() runs when the tab is hidden.
+  const holdMs = options.holdMs ?? 0
+  const shouldHold = options.shouldHold ?? (() => false)
+  const now = options.now ?? Date.now
+  const waiting = new Map<string, ProjectData>()
+  const lastSent = new Map<string, number>()
+  const scheduled = new Set<string>()
+
+  const release = (id: string) => {
+    const project = waiting.get(id)
+    if (!project) return
+    waiting.delete(id)
+    lastSent.set(id, now())
+    send(project)
+  }
+
   return {
     stage(project) {
-      revision += 1
-      // QueuedChange.id identifies this queue entry, not the project resource —
-      // reusing project.id across edits made every change to the same project
-      // collide in SyncQueue (remove()/incrementRetries() key off it), so a
-      // second staged edit would vanish instead of queuing behind the first.
-      client.stage({
-        id: `${project.id}-${revision}`,
-        op: 'update',
-        revision,
-        payload: project,
-        idempotencyKey: `${project.id}-${revision}-${Date.now()}`,
-        retries: 0,
-      })
-      setStatus(client.status)
-      void drain()
+      if (holdMs <= 0 || !shouldHold(project)) {
+        send(project)
+        return
+      }
+      waiting.set(project.id, project)
+      setStatus('pending')
+      // the first edit goes at once; later ones wait for the rest of the interval
+      const wait = (lastSent.get(project.id) ?? -Infinity) + holdMs - now()
+      if (wait <= 0) {
+        release(project.id)
+        return
+      }
+      if (scheduled.has(project.id)) return
+      scheduled.add(project.id)
+      scheduleTimeout(() => {
+        scheduled.delete(project.id)
+        release(project.id)
+      }, wait)
     },
     retry() {
       void drain()
+    },
+    flush() {
+      for (const id of [...waiting.keys()]) release(id)
     },
     status: () => currentStatus,
     subscribe(listener) {
@@ -171,16 +227,27 @@ export const createProjectSync = (options: ProjectSyncOptions = {}): ProjectSync
   }
 }
 
-// projects opened from the server go to it; any other project still meets the stub
+// projects opened from the server go to it, at most every SERVER_SAVE_INTERVAL_MS; any other
+// project still meets the stub, at once
 const defaultProjectSync = typeof window !== 'undefined'
-  ? createProjectSync({ transport: new ServerSyncTransport(new StubSyncTransport()) })
+  ? createProjectSync({
+    transport: new ServerSyncTransport(new StubSyncTransport()),
+    holdMs: SERVER_SAVE_INTERVAL_MS,
+    shouldHold: (project) => isRemoteProject(project.id),
+  })
   : undefined
 
 if (typeof window !== 'undefined' && defaultProjectSync) {
   window.addEventListener('online', () => defaultProjectSync.retry())
+  // a held edit lives only in memory: send it before the tab may be closed or put to sleep
+  window.addEventListener('pagehide', () => defaultProjectSync.flush())
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') defaultProjectSync.flush()
+  })
 }
 
 export const stageProjectSync = (project: ProjectData): void => defaultProjectSync?.stage(project)
 export const retryProjectSync = (): void => defaultProjectSync?.retry()
+export const flushProjectSync = (): void => defaultProjectSync?.flush()
 export const getProjectSyncStatus = (): ProjectSyncStatus => defaultProjectSync?.status() ?? 'idle'
 export const subscribeProjectSync = (listener: ProjectSyncListener): (() => void) => defaultProjectSync?.subscribe(listener) ?? (() => {})

@@ -28,7 +28,7 @@
  * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Application-Shell-and-Routing
  */
 import type { RefObject } from 'react'
-import { ProjectData, SceneData, SceneObject, makeScene } from '../../project/model'
+import { ProjectData, type RoomCell, SceneData, SceneObject, makeScene } from '../../project/model'
 import { AssetDefinition } from '../../content/assets'
 import type { ViewportHandle } from '../../viewport/Viewport'
 import {
@@ -54,7 +54,7 @@ import {
 } from '../editorOperations'
 import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../ruleEditorOperations'
 import { grandparentId, previousSibling } from '../sceneTree'
-import { cellBeside, freeCell, roomAt, roomCell, type RoomSide } from '../roomLayout'
+import { freeCell, isAllowedCell, roomAt, roomCell } from '../roomLayout'
 
 type SceneEditingInputs = {
   project: ProjectData
@@ -152,17 +152,15 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
   const withStoredCell = (from: ProjectData, room: SceneData): ProjectData =>
     room.layout ? from : updateEditorScene(from, room.id, { layout: roomCell(from, room) ?? freeCell(from) }).project
 
-  // Adds a room on one side of the current room, on the rooms map. Stays in the current
-  // room, so the new one shows up on the side that was clicked (the map centres on the
-  // room you're in; jumping to the new room would flip it to the opposite side).
-  const addScene = (side: RoomSide) => {
+  // Adds a room in an empty cell of the rooms map (one of the five allowed cells).
+  // Stays in the current room; the new one shows up where the "+" was.
+  const addScene = (cell: RoomCell) => {
     // after a delete, scenes.length + 1 can name a scene that still exists, so skip taken ids
     let number = project.scenes.length + 1
     while (project.scenes.some((item) => item.id === `scene-${number}`)) number += 1
-    const base = withStoredCell(project, scene)
-    const here = base.scenes.find((item) => item.id === scene.id)!.layout!
-    const cell = cellBeside(here, side)
-    if (roomAt(base, cell)) return
+    // pin the first room where the map shows it, so adding at the origin can't move it
+    const base = project.scenes[0] ? withStoredCell(project, project.scenes[0]) : project
+    if (!isAllowedCell(cell) || roomAt(base, cell)) return
     const room = { ...makeScene(`scene-${number}`, `Room ${project.scenes.length + 1}`), layout: cell }
     // createScene makes the new scene active; switch back in the same undo step
     commit('Create scene', selectEditorScene(createEditorScene(base, room).project, scene.id).project)
