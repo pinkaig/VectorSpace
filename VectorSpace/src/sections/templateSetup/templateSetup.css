@@ -603,6 +603,18 @@
   color: var(--surface);
 }
 
+/* a room type students can't add: dashed and muted, like a slot left empty */
+.details-roomkind-off {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.details-roomkind-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .details-catalogue:focus-visible {
   outline: 2px solid var(--purple-500);
   outline-offset: 2px;

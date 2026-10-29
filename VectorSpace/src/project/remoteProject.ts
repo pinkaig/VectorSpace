@@ -40,7 +40,7 @@ import { ApiError, apiFetch, type GetToken } from '../api/client'
 import { defaultProject, type ProjectData } from './model'
 import { deserializeProject } from './serializer'
 
-type ProjectRow = { id: string; name: string; current_version_id: string | null }
+type ProjectRow = { id: string; name: string; status: RemoteProject['status']; current_version_id: string | null }
 type VersionSaved = { revision: number }
 type VersionDetail = VersionSaved & { data: unknown }
 
@@ -53,6 +53,7 @@ export const isRemoteProject = (id: string): boolean => registry.has(id)
 export interface RemoteProject {
   project: ProjectData
   revision: number
+  status: 'draft' | 'published' | 'archived'
 }
 
 export async function loadRemoteProject(getToken: GetToken, projectId: string, base?: string): Promise<RemoteProject> {
@@ -69,7 +70,7 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
   }
   project = { ...project, id: row.id }
   registry.set(row.id, { revision, getToken })
-  return { project, revision }
+  return { project, revision, status: row.status }
 }
 
 export class ServerSyncTransport implements SyncTransport<ProjectData> {
