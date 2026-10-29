@@ -4,7 +4,9 @@
  * @author      Chloe Lau Rey En
  * @brief       Teacher home (Classes tab): greeting with New project (a popup
  *              that names the project, picks the class and due date, then opens
- *              template setup) and every project in a box that scrolls on its
+ *              template setup), how many classes are building, the "Pick up
+ *              where you left off" card (the newest assigned project that is not
+ *              due yet), and every other project in a box that scrolls on its
  *              own. Each project has a ⋯ menu: Duplicate, Archive (after it is
  *              due) and Delete (only when no student has started it, confirmed
  *              first). Shows a banner after a project is assigned on template
@@ -49,6 +51,7 @@ import {
   type Project,
 } from "../api/projects";
 import { useLoad } from "../api/useLoad";
+import { MuseumPreview } from "../ui/museumPreview";
 import { ProjectListsSection } from "../sections/home/ProjectListsSection";
 import "./TeacherHomePage.css";
 
@@ -100,6 +103,20 @@ const dueHasPassed = (dueAt: string | null | undefined): boolean => {
   const [year, month, day] = dueAt.split("-").map(Number);
   return Date.now() >= new Date(year, month - 1, day + 1).getTime();
 };
+
+// "Due Friday" when it's within a week, otherwise "Due 30 Oct" (same as the student home)
+const dueLabel = (iso: string): string => {
+  const [year, month, day] = iso.split("-").map(Number);
+  const due = new Date(year, month - 1, day);
+  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+  if (days >= 0 && days < 7)
+    return `Due ${due.toLocaleDateString("en-GB", { weekday: "long" })}`;
+  return `Due ${due.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+};
+
+// the newest edit first: the latest save, or the row's own update when never saved
+const newestFirst = (a: Project, b: Project): number =>
+  (b.saved_at ?? b.updated_at).localeCompare(a.saved_at ?? a.updated_at);
 
 // one of the teacher's projects from the database, as a row in All projects
 const rowFromServer = (project: Project): ProjectRow => ({
@@ -540,8 +557,42 @@ export default function TeacherHomePage() {
     });
   };
 
-  const activeProjects = projects.filter((p) => !p.archived);
+  // Projects assigned and not due yet, newest first: the first one is the "Pick up where you
+  // left off" card, and their classes are the ones "building right now". Server only, since
+  // offline projects have no due date.
+  const inProgress = (server.data ?? [])
+    .filter((p) => p.status !== "archived" && p.due_at && !dueHasPassed(p.due_at))
+    .sort(newestFirst);
+  const pickUp = inProgress[0];
+  const pickUpRow = pickUp && projects.find((p) => p.id === pickUp.id);
+  const buildingClasses = new Set(inProgress.map((p) => p.class_id ?? p.class_name)).size;
+
+  // the card's project is not listed again under All projects
+  const activeProjects = projects.filter((p) => !p.archived && p.id !== pickUpRow?.id);
   const archivedProjects = projects.filter((p) => p.archived);
+
+  // "Set up project" (or "Set up and assign") opens template setup with that project
+  const openSetup = (project: ProjectRow) =>
+    navigate("/teacher/template", {
+      state: project.onServer ? { projectId: project.id } : null,
+    });
+
+  // the ⋯ menu for one project, on the card or in the list
+  const menuFor = (project: ProjectRow) => (
+    <ProjectMenu
+      name={project.name}
+      open={openMenuId === project.id}
+      onToggle={() => toggleMenu(project.id)}
+      hasClass={project.className !== null}
+      archived={project.archived}
+      canArchive={project.isPastDue}
+      canDelete={!project.hasStudentWork}
+      deleteHint={project.deleteHint}
+      onDuplicate={() => duplicate(project)}
+      onArchive={() => toggleArchived(project)}
+      onDelete={() => askToDelete(project)}
+    />
+  );
   // archived ones go at the bottom, only when shown
   const visibleProjects = showArchived
     ? [...activeProjects, ...archivedProjects]
@@ -571,6 +622,14 @@ export default function TeacherHomePage() {
           <h1 className="teacher-home-greeting">
             {greetingForTime()}, {displayName}
           </h1>
+          {buildingClasses > 0 && (
+            <p className="teacher-home-lead">
+              {buildingClasses === 1
+                ? "One class is"
+                : `${buildingClasses} classes are`}{" "}
+              building right now.
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -581,6 +640,53 @@ export default function TeacherHomePage() {
           New project
         </button>
       </div>
+
+      {pickUp && pickUpRow && (
+        <>
+          <h2 className="teacher-home-label">Pick up where you left off</h2>
+          <article className="teacher-home-class">
+            <div className="teacher-home-class-image">
+              <MuseumPreview title={pickUp.name} />
+            </div>
+
+            <div>
+              <div className="teacher-home-chips">
+                {pickUp.class_name && (
+                  <span className="teacher-home-chip teacher-home-chip-dark">
+                    {pickUp.class_name}
+                  </span>
+                )}
+                {pickUp.due_at && (
+                  <span className="teacher-home-chip">{dueLabel(pickUp.due_at)}</span>
+                )}
+              </div>
+              <h3 className="teacher-home-class-title">{pickUp.name}</h3>
+              {/* the task for now; the class's progress bar goes here once the counts exist */}
+              {pickUp.task && (
+                <p className="teacher-home-class-task">{pickUp.task}</p>
+              )}
+              <div className="teacher-home-class-actions">
+                <button
+                  type="button"
+                  className="teacher-home-primary"
+                  onClick={() => openSetup(pickUpRow)}
+                >
+                  Set up project
+                </button>
+                <button
+                  type="button"
+                  className="teacher-home-secondary"
+                  onClick={() => navigate("/teacher/review")}
+                >
+                  Review submissions
+                </button>
+              </div>
+            </div>
+
+            {menuFor(pickUpRow)}
+          </article>
+        </>
+      )}
 
       <section className="teacher-home-all">
         <div className="teacher-home-all-head">
@@ -673,27 +779,13 @@ export default function TeacherHomePage() {
                       project.action === "Set up and assign" ||
                       project.action === "Set up project"
                     )
-                      navigate("/teacher/template", {
-                        state: project.onServer ? { projectId: project.id } : null,
-                      });
+                      openSetup(project);
                   }}
                 >
                   {project.action}
                 </button>
               )}
-              <ProjectMenu
-                name={project.name}
-                open={openMenuId === project.id}
-                onToggle={() => toggleMenu(project.id)}
-                hasClass={project.className !== null}
-                archived={project.archived}
-                canArchive={project.isPastDue}
-                canDelete={!project.hasStudentWork}
-                deleteHint={project.deleteHint}
-                onDuplicate={() => duplicate(project)}
-                onArchive={() => toggleArchived(project)}
-                onDelete={() => askToDelete(project)}
-              />
+              {menuFor(project)}
             </div>
           ))}
         </div>
