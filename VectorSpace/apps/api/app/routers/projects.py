@@ -279,6 +279,19 @@ def assign_project(
     if body.due_at is not None:
         assignment.due_at = body.due_at
     db.flush()
+    copy = _send_copy(db, source, student, shared[0], actor)
+    copy.assignment_id = assignment.id
+    db.commit()
+    db.refresh(copy)
+    return _describe(db, [copy])[0]
+
+
+def _send_copy(db: Session, source: Project, student: Actor, class_id: uuid.UUID, sender: Actor) -> Project:
+    """Make one student's own copy of `source` in `class_id`, labelled as sent by `sender`.
+
+    Shared by "send to student" (assign_project) and "assign to class" (assign_class); the caller
+    links the copy to its assignment and commits.
+    """
     copy = Project(
         organisation_id=sender.organisation_id,
         created_by_id=student.id,
@@ -287,7 +300,6 @@ def assign_project(
         slug=_slug(source.name),
         template_id=source.id if source.kind == "template" else source.template_id,
         template_revision=None,
-        assignment_id=assignment.id,
     )
     db.add(copy)
     db.flush()
