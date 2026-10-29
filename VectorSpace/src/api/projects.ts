@@ -122,9 +122,23 @@ export function listRevisions(getToken: GetToken, projectId: string, base?: stri
   return apiFetch<Revision[]>(getToken, `/projects/${projectId}/versions`, {}, base)
 }
 
-/** Teachers only: gives the student their own copy of a project or template (named "x (2)" if they already have one). */
-export function sendToStudent(getToken: GetToken, projectId: string, studentId: string, base?: string): Promise<Project> {
-  return apiFetch<Project>(getToken, `/projects/${projectId}/assign`, { method: 'POST', body: { student_id: studentId } }, base)
+/** What the teacher sets for the whole class when assigning. Left out = the server keeps what it has. */
+export type AssignDetails = { task?: string; dueAt?: string } // dueAt is "YYYY-MM-DD"
+
+export function sendToStudent(getToken: GetToken, projectId: string, studentId: string, details: AssignDetails = {}, base?: string): Promise<Project> {
+  return apiFetch<Project>(
+    getToken,
+    `/projects/${projectId}/assign`,
+    { method: 'POST', body: { student_id: studentId, task: details.task, due_at: details.dueAt } },
+    base,
+  )
+}
+
+/** Teachers only: a copy of the project's latest save for each of these students. */
+export async function sendToStudents(getToken: GetToken, projectId: string, studentIds: string[], details: AssignDetails = {}, base?: string): Promise<{ sent: number; failed: number }> {
+  const outcomes = await Promise.allSettled(studentIds.map((id) => sendToStudent(getToken, projectId, id, details, base)))
+  const failed = outcomes.filter((outcome) => outcome.status === 'rejected').length
+  return { sent: studentIds.length - failed, failed }
 }
 
 /** How sending to a class went: copies made now, students who had one already, and sends that failed. */
@@ -162,13 +176,6 @@ export async function classRoster(getToken: GetToken, projectId: string, project
     .map((member) => ({ id: member.id, display_name: member.display_name, hasCopy: haveOne.has(member.id) }))
 }
 
-/** Teachers only: a copy of the project's latest save for each of these students. */
-export async function sendToStudents(getToken: GetToken, projectId: string, studentIds: string[], base?: string): Promise<{ sent: number; failed: number }> {
-  const outcomes = await Promise.allSettled(studentIds.map((id) => sendToStudent(getToken, projectId, id, base)))
-  const failed = outcomes.filter((outcome) => outcome.status === 'rejected').length
-  return { sent: studentIds.length - failed, failed }
-}
-
 /** Teachers only: files the project under one of the teacher's classes. */
 export function setProjectClass(getToken: GetToken, projectId: string, classId: string, base?: string): Promise<Project> {
   return apiFetch<Project>(getToken, `/projects/${projectId}`, { method: 'PATCH', body: { class_id: classId } }, base)
@@ -182,6 +189,6 @@ export function setProjectClass(getToken: GetToken, projectId: string, classId: 
 export async function sendToClass(getToken: GetToken, projectId: string, projectName: string, classId: string, base?: string): Promise<ClassSendResult> {
   const roster = await classRoster(getToken, projectId, projectName, classId, base)
   const waiting = roster.filter((student) => !student.hasCopy)
-  const { sent, failed } = await sendToStudents(getToken, projectId, waiting.map((student) => student.id), base)
+  const { sent, failed } = await sendToStudents(getToken, projectId, waiting.map((student) => student.id), {}, base)
   return { sent, alreadyHad: roster.length - waiting.length, failed }
 }

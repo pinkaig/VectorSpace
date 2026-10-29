@@ -41,6 +41,7 @@ import { SetupViewportSection } from "../sections/templateSetup/SetupViewportSec
 import { ProjectDetailsSection } from "../sections/templateSetup/ProjectDetailsSection";
 import { AssignDialogSection, type AssignChoice } from "../sections/templateSetup/AssignDialogSection";
 import { formatDueDate, tidyBrief, type MissionBrief } from "../mission/missionBrief";
+import { assignDetailsFromBrief } from "../api/assignmentFromBrief";
 import type { PreviewState } from "./TeacherPreviewPage";
 import "./TeacherTemplateSetupPage.css";
 
@@ -231,7 +232,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
           // saved first, so the copies hold this save; a failed send leaves the save in place
           try {
             if (choice.classId !== start.classId) await setProjectClass(getToken, projectId, choice.classId);
-            const result = await sendToStudents(getToken, projectId, choice.studentIds);
+            const result = await sendToStudents(getToken, projectId, choice.studentIds, assignDetailsFromBrief(content.missionBrief));
             sent = { ...result, alreadyHad: 0 };
           } catch (error) {
             sendProblem = (error as Error).message;

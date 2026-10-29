@@ -147,6 +147,24 @@ def test_sending_marks_the_project_sent_and_files_the_copy_under_its_assignment(
     assert copy["assignment_id"] and copy["assignment_id"] == again["assignment_id"]  # one assignment per class
     assert client.get(f"/projects/{project['id']}", headers=as_user("t1")).json()["sent"] is True
 
+def test_assigning_saves_the_task_and_due_date_and_the_latest_assign_wins(client, school) -> None:
+    project = make(client, "t1", "Lesson")
+    first = client.post(
+        f"/projects/{project['id']}/assign",
+        json={"student_id": str(school["s1"].id), "task": "Place 3 exhibits", "due_at": "2026-11-06"},
+        headers=as_user("t1"),
+    ).json()
+    assert (first["task"], first["due_at"]) == ("Place 3 exhibits", "2026-11-06")
+    # assigning again with a new due date updates the copy already sent; the task left out stays as it was
+    client.post(
+        f"/projects/{project['id']}/assign",
+        json={"student_id": str(school["s2"].id), "due_at": "2026-11-13"},
+        headers=as_user("t1"),
+    )
+    again = client.get(f"/projects/{first['id']}", headers=as_user("s1")).json()
+    assert (again["task"], again["due_at"]) == ("Place 3 exhibits", "2026-11-13")
+    # the teacher's own project shows the same due date (the home uses it for the archive rule)
+    assert client.get(f"/projects/{project['id']}", headers=as_user("t1")).json()["due_at"] == "2026-11-13"
 
 def test_a_draft_nobody_was_sent_can_be_deleted_with_its_saves(client, school) -> None:
     project = make(client, "t1", "Scratch")

@@ -23,7 +23,7 @@ describe('projects api', () => {
   it('sends a copy to a student by id', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"p2"}', { status: 201 }))
     vi.stubGlobal('fetch', fetchMock)
-    await sendToStudent(async () => 't', 'p1', 'aisyah', 'http://api')
+    await sendToStudent(async () => 't', 'p1', 'aisyah', {}, 'http://api')
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('http://api/projects/p1/assign')
     expect(JSON.parse(init.body)).toEqual({ student_id: 'aisyah' })
