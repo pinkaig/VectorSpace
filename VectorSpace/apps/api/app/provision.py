@@ -38,7 +38,12 @@ class Row:
 
 
 class Auth0Admin:
-    """The two Management API calls we need. Replaced by a fake in tests."""
+    """The Management API calls we need. Replaced by a fake in tests.
+
+    Scopes: create:users, create:user_tickets, and read:users for the already-exists
+    fallback below. Missing read:users is invisible until a roster names somebody the
+    tenant already has, and then shows up as 403 on /users-by-email.
+    """
 
     def __init__(self) -> None:
         s = get_settings()

@@ -54,20 +54,25 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # The three below and VITE_API_URL are one switch, flipped together. All three set
-      # (plus VITE_API_URL) makes the deployed app sign in through Auth0 and read its role
-      # from GET /me; any of them missing makes it fall back to the prototype role picker,
-      # which production refuses to serve because it has no AUTH_DEV_BYPASS. So do not set
-      # VITE_API_URL on its own. VITE_AUTH0_AUDIENCE must equal the API's AUTH0_AUDIENCE.
+      # These four are one switch, flipped together, and every one of them is sync: false
+      # so that nothing takes effect until a person has entered all four in the dashboard.
+      # All four set makes the deployed app sign in through Auth0 and read its role from
+      # GET /me; any one missing makes the build fall back to the prototype role picker,
+      # which the production API refuses to serve because it has no AUTH_DEV_BYPASS, so
+      # the site would offer a sign-in that cannot succeed. That is why VITE_API_URL is
+      # sync: false here rather than carrying its value inline: a value would arrive with
+      # the blueprint and leave the switch half-flipped until someone typed the other
+      # three. Its value is https://vectorspace-api.onrender.com (the API service above).
+      # VITE_AUTH0_AUDIENCE must equal the API service's AUTH0_AUDIENCE, exactly.
       #
-      # Before flipping: the Neon roster has to carry real auth0|... subjects, written by
-      # app/provision.py --apply. The seeded dev|... ones can never authenticate.
-      # See Desktop/docs/handover/long auth0-integration.md, steps 3 and 5.
-      # - key: VITE_AUTH0_DOMAIN
-      #   sync: false
-      # - key: VITE_AUTH0_CLIENT_ID
-      #   sync: false
-      # - key: VITE_AUTH0_AUDIENCE
-      #   sync: false
-      # - key: VITE_API_URL
-      #   value: https://vectorspace-api.onrender.com
+      # Before entering them: the Neon roster has to carry real auth0|... subjects, written
+      # by app/provision.py --apply. The seeded dev|... ones can never authenticate.
+      # See Desktop/docs/handover/short render-auth0-setup.md for the whole sequence.
+      - key: VITE_AUTH0_DOMAIN
+        sync: false
+      - key: VITE_AUTH0_CLIENT_ID
+        sync: false
+      - key: VITE_AUTH0_AUDIENCE
+        sync: false
+      - key: VITE_API_URL
+        sync: false
