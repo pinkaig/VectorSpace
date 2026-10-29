@@ -27,8 +27,13 @@
 /****************************************************************************************************/
 import * as THREE from 'three'
 import type { RoomSurfaces } from '../project/model'
-import carpetUrl from './textures/carpet_navy.jpg?url'
-import brickUrl from './textures/brick_red.png?url'
+// Textures from ambientCG (CC0, free to use)
+import wallPlasterUrl from './textures/wall_plaster.png?url'
+import wallBricksUrl from './textures/wall_bricks.png?url'
+import wallWoodSidingUrl from './textures/wall_wood_siding.png?url'
+import floorWoodUrl from './textures/floor_wood.png?url'
+import floorPlanksUrl from './textures/floor_planks.png?url'
+import floorTilesUrl from './textures/floor_tiles.png?url'
 
 // The style buttons in "Your rooms", in order
 export const ROOM_STYLE_OPTIONS = ['Style 1', 'Style 2', 'Style 3', 'Style 4'] as const
@@ -40,14 +45,24 @@ export const DEFAULT_ROOM_SURFACES: RoomSurfaces = { walls: 'Style 1', floor: 'S
 
 interface SurfaceTexture {
   url: string        // the texture image
-  tileSize: number   // how many metres ONE copy of the image covers (bigger = larger pattern)
+  // how many metres ONE copy of the image covers (bigger = larger pattern).
+  // [width, height] for an image that is not square, e.g. the 1024x512 bricks.
+  tileSize: number | [number, number]
   roughness: number  // 0 = shiny, 1 = completely matte
 }
 
-// FOR NOW only Style 4 has textures; Styles 1-3 keep the room's own look from its model.
+// Style 1 has no entry: it keeps the room's own plain look from its model.
 const STYLE_TEXTURES: Record<SurfacePart, Partial<Record<string, SurfaceTexture>>> = {
-  walls: { 'Style 4': { url: brickUrl, tileSize: 2, roughness: 0.9 } },
-  floor: { 'Style 4': { url: carpetUrl, tileSize: 1, roughness: 0.95 } },
+  walls: {
+    'Style 2': { url: wallPlasterUrl, tileSize: 2, roughness: 0.9 },
+    'Style 3': { url: wallBricksUrl, tileSize: [2, 1], roughness: 0.9 },
+    'Style 4': { url: wallWoodSidingUrl, tileSize: 2, roughness: 0.8 },
+  },
+  floor: {
+    'Style 2': { url: floorWoodUrl, tileSize: 2, roughness: 0.7 },
+    'Style 3': { url: floorPlanksUrl, tileSize: 2, roughness: 0.8 },
+    'Style 4': { url: floorTilesUrl, tileSize: 1.5, roughness: 0.5 },
+  },
 }
 
 // Blender material name -> which part of the room it is. "Floor.001" counts as "floor".
@@ -74,7 +89,8 @@ const textureFor = (style: SurfaceTexture): THREE.Texture => {
   const texture = new THREE.TextureLoader().load(style.url)
   texture.wrapS = THREE.RepeatWrapping // repeat sideways instead of stretching
   texture.wrapT = THREE.RepeatWrapping // repeat up/down too
-  texture.repeat.set(1 / style.tileSize, 1 / style.tileSize) // UVs are in metres, so this sets the tile size
+  const [width, height] = typeof style.tileSize === 'number' ? [style.tileSize, style.tileSize] : style.tileSize
+  texture.repeat.set(1 / width, 1 / height) // UVs are in metres, so this sets the tile size
   texture.colorSpace = THREE.SRGBColorSpace // photos are sRGB; without this they look washed out
   texture.anisotropy = 8 // keeps the floor sharp when viewed at a low angle
   textureCache.set(style, texture)
