@@ -3,7 +3,7 @@
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
  * @brief       Styles for the teacher home (Classes tab): greeting with New
- *              project, the last project's card, the All projects box that
+ *              project, the "Pick up where you left off" card, the All projects box that
  *              scrolls on its own, the ⋯ menu, the delete and New project
  *              popups, and the "assigned" banner. The frame around it is
  *              TeacherLayout's. Values from the V3 manual and the 2.03 prototype.
@@ -108,6 +108,14 @@
   overflow: hidden;
 }
 
+/* the picture fills its box, cropped rather than stretched */
+.teacher-home-class-image .museum-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .teacher-home-chips {
   display: flex;
   gap: 8px;
@@ -148,10 +156,23 @@
 
 .teacher-home-class-title {
   margin: 0 0 12px;
+  padding-right: 48px; /* keeps a long name clear of the ⋯ */
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 26px;
   line-height: 1.15;
+}
+
+/* the task, at most two lines, until the progress bar takes its place */
+.teacher-home-class-task {
+  display: -webkit-box;
+  margin: 0 0 16px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 15px;
+  color: var(--ink-2);
 }
 
 /* ── Progress bar: three parts, widths set from the counts ────────────── */
@@ -356,6 +377,7 @@
   padding: 10px 12px 10px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-box);
+  background: var(--bg-app);
 }
 
 /* a project that was just duplicated */
