@@ -52,3 +52,6 @@ Desktop.ini
 *.zip
 *.tar
 *.tar.gz
+# Roster and invite files: students' personal data, and single-use password links
+roster.csv
+invites.csv

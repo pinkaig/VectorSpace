@@ -67,20 +67,44 @@ describe('admin api', () => {
     expect(account.status).toBe('turned_off')
   })
 
-  it('adds an account with the database\'s own field names', async () => {
+  it('adds an account with the database\'s own field names, and keeps the invite link', async () => {
     const fetchMock = reply({
       id: 'a2', school_id: 'org-1', name: 'New Person', email: 'new@demo.test', role: 'teacher',
       class_names: ['1A Science'], last_active: null, status: 'invited',
+      invite_link: 'https://tenant.test/invite/abc',
     }, 201)
     vi.stubGlobal('fetch', fetchMock)
 
-    await api().addAccount({
+    const created = await api().addAccount({
       schoolId: 'org-1', name: 'New Person', email: 'new@demo.test', role: 'teacher', classNames: ['1A Science'],
     })
 
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
       school_id: 'org-1', name: 'New Person', email: 'new@demo.test', role: 'teacher', class_names: ['1A Science'],
     })
+    // the one-time password link rides along with the create reply and nowhere else
+    expect(created.inviteLink).toBe('https://tenant.test/invite/abc')
+    expect(created.status).toBe('invited')
+  })
+
+  it('reports no invite link as null, because the local login has no tenant to mint one', async () => {
+    vi.stubGlobal('fetch', reply({
+      id: 'a3', school_id: 'org-1', name: 'Dev Person', email: 'dev@demo.test', role: 'student',
+      class_names: [], last_active: null, status: 'invited', invite_link: null,
+    }, 201))
+
+    const created = await api().addAccount({
+      schoolId: 'org-1', name: 'Dev Person', email: 'dev@demo.test', role: 'student', classNames: [],
+    })
+
+    expect(created.inviteLink).toBeNull()
+  })
+
+  it('passes the API\'s reason for refusing a duplicate address straight through', async () => {
+    vi.stubGlobal('fetch', reply({ detail: 'aisyah@demo.test already belongs to Aisyah Rahman (student)' }, 409))
+    await expect(api().addAccount({
+      schoolId: 'org-1', name: 'Someone Else', email: 'aisyah@demo.test', role: 'teacher', classNames: [],
+    })).rejects.toThrow(/already belongs to Aisyah Rahman/)
   })
 
   it('passes the API\'s reason for refusing to add a school straight through', async () => {

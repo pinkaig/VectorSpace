@@ -86,3 +86,40 @@
 .admin-accounts-wide {
   grid-column: 1 / -1;
 }
+
+.admin-accounts-problem {
+  margin: 12px 0 0;
+  color: var(--red-700);
+  font-size: 14px;
+}
+
+/* what replaces the form once the account exists: the one-time password link and a copy button */
+.admin-accounts-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-accounts-invite p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.admin-accounts-invite-link {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--bg-app);
+  color: var(--ink);
+  font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+  word-break: break-all;
+}
+
+.admin-accounts-invite-actions {
+  display: flex;
+  justify-content: flex-start;
+}
