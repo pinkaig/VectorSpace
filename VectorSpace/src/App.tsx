@@ -25,7 +25,6 @@ import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherLayout from './pages/TeacherLayout'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
-import TeacherTemplateSetupPage from './pages/TeacherTemplateSetupPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
 import { ApiError } from './api/client'
 import { auth0Enabled } from './session/auth0'
@@ -36,6 +35,8 @@ import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homeP
 const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplication'))
 // the same editor opened by project id (/editor/:projectId), fetched from the API first
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
+// the template setup page embeds the 3D viewport, which pulls in the audio package, so it is lazy too
+const TeacherTemplateSetupPage = lazy(() => import('./pages/TeacherTemplateSetupPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 // The motion board (/motion-board, dev only). The ternary, not a bare lazy(), so a production build folds
@@ -172,7 +173,7 @@ export default function App() {
             <Route path="review" element={<TeacherReviewPage />} />
             <Route path="results" element={<TeacherResultsPage />} />
           </Route>
-          <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><TeacherTemplateSetupPage /></AdminNav></RequireRole>} />
+          <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><Suspense fallback={<p>Loading template setup…</p>}><TeacherTemplateSetupPage /></Suspense></AdminNav></RequireRole>} />
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
           <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
