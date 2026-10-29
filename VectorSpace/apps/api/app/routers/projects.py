@@ -84,7 +84,14 @@ class ProjectResponse(BaseModel):
 def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
     """The rows plus who made them, their class, their template, their assignment, the latest save and
     whether they were sent to students: six lookups for the lot."""
-    sent = set(db.scalars(select(Assignment.project_id).where(Assignment.project_id.in_({p.id for p in projects}))))
+    # the teacher's own projects: the assignment made from each (one per class it was sent to)
+    given_out: dict[uuid.UUID, Assignment] = {}
+    for a in db.scalars(select(Assignment).where(Assignment.project_id.in_({p.id for p in projects}))):
+        kept = given_out.get(a.project_id)
+        # sent to more than one class: the latest due date counts
+        if kept is None or (a.due_at or date.min) > (kept.due_at or date.min):
+            given_out[a.project_id] = a
+    sent = set(given_out)
     versions = {
         v.id: v
         for v in db.scalars(select(ProjectVersion).where(ProjectVersion.id.in_({p.current_version_id for p in projects if p.current_version_id})))
@@ -97,6 +104,7 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
         {p.created_by_id for p in projects}
         | {v.created_by_id for v in versions.values()}
         | {a.created_by_id for a in assignments.values()}
+        | {a.created_by_id for a in given_out.values()}
     )
     people = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_(people_ids)))}
     classes = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.id.in_({p.class_id for p in projects if p.class_id})))}
@@ -104,7 +112,8 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
     rows = []
     for p in projects:
         saved = versions.get(p.current_version_id)
-        assignment = assignments.get(p.assignment_id) if p.assignment_id else None
+        # a student's copy points at its assignment; the teacher's own project is pointed at by one
+        assignment = assignments.get(p.assignment_id) if p.assignment_id else given_out.get(p.id)
         rows.append(
             ProjectResponse.model_validate(p).model_copy(
                 update={
@@ -229,6 +238,8 @@ def create_project(
 
 class AssignRequest(BaseModel):
     student_id: uuid.UUID
+    task: str | None = None  # the teacher's one-line task; left out = keep what's saved
+    due_at: date | None = None  # "YYYY-MM-DD"; left out = keep what's saved
 
 
 @router.post("/{project_id}/assign", response_model=ProjectResponse, status_code=201)
@@ -255,10 +266,14 @@ def assign_project(
 
     assignment = db.scalar(select(Assignment).where(Assignment.class_id == shared[0], Assignment.project_id == source.id))
     if assignment is None:
-        # no task or due date yet: the student home shows only what is filled in
         assignment = Assignment(class_id=shared[0], project_id=source.id, task="", created_by_id=actor.id)
         db.add(assignment)
-        db.flush()
+    # the latest assign wins, so editing the brief and assigning again updates every student's card
+    if body.task is not None:
+        assignment.task = body.task
+    if body.due_at is not None:
+        assignment.due_at = body.due_at
+    db.flush()
     copy = Project(
         organisation_id=actor.organisation_id,
         created_by_id=student.id,

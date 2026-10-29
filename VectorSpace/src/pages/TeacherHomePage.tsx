@@ -93,6 +93,14 @@ const daysAgo = (iso: string): string => {
   return `${days} days ago`;
 };
 
+// true once the due day is over, so the project can be archived. No due date (never
+// assigned) counts as past due, same as before.
+const dueHasPassed = (dueAt: string | null | undefined): boolean => {
+  if (!dueAt) return true;
+  const [year, month, day] = dueAt.split("-").map(Number);
+  return Date.now() >= new Date(year, month - 1, day + 1).getTime();
+};
+
 // one of the teacher's projects from the database, as a row in All projects
 const rowFromServer = (project: Project): ProjectRow => ({
   id: project.id,
@@ -104,7 +112,7 @@ const rowFromServer = (project: Project): ProjectRow => ({
   action: "Set up project",
   actionIsPrimary: !project.saved_at,
   hasStudentWork: deleteHintFor(project) !== undefined,
-  isPastDue: true, // no due date is stored yet, so any project can be archived
+  isPastDue: dueHasPassed(project.due_at),
   archived: project.status === "archived",
   onServer: true,
   deleteHint: deleteHintFor(project),
