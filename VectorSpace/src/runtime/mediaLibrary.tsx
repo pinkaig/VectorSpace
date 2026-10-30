@@ -5,9 +5,11 @@
  *
  * @responsibility
  * MediaView only knows a media reference ({ kind, assetId }). This context
- * turns that into a descriptor. The default is offline: every resolve is an
- * error, so MediaView shows its "unavailable" fallback with the caption, never
- * a blank box. A page that has opened a server project wraps its tree in
+ * turns that into a descriptor. The default is the media library kept in this
+ * browser (src/content/localMediaLibrary.ts), checked by ContentGuardResolver;
+ * an id it does not know resolves to an error, so MediaView shows its
+ * "unavailable" fallback with the caption, never a blank box. A page that has
+ * opened a server project can instead wrap its tree in
  * MediaLibraryProvider, which resolves through
  * Caching -> ContentGuard -> RemoteMediaResolver (the same guard order as
  * src/content/assetResolution.ts).
@@ -20,16 +22,18 @@ import {
   CachingAssetResolver,
   ContentGuardResolver,
   RemoteMediaResolver,
-  errorAssetDescriptor,
   type AssetDescriptor,
   type AssetRef,
 } from '../../packages/assets/src/index'
+import { LocalMediaResolver } from '../content/localMediaLibrary'
 
 export type ResolveMedia = (ref: AssetRef) => Promise<AssetDescriptor>
 
-const offline: ResolveMedia = async (ref) => errorAssetDescriptor(ref, 'No media library is connected')
+// no caching layer: a local blob: URL never expires, and approvals must show at once
+const localGuarded = new ContentGuardResolver(new LocalMediaResolver())
+export const resolveLocalMedia: ResolveMedia = (ref) => localGuarded.resolve(ref)
 
-export const MediaLibraryContext = createContext<ResolveMedia>(offline)
+export const MediaLibraryContext = createContext<ResolveMedia>(resolveLocalMedia)
 
 /** The resolve function for one server project; exported so it can be tested without React. */
 export const createMediaLibrary = (options: { projectId: string; baseUrl?: string; getToken?: () => Promise<string | null> }): ResolveMedia => {

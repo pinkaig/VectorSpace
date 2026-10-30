@@ -5,7 +5,9 @@
  * @brief       Admin Rooms & assets: which room shells and asset packs one school can use.
  *              Whatever is on here is what its teachers can add to a project. Needs a
  *              school picked in the top bar. The two lists are in
- *              src/sections/admin/rooms/.
+ *              src/sections/admin/rooms/. Below them, YouTube and image links
+ *              for info cards (MediaLinksSection), which need no school picked:
+ *              they are kept in this browser for now.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -20,6 +22,7 @@ import { LoadingRows } from "../ui/loadingRows";
 import { useAdmin } from "../sections/admin/adminContext";
 import { RoomListSection } from "../sections/admin/rooms/RoomListSection";
 import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
+import { MediaLinksSection } from "../sections/admin/rooms/MediaLinksSection";
 import "./AdminRoomsPage.css";
 
 export default function AdminRoomsPage() {
@@ -36,6 +39,9 @@ export default function AdminRoomsPage() {
       <p className="admin-notstored" role="note">{NOT_STORED_YET}</p>
 
       {school ? <RoomsForSchool key={school.id} schoolId={school.id} /> : <PickSchoolNotice what="Rooms and asset packs" />}
+
+      {/*LINKS: YouTube videos and image links for info cards, with approval*/}
+      <MediaLinksSection />
     </>
   );
 }
