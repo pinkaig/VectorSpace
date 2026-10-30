@@ -40,6 +40,7 @@ import {
   type RuntimeState,
 } from '../../packages/interaction/src/index'
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../../packages/audio/src/index'
+import { clickPanelFor, registerMediaActions } from '../runtime/builtInInteractions'
 import { TextLibrary, TextSystem, createTextEventBridge, registerTextActions } from '../../packages/text/src/index'
 import TextPanelHost from '../runtime/TextPanelHost'
 import { audioResolver } from '../content/audioResolution'
@@ -533,6 +534,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       return undefined
     }
     registerTextActions(actions, text, { findAttachment: findTextAttachment })
+    // "play its video": the playMedia/stopMedia executors open the video in a pop-up card
+    registerMediaActions(actions, text, (attachmentId) => {
+      for (const object of dataRef.current.objects as readonly SceneObject[]) {
+        const video = object.attachments?.find((item) => item.id === attachmentId)
+        if (video?.kind === 'video') return { object, video }
+      }
+      return undefined
+    })
 
     
     actions.register(CHANGE_COLOR_KIND, createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
@@ -549,6 +558,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
      */
     const emitRuntimeEvent = (event: RuntimeEvent) => {
       if (dataRef.current.runtimeMode !== 'play' || !runtimeState) return
+      // Built in: clicking a thing (or reaching it on a tour) shows its info card, or its
+      // video if it has no card, before and alongside any reactions the student added.
+      if (event.kind === 'click' && event.objectId) {
+        const panel = clickPanelFor((dataRef.current.objects as readonly SceneObject[]).find((object) => object.id === event.objectId))
+        if (panel) {
+          const handle = text.open(panel)
+          effects.add(() => handle.close())
+        }
+      }
       const result = dispatch(event, dataRef.current.rules, projectForDispatch(), runtimeState)
       runtimeState = result.nextState
       for (const action of result.actions) {
