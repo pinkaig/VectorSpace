@@ -88,7 +88,7 @@ export function MediaLinksSection() {
       </div>
       <p className="admin-rooms-note">
         Videos and pictures from the web for info cards. A link added here is approved straight away; links added in the editor wait for you below.
-        Saved in this browser for now.
+        Unlike the settings above, these are kept: in this browser, for now.
       </p>
 
       {/*ADD: a YouTube link or a direct https link to a PNG, JPEG or WebP image*/}

@@ -19,16 +19,93 @@
  */
 /******************************************************************************/
 import { useState } from 'react'
-import type { InteractionRule } from '@vectorspace/project'
 import type { CardMedia } from '../../project/model'
 import { checkCardInput, MAX_CARD_CAPTION_LENGTH, MAX_CARD_TITLE_LENGTH, type CardInput } from '../../editor/cardEditorOperations'
 import MediaView from '../../runtime/MediaView'
 
-/** One entry the pickers offer: an uploaded file or an approved link from the project's library. */
+/** One entry the pickers offer from the media library: a file from this computer or a link. */
 export interface MediaChoice {
   assetId: string
   kind: CardMedia['kind']
   label: string
+  // a link added in the editor waits for an admin; until then cards show it as unavailable
+  status?: 'approved' | 'pending' | 'rejected'
+}
+
+/** Adds a file or a link to the library; returns the new choice, or an error to show. */
+export type AddMedia = {
+  upload?: (file: File) => Promise<MediaChoice | { error: string }>
+  link?: (url: string) => MediaChoice | { error: string }
+}
+
+const ACCEPT: Record<CardMedia['kind'], string> = { image: 'image/png,image/jpeg,image/webp', video: 'video/mp4,video/webm' }
+
+/**
+ * The list of library entries of one kind, plus "Upload from computer" and a
+ * box to paste a link. Picking, uploading or adding a link all select it.
+ */
+function MediaPicker({ kind, choices, selectedId, onPick, addMedia }: {
+  kind: CardMedia['kind']
+  choices: MediaChoice[]
+  selectedId: string
+  onPick: (choice: MediaChoice) => void
+  addMedia: AddMedia
+}) {
+  const [link, setLink] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+  const upload = async (file: File | undefined) => {
+    if (!file || !addMedia.upload) return
+    setBusy(true)
+    const result = await addMedia.upload(file)
+    setBusy(false)
+    if ('error' in result) return setProblem(result.error)
+    if (result.kind !== kind) return setProblem(kind === 'image' ? 'That is a video, not a picture' : 'That is a picture, not a video')
+    setProblem(null)
+    onPick(result)
+  }
+  const addLink = () => {
+    if (!addMedia.link) return
+    const result = addMedia.link(link)
+    if ('error' in result) return setProblem(result.error)
+    if (result.kind !== kind) return setProblem(kind === 'image' ? 'That link is a video, not a picture' : 'That link is a picture, not a video')
+    setLink('')
+    setProblem(null)
+    onPick(result)
+  }
+  const shown = choices.filter((choice) => choice.kind === kind && choice.status !== 'rejected')
+  return (
+    <div className="info-pick-list">
+      {shown.length === 0 && <div className="info-note">Nothing in the media library yet. Upload one or paste a link.</div>}
+      {shown.map((choice) => (
+        <button key={choice.assetId} className={selectedId === choice.assetId ? 'info-pick selected' : 'info-pick'} onClick={() => onPick(choice)}>
+          <span className="info-pick-label">{choice.label}</span>
+          {choice.status === 'pending'
+            ? <span className="info-pick-status">Waiting for approval</span>
+            : kind === 'video' && <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" /></svg>}
+        </button>
+      ))}
+      {addMedia.upload && (
+        <label className={busy ? 'info-upload busy' : 'info-upload'}>
+          {busy ? 'Saving…' : `+ Upload ${kind === 'image' ? 'a picture' : 'a video'} from this computer`}
+          <input type="file" accept={ACCEPT[kind]} disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = '' }} />
+        </label>
+      )}
+      {addMedia.link && (
+        <div className="info-link-row">
+          <input
+            aria-label={kind === 'image' ? 'Image link' : 'YouTube link'}
+            placeholder={kind === 'image' ? 'Paste an image link (https://…/picture.png)' : 'Paste a YouTube link'}
+            value={link}
+            onChange={(event) => { setLink(event.target.value); setProblem(null) }}
+          />
+          <button className="info-link-add" disabled={!link.trim()} onClick={addLink}>Add</button>
+        </div>
+      )}
+      {addMedia.link && <div className="info-note">Links play once an admin approves them.</div>}
+      {problem && <div className="info-problem" role="alert">{problem}</div>}
+    </div>
+  )
 }
 
 type View = 'list' | 'fact' | 'video'
@@ -46,30 +123,41 @@ const VideoIcon = ({ stroke = 'currentColor' }: { stroke?: string }) => (
   </svg>
 )
 
-// the line under an item: nothing opens a card or plays a video on click until a reaction does
-function NoReactionLine({ onGo }: { onGo: () => void }) {
+// the line under an item: in Play, clicking the exhibit (or reaching it on a tour) shows it
+function ShowsWhenLine({ onGo }: { onGo: () => void }) {
   return (
-    <button className="info-rule-line warn" onClick={onGo}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C98414" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v6M12 16.5v.5" />
+    <button className="info-rule-line" onClick={onGo}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C98414" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M13 3L5 14h6l-1 7 8-11h-6z" />
       </svg>
-      <span>Visitors can't open this yet</span>
-      <span className="info-rule-action">Add a reaction</span>
+      <span>Shows when: <b className="info-rule-when">someone clicks it</b></span>
+      <span className="info-rule-action">Change</span>
     </button>
   )
 }
 
-export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions }: {
+// the green note under an item: the built-in behaviour, and where to add more
+function AutoNote() {
+  return (
+    <div className="info-auto">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E9E6A" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+      <span>Visitors will see this when they click the exhibit or reach it on a tour. You can change that in Step 3.</span>
+    </div>
+  )
+}
+
+export function InfoCardSection({ card, video, mediaChoices, addMedia, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions, onCardCreated }: {
   card: CardInput | null
   video: { assetId: string; label: string } | null
-  mediaChoices: MediaChoice[]     // empty when no server library is connected
-  rules: InteractionRule[]
+  mediaChoices: MediaChoice[]
+  addMedia: AddMedia
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
   onSaveVideo?: (assetId: string) => string | null
   onRemoveVideo?: () => void
   onGoToReactions: () => void
+  // a brand-new fact card was saved: the panel moves on to Reactions
+  onCardCreated?: () => void
 }) {
   const [view, setView] = useState<View>('list')
   const [problem, setProblem] = useState<string | null>(null)
@@ -82,10 +170,7 @@ export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, 
   // video draft
   const [videoId, setVideoId] = useState(video?.assetId ?? '')
 
-  const images = mediaChoices.filter((choice) => choice.kind === 'image')
-  const videos = mediaChoices.filter((choice) => choice.kind === 'video')
-  // reactions that play this object's video; nothing opens a card by click yet, so the card always shows the warning
-  const videoHasReaction = rules.some((rule) => rule.actions.some((action) => action.kind === 'playMedia'))
+  const choiceFor = (assetId: string) => mediaChoices.find((choice) => choice.assetId === assetId)
 
   const open = (next: View) => {
     setProblem(null)
@@ -110,6 +195,7 @@ export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, 
     const error = checkCardInput(input) ?? (onSaveCard ? onSaveCard(input) : 'Saving fact cards is not connected in this editor yet')
     if (error) return setProblem(error)
     open('list')
+    if (!card) onCardCreated?.()
   }
 
   const doneVideo = () => {
@@ -152,19 +238,15 @@ export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, 
                 <button className="info-choose" onClick={() => setChoosingPicture((value) => !value)}>+ Choose a picture</button>
               )}
               {choosingPicture && (
-                <div className="info-pick-list">
-                  {images.length === 0 && <div className="info-note">No pictures in the media library yet.</div>}
-                  {images.map((choice) => (
-                    <button
-                      key={choice.assetId}
-                      className={picture?.assetId === choice.assetId ? 'info-pick selected' : 'info-pick'}
-                      onClick={() => { setPicture({ kind: 'image', assetId: choice.assetId, caption: picture?.caption }); setChoosingPicture(false) }}
-                    >
-                      {choice.label}
-                    </button>
-                  ))}
-                </div>
+                <MediaPicker
+                  kind="image"
+                  choices={mediaChoices}
+                  selectedId={picture?.assetId ?? ''}
+                  addMedia={addMedia}
+                  onPick={(choice) => { setPicture({ kind: 'image', assetId: choice.assetId, caption: picture?.caption }); setChoosingPicture(false) }}
+                />
               )}
+              {picture && choiceFor(picture.assetId)?.status === 'pending' && <div className="info-note">This picture shows once an admin approves the link.</div>}
             </div>
             {picture && (
               <label className="info-field">
@@ -183,15 +265,7 @@ export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, 
         {view === 'video' && (
           <>
             <div className="info-heading">Pick a video</div>
-            <div className="info-pick-list">
-              {videos.length === 0 && <div className="info-note">No videos in the media library yet.</div>}
-              {videos.map((choice) => (
-                <button key={choice.assetId} className={videoId === choice.assetId ? 'info-pick selected' : 'info-pick'} onClick={() => setVideoId(choice.assetId)}>
-                  {choice.label}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" /></svg>
-                </button>
-              ))}
-            </div>
+            <MediaPicker kind="video" choices={mediaChoices} selectedId={videoId} addMedia={addMedia} onPick={(choice) => { setVideoId(choice.assetId); setProblem(null) }} />
             <div className="info-note">From your school's video library. Visitors open it in a pop-up and can play, pause and close it.</div>
           </>
         )}
@@ -217,7 +291,8 @@ export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, 
             </span>
             <span className="info-item-edit">Edit</span>
           </button>
-          <NoReactionLine onGo={onGoToReactions} />
+          <ShowsWhenLine onGo={onGoToReactions} />
+          <AutoNote />
         </div>
       )}
       {video && (
@@ -231,7 +306,10 @@ export function InfoCardSection({ card, video, mediaChoices, rules, onSaveCard, 
             </span>
             <span className="info-item-edit">Edit</span>
           </button>
-          {videoHasReaction ? null : <NoReactionLine onGo={onGoToReactions} />}
+          {/* a fact card takes the click; without one, the video opens on click */}
+          {card
+            ? <button className="info-rule-line" onClick={onGoToReactions}><span>Plays with a reaction: <b className="info-rule-when">play its video</b></span><span className="info-rule-action">Add</span></button>
+            : <><ShowsWhenLine onGo={onGoToReactions} /><AutoNote /></>}
         </div>
       )}
       <div>

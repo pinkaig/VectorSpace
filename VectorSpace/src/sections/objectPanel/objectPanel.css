@@ -878,3 +878,146 @@
   color: #1F1B3A;
   font-weight: 700;
 }
+
+/* ── Media pickers: upload from this computer, paste a link ────────────── */
+
+.info-pick-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.info-pick-status {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.info-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 2px dashed #D5CEF2;
+  border-radius: 12px;
+  background: #FAF9FE;
+  color: #4A3BC4;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.info-upload.busy {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.info-upload input {
+  display: none;
+}
+
+.info-link-row {
+  display: flex;
+  gap: 6px;
+}
+
+.info-link-row input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #D5CEF2;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.info-link-add {
+  padding: 0 14px;
+  border: 1px solid #5B4BD6;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3326A0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-link-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Info tab: what the built-in behaviour is ─────────────────────────── */
+
+.info-rule-when {
+  color: #3326A0;
+}
+
+.info-auto {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #E3F5EC;
+  color: #165E3D;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.info-auto svg {
+  margin-top: 1px;
+}
+
+/* ── Reactions tab: suggestions after a fact card is made ─────────────── */
+
+.react-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #BFE6D2;
+  border-radius: 14px;
+  background: #E3F5EC;
+  color: #165E3D;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.react-suggest-head {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.react-suggest-head svg {
+  margin-top: 1px;
+}
+
+.react-suggest-label {
+  color: #3B3363;
+  font-weight: 800;
+}
+
+.react-suggest-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.react-suggest-chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #F3D29C;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: #5C3A00;
+  font-size: 13px;
+  font-weight: 800;
+}
