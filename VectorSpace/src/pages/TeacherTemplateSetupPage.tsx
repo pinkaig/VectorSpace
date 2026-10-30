@@ -29,6 +29,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { Box } from "lucide-react";
 import { loadProject, saveProject } from "../project/serializer";
 import { defaultEnvironmentId, findEnvironment, type ProjectData } from "../project/model";
+import { studentRoomEnv } from "../editor/roomLayout";
 import { loadRemoteProject } from "../project/remoteProject";
 import { removeEditorScene, selectEditorScene, updateEditorScene } from "../editor/editorOperations";
 import { ApiError, apiUrl } from "../api/client";
@@ -217,7 +218,13 @@ function SetupScreen({ start }: { start: SetupStart }) {
   // files it under the picked class and sends a copy to each picked student. Then back to the
   // teacher home, which shows the banner.
   const assignBrief = async (choice?: AssignChoice) => {
-    const content = { ...draft, missionBrief: tidyBrief(brief) };
+    // the room types students can add are saved as a list even when the teacher left the
+    // defaults, so a student deleting a room later can't take its kind off their list
+    const content = {
+      ...draft,
+      missionBrief: tidyBrief(brief),
+      validateEnvironment: studentRoomEnv(draft).map((env) => env.id),
+    };
     let className = project.className;
     let sent: ClassSendResult | undefined;
     let sendProblem: string | undefined;
@@ -300,7 +307,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
       <div className="setup-body">{/*THE THREE PANELS, side by side*/}
         <MissionBriefSection brief={brief} onChange={editBrief} />
         <SetupViewportSection draft={draft} onChange={editDraft} />
-        <ProjectDetailsSection className={project.className} due={brief.due} />
+        <ProjectDetailsSection className={project.className} due={brief.due} draft={draft} onChange={editDraft} />
       </div>
       {choosing && projectId && (
         <AssignDialogSection

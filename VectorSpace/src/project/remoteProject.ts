@@ -40,8 +40,7 @@ import { ApiError, apiFetch, type GetToken } from '../api/client'
 import { defaultProject, type ProjectData } from './model'
 import { deserializeProject } from './serializer'
 
-// mission_brief: the teacher's brief, from the class assignment this copy belongs to
-type ProjectRow = { id: string; name: string; current_version_id: string | null; mission_brief?: unknown }
+type ProjectRow = { id: string; name: string; status: RemoteProject['status']; current_version_id: string | null; mission_brief?: unknown }
 type VersionSaved = { revision: number }
 type VersionDetail = VersionSaved & { data: unknown }
 
@@ -54,6 +53,7 @@ export const isRemoteProject = (id: string): boolean => registry.has(id)
 export interface RemoteProject {
   project: ProjectData
   revision: number
+  status: 'draft' | 'published' | 'archived'
 }
 
 export async function loadRemoteProject(getToken: GetToken, projectId: string, base?: string): Promise<RemoteProject> {
@@ -70,7 +70,7 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
   }
   project = withAssignedBrief({ ...project, id: row.id }, row.mission_brief)
   registry.set(row.id, { revision, getToken })
-  return { project, revision }
+  return { project, revision, status: row.status }
 }
 
 /**

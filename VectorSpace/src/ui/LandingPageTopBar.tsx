@@ -13,7 +13,9 @@
 /******************************************************************************/
 
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { Box } from "lucide-react";
+import { homePath, useSession } from "../session/session";
 import "./LandingPageTopBar.css";
 
 type LandingPageTopBarProps = {
@@ -33,16 +35,19 @@ export function LandingPageTopBar({
   actions,
   onSignOut,
 }: LandingPageTopBarProps) {
+  // the logo goes to this person's home page, the same rule as sign-in and the editor's cube
+  const { role, admin } = useSession();
+  const home = role ? homePath(role, admin) : "/";
   return (
     <header className="landing-top-bar">
             <div className="landing-top-bar-brand">
-        {/* logo and name: not a link, per the design (only template setup's logo goes home) */}
-        <div className="landing-top-bar-home">
+        {/* logo and name: back to the home (landing) page, e.g. from the Review or Results tab */}
+        <Link to={home} className="landing-top-bar-home" title="Back to home">
           <div className="landing-top-bar-logo">
             <Box size={22} />
           </div>
           <span className="landing-top-bar-name">VectorSpace</span>
-        </div>
+        </Link>
         {roleBadge === "teacher" && (
           <span className="landing-top-bar-badge teacher">Teacher</span>
         )}

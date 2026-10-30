@@ -56,6 +56,8 @@ const MAX_BRIEF_ITEMS = 50
 export interface ProjectLoadResult {
   project: ProjectData
   source: ProjectLoadSource
+  /** A server project's status (draft, published or archived); unset for a browser draft. */
+  status?: 'draft' | 'published' | 'archived'
 }
 
 const logger = createLogger('editor.persistence')
@@ -347,6 +349,15 @@ const validateMissionBrief = (project: ProjectData): void => {
   }
 }
 
+// allowed environment for students set by the teacher 
+const validateEnvironment = (project: ProjectData): void => {
+  const kinds = project.validateEnvironment
+  if (kinds === undefined) return
+  if (!Array.isArray(kinds) || kinds.length > MAX_SCENES || kinds.some((id) => typeof id !== 'string' || !id || id.length > MAX_LABEL_LENGTH)) {
+    throw new Error('Project contains an invalid list of room kinds')
+  }
+}
+
 const validateProject = (parsed: unknown): ProjectData => {
   if (!parsed || typeof parsed !== 'object') throw new Error('Project file must contain a JSON object')
   const candidate = parsed as Partial<ProjectData>
@@ -383,6 +394,7 @@ const validateProject = (parsed: unknown): ProjectData => {
   validateAudioSettings(candidate as ProjectData)
   validateTextAssets(candidate as ProjectData)
   validateMissionBrief(candidate as ProjectData)
+  validateEnvironment(candidate as ProjectData)
   return backfillScenes(parsed as ProjectData)
 }
 

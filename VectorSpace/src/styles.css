@@ -192,8 +192,8 @@ button:disabled {
   background: #1c1a3a;
   color: var(--White);
 }
-/* keeps its full look while the Share flow isn't built (the global button:disabled fades it) */
-.top-publish:disabled { opacity: 1; cursor: default; }
+.top-publish:not(:disabled) { cursor: pointer; }
+.top-publish.problem { background: #b42318; }
 .button {
   border: 1px solid var(--border);
   padding: 9px 13px;
@@ -635,6 +635,35 @@ button:disabled {
   font-size: 14px;
   line-height: 1.45;
 }
+
+/* the "+" whose room kind is being picked */
+.rooms-cell-add.picking { border-style: solid; border-color: var(--purple-500); background: var(--purple-100); }
+
+/* "What kind of room?": the kinds on offer after a "+" */
+.rooms-kinds { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 14px; background: var(--purple-50); }
+.rooms-kinds-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rooms-kinds-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
+.rooms-kinds-cancel { padding: 4px 8px; border: none; border-radius: var(--radius-btn); background: transparent; color: var(--ink-2); font: inherit; font-weight: 700; cursor: pointer; }
+.rooms-kinds-cancel:hover { background: var(--purple-100); }
+.rooms-kinds-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; max-height: 220px; overflow-y: auto; }
+.rooms-kind {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; text-align: left;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--White); font: inherit; cursor: pointer;
+}
+.rooms-kind:hover { border-color: var(--purple-300); }
+.rooms-kind:focus-visible,
+.rooms-kinds-cancel:focus-visible { outline: 2px solid var(--purple-500); outline-offset: 2px; }
+.rooms-kind strong { display: block; font-size: 14px; color: var(--ink); }
+.rooms-kind small { font-size: 12px; color: var(--text-muted); }
+.rooms-kind-swatch { flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; }
+/* the same colours as template setup's room chips (templateSetup.css "Room colours") */
+.rooms-kind-swatch.tone-blue { background: #B7D5F4; }
+.rooms-kind-swatch.tone-green { background: #C4E2A0; }
+.rooms-kind-swatch.tone-peach { background: #F6CFAE; }
+.rooms-kind-swatch.tone-lilac { background: #D6CCF5; }
+.rooms-kind-swatch.tone-rose { background: #F3C1CF; }
+.rooms-kind-swatch.tone-sky { background: #B5E6EC; }
+.rooms-kinds-note { margin: 0; font-size: 13px; color: var(--ink-2); }
 
 /* ── Background music ─────────────────────────────────────────────────── */
 .rooms-music,
