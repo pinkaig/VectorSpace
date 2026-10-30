@@ -11,6 +11,8 @@
  *              The to-dos TICK THEMSELVES: each one's text is read by parseTodo and counted
  *              against the live project by checkGoal, so placing an exhibit updates it at once.
  *              A to-do parseTodo cannot read shows a dashed box: the teacher ticks it in review.
+ *              To-dos that clash (mission/conflicts.ts) still tick themselves here: not every
+ *              to-do has to be done, and the teacher was warned about the clash at setup.
  *
  *              Under the rules, "Info cards to write" lists the cards the teacher set
  *              (brief.cardTasks) and how far each one is: not started, in progress on a

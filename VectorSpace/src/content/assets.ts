@@ -37,12 +37,34 @@ import { AssetKind, type ProjectData } from '../project/model'
 import { getUserModelUrlModifier } from './userAssets'
 import { registerLocalAsset, resolveLocalAssetUrl } from '../content/assetResolution'
 
+// ── CATALOGUE CATEGORIES ──
+// The catalogue's tabs, left to right. Each asset lists the tabs it shows under
+// (AssetDefinition.categories), so one asset can be in more than one.
+// To add a tab: add its id to CatalogueCategoryId and a row to catalogueCategories.
+export type CatalogueCategoryId = 'exhibits' | 'signs' | 'misc' | 'zones'
+
+export interface CatalogueCategory {
+  id: CatalogueCategoryId
+  label: string     // the tab's text
+  singular: string  // one item of it, e.g. "Sign"
+  tone?: 'zone'     // a different chip colour (CSS: .chip.tone-zone); absent = the normal chip
+}
+
+export const catalogueCategories: CatalogueCategory[] = [
+  { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
+  { id: 'signs', label: 'Signs', singular: 'Sign' },
+  { id: 'misc', label: 'Misc', singular: 'Misc' },
+  { id: 'zones', label: 'Zones and markers', singular: 'Zone or marker', tone: 'zone' },
+]
+
 export interface AssetDefinition {
   kind: AssetKind
   assetId: string
   label: string
   detail: string
   category: 'primitive' | 'model'
+  // the catalogue tabs it shows under (see catalogueCategories above); can be more than one
+  categories: CatalogueCategoryId[]
   searchableText: string
   // Present only for `model` assets — the GLB source cloneModel() instances are loaded from.
   modelUrl?: string
@@ -56,6 +78,16 @@ const bundledModelUrls = import.meta.glob<string>('./assets/*.glb', { query: '?u
 const labelFromPath = (path: string): string =>
   path.replace(/^.*\//, '').replace(/\.glb$/i, '').replace(/[_-]+/g, ' ').trim()
 
+// CATEGORIES for the built-in models, by file name (lower case, no .glb).
+// A new model in src/content/assets/ should get a line here; one without a line shows under Misc.
+const BUNDLED_CATEGORIES: Record<string, CatalogueCategoryId[]> = {
+  sign: ['signs'],
+  arrow: ['signs'],
+  pedestal: ['misc'],
+  stanchion: ['misc'],
+}
+const UNTAGGED_CATEGORIES: CatalogueCategoryId[] = ['misc']
+
 // The primitive (cube/sphere/cylinder) placeholders are no longer offered here, but
 // objects already saved with them still render — syncArtefacts keeps drawing them.
 export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
@@ -68,6 +100,7 @@ export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
       label,
       detail: 'Built-in model',
       category: 'model',
+      categories: BUNDLED_CATEGORIES[label.toLowerCase()] ?? UNTAGGED_CATEGORIES,
       searchableText: `${label.toLowerCase()} model`,
       modelUrl: url,
     }
@@ -93,6 +126,10 @@ export const resolveModelUrlModifier = (assetId: string): ((url: string) => stri
 // in use can't be removed from the library, or those objects would lose their model.
 export const countAssetUses = (project: ProjectData, assetId: string): number =>
   project.scenes.reduce((total, scene) => total + scene.objects.filter((object) => object.assetId === assetId).length, 0)
+
+// The assets under one catalogue tab
+export const assetsInCategory = (categoryId: CatalogueCategoryId, catalog: readonly AssetDefinition[] = assetCatalog): AssetDefinition[] =>
+  catalog.filter((asset) => asset.categories.includes(categoryId))
 
 export const filterAssets =(query: string, catalog: readonly AssetDefinition[] = assetCatalog): AssetDefinition[] => {
   const normalized = query.trim().toLowerCase()

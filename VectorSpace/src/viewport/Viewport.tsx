@@ -20,6 +20,7 @@ import {
   AudioSettings,
   CameraPose,
   InteractionRule,
+  RoomSurfaces,
   SceneObject,
   TextAssetMeta,
   TextAttachment,
@@ -52,6 +53,7 @@ import { createZoneVisuals } from '../viewport/zoneVisuals'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from '../viewport/ViewportOverlay'
 import { syncGizmo } from '../viewport/editing/syncGizmo'
 import { loadEnvironmentIntoGroup } from '../viewport/environmentController'
+import { styleRoomSurfaces } from '../content/roomSurfaces'
 import { createFloorGrid } from './floorGrid'
 import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
 import { createViewportInteractionController } from '../viewport/editing/interactionController'
@@ -137,6 +139,8 @@ interface ViewportProps {
   showStats?: boolean
   /** How much of the environment's walls to show; lower settings clip it horizontally. */
   walls?: WallCut
+  /** The room's picked wall and floor style (SceneData.surfaces); absent = Style 1 everywhere. */
+  surfaces?: RoomSurfaces
   /** Reports the current snapped view (e.g., 'TOP', 'FRONT'), or null when the camera is freely rotated. */
   onViewLabelChange?: (label: string | null) => void
   /** Draws the hint text in the viewport corner; the editor shows it in its footer instead. */
@@ -272,6 +276,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     overlayInsetTop = OVERLAY_MARGIN,
     showStats = false,
     walls = 'full',
+    surfaces,
     onViewLabelChange,
     showHint = true,
     playMove,
@@ -344,6 +349,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const joystickRef = useRef({ x: 0, z: 0 })
   const wallsRef = useRef(walls)
   wallsRef.current = walls
+  const surfacesRef = useRef(surfaces)
+  surfacesRef.current = surfaces
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
   // Name of the OctaOrb face the camera is snapped to ('TOP', 'FRONT', …), shown as a
@@ -1029,6 +1036,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       currentDispose: currentEnvDisposeRef,
       onStatus: setEnvStatus,
       onReady: () => {
+        styleRoomSurfaces(holder, surfacesRef.current) // before the wall cut, so the cut lands on the worn materials
         applyWallCut(holder, wallsRef.current)
         applyPoseRef.current(dataRef.current.startCamera)
         requestRenderRef.current()
@@ -1042,6 +1050,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const holder = environmentGroupRef.current
     if (holder) applyWallCut(holder, walls)
   }, [walls])
+
+  // A new wall/floor style just swaps materials on the loaded room; no reload.
+  useEffect(() => {
+    const holder = environmentGroupRef.current
+    if (!holder) return
+    styleRoomSurfaces(holder, surfaces)
+    requestRenderRef.current()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surfaces?.walls, surfaces?.floor])
 
   useEffect(() => {
     onViewLabelChange?.(faceLabel)

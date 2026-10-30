@@ -130,6 +130,10 @@ class Assignment(Base):
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="RESTRICT"), nullable=False
     )
     task: Mapped[str] = mapped_column(Text, nullable=False)
+    # the teacher's mission brief (due, to-dos, rules) in the editor's MissionBrief shape;
+    # sent with every copy's GET /projects/{id}, so changing it reaches students who already
+    # have a copy. None for an assignment made before briefs (see 0006).
+    mission_brief: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # a day, not a time: the student home shows "Due Friday"
     due_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_by_id: Mapped[uuid.UUID] = mapped_column(

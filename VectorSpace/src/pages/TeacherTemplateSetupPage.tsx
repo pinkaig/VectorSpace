@@ -260,6 +260,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
       setFailed("Couldn't save the brief: this browser's storage is full or turned off.");
       return;
     }
+
     navigate("/teacher", {
       state: {
         assigned: {

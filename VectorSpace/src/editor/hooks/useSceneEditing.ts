@@ -28,7 +28,8 @@
  * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Application-Shell-and-Routing
  */
 import type { RefObject } from 'react'
-import { ProjectData, type EnvironmentDefinition, type RoomCell, SceneData, SceneObject, makeScene } from '../../project/model'
+import { DEFAULT_ROOM_SURFACES } from '../../content/roomSurfaces'
+import { ProjectData, type EnvironmentDefinition, type RoomSurfaces, type RoomCell, SceneData, SceneObject, makeScene } from '../../project/model'
 import { AssetDefinition } from '../../content/assets'
 import type { ViewportHandle } from '../../viewport/Viewport'
 import {
@@ -171,6 +172,13 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     if (!trimmed || !current || current.name === trimmed) return
     commit('Rename scene', updateEditorScene(project, sceneId, { name: trimmed }).project)
   }
+  // Changes a room's wall and/or floor style (from "Your rooms"); the other one keeps its style.
+  const setSceneSurfaces = (sceneId: string, change: Partial<RoomSurfaces>) => {
+    const current = project.scenes.find((item) => item.id === sceneId)
+    if (!current) return
+    const surfaces: RoomSurfaces = { ...DEFAULT_ROOM_SURFACES, ...current.surfaces, ...change }
+    commit('Change room style', updateEditorScene(project, sceneId, { surfaces }).project)
+  }
   // Moves a room earlier (-1) or later (+1) in the visit order.
   const moveSceneInOrder = (sceneId: string, step: -1 | 1) => {
     const index = project.scenes.findIndex((item) => item.id === sceneId)
@@ -190,6 +198,6 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
-    setSelectedEnabled, addScene, removeScene, moveSceneInOrder, renameScene,
+    setSelectedEnabled, addScene, removeScene, moveSceneInOrder, renameScene, setSceneSurfaces,
   }
 }

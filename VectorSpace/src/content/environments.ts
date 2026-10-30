@@ -14,6 +14,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { EnvironmentDefinition, findEnvironment } from '../project/model'
+import { prepareRoomSurfaces, roomSurfaceMaterials } from './roomSurfaces'
 import { engineEnvironmentId, noteEngineLoadFailed, noteEngineLoadStarted, noteEngineLoadSucceeded } from './engineAssetRegistry'
 
 // Environment models shipped with the app. Vite bundles every src/env/*.glb and maps its
@@ -53,7 +54,8 @@ const disposeGroup = (group: THREE.Group) => {
   group.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       child.geometry.dispose()
-      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      const materials = new Set(Array.isArray(child.material) ? child.material : [child.material])
+      roomSurfaceMaterials(child).forEach((material) => materials.add(material)) // styles not being worn too
       materials.forEach((material) => material.dispose())
     }
   })
@@ -81,6 +83,7 @@ const loadGlb = (definition: EnvironmentDefinition, handlers: EnvironmentLoadHan
       (gltf) => {
         const group = new THREE.Group()
         group.add(gltf.scene)
+        prepareRoomSurfaces(group) // finds the 'floor'/'wall' meshes so a style can be put on them
         noteEngineLoadSucceeded(recordId)
         resolve({ group, dispose: () => disposeGroup(group) })
       },

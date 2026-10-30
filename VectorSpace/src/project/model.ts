@@ -69,6 +69,7 @@ export type {
   MediaViewState,
   ProjectData,
   RoomCell,
+  RoomSurfaces,
   SceneData,
   SceneObject,
   TextAssetMeta,

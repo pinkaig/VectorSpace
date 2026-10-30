@@ -201,6 +201,14 @@ export interface SceneData {
   // Cell on the rooms map: x grows east, z grows south. Absent on scenes made before
   // the map existed; the editor treats an unplaced first scene as the origin.
   layout?: RoomCell
+  // Wall and floor style picked in "Your rooms" (style names, e.g. 'Style 4'; see
+  // src/content/roomSurfaces.ts). Absent = the room's own look from its model.
+  surfaces?: RoomSurfaces
+}
+
+export interface RoomSurfaces {
+  walls: string
+  floor: string
 }
 
 export interface RoomCell {
