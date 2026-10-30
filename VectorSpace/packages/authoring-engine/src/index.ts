@@ -342,7 +342,7 @@ export const setObjectEnabled = (project: ProjectData, input: ObjectFlagInput): 
 export const updateScene = (
   project: ProjectData,
   input: SceneUpdateInput,
-  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout'>>,
+  changes: Partial<Pick<ProjectData['scenes'][number], 'name' | 'environmentId' | 'startCamera' | 'layout' | 'surfaces'>>,
 ): ObjectOperationResult => {
   const next = cloneProject(project)
   const scene = requireScene(next, input.sceneId)

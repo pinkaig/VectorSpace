@@ -24,6 +24,7 @@
  * project list) and template setup (Assign saves the rooms and brief).
  */
 import { apiFetch, type GetToken } from './client'
+import type { MissionBrief } from '../project/model'
 import { listMyStudents } from './classes'
 
 /** The fields a landing page needs from GET /projects (the API sends a few more). */
@@ -48,6 +49,8 @@ export interface Project {
   task?: string | null
   due_at?: string | null        // "2026-10-30"
   assigned_by_name?: string | null
+  /** The teacher's mission brief, from the assignment this copy belongs to. */
+  mission_brief?: MissionBrief | null
   /** A copy has been sent to at least one student: it can then only be archived, not deleted. */
   sent?: boolean
   /** A teacher chose it for the public sign-in page (published museums only). */
@@ -122,6 +125,47 @@ export function listRevisions(getToken: GetToken, projectId: string, base?: stri
   return apiFetch<Revision[]>(getToken, `/projects/${projectId}/versions`, {}, base)
 }
 
+/** Teachers only: the teacher's own templates whose name contains q. */
+export function listMyTemplates(getToken: GetToken, q: string, base?: string): Promise<Project[]> {
+  return apiFetch<Project[]>(getToken, `/projects?${new URLSearchParams({ kind: 'template', mine: 'true', q, limit: '200' })}`, {}, base)
+}
+
+/** Teachers only: a new, empty template, filed under a class when classId is given. */
+export function createTemplate(getToken: GetToken, name: string, classId?: string, base?: string): Promise<Project> {
+  return apiFetch<Project>(getToken, '/projects', { method: 'POST', body: { name, kind: 'template', class_id: classId } }, base)
+}
+
+/** Saves data as the project's next revision; baseRevision is the revision it was based on (409 if stale). */
+export function saveRevision(getToken: GetToken, projectId: string, baseRevision: number, data: unknown, base?: string): Promise<{ revision: number }> {
+  return apiFetch(getToken, `/projects/${projectId}/versions`, { method: 'POST', body: { base_revision: baseRevision, data } }, base)
+}
+
+export interface ClassAssignment {
+  classId: string
+  missionBrief: MissionBrief
+  /** "2026-10-30"; shown on the student home as "Due ..." */
+  dueAt?: string | null
+  task?: string
+}
+
+/**
+ * Teachers only: assigns the project to a whole class. The class's assignment stores the
+ * mission brief, and every student without a copy gets one. Calling it again updates the
+ * brief for copies already sent.
+ */
+export function assignToClass(
+  getToken: GetToken,
+  projectId: string,
+  { classId, missionBrief, dueAt = null, task = '' }: ClassAssignment,
+  base?: string,
+): Promise<{ assignment_id: string; students: number; sent: number }> {
+  return apiFetch(
+    getToken,
+    `/projects/${projectId}/assign-class`,
+    { method: 'POST', body: { class_id: classId, mission_brief: missionBrief, due_at: dueAt, task } },
+        base,
+  )
+}
 /** What the teacher sets for the whole class when assigning. Left out = the server keeps what it has. */
 export type AssignDetails = { task?: string; dueAt?: string } // dueAt is "YYYY-MM-DD"
 

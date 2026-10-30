@@ -3,8 +3,9 @@
  * @project     VectorSpace
  * @author      <your name>
  * @brief       Styles for MissionBriefPanel: the open card and the folded tab. Both hang over
- *              the top-left of the editor's room, just under the Select / Move tool row
- *              (that row is 46px tall: 34px buttons + 6px padding top and bottom).
+ *              the top-left of the editor's room. Normally they sit right at the top; while
+ *              the World / Local toggle is showing there (Rotate or Scale handle in use),
+ *              they drop below it (that row is 46px tall: 34px buttons + 6px padding).
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -16,7 +17,7 @@
 .mb-card,
 .mb-tab {
   position: absolute;
-  top: calc(var(--float-gap, 5px) + 54px);
+  top: var(--float-gap, 5px);
   left: var(--float-gap, 5px);
   z-index: 3;
   box-sizing: border-box;
@@ -28,6 +29,12 @@
   color: var(--ink);
   font-family: var(--font-body);
   box-shadow: 0 6px 20px rgba(31, 27, 58, 0.12);
+}
+
+/* The World / Local toggle shares this corner: when it is showing, move down below it */
+.floating-controls.top-left:has(.float-group) ~ .mb-card,
+.floating-controls.top-left:has(.float-group) ~ .mb-tab {
+  top: calc(var(--float-gap, 5px) + 54px);
 }
 
 /* ── Open card ────────────────────────────────────────────────────────── */

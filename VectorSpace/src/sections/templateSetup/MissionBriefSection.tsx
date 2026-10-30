@@ -27,7 +27,7 @@ import { X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { StatusChip } from "../../ui/statusChip";
 import { newBriefId, type MissionBrief } from "../../mission/missionBrief";
-import { describeGoal, parseTodo } from "../../mission/parseTodo";
+import { describeGoal, findConflicts, parseTodo } from "../../mission/parseTodo";
 // the text boxes use the shared .ui-input look, which lives in field.css
 import "../../ui/field.css";
 import "./templateSetup.css";
@@ -43,6 +43,13 @@ type MissionBriefSectionProps = {
 export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProps) {
   // the row just added, so its text box can take the cursor straight away
   const [focusId, setFocusId] = useState<string | null>(null);
+
+  // to-dos that cannot both be ticked; worked out again on every keystroke
+  const clashes = findConflicts(brief.todos.map((todo) => (todo.text.trim() ? parseTodo(todo.text) : null)));
+  const clashText = (index: number): string | undefined => {
+    const others = clashes.get(index);
+    return others?.map((other) => `"${brief.todos[other].text.trim()}"`).join(", ");
+  };
 
   // ── to-dos ──
   const addTodo = () => {
@@ -97,7 +104,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
               onChange={(event) => editTodo(todo.id, event.target.value)}
               onKeyDown={enterAdds(addTodo)}
             />
-            <TodoChip text={todo.text} />
+            <TodoChip text={todo.text} clashesWith={clashText(index)} />
             <button type="button" className="brief-remove" onClick={() => removeTodo(todo.id)}>
               <X size={16} />
             </button>
@@ -130,8 +137,19 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
 }
 
 // what the app understood one to-do as; worked out again on every keystroke
-function TodoChip({ text }: { text: string }) {
+// clashesWith: the other to-dos it cannot be ticked alongside, when there are any
+function TodoChip({ text, clashesWith }: { text: string; clashesWith?: string }) {
   if (text.trim() === "") return null;
+  if (clashesWith) {
+    return (
+      <span
+        className="brief-chip"
+        title={`Students can't tick this at the same time as ${clashesWith}. They'll still see both; change one if both should be done.`}
+      >
+        <StatusChip tone="red">Clashes with {clashesWith}</StatusChip>
+      </span>
+    );
+  }
   const goal = parseTodo(text);
   if (!goal) {
     return (

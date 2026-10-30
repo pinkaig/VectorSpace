@@ -11,7 +11,10 @@
  *                3. Find the NUMBER nearest before that thing ("5", "five", "a", "second", "2nd").
  *                   No number means 1.
  *                4. "each" / "every" before "exhibit" means "one on every exhibit".
- *                5. A LIMIT turns "at least" into "at most":
+ *                5. "this" / "that" / "the" just before a singular thing points at ONE
+ *                   particular object ("Do not put this item"), which cannot be counted, so
+ *                   it is left to the teacher instead of becoming "no items at all".
+ *                6. A LIMIT turns "at least" into "at most":
  *                     "Don't add any sounds"       -> at most 0 sounds
  *                     "No more than 5 exhibits"    -> at most 5 exhibits
  *                     "Add up to 5 exhibits"       -> at most 5 exhibits
@@ -68,24 +71,33 @@ const NUMBER_WORDS: Record<string, number> = {
 const NEGATIVE_WORDS = new Set(['not', 'dont', 'no', 'never', 'without', 'avoid', 'zero', 'none',
   'shouldnt', 'cant', 'cannot', 'mustnt', 'doesnt', 'wont', 'nothing'])
 const EACH_WORDS = new Set(['each', 'every', 'all'])
+// words that point at one particular object: "this item", "that red exhibit", "my sound"
+const PARTICULAR_WORDS = new Set(['this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'their', 'its',
+  'particular', 'specific'])
+// how far before the thing such a word may sit: "this item" (1), "this red item" (2)
+const PARTICULAR_REACH = 2
+// words ending in s that are not plurals, so singular() leaves them alone ("this" is not "thi")
+const NOT_PLURAL = new Set(['this', 'his', 'its', 'is', 'was', 'has', 'does', 'us', 'yes', 'plus', 'always',
+  'perhaps', 'across', 'thus', 'bus', 'gas', 'canvas', 'atlas', 'focus', 'bonus', 'status', 'campus', 'cactus'])
 // the most a to-do can ask for; anything bigger is almost certainly a typo
 const MAX_TARGET = 99
 
 // "Exhibits," -> "exhibit", "artefacts" -> "artefact", "galleries" -> "gallery"
 function singular(word: string): string {
+  if (NOT_PLURAL.has(word)) return word
   if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y'
   if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1)
   return word
 }
 
-function toWords(text: string): string[] {
+// the words as written, lower case, punctuation gone (not yet singular)
+function rawWords(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/['’]/g, '')        // "don't" -> "dont"
     .replace(/[^a-z0-9\s-]/g, ' ')    // other punctuation becomes a space
     .split(/[\s-]+/)
     .filter(Boolean)
-    .map(singular)
 }
 
 // "5" -> 5, "five" -> 5, "2nd" -> 2, anything else -> null
@@ -124,6 +136,18 @@ function numberBefore(words: string[], before: number, stopAt: number): number |
   return null
 }
 
+// "this item", "that red exhibit", "the item": one particular object, not a count of them.
+// "the" only counts when the thing is written singular, so "Don't add the sounds" still
+// means no sounds. A number in between ("this 3 exhibits"? "the 2 rooms") makes it a count.
+function pointsAtParticular(words: string[], raw: string[], thing: Found): boolean {
+  for (let i = thing.at - 1; i >= Math.max(0, thing.at - PARTICULAR_REACH); i--) {
+    if (numberOf(words[i]) !== null || EACH_WORDS.has(words[i]) || NEGATIVE_WORDS.has(words[i])) return false
+    if (PARTICULAR_WORDS.has(words[i])) return true
+    if (words[i] === 'the' && raw[thing.at] === words[thing.at]) return true
+  }
+  return false
+}
+
 // "less than 5", "fewer than 5": below a number, so one fewer is the most allowed
 function hasBelowWords(words: string[]): boolean {
   return words.some((word, i) => (word === 'less' || word === 'fewer') && words[i + 1] === 'than')
@@ -147,12 +171,16 @@ function hasLimitWords(words: string[]): boolean {
  *   parseTodo("Don't add any sounds")          -> 0 sounds at most
  *   parseTodo('No more than 5 exhibits')       -> 5 exhibits at most
  *   parseTodo('Less than 5 exhibits')          -> 4 exhibits at most
+ *   parseTodo('Do not put this item')          -> null (one particular item: the teacher ticks it)
  *   parseTodo('Make it look nice')             -> null
  */
 export function parseTodo(text: string): MissionGoal | null {
-  const words = toWords(text)
+  const raw = rawWords(text)
+  const words = raw.map(singular)
   const things = findThings(words)
   if (things.length === 0) return null
+  // "Do not put this item", "Move that exhibit": about one object, so nothing to count
+  if (pointsAtParticular(words, raw, things[0])) return null
 
   // ── a limit: "don't add any sounds", "no more than 5 exhibits" ──
   const negativeAt = words.findIndex((word) => NEGATIVE_WORDS.has(word))
@@ -217,4 +245,53 @@ export function describeGoal(goal: MissionGoal): string {
   if (goal.target === 'eachExhibit') return `${/^[aeiou]/.test(one) ? 'an' : 'a'} ${one} on every exhibit`
   if (goal.compare === 'atMost') return goal.target === 0 ? `no ${many}` : `at most ${goal.target} ${goal.target === 1 ? one : many}`
   return [goal.target, goal.target === 1 ? one : many, done].filter(Boolean).join(' ')
+}
+
+
+// ── CLASHES: to-dos in one brief that cannot both be ticked ─────────────────
+// e.g. "Place 3 exhibits" with "Don't put any items" (a limit of 0 objects, and every
+// exhibit is an object). Only a LIMIT ('atMost') can clash: it clashes with any goal that
+// needs more of what it limits. Two "at least" goals never clash ("Place 3 exhibits" and
+// "Place 5 exhibits" are both met by 5), and neither do two limits (0 meets both).
+// A clash is only a WARNING for the teacher: template setup shows a red "Clashes with ..."
+// chip on both to-dos. Nothing changes for students; both still tick themselves, since not
+// every to-do has to be done.
+
+// a limit on the key also limits these: every exhibit is a placed thing (object)
+const LIMIT_ALSO_COVERS: Partial<Record<GoalKind, GoalKind[]>> = { things: ['exhibits'] }
+
+const limitCovers = (limited: GoalKind, kind: GoalKind): boolean =>
+  limited === kind || (LIMIT_ALSO_COVERS[limited] ?? []).includes(kind)
+
+// the fewest of each kind a goal needs before it can tick
+function needs(goal: MissionGoal): [GoalKind, number][] {
+  if (goal.compare === 'atMost') return []
+  // "a fact card on every exhibit" never ticks on an empty room (see checkGoal), so it
+  // needs at least one exhibit, and one of its own kind on it
+  if (goal.target === 'eachExhibit') return [[goal.kind, 1], ['exhibits', 1]]
+  return [[goal.kind, goal.target]]
+}
+
+/**
+ * For each to-do (by position) that clashes, the positions of the to-dos it clashes with.
+ * A null goal (one the teacher ticks) never clashes. To-dos that clash with nothing are absent.
+ */
+export function findConflicts(goals: (MissionGoal | null)[]): Map<number, number[]> {
+  const clashes = new Map<number, number[]>()
+  const note = (a: number, b: number) => {
+    const list = clashes.get(a) ?? []
+    if (!list.includes(b)) clashes.set(a, [...list, b])
+  }
+  goals.forEach((limit, i) => {
+    if (!limit || limit.compare !== 'atMost' || typeof limit.target !== 'number') return
+    const most = limit.target
+    goals.forEach((goal, j) => {
+      if (!goal || i === j) return
+      if (needs(goal).some(([kind, fewest]) => limitCovers(limit.kind, kind) && fewest > most)) {
+        note(i, j)
+        note(j, i)
+      }
+    })
+  })
+  return clashes
 }
