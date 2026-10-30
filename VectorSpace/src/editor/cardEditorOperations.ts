@@ -20,7 +20,7 @@
  * docs/handover/info-card-work-package.md steps A4 and A5.
  */
 /******************************************************************************/
-import { cloneProject, type CardMedia, type ProjectData, type SceneObject, type TextAssetMeta, type TextAttachment, type VideoAttachment, type ZoneDefinition } from '../project/model'
+import { cloneProject, type CardField, type CardMedia, type ProjectData, type SceneObject, type TextAssetMeta, type TextAttachment, type VideoAttachment, type ZoneDefinition } from '../project/model'
 
 // every text asset a card creates starts with this; rule clean-up only touches 'message-' assets, so cards are never swept up by it
 const CARD_ASSET_PREFIX = 'card-'
@@ -38,6 +38,10 @@ export interface CardInput {
   body: string            // markdown-lite: paragraphs, headings, lists, bold, italic, https links
   media?: CardMedia       // a media library reference, never a URL
   autoCloseMs?: number    // close by itself after this long; absent = stays until closed
+  // a card written from the teacher's task (mission brief): its fields with the answers,
+  // and which task it is. body is then built from the answers (src/mission/cardTasks.ts).
+  fields?: CardField[]
+  taskId?: string
 }
 
 export type CardOperationResult =
@@ -73,6 +77,7 @@ const presentationFor = (input: CardInput): TextAttachment['presentation'] => ({
   title: input.title.trim(),
   ...(input.media ? { media: cleanMedia(input.media) } : {}),
   ...(input.autoCloseMs !== undefined ? { autoCloseMs: input.autoCloseMs } : {}),
+  ...(input.fields && input.taskId ? { fields: input.fields.map((field) => ({ ...field })), taskId: input.taskId } : {}),
 })
 
 const cleanMedia = (media: CardMedia): CardMedia => {

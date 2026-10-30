@@ -263,14 +263,28 @@ export interface TextStyle {
 }
 
 /**
- * A teacher blank on an info card: a spot a student fills in. Reserved only so
- * saves will not need a migration when teacher blanks arrive. Nothing reads it.
+ * One piece of a teacher's info card task (see CardTask): either the
+ * teacher's own words (locked) or a spot the student fills in. On a student's
+ * card the filled-in answer is `value`.
  */
 export interface CardField {
   key: string
-  label: string
+  label: string      // locked: the teacher's words; a question: the question; a blank: empty
   locked?: boolean   // the teacher's text, which a student cannot change
-  prompt?: string    // the hint shown in an empty blank
+  prompt?: string    // the hint shown in an empty blank or answer box
+  value?: string     // the student's answer (on the student's card only)
+}
+
+/**
+ * An info card the teacher wants students to complete, set in the mission
+ * brief. 'blanks': a passage with gaps, its fields in reading order (locked
+ * words and blanks). 'prompts': pointers or questions, one unlocked field each.
+ */
+export interface CardTask {
+  id: string
+  title: string
+  kind: 'blanks' | 'prompts'
+  fields: CardField[]
 }
 
 /**
@@ -290,7 +304,8 @@ export interface TextPresentation {
   autoCloseMs?: number
   paging?: 'none' | 'auto'
   media?: CardMedia     // card mode only: the image or video under the title, by reference
-  fields?: CardField[]  // card mode only: reserved for teacher blanks, unused
+  fields?: CardField[]  // card mode only: the teacher's task, with the student's answers
+  taskId?: string       // card mode only: the CardTask in the mission brief this card completes
 }
 
 /**
@@ -377,6 +392,8 @@ export interface MissionBrief {
   due: string
   todos: MissionTodo[]
   rules: MissionRule[]
+  // info cards the teacher wants written; absent in briefs saved before card tasks
+  cardTasks?: CardTask[]
 }
 
 export interface ProjectData {

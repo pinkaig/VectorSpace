@@ -2425,18 +2425,51 @@ button:disabled {
    under the top-right View bar (EditorPage's VIEW_BAR_CLEARANCE) so the view angles stay
    clickable, and stops above the bottom-right controls and the footer hints; taller content
    scrolls inside it. */
+/* the object panel draws its own white card (objectPanel.css), so this only places it,
+   at the V3 prototype's 360px width, and gives it a shadow */
 .inspector-popup {
   position: absolute;
   top: 80px;
   right: 12px;
-  width: 286px;
+  width: 360px;
+  max-width: calc(100% - 24px);
   max-height: calc(100% - 58px - 96px);
   overflow: auto;
   z-index: 20;
-  background: var(--White);
-  border: 1px var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-radius: 22px;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.25);
+}
+
+/* where a top bar step took the student ("3 things still need info. Start with Pedestal.") */
+.step-notice {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 25;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100% - 32px));
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: #1F1B3A;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.25);
+}
+
+.step-notice button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 /* ── Play: the visitor's view under the editor's top bar ───────────────── */

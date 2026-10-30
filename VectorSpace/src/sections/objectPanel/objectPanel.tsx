@@ -19,7 +19,9 @@ import { useState } from 'react'
 import type { InteractionRule } from '@vectorspace/project'
 import type { ClickRuleChoice } from '../../editor/ruleEditorOperations'
 import type { CardInput } from '../../editor/cardEditorOperations'
+import type { CardTask } from '../../project/model'
 import { InfoCardSection, type MediaChoice } from './InfoCardSection'
+export type { MediaChoice } from './InfoCardSection'
 import { ReactionsSection } from './ReactionsSection'
 import './objectPanel.css'
 
@@ -64,10 +66,14 @@ export type ObjectPanelProps = {
   // Info tab. All optional, so a caller that has not connected them yet still works.
   // onSaveCard and onSaveVideo return an error to show, or null when saved.
   infoCard?: CardInput | null
+  infoCardId?: string            // the card's attachment id, so a reaction can show it
+  cardTasks?: CardTask[]         // info cards the teacher's mission brief asks students to complete
   mediaChoices?: MediaChoice[]
+  onUploadMedia?: (file: File) => Promise<MediaChoice | { error: string }>
+  onAddMediaLink?: (url: string) => MediaChoice | { error: string }
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
-  video?: { assetId: string; label: string } | null
+  video?: { attachmentId?: string; assetId: string; label: string } | null
   onSaveVideo?: (assetId: string) => string | null
   onRemoveVideo?: () => void
 }
@@ -97,6 +103,9 @@ const kindLabel = (kind: string) => (kind === 'model' ? 'Exhibit' : 'Shape')
 
 export function ObjectPanel(props: ObjectPanelProps) {
   const { object, step, onStepChange, onClose } = props
+  // after a first fact card is saved the panel moves to Reactions and suggests what to add;
+  // remembered per object, so another object's Reactions tab does not show it
+  const [suggestFor, setSuggestFor] = useState<string | null>(null)
 
   if (!object) {
     return (
@@ -154,15 +163,28 @@ export function ObjectPanel(props: ObjectPanelProps) {
           card={props.infoCard ?? null}
           video={props.video ?? null}
           mediaChoices={props.mediaChoices ?? []}
-          rules={props.rules}
+          addMedia={{ upload: props.onUploadMedia, link: props.onAddMediaLink }}
+          cardTasks={props.cardTasks ?? []}
           onSaveCard={props.onSaveCard}
           onRemoveCard={props.onRemoveCard}
           onSaveVideo={props.onSaveVideo}
           onRemoveVideo={props.onRemoveVideo}
           onGoToReactions={() => onStepChange(3)}
+          onCardCreated={() => { setSuggestFor(object.id); onStepChange(3) }}
         />
       )}
-      {activeStep === 3 && <ReactionsSection key={object.id} rules={props.rules} onAdd={props.onAddRule} onRemove={props.onRemoveRule} />}
+      {activeStep === 3 && (
+        <ReactionsSection
+          key={object.id}
+          rules={props.rules}
+          cardId={props.infoCard ? props.infoCardId : undefined}
+          videoId={props.video?.attachmentId}
+          suggest={suggestFor === object.id}
+          onDismissSuggest={() => setSuggestFor(null)}
+          onAdd={props.onAddRule}
+          onRemove={props.onRemoveRule}
+        />
+      )}
     </section>
   )
 }

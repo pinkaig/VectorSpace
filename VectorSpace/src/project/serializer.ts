@@ -24,7 +24,7 @@
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Project-Serialization
  * Links point at the project wiki; migration is still in progress.
  */
-import { Attachment, CardField, CardMedia, ProjectData, TextPresentation, TextStyle, cloneProject, defaultAudioSettings, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
+import { Attachment, CardField, CardMedia, CardTask, ProjectData, TextPresentation, TextStyle, cloneProject, defaultAudioSettings, defaultCameraPose, defaultEnvironmentId, defaultProject } from './model'
   import { createLogger } from '@vectorspace/debugging'
 
 const STORAGE_KEY = 'vectorspace-project-v1'
@@ -50,6 +50,10 @@ const MAX_PROJECT_TEXT_BYTES = 524_288
 // card captions and alt text are a line or two, never a second text body
 const MAX_CAPTION_LENGTH = 500
 const MAX_CARD_FIELDS = 50
+// a teacher's fixed words can run longer than a label; a student's answer longer still
+const MAX_FIELD_TEXT = 500
+const MAX_FIELD_ANSWER = 2000
+const MAX_CARD_TASKS = 20
 // a brief is something a student reads at a glance; these are generous ceilings, not targets
 const MAX_BRIEF_ITEMS = 50
 
@@ -102,6 +106,13 @@ const backfillScenes = (project: ProjectData): ProjectData => {
     const brief = project.missionBrief
     brief.due = brief.due.replace(CONTROL_CHARS, '')
     for (const item of [...brief.todos, ...brief.rules]) item.text = item.text.replace(CONTROL_CHARS, '')
+    for (const task of brief.cardTasks ?? []) {
+      task.title = task.title.replace(CONTROL_CHARS, '')
+      for (const field of task.fields) {
+        field.label = field.label.replace(CONTROL_CHARS, '')
+        if (field.prompt) field.prompt = field.prompt.replace(CONTROL_CHARS, '')
+      }
+    }
   }
   project.scenes.forEach((scene) => {
     if (!scene.environmentId) scene.environmentId = defaultEnvironmentId
@@ -248,7 +259,7 @@ const validateCardMedia = (media: CardMedia): void => {
 const validateCardFields = (fields: CardField[]): void => {
   if (!Array.isArray(fields) || fields.length > MAX_CARD_FIELDS) throw new Error('Project contains an info card with an invalid field list')
   for (const field of fields) {
-    if (!field || typeof field !== 'object' || !isShortText(field.key, MAX_LABEL_LENGTH) || !field.key || !isShortText(field.label, MAX_LABEL_LENGTH) || (field.locked !== undefined && typeof field.locked !== 'boolean') || (field.prompt !== undefined && !isShortText(field.prompt, MAX_LABEL_LENGTH))) {
+    if (!field || typeof field !== 'object' || !isShortText(field.key, MAX_LABEL_LENGTH) || !field.key || !isShortText(field.label, MAX_FIELD_TEXT) || (field.locked !== undefined && typeof field.locked !== 'boolean') || (field.prompt !== undefined && !isShortText(field.prompt, MAX_LABEL_LENGTH)) || (field.value !== undefined && !isShortText(field.value, MAX_FIELD_ANSWER))) {
       throw new Error('Project contains an info card with an invalid field')
     }
   }
@@ -266,6 +277,7 @@ const validateTextPresentation = (presentation: TextPresentation): void => {
   if (presentation.style !== undefined) validateTextStyle(presentation.style)
   if (presentation.media !== undefined) validateCardMedia(presentation.media)
   if (presentation.fields !== undefined) validateCardFields(presentation.fields)
+  if (presentation.taskId !== undefined && (!isShortText(presentation.taskId, MAX_LABEL_LENGTH) || !presentation.taskId)) throw new Error('Project contains an info card with an invalid task')
 }
 
 /**
@@ -346,6 +358,21 @@ const validateMissionBrief = (project: ProjectData): void => {
       if (ids.has(item.id)) throw new Error('Project mission brief contains duplicate IDs')
       ids.add(item.id)
     }
+  }
+  if (brief.cardTasks !== undefined) validateCardTasks(brief.cardTasks)
+}
+
+// the info cards a teacher asks for: a title, a kind and the same fields a card carries
+const validateCardTasks = (tasks: CardTask[]): void => {
+  if (!Array.isArray(tasks) || tasks.length > MAX_CARD_TASKS) throw new Error('Project mission brief has an invalid list of info card tasks')
+  const ids = new Set<string>()
+  for (const task of tasks) {
+    if (!task || typeof task !== 'object' || !isShortText(task.id, MAX_LABEL_LENGTH) || !task.id || !isShortText(task.title, MAX_LABEL_LENGTH) || !['blanks', 'prompts'].includes(task.kind)) {
+      throw new Error('Project mission brief contains an invalid info card task')
+    }
+    validateCardFields(task.fields)
+    if (ids.has(task.id)) throw new Error('Project mission brief contains duplicate IDs')
+    ids.add(task.id)
   }
 }
 

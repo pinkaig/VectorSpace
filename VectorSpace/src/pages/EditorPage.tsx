@@ -26,7 +26,8 @@ import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../co
 import { isUserAudioAsset } from '../content/userAudio'
 import { selectEditorScene } from '../editor/editorOperations'
 import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
-import { findCard, saveObjectCard, removeObjectCard, type CardInput } from '../editor/cardEditorOperations'
+import { findCard, findVideo, saveObjectCard, removeObjectCard, saveObjectVideo, removeObjectVideo, type CardInput } from '../editor/cardEditorOperations'
+import { addLocalMediaFile, addLocalMediaLink, useLocalMediaLibrary, type LocalMediaEntry } from '../content/localMediaLibrary'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
@@ -66,27 +67,16 @@ export const tutorialSteps: {step: TutorialStep; label:string}[] =[
   {step: 4, label:'Play and share'}
 ]
 
-/** Testing only const Change this to advance the tutorial buttons*/
-const TESTING_TUTORIAL: CurrentStep=2
-/** Testing only const*/
-
-export function useSimpleSteps(startAt:CurrentStep=TESTING_TUTORIAL) {
-  const [currentStep, setCurrentStep] = useState<CurrentStep>(startAt)
-  const [TUTStep, setTUTStep] = useState<TutorialStep>(Math.min(startAt, 4) as TutorialStep)
- 
-  // Finishing the current step opens the next one and moves the view to it.
-  const completeStep = (n: TutorialStep) => {
-    if (n !== currentStep) return
-    setCurrentStep((n + 1) as CurrentStep)
-    setTUTStep(Math.min(n + 1, 4) as TutorialStep)
-  }
-
-  const viewStep = (n: TutorialStep) => {
-    if (n <= currentStep) setTUTStep(n)
-  }
-
-  return { currentStep, TUTStep, completeStep, viewStep }
-}
+/*
+ * The four steps and the object panel's tabs are one value (Weian Ching):
+ *   1 Place things  = the Position tab, and where the editor starts
+ *   2 Add info      = the Info tab
+ *   3 Make it react = the Reactions tab
+ *   4 Play and share = Play (the step strip shows 4 while playing)
+ * Every step can be opened at any time; a step turns green once it is done
+ * (something placed, every thing has a fact card, at least one reaction).
+ */
+type EditStep = 1 | 2 | 3
 /**End of Tutorial assisting code for the UI */
 
 
@@ -130,9 +120,10 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const bumpSync = () => setSyncToken((value) => value + 1)
   const { project, timelineRef, commit, runCommand, resetTimeline, undo, redo } = useEditorHistory(initialProject, bumpSync)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  // the editor step, Position = 1, Info = 2, Reactions = 3. The object panel's tabs set it
-  // now, and the top bar's step strip will share this same value when it lands.
-  const [step, setStep] = useState(1)
+  // the step being worked on, shared by the top bar and the object panel's tabs (see EditStep)
+  const [step, setStep] = useState<EditStep>(1)
+  // a short line telling the student where a step took them ("Add info to Pedestal")
+  const [stepNotice, setStepNotice] = useState<string | null>(null)
   // the object panel's Snap switch: the viewport's drags land on the floor grid, in 15° turns
   // and 0.25 size steps while it is on (viewport/editing/snapping.ts)
   const [snapOn, setSnapOn] = useState(false)
@@ -226,7 +217,6 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
   })
 
-  const { currentStep, TUTStep, viewStep } = useSimpleSteps()
   const [category,setCategory]=useState<CatalogueCategoryId>('exhibits')
   // the cards under the picked tab, then narrowed by the search box
   const shownAssets = filterAssets(assetQuery, assetsInCategory(category, visibleAssets))
@@ -268,6 +258,56 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const limitRooms = preview || role === 'student'
   const roomKinds = limitRooms ? studentRoomEnv(project) : environmentLibrary
 
+  // the browser's media library feeds the panel's picture and video pickers
+  const mediaLibrary = useLocalMediaLibrary()
+  const mediaChoices = mediaLibrary.map(choiceFor)
+
+  // what each step still needs, for its green tick and for where a step click goes
+  const roomRules = (project.rules ?? []).filter((rule) => scene.objects.some((object) => object.id === rule.objectId))
+  const needInfo = scene.objects.filter((object) => !findCard(project, object))
+  const stepDone: Record<TutorialStep, boolean> = {
+    1: scene.objects.length > 0,
+    2: scene.objects.length > 0 && needInfo.length === 0,
+    3: roomRules.length > 0,
+    4: published,
+  }
+
+  // clicking a step in the top bar. Add info and Make it react with nothing selected pick a
+  // thing for the student: the first one still missing a fact card, or one with no reaction yet.
+  const goToStep = (n: TutorialStep) => {
+    setStepNotice(null)
+    if (n === 4) {
+      setViewMode('runtime')
+      return
+    }
+    if (playing) setViewMode('editor')
+    setStep(n)
+    if (n === 1 || selected) return
+    if (scene.objects.length === 0) {
+      setStepNotice('Place something from the catalogue first.')
+      return
+    }
+    if (n === 2) {
+      const next = needInfo[0] ?? scene.objects[0]
+      setSelectedId(next.id)
+      setStepNotice(needInfo.length > 0
+        ? `${needInfo.length} ${needInfo.length === 1 ? 'thing still needs' : 'things still need'} info. Start with ${next.name}.`
+        : `Every thing has info. Showing ${next.name}; pick another to change it.`)
+      return
+    }
+    const quiet = scene.objects.filter((object) => !roomRules.some((rule) => rule.objectId === object.id))
+    const next = quiet.find((object) => findCard(project, object)) ?? quiet[0] ?? scene.objects[0]
+    setSelectedId(next.id)
+    setStepNotice(`Make ${next.name} react: pick what happens when visitors click it.`)
+  }
+
+  // the notice fades on its own after a few seconds
+  useEffect(() => {
+    if (!stepNotice) return
+    const timer = window.setTimeout(() => setStepNotice(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [stepNotice])
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -291,18 +331,17 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             (the label stays in the tooltip) */}
         <nav className="Tutorial-steps">
         {tutorialSteps.map(({ step: n, label }) => {
-          const locked = n > currentStep
-          const viewing = n === TUTStep
-          const colour = locked ? 'locked' : viewing? 'viewing' : 'green'
-          const title = locked ? `Step ${n}: ${label} (finish step ${n - 1} first)` : `Step ${n}: ${label}`
+          const viewing = n === (playing ? 4 : step)
+          const colour = viewing ? 'viewing' : stepDone[n] ? 'green' : 'todo'
+          const title = `Step ${n}: ${label}${stepDone[n] && !viewing ? ' (done)' : ''}`
           return (
             <button
               key={n}
               className={`button button--${colour}`}
-              disabled={locked}
               title={title}
               aria-label={title}
-              onClick={() => viewStep(n)}
+              aria-current={viewing ? 'step' : undefined}
+              onClick={() => goToStep(n)}
             >
             <span className="button-num">{n}</span>
               <span className="button-label">{label}</span>
@@ -322,7 +361,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           >
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
-          <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => setViewMode(playing ? 'editor' : 'runtime')}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
+          <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => (playing ? setViewMode('editor') : goToStep(4))}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
           {/* who can visit and teacher review aren't built yet: Publish goes straight to published */}
           <button className={publishError ? 'top-publish problem' : 'top-publish'} onClick={() => void publish()} disabled={!canPublish} title={publishTitle}>
             {published ? <><Check size={15} /> Published</> : publishing ? 'Publishing…' : publishError ? <><AlertTriangle size={15} /> Publish</> : 'Publish'}
@@ -476,7 +515,14 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
         </section>
-        {selected && TUTStep >= 2 && <aside className="inspector-popup">
+        {stepNotice && (
+          <div className="step-notice" role="status">
+            {stepNotice}
+            <button onClick={() => setStepNotice(null)} aria-label="Dismiss">×</button>
+          </div>
+        )}
+        {/* clicking a thing opens the panel on the tab of the step being worked on */}
+        {selected && <aside className="inspector-popup">
           {/* The panel only shows things and calls back; every action below decides what happens. */}
           <ObjectPanel
             object={{
@@ -488,7 +534,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               scale: selected.transform.scale,
             }}
             step={step}
-            onStepChange={setStep}
+            onStepChange={(n) => goToStep(n as TutorialStep)}
             onClose={() => { setSelectedId(null); setGizmoMode('select') }}
             tool={gizmoMode === 'select' ? null : gizmoMode}
             onToolChange={setGizmoMode}
@@ -507,7 +553,25 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}
             infoCard={cardInputFor(project, selected)}
-            mediaChoices={[]}
+            infoCardId={findCard(project, selected)?.attachment.id}
+            cardTasks={project.missionBrief?.cardTasks}
+            mediaChoices={mediaChoices}
+            onUploadMedia={async (file) => {
+              const added = await addLocalMediaFile(file)
+              return 'error' in added ? added : choiceFor(added)
+            }}
+            onAddMediaLink={(url) => {
+              const added = addLocalMediaLink(url, 'editor')
+              return 'error' in added ? added : choiceFor(added)
+            }}
+            video={videoFor(selected, mediaLibrary)}
+            onSaveVideo={(assetId) => {
+              const result = saveObjectVideo(project, scene.id, selected.id, assetId)
+              if (!result.ok) return result.error
+              commit('Save video', result.project)
+              return null
+            }}
+            onRemoveVideo={() => commit('Remove video', removeObjectVideo(project, scene.id, selected.id))}
             onSaveCard={(input) => {
               const result = saveObjectCard(project, scene.id, selected.id, input)
               if (!result.ok) return result.error
@@ -581,11 +645,27 @@ const degToRad = (degrees: number) => degrees * (Math.PI / 180)
 const wrapDegrees = (degrees: number) => ((degrees % 360) + 360) % 360
 
 // the card on an object as the form's input, or null when it has none
+// a library entry as a picker choice for the object panel
+const choiceFor = (entry: LocalMediaEntry) => ({ assetId: entry.id, kind: entry.kind, label: entry.label, status: entry.approval })
+
+// the object's video, named from the library (or plainly "Video" if it is not in this browser)
+const videoFor = (object: SceneObject, library: readonly LocalMediaEntry[]) => {
+  const video = findVideo(object)
+  if (!video) return null
+  return { attachmentId: video.id, assetId: video.assetId, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
+}
+
 const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
   const card = findCard(project, object)
   if (!card || card.attachment.presentation.mode !== 'card') return null
-  const { title, media, autoCloseMs } = card.attachment.presentation
-  return { title: title ?? '', body: card.meta?.content ?? '', ...(media ? { media } : {}), ...(autoCloseMs !== undefined ? { autoCloseMs } : {}) }
+  const { title, media, autoCloseMs, fields, taskId } = card.attachment.presentation
+  return {
+    title: title ?? '',
+    body: card.meta?.content ?? '',
+    ...(media ? { media } : {}),
+    ...(autoCloseMs !== undefined ? { autoCloseMs } : {}),
+    ...(fields && taskId ? { fields, taskId } : {}),
+  }
 }
 
 /*
