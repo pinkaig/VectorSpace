@@ -12,6 +12,9 @@
  *              The teacher's own words are kept as typed: "Place 5 exhibits" and
  *              "Add 5 exhibits" both read as the same goal, so nothing is rewritten.
  *
+ *              A second tab, "Info card tasks" (CardTasksSection, Weian Ching), sets the
+ *              info cards students are asked to complete: fill in the blanks or questions.
+ *
  *              The brief itself lives in the page (it is passed in and changed through
  *              onChange) so other parts of the page can read it. NOT SAVED YET: nothing is
  *              sent to the API.
@@ -28,6 +31,7 @@ import { Button } from "../../ui/button";
 import { StatusChip } from "../../ui/statusChip";
 import { newBriefId, type MissionBrief } from "../../mission/missionBrief";
 import { describeGoal, parseTodo } from "../../mission/parseTodo";
+import { CardTasksSection } from "./CardTasksSection";
 // the text boxes use the shared .ui-input look, which lives in field.css
 import "../../ui/field.css";
 import "./templateSetup.css";
@@ -43,6 +47,9 @@ type MissionBriefSectionProps = {
 export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProps) {
   // the row just added, so its text box can take the cursor straight away
   const [focusId, setFocusId] = useState<string | null>(null);
+  // which tab of the panel shows: the brief itself, or the info cards students complete
+  const [tab, setTab] = useState<"brief" | "cards">("brief");
+  const taskCount = brief.cardTasks?.length ?? 0;
 
   // ── to-dos ──
   const addTodo = () => {
@@ -75,6 +82,15 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
   return (
     <section className="setup-panel">
       <h2 className="setup-panel-title">Mission brief</h2>{/*TITLE*/}
+      <div className="brief-tabs" role="tablist">{/*TABS: the brief, or the info cards students complete*/}
+        <button type="button" role="tab" aria-selected={tab === "brief"} className={tab === "brief" ? "brief-tab active" : "brief-tab"} onClick={() => setTab("brief")}>
+          Brief
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "cards"} className={tab === "cards" ? "brief-tab active" : "brief-tab"} onClick={() => setTab("cards")}>
+          Info card tasks{taskCount > 0 ? ` · ${taskCount}` : ""}
+        </button>
+      </div>
+      {tab === "cards" ? <CardTasksSection brief={brief} onChange={onChange} /> : <>
       <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
       <label className="brief-due">{/*DUE DATE: a plain text box*/}
         <span className="brief-due-label">Due</span>
@@ -125,6 +141,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
         ))}
       </ul>
       <Button variant="add" size="small" className="brief-add" onClick={addRule}>+ Add a rule</Button>
+      </>}
     </section>
   );
 }

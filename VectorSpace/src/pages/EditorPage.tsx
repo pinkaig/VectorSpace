@@ -555,6 +555,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onRemoveRule={removeRuleById}
             infoCard={cardInputFor(project, selected)}
             infoCardId={findCard(project, selected)?.attachment.id}
+            cardTasks={project.missionBrief?.cardTasks}
             mediaChoices={mediaChoices}
             onUploadMedia={async (file) => {
               const added = await addLocalMediaFile(file)
@@ -657,8 +658,14 @@ const videoFor = (object: SceneObject, library: readonly LocalMediaEntry[]) => {
 const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
   const card = findCard(project, object)
   if (!card || card.attachment.presentation.mode !== 'card') return null
-  const { title, media, autoCloseMs } = card.attachment.presentation
-  return { title: title ?? '', body: card.meta?.content ?? '', ...(media ? { media } : {}), ...(autoCloseMs !== undefined ? { autoCloseMs } : {}) }
+  const { title, media, autoCloseMs, fields, taskId } = card.attachment.presentation
+  return {
+    title: title ?? '',
+    body: card.meta?.content ?? '',
+    ...(media ? { media } : {}),
+    ...(autoCloseMs !== undefined ? { autoCloseMs } : {}),
+    ...(fields && taskId ? { fields, taskId } : {}),
+  }
 }
 
 /*

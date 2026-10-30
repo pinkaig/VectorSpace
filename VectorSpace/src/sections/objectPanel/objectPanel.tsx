@@ -19,6 +19,7 @@ import { useState } from 'react'
 import type { InteractionRule } from '@vectorspace/project'
 import type { ClickRuleChoice } from '../../editor/ruleEditorOperations'
 import type { CardInput } from '../../editor/cardEditorOperations'
+import type { CardTask } from '../../project/model'
 import { InfoCardSection, type MediaChoice } from './InfoCardSection'
 export type { MediaChoice } from './InfoCardSection'
 import { ReactionsSection } from './ReactionsSection'
@@ -66,6 +67,7 @@ export type ObjectPanelProps = {
   // onSaveCard and onSaveVideo return an error to show, or null when saved.
   infoCard?: CardInput | null
   infoCardId?: string            // the card's attachment id, so a reaction can show it
+  cardTasks?: CardTask[]         // info cards the teacher's mission brief asks students to complete
   mediaChoices?: MediaChoice[]
   onUploadMedia?: (file: File) => Promise<MediaChoice | { error: string }>
   onAddMediaLink?: (url: string) => MediaChoice | { error: string }
@@ -162,6 +164,7 @@ export function ObjectPanel(props: ObjectPanelProps) {
           video={props.video ?? null}
           mediaChoices={props.mediaChoices ?? []}
           addMedia={{ upload: props.onUploadMedia, link: props.onAddMediaLink }}
+          cardTasks={props.cardTasks ?? []}
           onSaveCard={props.onSaveCard}
           onRemoveCard={props.onRemoveCard}
           onSaveVideo={props.onSaveVideo}

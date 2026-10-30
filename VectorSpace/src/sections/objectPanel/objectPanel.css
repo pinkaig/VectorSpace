@@ -1021,3 +1021,61 @@
   font-size: 13px;
   font-weight: 800;
 }
+
+/* ── Info tab: a fact card started from the teacher's task ─────────────── */
+
+/* the passage, with a box at each blank, reading like a sentence */
+.task-fill {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #D5CEF2;
+  border-radius: 12px;
+  color: #1F1B3A;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 2.2;
+}
+
+.task-fill-blank {
+  max-width: 100%;
+  margin: 0 3px;
+  padding: 2px 8px;
+  border: none;
+  border-bottom: 2px dashed #5B4BD6;
+  border-radius: 6px 6px 0 0;
+  background: #FAF9FE;
+  color: #3326A0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.task-fill-blank:focus {
+  outline: 2px solid #5B4BD6;
+  outline-offset: 1px;
+}
+
+.task-fill-blank::placeholder {
+  color: #9A92C8;
+  font-weight: 600;
+}
+
+.info-task-note {
+  color: #5E5878;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* a blank sits inside the sentence, not as a full-width box like the form's other inputs */
+.info-field .task-fill-blank {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  margin: 0 3px;
+  padding: 2px 8px;
+  border: none;
+  border-bottom: 2px dashed #5B4BD6;
+  border-radius: 6px 6px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+}

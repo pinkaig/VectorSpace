@@ -21,6 +21,8 @@
 import { useState } from 'react'
 import type { CardMedia } from '../../project/model'
 import { checkCardInput, MAX_CARD_CAPTION_LENGTH, MAX_CARD_TITLE_LENGTH, type CardInput } from '../../editor/cardEditorOperations'
+import type { CardField, CardTask } from '../../project/model'
+import { blankCount, cardBody, isComplete, startFields } from '../../mission/cardTasks'
 import MediaView from '../../runtime/MediaView'
 
 /** One entry the pickers offer from the media library: a file from this computer or a link. */
@@ -146,11 +148,53 @@ function AutoNote() {
   )
 }
 
-export function InfoCardSection({ card, video, mediaChoices, addMedia, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions, onCardCreated }: {
+// a card from a task whose task was since removed still opens: its kind is read from its fields
+const kindOf = (fields: CardField[]): CardTask['kind'] => (fields.some((field) => field.locked) ? 'blanks' : 'prompts')
+
+/** The teacher's card as the student fills it in: the passage with boxes, or each question with a box. */
+function TaskFields({ kind, fields, onChange }: { kind: CardTask['kind']; fields: CardField[]; onChange: (fields: CardField[]) => void }) {
+  const answer = (key: string, value: string) => onChange(fields.map((field) => (field.key === key ? { ...field, value } : field)))
+  if (kind === 'blanks') {
+    return (
+      <div className="info-field">
+        Fill in the blanks
+        <p className="task-fill">
+          {fields.map((field) => field.locked
+            ? <span key={field.key}>{field.label}</span>
+            : (
+              <input
+                key={field.key}
+                className="task-fill-blank"
+                aria-label={field.prompt ? `Blank: ${field.prompt}` : 'Blank'}
+                placeholder={field.prompt ?? ''}
+                maxLength={200}
+                value={field.value ?? ''}
+                size={Math.max(8, (field.value ?? field.prompt ?? '').length + 2)}
+                onChange={(event) => answer(field.key, event.target.value)}
+              />
+            ))}
+        </p>
+      </div>
+    )
+  }
+  return (
+    <>
+      {fields.filter((field) => !field.locked).map((field) => (
+        <label key={field.key} className="info-field">
+          {field.label}
+          <textarea rows={2} maxLength={2000} placeholder={field.prompt ?? 'Your answer'} value={field.value ?? ''} onChange={(event) => answer(field.key, event.target.value)} />
+        </label>
+      ))}
+    </>
+  )
+}
+
+export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions, onCardCreated }: {
   card: CardInput | null
   video: { assetId: string; label: string } | null
   mediaChoices: MediaChoice[]
   addMedia: AddMedia
+  cardTasks: CardTask[]           // the info cards the teacher's mission brief asks for
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
   onSaveVideo?: (assetId: string) => string | null
@@ -167,6 +211,17 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, onSaveCar
   const [body, setBody] = useState(card?.body ?? '')
   const [picture, setPicture] = useState<CardMedia | null>(card?.media?.kind === 'image' ? card.media : null)
   const [choosingPicture, setChoosingPicture] = useState(false)
+  // a card started from the teacher's task: which task, and its fields with the answers so far
+  const [taskId, setTaskId] = useState<string | null>(card?.taskId ?? null)
+  const [fields, setFields] = useState<CardField[]>(card?.fields ?? [])
+  const task = cardTasks.find((item) => item.id === taskId)
+  const taskKind = task?.kind ?? kindOf(fields)
+  const startTask = (next: CardTask) => {
+    setTaskId(next.id)
+    setFields(startFields(next))
+    if (!title.trim()) setTitle(next.title)
+    setProblem(null)
+  }
   // video draft
   const [videoId, setVideoId] = useState(video?.assetId ?? '')
 
@@ -179,15 +234,20 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, onSaveCar
       setTitle(card?.title ?? '')
       setBody(card?.body ?? '')
       setPicture(card?.media?.kind === 'image' ? card.media : null)
+      setTaskId(card?.taskId ?? null)
+      setFields(card?.fields ?? [])
     }
     if (next === 'video') setVideoId(video?.assetId ?? '')
     setView(next)
   }
 
   const doneFact = () => {
+    const fromTask = taskId !== null && fields.length > 0
     const input: CardInput = {
       title,
-      body,
+      // a task card's text is built from its answers, so it shows in Play like any card
+      body: fromTask ? cardBody(taskKind, fields) : body,
+      ...(fromTask ? { fields, taskId } : {}),
       ...(picture ? { media: picture } : {}),
       // the form has no timer, so a timer set elsewhere is kept as it was
       ...(card?.autoCloseMs !== undefined ? { autoCloseMs: card.autoCloseMs } : {}),
@@ -220,10 +280,34 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, onSaveCar
               Title
               <input value={title} maxLength={MAX_CARD_TITLE_LENGTH} onChange={(event) => setTitle(event.target.value)} />
             </label>
-            <label className="info-field">
-              What should visitors learn?
-              <textarea rows={4} value={body} placeholder="Write a fun fact about this exhibit" onChange={(event) => setBody(event.target.value)} />
-            </label>
+            {cardTasks.length > 0 && !taskId && (
+              <div className="info-field">
+                Start from your teacher's card
+                <div className="info-pick-list">
+                  {cardTasks.map((item, index) => (
+                    <button key={item.id} className="info-pick" onClick={() => startTask(item)}>
+                      <span className="info-pick-label">{item.title || `Card ${index + 1}`}</span>
+                      <span className="info-pick-status">{item.kind === 'blanks' ? `${blankCount(item.fields)} blanks` : `${blankCount(item.fields)} questions`}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {taskId && fields.length > 0 ? (
+              <>
+                <TaskFields kind={taskKind} fields={fields} onChange={setFields} />
+                <div className="info-task-note">
+                  {isComplete(fields) ? 'All filled in.' : `${fields.filter((field) => !field.locked && !(field.value ?? '').trim()).length} still to fill in. You can save and come back.`}
+                  {' '}
+                  <button className="info-link" onClick={() => { setTaskId(null); setFields([]) }}>Write my own instead</button>
+                </div>
+              </>
+            ) : (
+              <label className="info-field">
+                What should visitors learn?
+                <textarea rows={4} value={body} placeholder="Write a fun fact about this exhibit" onChange={(event) => setBody(event.target.value)} />
+              </label>
+            )}
             <div className="info-field">
               Picture (optional)
               {picture ? (
@@ -286,7 +370,7 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, onSaveCar
           <button className="info-item" onClick={() => open('fact')}>
             <CardIcon />
             <span className="info-item-text">
-              <span className="info-item-kind">Fact card</span>
+              <span className="info-item-kind">Fact card{card.taskId ? (isComplete(card.fields ?? []) ? " · teacher's card, done" : " · teacher's card, not finished") : ''}</span>
               <span className="info-item-name">{card.title}</span>
             </span>
             <span className="info-item-edit">Edit</span>

@@ -1,0 +1,169 @@
+/**
+ * @file        cardTasks.css
+ * @project     VectorSpace
+ * @author      Weian Ching
+ * @brief       The mission brief panel's tabs and its "Info card tasks" tab
+ *              (CardTasksSection.tsx). Only the inside of the panel.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* Brief | Info card tasks, the object panel's tab look */
+.brief-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #F4F2FB;
+}
+
+.brief-tab {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #5E5878;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.brief-tab.active {
+  background: #FFFFFF;
+  color: #1F1B3A;
+  box-shadow: 0 0 0 1px #D5CEF2;
+}
+
+.tasks-empty {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #F3D29C;
+  border-radius: 16px;
+  background: #FFF5E3;
+}
+
+.task-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-num {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1F1B3A;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.task-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.task-kind {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.task-kind-option {
+  min-height: 38px;
+  border: 1px solid #E3DFF3;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3B3363;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.task-kind-option.on {
+  border-color: #5B4BD6;
+  background: #5B4BD6;
+  color: #FFFFFF;
+}
+
+.task-passage {
+  height: auto;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.task-card .brief-help {
+  margin: 0;
+}
+
+.task-preview {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #FFFFFF;
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.task-preview p {
+  margin: 0;
+}
+
+.task-preview-label {
+  display: block;
+  color: #8A5A00;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* a blank as students see it: a dashed box with the hint in it */
+.task-blank {
+  display: inline-block;
+  min-width: 70px;
+  margin: 0 2px;
+  padding: 0 8px;
+  border: 2px dashed #C9C0F4;
+  border-radius: 8px;
+  background: #FAF9FE;
+  color: #6B62A0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.tasks-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}

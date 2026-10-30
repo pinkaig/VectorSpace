@@ -54,6 +54,7 @@ export type {
   AudioSettings,
   CameraPose,
   CardField,
+  CardTask,
   CardMedia,
   ChannelId,
   EnvironmentDefinition,
