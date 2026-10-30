@@ -55,6 +55,12 @@ export interface Project {
   sent?: boolean
   /** A teacher chose it for the public sign-in page (published museums only). */
   showcase?: boolean
+  /** The newest hand-in for review; null if never handed in. */
+  review_status?: 'waiting' | 'approved' | 'sent_back' | null
+  review_grade?: string | null
+  review_comment?: string | null
+  share_with?: ShareWith | null
+  submitted_at?: string | null
 }
 
 /** One save in a project's history, newest first from GET /projects/:id/versions. */
@@ -235,4 +241,42 @@ export async function sendToClass(getToken: GetToken, projectId: string, project
   const waiting = roster.filter((student) => !student.hasCopy)
   const { sent, failed } = await sendToStudents(getToken, projectId, waiting.map((student) => student.id), {}, base)
   return { sent, alreadyHad: roster.length - waiting.length, failed }
+}
+
+/** Who a student wants to share their museum with once it is approved. */
+export type ShareWith = 'public' | 'unlisted' | 'sign_in_only'
+
+/** One hand-in of a museum, from POST /projects/:id/submit, /approve, /send-back or GET /submissions. */
+export interface Submission {
+  id: string
+  project_id: string
+  version_id: string | null
+  status: 'waiting' | 'approved' | 'sent_back'
+  share_with: ShareWith | null
+  grade: string | null
+  comment: string | null
+  submitted_by_id: string
+  submitted_at: string
+  reviewed_by_id: string | null
+  reviewed_at: string | null
+}
+
+/** Students only: sends their assigned museum to the teacher. It waits for approval. */
+export function submitProject(getToken: GetToken, projectId: string, shareWith?: ShareWith, base?: string): Promise<Submission> {
+  return apiFetch<Submission>(getToken, `/projects/${projectId}/submit`, { method: 'POST', body: { share_with: shareWith } }, base)
+}
+
+/** Teachers only: approves a waiting museum, which publishes it. */
+export function approveProject(getToken: GetToken, projectId: string, review: { grade?: string; comment?: string } = {}, base?: string): Promise<Submission> {
+  return apiFetch<Submission>(getToken, `/projects/${projectId}/approve`, { method: 'POST', body: review }, base)
+}
+
+/** Teachers only: returns a waiting museum with a comment; the student keeps building. */
+export function sendBackProject(getToken: GetToken, projectId: string, review: { grade?: string; comment: string }, base?: string): Promise<Submission> {
+  return apiFetch<Submission>(getToken, `/projects/${projectId}/send-back`, { method: 'POST', body: review }, base)
+}
+
+/** Every hand-in of a museum, newest first. */
+export function listSubmissions(getToken: GetToken, projectId: string, base?: string): Promise<Submission[]> {
+  return apiFetch<Submission[]>(getToken, `/projects/${projectId}/submissions`, {}, base)
 }

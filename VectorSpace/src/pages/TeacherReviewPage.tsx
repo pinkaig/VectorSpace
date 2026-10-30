@@ -6,10 +6,10 @@
  *              tabs and pages of 8 on the left; the selected museum on the
  *              right with grade, comment, quick comments, and Approve and
  *              publish or Send back. Shown inside TeacherLayout. The list is
- *              the students' museums in the teacher's classes (API); a
- *              published one has a "Show on the sign-in page" switch. Sending
- *              for approval, grades and review comments are not stored yet,
- *              so nothing is Waiting or Sent back.
+ *              the students' museums in the teacher's classes (API), with each
+ *              one's newest hand-in: Waiting ones can be approved (published)
+ *              or sent back with a comment. A published one has a "Show on the
+ *              sign-in page" switch. Quick comments are not stored yet.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -18,9 +18,17 @@
 /******************************************************************************/
 
 import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router";
+import type { TeacherOutletContext } from "./TeacherLayout";
 import { Check, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { apiUrl } from "../api/client";
-import { listStudentMuseums, setShowcase, type Project } from "../api/projects";
+import {
+  approveProject,
+  listStudentMuseums,
+  sendBackProject,
+  setShowcase,
+  type Project,
+} from "../api/projects";
 import { useLoad } from "../api/useLoad";
 import { useSession } from "../session/session";
 import { MuseumPreview } from "../ui/museumPreview";
@@ -55,23 +63,45 @@ const daysAgo = (iso: string): string => {
   return `${days} days ago`;
 };
 
-// A student's project from the API. Nothing is sent for approval yet, so there are no Waiting
-// or Sent back rows: published, being built (the student has saved), or not started (only the
-// teacher's send is saved).
+// who the student picked in the share popup, in the teacher's words
+const SHARE_LABEL: Record<string, string> = {
+  sign_in_only: "my class only",
+  unlisted: "anyone with the link",
+  public: "everyone",
+};
+
+// A student's project from the API: its newest hand-in decides Waiting and Sent back; otherwise
+// published, being built (the student has saved), or not started (only the teacher's send is saved).
 const toSubmission = (project: Project): Submission => {
-  const started = project.current_revision > 0 && project.saved_by_name === project.created_by_name;
-  const status: Status = project.status === "published" ? "Published" : started ? "Building" : "Not started";
+  const started =
+    project.current_revision > 0 &&
+    project.saved_by_name === project.created_by_name;
+  const status: Status =
+    project.review_status === "waiting"
+      ? "Waiting"
+      : project.review_status === "sent_back"
+        ? "Sent back"
+        : project.status === "published"
+          ? "Published"
+          : started
+            ? "Building"
+            : "Not started";
   return {
     id: project.id,
     studentName: project.created_by_name,
     projectName: project.name,
     status,
     sent:
-      status === "Published"
-        ? `Published · updated ${daysAgo(project.updated_at)}`
-        : status === "Building" && project.saved_at
-          ? `Edited ${daysAgo(project.saved_at)}`
-          : "Not opened yet",
+      status === "Waiting" && project.submitted_at
+        ? `Sent ${daysAgo(project.submitted_at)}`
+        : status === "Sent back"
+          ? "Sent back · waiting for changes"
+          : status === "Published"
+            ? `Published · updated ${daysAgo(project.updated_at)}`
+            : status === "Building" && project.saved_at
+              ? `Edited ${daysAgo(project.saved_at)}`
+              : "Not opened yet",
+    shareWith: project.share_with ? SHARE_LABEL[project.share_with] : undefined,
     showcase: project.showcase,
   };
 };
@@ -101,6 +131,7 @@ const PAGE_SIZE = 8;
 
 export default function TeacherReviewPage() {
   const { getToken } = useSession();
+  const outlet = useOutletContext<TeacherOutletContext | undefined>();
   // the students' museums in this teacher's classes; none offline
   const loaded = useLoad(
     () => (apiUrl ? listStudentMuseums(getToken) : Promise.resolve([])),
@@ -121,7 +152,11 @@ export default function TeacherReviewPage() {
     setShowcaseError(null);
     try {
       const saved = await setShowcase(getToken, id, on);
-      setSubmissions((current) => current.map((s) => (s.id === id ? { ...s, showcase: saved.showcase } : s)));
+      setSubmissions((current) =>
+        current.map((s) =>
+          s.id === id ? { ...s, showcase: saved.showcase } : s,
+        ),
+      );
     } catch (problem) {
       setShowcaseError((problem as Error).message);
     }
@@ -173,20 +208,65 @@ export default function TeacherReviewPage() {
       setQuickComments((current) => [...current, commentToSave]);
   };
 
-  // changes the selected student's status and shows what happened
-  const decide = (status: "Published" | "Sent back") => {
+  // Approve publishes it; Send back needs a comment so the student knows what to change.
+  // Saved first, then the list and the message update.
+  const [deciding, setDeciding] = useState(false);
+  const decide = async (status: "Published" | "Sent back") => {
     if (!selected) return;
-
-    setSubmissions((current) =>
-      current.map((s) => (s.id === selectedId ? { ...s, status } : s)),
-    );
-    setMessage(
-      status === "Published"
-        ? { text: `Published · ${firstName} has been notified`, tone: "green" }
-        : { text: `Sent back · ${firstName} has been notified`, tone: "red" },
-    );
-    setComment("");
-    setGrade("");
+    const review = {
+      grade: grade.trim() || undefined,
+      comment: comment.trim() || undefined,
+    };
+    if (status === "Sent back" && !review.comment) {
+      setMessage({
+        text: `Write a comment so ${firstName} knows what to change`,
+        tone: "red",
+      });
+      return;
+    }
+    setDeciding(true);
+    setMessage(null);
+    try {
+      if (status === "Published")
+        await approveProject(getToken, selected.id, review);
+      else
+        await sendBackProject(getToken, selected.id, {
+          grade: review.grade,
+          comment: review.comment!,
+        });
+      setSubmissions((current) =>
+        current.map((s) =>
+          s.id === selectedId
+            ? {
+                ...s,
+                status,
+                sent:
+                  status === "Published"
+                    ? "Published · updated today"
+                    : "Sent back · waiting for changes",
+              }
+            : s,
+        ),
+      );
+      setMessage(
+        status === "Published"
+          ? {
+              text: `Published · ${firstName} has been notified`,
+              tone: "green",
+            }
+          : { text: `Sent back · ${firstName} has been notified`, tone: "red" },
+      );
+      setComment("");
+      setGrade("");
+      outlet?.refreshWaiting();
+    } catch (problem) {
+      setMessage({
+        text: `Couldn't save: ${(problem as Error).message}`,
+        tone: "red",
+      });
+    } finally {
+      setDeciding(false);
+    }
   };
 
   return (
@@ -307,33 +387,35 @@ export default function TeacherReviewPage() {
                 </h2>
                 <p className="review-detail-sub">
                   {selected.sent}
-                  {selected.shareWith && ` · wants to share with: ${selected.shareWith}`}
+                  {selected.shareWith &&
+                    ` · wants to share with: ${selected.shareWith}`}
                 </p>
               </div>
-              <span className={chipClass[selected.status]}>
-                {selected.status}
-              </span>
-            </header>
-
-            {selected.status === "Published" && (
-              <div className="review-showcase">
-                <span>
-                  <strong>Show on the sign-in page</strong>
-                  <small>
-                    Anyone can see it there, with {firstName}'s first name, class and school.
-                  </small>
-                </span>
-                <Toggle
-                  checked={Boolean(selected.showcase)}
-                  onChange={(on) => void toggleShowcase(selected.id, on)}
-                  label="Show on the sign-in page"
-                />
-                {showcaseError && (
-                  <p className="review-showcase-error" role="alert">
-                    {showcaseError}
-                  </p>
+              <div className="review-detail-header-end">
+                {/* a published museum can go on the public sign-in page; the switch sits by the chip
+                    so the layout is the same for every status, like the prototype */}
+                {selected.status === "Published" && (
+                  <span
+                    className="review-showcase-compact"
+                    title={`Anyone can see it on the sign-in page, with ${firstName}'s first name, class and school.`}
+                  >
+                    On sign-in page
+                    <Toggle
+                      checked={Boolean(selected.showcase)}
+                      onChange={(on) => void toggleShowcase(selected.id, on)}
+                      label="Show on the sign-in page"
+                    />
+                  </span>
                 )}
+                <span className={chipClass[selected.status]}>
+                  {selected.status}
+                </span>
               </div>
+            </header>
+            {showcaseError && (
+              <p className="review-showcase-error" role="alert">
+                {showcaseError}
+              </p>
             )}
 
             <div className="review-detail-body">
@@ -345,7 +427,9 @@ export default function TeacherReviewPage() {
               </div>
 
               <aside className="review-side">
-                {selected.todos && <h3 className="review-label">Mission brief</h3>}
+                {selected.todos && (
+                  <h3 className="review-label">Mission brief</h3>
+                )}
                 <ul className="review-todos">
                   {selected.todos?.map((todo) => (
                     <li key={todo.label} className="review-todo">
@@ -447,16 +531,16 @@ export default function TeacherReviewPage() {
               <button
                 type="button"
                 className="review-send-back"
-                onClick={() => decide("Sent back")}
-                disabled={!canDecide}
+                onClick={() => void decide("Sent back")}
+                disabled={!canDecide || deciding}
               >
                 Send back with comment
               </button>
               <button
                 type="button"
                 className="review-approve"
-                onClick={() => decide("Published")}
-                disabled={!canDecide}
+                onClick={() => void decide("Published")}
+                disabled={!canDecide || deciding}
               >
                 Approve and publish
               </button>

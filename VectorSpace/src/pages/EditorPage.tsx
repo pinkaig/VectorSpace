@@ -43,7 +43,7 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
-import { setProjectStatus } from '../api/projects'
+import { listSubmissions, setProjectStatus, submitProject } from '../api/projects'
 import { isRemoteProject } from '../project/remoteProject'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
@@ -228,16 +228,32 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Play keeps the top bar (Play turns into Stop) and swaps the building stage for the visitor's view.
   const playing = viewMode === 'runtime'
 
-  // Publish: saves now, then marks the server project published (PATCH /projects/:id). A browser
-  // draft has no server row to publish, and a teacher preview changes nothing.
+  // Publish: saves now, then a student's museum goes to their teacher (POST /projects/:id/submit)
+  // and goes live once the teacher approves it on Review; anyone else's project is published
+  // straight away (PATCH /projects/:id). A browser draft has no server row to publish, and a
+  // teacher preview changes nothing.
   const { getToken, role } = useSession()
+  const sendsToTeacher = role === 'student'
   const [published, setPublished] = useState(initialLoad.status === 'published')
+  // a student's museum is waiting for the teacher
+  const [sent, setSent] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
-  const canPublish = !preview && isRemoteProject(project.id) && !published && !publishing
+  // a museum already sent shows as sent when it is opened again
+  useEffect(() => {
+    if (preview || !sendsToTeacher || !isRemoteProject(project.id)) return
+    let current = true
+    listSubmissions(getToken, project.id).then(
+      (history) => { if (current && history[0]?.status === 'waiting') setSent(true) },
+      () => {},
+    )
+    return () => { current = false }
+  }, [project.id])
+  const canPublish = !preview && isRemoteProject(project.id) && !published && !sent && !publishing
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
     : published ? 'This museum is published'
+    : sent ? 'Waiting for your teacher to approve it'
     : publishError ? `Could not publish: ${publishError} (click to try again)`
     : 'Publish this museum'
   const publish = async () => {
@@ -246,8 +262,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     setPublishError(null)
     save()
     try {
-      const saved = await setProjectStatus(getToken, project.id, 'published')
-      setPublished(saved.status === 'published')
+      if (sendsToTeacher) {
+        await submitProject(getToken, project.id)
+        setSent(true)
+      } else {
+        const saved = await setProjectStatus(getToken, project.id, 'published')
+        setPublished(saved.status === 'published')
+      }
     } catch (problem) {
       setPublishError(problem instanceof Error ? problem.message : 'unknown error')
     } finally {
@@ -362,9 +383,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
           <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => (playing ? setViewMode('editor') : goToStep(4))}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
-          {/* who can visit and teacher review aren't built yet: Publish goes straight to published */}
+          {/* a student's Publish goes to the teacher first and is live once approved; the share popup is next */}
           <button className={publishError ? 'top-publish problem' : 'top-publish'} onClick={() => void publish()} disabled={!canPublish} title={publishTitle}>
-            {published ? <><Check size={15} /> Published</> : publishing ? 'Publishing…' : publishError ? <><AlertTriangle size={15} /> Publish</> : 'Publish'}
+            {published ? <><Check size={15} /> Published</>
+              : sent ? 'Waiting for approval'
+              : publishing ? 'Publishing…'
+              : publishError ? <><AlertTriangle size={15} /> Publish</>
+              : 'Publish'}
           </button>
           {/* Less-used actions, out of the way */}
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
