@@ -223,6 +223,46 @@ class ProjectVersion(Base):
 
     __table_args__ = (UniqueConstraint("project_id", "revision", name="uq_project_versions_project_revision"),)
 
+class Submission(Base):
+    """One hand-in of a student's museum for the teacher to review.
+
+    A new row each time the student sends it in, so a museum that was sent back and sent
+    again keeps both, with the teacher's comment on each. The project's current state is
+    its newest submission's status (waiting, approved, sent_back).
+    """
+
+    __tablename__ = "submissions"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    # the save the student sent, so the teacher reviews that one even if they keep editing
+    version_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("project_versions.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="waiting")
+    # who the student wants to share it with once it is approved
+    share_with: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    grade: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    submitted_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="SET NULL"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("status in ('waiting', 'approved', 'sent_back')", name="ck_submissions_status"),
+        CheckConstraint(
+            "share_with is null or share_with in ('public', 'unlisted', 'sign_in_only')",
+            name="ck_submissions_share_with",
+        ),
+        Index("ix_submissions_project_submitted_at", "project_id", "submitted_at"),
+    )
 
 class MediaAsset(Base):
     __tablename__ = "media_assets"

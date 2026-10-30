@@ -28,6 +28,7 @@ from ..models import (
     MediaLink,
     Project,
     ProjectVersion,
+    Submission,
 )
 from ._skeleton import not_implemented
 
@@ -82,7 +83,12 @@ class ProjectResponse(BaseModel):
     sent: bool = False
     # a teacher chose it for the public sign-in page
     showcase: bool = False
-
+    # the newest hand-in for review, None if never handed in: filled in by _describe
+    review_status: str | None = None
+    review_grade: str | None = None
+    review_comment: str | None = None
+    share_with: str | None = None
+    submitted_at: datetime | None = None
     model_config = {"from_attributes": True}
 
 
@@ -114,11 +120,18 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
     people = {a.id: a.display_name for a in db.scalars(select(Actor).where(Actor.id.in_(people_ids)))}
     classes = {c.id: c.name for c in db.scalars(select(Classroom).where(Classroom.id.in_({p.class_id for p in projects if p.class_id})))}
     templates = {t.id: t.name for t in db.scalars(select(Project).where(Project.id.in_({p.template_id for p in projects if p.template_id})))}
+    # each project's newest hand-in: read oldest first, so the newest one ends up kept
+    reviews: dict[uuid.UUID, Submission] = {}
+    for s in db.scalars(
+        select(Submission).where(Submission.project_id.in_({p.id for p in projects})).order_by(Submission.submitted_at)
+    ):
+        reviews[s.project_id] = s
     rows = []
     for p in projects:
         saved = versions.get(p.current_version_id)
         # a student's copy points at its assignment; the teacher's own project is pointed at by one
         assignment = assignments.get(p.assignment_id) if p.assignment_id else given_out.get(p.id)
+        review = reviews.get(p.id)
         rows.append(
             ProjectResponse.model_validate(p).model_copy(
                 update={
@@ -132,6 +145,11 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
                     "due_at": assignment.due_at if assignment else None,
                     "assigned_by_name": people.get(assignment.created_by_id) if assignment else None,
                     "sent": p.id in sent,
+                    "review_status": review.status if review else None,
+                    "review_grade": review.grade if review else None,
+                    "review_comment": review.comment if review else None,
+                    "share_with": review.share_with if review else None,
+                    "submitted_at": review.submitted_at if review else None,
                 }
             )
         )
@@ -404,6 +422,9 @@ def update_project(
         raise HTTPException(status_code=403, detail="You cannot change this project")
     if body.status is not None and body.status not in ("draft", "published", "archived"):
         raise HTTPException(status_code=422, detail="Invalid status")
+    # assigned work goes live through the teacher (submit, then approve), never straight from the student
+    if body.status == "published" and project.assignment_id and actor.role == "student":
+        raise HTTPException(status_code=403, detail="Send it to your teacher: it goes live once they approve it")
     if body.class_id and actor.role != "admin" and body.class_id not in class_ids(db, actor):
         raise HTTPException(status_code=403, detail="You are not in that class")
     if body.showcase is not None:
