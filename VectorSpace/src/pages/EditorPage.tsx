@@ -20,6 +20,7 @@ import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circ
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
+import { DEFAULT_ROOM_SURFACES, ROOM_STYLE_OPTIONS, type RoomStyle } from '../content/roomSurfaces'
 import { isUserAsset } from '../content/userAssets'
 import { audioAssetCatalog, countAudioAssetUses, filterAudioAssets } from '../content/audioAssets'
 import { isUserAudioAsset } from '../content/userAudio'
