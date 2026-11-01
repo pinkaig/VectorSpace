@@ -2666,11 +2666,12 @@ button:disabled {
 }
 .play-tour-spot strong { font-size: 18px; }
 
-/* the "Fact card saved" pop-up in the bottom-right corner of the room (EditorPage) */
+/* the "Fact card saved" pop-up in the bottom-right corner of the room (EditorPage),
+   above the zoom and walls buttons so it never covers them */
 .save-toast {
   position: absolute;
   right: 24px;
-  bottom: 24px;
+  bottom: 96px;
   z-index: 26;
   display: flex;
   align-items: center;
