@@ -2722,3 +2722,67 @@ button:disabled {
   font-style: normal;
   font-weight: 800;
 }
+
+/* the teacher's comment on a museum sent back, over the room until it is sent again */
+.sent-back-banner {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(560px, calc(100% - 32px));
+  box-sizing: border-box;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid #F3D29C;
+  border-radius: 14px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.18);
+}
+
+.sent-back-banner > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.sent-back-banner strong {
+  font-size: 14px;
+}
+
+.sent-back-banner p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.sent-back-banner button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(92, 58, 0, 0.1);
+  color: #5C3A00;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.sent-back-chip {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border: 1px solid #F3D29C;
+  border-radius: 999px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}

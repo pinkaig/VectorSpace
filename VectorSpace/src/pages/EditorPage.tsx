@@ -240,6 +240,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [published, setPublished] = useState(initialLoad.status === 'published')
   // a student's museum is waiting for the teacher
   const [sent, setSent] = useState(false)
+  // the teacher sent it back: their comment (and grade) until the student sends it again
+  const [sentBack, setSentBack] = useState<{ comment: string | null; grade: string | null } | null>(null)
+  const [sentBackOpen, setSentBackOpen] = useState(true)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
   // a museum already sent shows as sent when it is opened again
@@ -247,7 +250,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     if (preview || !sendsToTeacher || !isRemoteProject(project.id)) return
     let current = true
     listSubmissions(getToken, project.id).then(
-      (history) => { if (current && history[0]?.status === 'waiting') setSent(true) },
+      (history) => {
+        if (!current) return
+        if (history[0]?.status === 'waiting') setSent(true)
+        if (history[0]?.status === 'sent_back') setSentBack({ comment: history[0].comment, grade: history[0].grade })
+      },
       () => {},
     )
     return () => { current = false }
@@ -257,6 +264,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
     : published ? 'This museum is published'
     : sent ? 'Waiting for your teacher to approve it'
+    : sentBack ? 'Send it to your teacher again'
     : publishError ? `Could not publish: ${publishError} (click to try again)`
     : 'Publish this museum'
   const publish = async () => {
@@ -268,6 +276,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
       if (sendsToTeacher) {
         await submitProject(getToken, project.id)
         setSent(true)
+        setSentBack(null)
       } else {
         const saved = await setProjectStatus(getToken, project.id, 'published')
         setPublished(saved.status === 'published')
@@ -402,8 +411,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           <button className={publishError ? 'top-publish problem' : 'top-publish'} onClick={() => void publish()} disabled={!canPublish} title={publishTitle}>
             {published ? <><Check size={15} /> Published</>
               : sent ? 'Waiting for approval'
-              : publishing ? 'Publishing…'
-              : publishError ? <><AlertTriangle size={15} /> Publish</>
+              : publishing ? (sendsToTeacher ? 'Sending…' : 'Publishing…')
+              : publishError ? <><AlertTriangle size={15} /> {sendsToTeacher ? 'Send' : 'Publish'}</>
+              : sendsToTeacher ? (sentBack ? 'Send again' : 'Send to teacher')
               : 'Publish'}
           </button>
           {/* Less-used actions, out of the way */}
@@ -563,6 +573,20 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           <div className="save-toast" role="status" key={toast.key}>
             <Check size={16} strokeWidth={3} /> {toast.text}
           </div>
+        )}
+        {/* the teacher sent the museum back: what they said, until it is sent again (Weian Ching) */}
+        {sentBack && !playing && (
+          sentBackOpen ? (
+            <div className="sent-back-banner" role="status">
+              <div>
+                <strong>Your teacher sent this back{sentBack.grade ? ` · ${sentBack.grade}` : ''}</strong>
+                <p>{sentBack.comment || 'Make your changes, then send it again.'}</p>
+              </div>
+              <button onClick={() => setSentBackOpen(false)} aria-label="Hide the teacher's comment">×</button>
+            </div>
+          ) : (
+            <button className="sent-back-chip" onClick={() => setSentBackOpen(true)}>Teacher's comment</button>
+          )
         )}
         {stepNotice && (
           <div className="step-notice" role="status">

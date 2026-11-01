@@ -182,3 +182,92 @@
 .student-home-other-sub-published {
   color: var(--green-800);
 }
+/* ── the teacher's comment on a museum sent back, and "Your submissions" (Weian Ching) ── */
+
+.student-home-feedback {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #F3D29C;
+  border-radius: 12px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-size: 14px;
+}
+
+.student-home-feedback p {
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.student-home-submissions {
+  margin-top: 28px;
+}
+
+.student-home-submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-home-submission {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-strong, #E3DFF3);
+  border-radius: 16px;
+  background: var(--surface, #FFFFFF);
+}
+
+.student-home-submission-main {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-home-submission-name {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.student-home-submission-meta {
+  color: var(--text-muted, #5E5878);
+  font-size: 13px;
+}
+
+.student-home-submission-comment {
+  color: #5C3A00;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.student-home-submission-status {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.student-home-submission-status.waiting { background: #FFF5E3; color: #5C3A00; }
+.student-home-submission-status.sent_back { background: #FDECEA; color: #A3341F; }
+.student-home-submission-status.approved { background: #E3F5EC; color: #165E3D; }
+
+.student-home-submission-open {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #5B4BD6;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3326A0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}

@@ -9,6 +9,9 @@
  *              API: the assigned project, its task, due date and teacher
  *              (assignments), and its status, worked out from who saved it
  *              last. There are no notifications until the backend sends them.
+ *              "Your submissions" lists every museum the student sent to a
+ *              teacher with where it stands: waiting, sent back (with the
+ *              teacher's comment and a way to fix it) or published (Weian Ching).
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -29,10 +32,13 @@ import "./StudentHomePage.css";
 // None until the backend sends notifications (new project, visits, approvals and grades).
 const notifications: AppNotification[] = [];
 
-// the chip on the assigned project: published, untouched since the teacher sent it, or being built
+// the chip on the assigned project: published, waiting for the teacher, sent back,
+// untouched since the teacher sent it, or being built
 const statusLabel = (project: Project): string => {
   if (project.status === "published") return "Published";
   if (project.status === "archived") return "Archived";
+  if (project.review_status === "waiting") return "Waiting for approval";
+  if (project.review_status === "sent_back") return "Sent back";
   if (project.current_revision === 0) return "Not started";
   // a copy the teacher sent is saved once, by the teacher; the student's first save makes it theirs
   return project.saved_by_name === project.created_by_name ? "Building" : "Not started";
@@ -78,6 +84,11 @@ export default function StudentHomePage() {
 
   // everything except the assigned one goes under "Your other projects"
   const otherProjects = myProjects.filter((p) => p.id !== assignedProject?.id);
+
+  // every museum the student has sent to a teacher, newest hand-in first
+  const submissions = myProjects
+    .filter((p) => p.review_status)
+    .sort((a, b) => (b.submitted_at ?? "").localeCompare(a.submitted_at ?? ""));
 
   return (
     <div className="student-home">
@@ -143,6 +154,14 @@ export default function StudentHomePage() {
                 </p>
               )}
 
+              {/* the teacher sent it back: what they said, right where the student picks it up */}
+              {assignedProject.review_status === "sent_back" && (
+                <div className="student-home-feedback" role="note">
+                  <strong>Your teacher sent it back{assignedProject.review_grade ? ` · ${assignedProject.review_grade}` : ""}</strong>
+                  <p>{assignedProject.review_comment || "Make your changes, then send it again."}</p>
+                </div>
+              )}
+
               <button
                 type="button"
                 className="student-home-start"
@@ -150,13 +169,47 @@ export default function StudentHomePage() {
               >
                 {statusLabel(assignedProject) === "Not started"
                   ? "Start building"
-                  : "Keep building"}
+                  : statusLabel(assignedProject) === "Sent back"
+                    ? "Fix and send again"
+                    : statusLabel(assignedProject) === "Published"
+                      ? "Open"
+                      : "Keep building"}
               </button>
             </div>
           </article>
         )}
 
         {error && <p role="alert">Could not load your projects.</p>}
+
+        {/* YOUR SUBMISSIONS: what was sent to a teacher, and where it stands */}
+        {submissions.length > 0 && (
+          <section className="student-home-submissions" aria-label="Your submissions">
+            <h2 className="student-home-label">Your submissions</h2>
+            <ul className="student-home-submission-list">
+              {submissions.map((project) => (
+                <li key={project.id} className="student-home-submission">
+                  <div className="student-home-submission-main">
+                    <span className="student-home-submission-name">{project.name}</span>
+                    <span className="student-home-submission-meta">
+                      {project.assigned_by_name ? `For ${project.assigned_by_name} · ` : ""}
+                      {project.submitted_at ? `sent ${daysAgo(project.submitted_at)}` : "sent"}
+                      {project.review_grade ? ` · grade ${project.review_grade}` : ""}
+                    </span>
+                    {project.review_comment && (
+                      <span className="student-home-submission-comment">“{project.review_comment}”</span>
+                    )}
+                  </div>
+                  <span className={`student-home-submission-status ${project.review_status}`}>
+                    {project.review_status === "approved" ? "Published" : project.review_status === "sent_back" ? "Sent back" : "Waiting for approval"}
+                  </span>
+                  <button type="button" className="student-home-submission-open" onClick={() => navigate(`/editor/${project.id}`)}>
+                    {project.review_status === "sent_back" ? "Fix and send again" : "Open"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {otherProjects.length > 0 && (
           <section className="student-home-others">
