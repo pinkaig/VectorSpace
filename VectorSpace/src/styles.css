@@ -2632,3 +2632,29 @@ button:disabled {
   text-transform: uppercase;
 }
 .play-tour-spot strong { font-size: 18px; }
+
+/** Shared for teacher template */
+/* SHARED LOOKS: write a look once here, then add the class next to a component's own class,
+   e.g. className="ui-panel setup-panel", and keep only what is unique in the component's CSS.
+   :where() gives these zero priority, so the component's own class always wins on anything it
+   also sets (e.g. a different border-radius), whatever order the CSS files load in. */
+
+/* a white box with a thin border: big corners for page panels, button-size corners for small boxes */
+:where(.ui-panel, .ui-box) {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+:where(.ui-panel) { border-radius: var(--radius-panel); }
+:where(.ui-box) { border-radius: var(--radius-btn); }
+
+/* a bare icon button: no border or fill, icon centred; set width/height/colour on the component */
+:where(.ui-icon-btn) {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-btn-sm);
+  background: transparent;
+  cursor: pointer;
+}
+/** Shared for teacher template */

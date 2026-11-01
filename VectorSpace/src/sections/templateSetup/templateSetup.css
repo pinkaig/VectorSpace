@@ -18,9 +18,6 @@
   flex-direction: column;
   min-height: 0;
   padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
   overflow-y: auto;
 }
 
@@ -110,17 +107,10 @@
 }
 
 .brief-remove {
-  display: grid;
-  place-items: center;
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-btn-sm);
-  background: transparent;
   color: var(--text-muted);
-  cursor: pointer;
 }
 
 .brief-remove:hover {
@@ -201,7 +191,7 @@
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
 }
 
 .viewport-env select {
@@ -229,16 +219,9 @@
 }
 
 .viewport-rename {
-  display: grid;
-  place-items: center;
   width: 26px;
   height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-btn-sm);
-  background: transparent;
   color: var(--ink-2);
-  cursor: pointer;
 }
 
 .viewport-rename:hover {
@@ -287,9 +270,6 @@
 .setup-viewport-hint {
   margin: 0;
   padding: 10px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
   font-size: 14px;
   color: var(--ink-2);
 }
@@ -316,9 +296,7 @@
 .setup-rooms {
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-box);
-  background: var(--surface);
 }
 
 .setup-rooms-title {
@@ -378,13 +356,13 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
 }
 
 .setup-room-start {
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--green-50);
   color: var(--green-800);
   font-size: 13px;
@@ -392,16 +370,10 @@
 }
 
 .setup-room-remove {
-  display: grid;
-  place-items: center;
   width: 24px;
   height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
+  border-radius: var(--radius-xs);
   color: var(--red-700);
-  cursor: pointer;
 }
 
 .setup-room-remove:hover {
@@ -430,9 +402,7 @@
   z-index: 10;
   width: 340px;
   padding: 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--surface);
   box-shadow: var(--shadow-popup);
 }
 
@@ -524,7 +494,7 @@
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 /* ── Project details ──────────────────────────────────────────────────── */
@@ -672,9 +642,6 @@
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
   color: var(--ink);
   cursor: pointer;
 }
@@ -696,9 +663,6 @@
 .setup-assign-pick {
   height: 44px;
   padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 15px;

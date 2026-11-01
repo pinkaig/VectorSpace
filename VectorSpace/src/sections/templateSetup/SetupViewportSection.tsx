@@ -171,7 +171,7 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
         {nameDraft === null ? (
           <span className="viewport-label">
             Room {numberOf(scene.id)} · {scene.name}
-            <button type="button" className="viewport-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room">
+            <button type="button" className="ui-icon-btn viewport-rename" onClick={startRename} title="Rename this room" aria-label="Rename this room">
               <Pencil size={13} />
             </button>
           </span>
@@ -223,11 +223,11 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
           showHint={false}
         />
       </div>
-      <p className="setup-viewport-hint">{/*HINT: where the teacher tools are*/}
+      <p className="ui-box setup-viewport-hint">{/*HINT: where the teacher tools are*/}
         <strong>Edit room</strong> to suggest spots, lock things or add starter objects.
       </p>
 
-      <div className="setup-rooms">{/*ROOMS EVERY STUDENT STARTS WITH: one chip per room, then + Add room*/}
+      <div className="ui-box setup-rooms">{/*ROOMS EVERY STUDENT STARTS WITH: one chip per room, then + Add room*/}
         <h3 className="setup-rooms-title">Rooms every student starts with</h3>
         <p className="setup-rooms-note">Optional. Students decorate these but can't remove them.</p>
         <div className="setup-rooms-list">
@@ -240,7 +240,7 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
               {index === 0 ? (
                 <span className="setup-room-start">Start</span>
               ) : (
-                <button type="button" className="setup-room-remove" onClick={() => removeRoom(room.id)} title={`Remove Room ${index + 1}`} aria-label={`Remove Room ${index + 1}`}>
+                <button type="button" className="ui-icon-btn setup-room-remove" onClick={() => removeRoom(room.id)} title={`Remove Room ${index + 1}`} aria-label={`Remove Room ${index + 1}`}>
                   <X size={14} strokeWidth={3} />
                 </button>
               )}
@@ -251,7 +251,7 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
               <Plus size={16} /> Add room
             </Button>
             {adding && !adding.cell && (
-              <div className="setup-rooms-popover" role="dialog" aria-label="Where should it go?">{/*STEP 1: where*/}
+              <div className="ui-box setup-rooms-popover" role="dialog" aria-label="Where should it go?">{/*STEP 1: where*/}
                 <h4 className="setup-rooms-popover-title">Where should it go?</h4>
                 <p className="setup-rooms-note">Same map students use. Tap a + next to Room 1.</p>
                 <div className="setup-rooms-map">
@@ -280,7 +280,7 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
               </div>
             )}
             {adding?.cell && (
-              <div className="setup-rooms-popover" role="dialog" aria-label="What kind of room?">{/*STEP 2: what kind*/}
+              <div className="ui-box setup-rooms-popover" role="dialog" aria-label="What kind of room?">{/*STEP 2: what kind*/}
                 <div className="setup-rooms-popover-head">
                   <h4 className="setup-rooms-popover-title">What kind of room?</h4>
                   <Button size="small" onClick={() => setAdding({})}>‹ Back</Button>

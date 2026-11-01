@@ -284,7 +284,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
 
   return (
     <main className="setup-shell">
-      <header className="setup-header">{/*HEADER: which project this is (left), what the teacher can do with it (right)*/}
+      <header className="ui-panel setup-header">{/*HEADER: which project this is (left), what the teacher can do with it (right)*/}
         <div className="setup-header-project">
           <Link to="/teacher" className="setup-header-icon" title="Back to home"><Box size={22} /></Link>{/* the cube goes back to the teacher home page */}
           <div>
@@ -303,7 +303,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
         </div>
       </header>
       {/*WHAT HAPPENED: one line after a failed Assign*/}
-      {failed && <p className="setup-notice setup-notice-red">{failed}</p>}
+      {failed && <p className="ui-box setup-notice setup-notice-red">{failed}</p>}
       <div className="setup-body">{/*THE THREE PANELS, side by side*/}
         <MissionBriefSection brief={brief} onChange={editBrief} />
         <SetupViewportSection draft={draft} onChange={editDraft} />

@@ -80,7 +80,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
   };
 
   return (
-    <section className="setup-panel">
+    <section className="ui-panel setup-panel">
       <h2 className="setup-panel-title">Mission brief</h2>{/*TITLE*/}
       <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
       <label className="brief-due">{/*DUE DATE: a plain text box*/}
@@ -105,7 +105,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
               onKeyDown={enterAdds(addTodo)}
             />
             <TodoChip text={todo.text} clashesWith={clashText(index)} />
-            <button type="button" className="brief-remove" onClick={() => removeTodo(todo.id)}>
+            <button type="button" className="ui-icon-btn brief-remove" onClick={() => removeTodo(todo.id)}>
               <X size={16} />
             </button>
           </li>
@@ -125,7 +125,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
               onChange={(event) => editRule(rule.id, event.target.value)}
               onKeyDown={enterAdds(addRule)}
             />
-            <button type="button" className="brief-remove" onClick={() => removeRule(rule.id)}>
+            <button type="button" className="ui-icon-btn brief-remove" onClick={() => removeRule(rule.id)}>
               <X size={16} />
             </button>
           </li>
