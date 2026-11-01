@@ -42,7 +42,7 @@ export default function ProjectEditorPage() {
     let current = true
     setState({ kind: 'loading' })
     loadRemoteProject((() => getTokenRef.current()), projectId).then(
-      ({ project, status }) => current && setState({ kind: 'ready', start: { project, source: 'server', status } }),
+      ({ project, status, sharing }) => current && setState({ kind: 'ready', start: { project, source: 'server', status, sharing } }),
       (error: unknown) => current && setState({ kind: 'problem', text: describe(error) }),
     )
     return () => { current = false }

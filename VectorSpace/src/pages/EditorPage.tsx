@@ -16,9 +16,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Clock, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
-import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
+import { downloadProject, loadProjectWithSource, type ProjectLoadResult, type ProjectSharing } from '../project/serializer'
 import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
 import { DEFAULT_ROOM_SURFACES, ROOM_STYLE_OPTIONS, type RoomStyle } from '../content/roomSurfaces'
 import { isUserAsset } from '../content/userAssets'
@@ -43,7 +43,8 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
-import { listSubmissions, setProjectStatus, submitProject } from '../api/projects'
+import { setProjectStatus, submitProject, type ShareWith } from '../api/projects'
+import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
@@ -228,53 +229,49 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Play keeps the top bar (Play turns into Stop) and swaps the building stage for the visitor's view.
   const playing = viewMode === 'runtime'
 
-  // Publish: saves now, then a student's museum goes to their teacher (POST /projects/:id/submit)
-  // and goes live once the teacher approves it on Review; anyone else's project is published
-  // straight away (PATCH /projects/:id). A browser draft has no server row to publish, and a
-  // teacher preview changes nothing.
+  // Publish opens "Share your museum" (SharePopup). A student's send goes to their teacher
+  // (POST /projects/:id/submit, with who can visit) and goes live once the teacher approves it on
+  // Review; anyone else's project is published straight away (PATCH /projects/:id). Either saves
+  // first. A browser draft has no server row to share, and a teacher preview changes nothing.
   const { getToken, role } = useSession()
   const sendsToTeacher = role === 'student'
   const [published, setPublished] = useState(initialLoad.status === 'published')
+  const [sharing, setSharing] = useState<ProjectSharing>(
+    initialLoad.sharing ?? { reviewStatus: null, shareWith: null, reviewComment: null, teacherName: null, slug: null },
+  )
   // a student's museum is waiting for the teacher
-  const [sent, setSent] = useState(false)
+  const sent = !published && sharing.reviewStatus === 'waiting'
+  const shareStatus: ShareStatus = published ? 'published' : sent ? 'submitted' : 'draft'
+  const [shareOpen, setShareOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
-  // a museum already sent shows as sent when it is opened again
-  useEffect(() => {
-    if (preview || !sendsToTeacher || !isRemoteProject(project.id)) return
-    let current = true
-    listSubmissions(getToken, project.id).then(
-      (history) => { if (current && history[0]?.status === 'waiting') setSent(true) },
-      () => {},
-    )
-    return () => { current = false }
-  }, [project.id])
-  const canPublish = !preview && isRemoteProject(project.id) && !published && !sent && !publishing
+  const canShare = !preview && isRemoteProject(project.id)
+  const teacherName = sharing.teacherName ?? 'your teacher'
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
     : published ? 'This museum is published'
-    : sent ? 'Waiting for your teacher to approve it'
-    : publishError ? `Could not publish: ${publishError} (click to try again)`
-    : 'Publish this museum'
-  const publish = async () => {
-    if (!canPublish) return
+    : sent ? `Sent to ${teacherName}: waiting for them to approve it`
+    : 'Share this museum'
+  const publish = async (shareWith: ShareWith) => {
+    if (!canShare || publishing) return
     setPublishing(true)
     setPublishError(null)
     save()
     try {
       if (sendsToTeacher) {
-        await submitProject(getToken, project.id)
-        setSent(true)
+        const submission = await submitProject(getToken, project.id, shareWith)
+        setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with, reviewComment: submission.comment }))
       } else {
         const saved = await setProjectStatus(getToken, project.id, 'published')
         setPublished(saved.status === 'published')
       }
     } catch (problem) {
-      setPublishError(problem instanceof Error ? problem.message : 'unknown error')
+      setPublishError(`That didn't go through: ${problem instanceof Error ? problem.message : 'unknown error'}`)
     } finally {
       setPublishing(false)
     }
   }
+  const closeShare = () => setShareOpen(false)
 
   const limitRooms = preview || role === 'student'
   const roomKinds = limitRooms ? studentRoomEnv(project) : environmentLibrary
@@ -383,13 +380,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
           <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => (playing ? setViewMode('editor') : goToStep(4))}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
-          {/* a student's Publish goes to the teacher first and is live once approved; the share popup is next */}
-          <button className={publishError ? 'top-publish problem' : 'top-publish'} onClick={() => void publish()} disabled={!canPublish} title={publishTitle}>
-            {published ? <><Check size={15} /> Published</>
-              : sent ? 'Waiting for approval'
-              : publishing ? 'Publishing…'
-              : publishError ? <><AlertTriangle size={15} /> Publish</>
-              : 'Publish'}
+          {/* opens "Share your museum"; the label follows where the museum is: draft, waiting, live */}
+          <button className="top-publish" onClick={() => { setPublishError(null); setShareOpen(true) }} disabled={!canShare} title={publishTitle}>
+            {published ? <><Check size={15} /> Published</> : sent ? <><Clock size={15} /> Waiting</> : 'Publish'}
           </button>
           {/* Less-used actions, out of the way */}
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
@@ -401,6 +394,18 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
         </div>
       </header>
+      {shareOpen && (
+        <SharePopup
+          project={project}
+          status={shareStatus}
+          sharing={sharing}
+          needsReview={sendsToTeacher}
+          busy={publishing}
+          error={publishError}
+          onSend={(shareWith) => void publish(shareWith)}
+          onClose={closeShare}
+        />
+      )}
       {playing ? <RuntimeView project={project} onExit={() => setViewMode('editor')} /> : <>
       <div className="workspace">
         {/* TURNED OFF: left rail (Scene / Assets / Audio / Interactions panels) was removed so the

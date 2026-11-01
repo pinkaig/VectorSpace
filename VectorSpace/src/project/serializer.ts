@@ -62,6 +62,21 @@ export interface ProjectLoadResult {
   source: ProjectLoadSource
   /** A server project's status (draft, published or archived); unset for a browser draft. */
   status?: 'draft' | 'published' | 'archived'
+  /** A server project's sharing state, for "Share your museum"; unset for a browser draft. */
+  sharing?: ProjectSharing
+}
+
+export interface ProjectSharing {
+  /** Its newest hand-in to the teacher (routers/submissions.py); null if never handed in. */
+  reviewStatus: 'waiting' | 'approved' | 'sent_back' | null
+  /** Who the student chose in "Who can visit?"; null if not chosen yet. */
+  shareWith: 'public' | 'unlisted' | 'sign_in_only' | null
+  /** The teacher's note from their last review, e.g. why it was sent back. */
+  reviewComment: string | null
+  /** Who assigned it, e.g. "Ms Tan"; null for a project nobody assigned. */
+  teacherName: string | null
+  /** The project's slug, the last part of its visitor link. */
+  slug: string | null
 }
 
 const logger = createLogger('editor.persistence')

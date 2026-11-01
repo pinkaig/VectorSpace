@@ -29,10 +29,13 @@ import "./StudentHomePage.css";
 // None until the backend sends notifications (new project, visits, approvals and grades).
 const notifications: AppNotification[] = [];
 
-// the chip on the assigned project: published, untouched since the teacher sent it, or being built
+// the chip on the assigned project: published, waiting for the teacher, sent back by them,
+// untouched since the teacher sent it, or being built
 const statusLabel = (project: Project): string => {
   if (project.status === "published") return "Published";
   if (project.status === "archived") return "Archived";
+  if (project.review_status === "waiting") return "Waiting for approval";
+  if (project.review_status === "sent_back") return "Sent back";
   if (project.current_revision === 0) return "Not started";
   // a copy the teacher sent is saved once, by the teacher; the student's first save makes it theirs
   return project.saved_by_name === project.created_by_name ? "Building" : "Not started";
@@ -176,6 +179,10 @@ export default function StudentHomePage() {
                   {project.status === "published" ? (
                     <span className="student-home-other-sub student-home-other-sub-published">
                       Published
+                    </span>
+                  ) : project.review_status === "waiting" ? (
+                    <span className="student-home-other-sub">
+                      Waiting for approval
                     </span>
                   ) : (
                     <span className="student-home-other-sub">
