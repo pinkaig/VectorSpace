@@ -42,9 +42,11 @@ const MAX_TEXT = 200;
 type MissionBriefSectionProps = {
   brief: MissionBrief;
   onChange: (next: MissionBrief) => void;
+  // the template's things, so an info card task can be suggested for one
+  things?: { id: string; name: string; room: string }[];
 };
 
-export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProps) {
+export function MissionBriefSection({ brief, onChange, things = [] }: MissionBriefSectionProps) {
   // the row just added, so its text box can take the cursor straight away
   const [focusId, setFocusId] = useState<string | null>(null);
   // which tab of the panel shows: the brief itself, or the info cards students complete
@@ -97,7 +99,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
           Info card tasks{taskCount > 0 ? ` · ${taskCount}` : ""}
         </button>
       </div>
-      {tab === "cards" ? <CardTasksSection brief={brief} onChange={onChange} /> : <>
+      {tab === "cards" ? <CardTasksSection brief={brief} onChange={onChange} things={things} /> : <>
       <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
       <label className="brief-due">{/*DUE DATE: a plain text box*/}
         <span className="brief-due-label">Due</span>

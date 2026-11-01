@@ -2665,3 +2665,59 @@ button:disabled {
   text-transform: uppercase;
 }
 .play-tour-spot strong { font-size: 18px; }
+
+/* the "Fact card saved" pop-up in the bottom-right corner of the room (EditorPage) */
+.save-toast {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #165E3D;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.25);
+  animation: save-toast-in 0.2s ease-out;
+}
+
+@keyframes save-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-toast { animation: none; }
+}
+
+/* step 2, per thing: a green tick once it has a fact card, an open amber ring until then */
+.info-status {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.info-status.done {
+  background: #2E9E6A;
+  color: #FFFFFF;
+}
+
+.info-status.todo {
+  border: 2px solid #E3A93B;
+}
+
+.things-info-count {
+  margin-left: 6px;
+  color: #165E3D;
+  font-style: normal;
+  font-weight: 800;
+}

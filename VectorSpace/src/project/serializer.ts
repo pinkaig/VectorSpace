@@ -278,6 +278,7 @@ const validateTextPresentation = (presentation: TextPresentation): void => {
   if (presentation.media !== undefined) validateCardMedia(presentation.media)
   if (presentation.fields !== undefined) validateCardFields(presentation.fields)
   if (presentation.taskId !== undefined && (!isShortText(presentation.taskId, MAX_LABEL_LENGTH) || !presentation.taskId)) throw new Error('Project contains an info card with an invalid task')
+  if (presentation.inRoom !== undefined && typeof presentation.inRoom !== 'boolean') throw new Error('Project contains an info card with an invalid sign setting')
 }
 
 /**
@@ -301,6 +302,7 @@ const validateAttachments = (attachments: Attachment[] | undefined, tracker: { i
     // asset is a runtime placeholder, not a load failure
     if (attachment.kind === 'text') validateTextPresentation(attachment.presentation)
     else if (!['audio', 'image', 'video'].includes(attachment.kind)) throw new Error('Project contains an attachment with an unknown kind')
+    if (attachment.kind === 'video' && attachment.screen !== undefined && typeof attachment.screen !== 'boolean') throw new Error('Project contains a video with an invalid screen setting')
     if (tracker.ids.has(attachment.id)) throw new Error('Project contains duplicate attachment IDs')
     tracker.ids.add(attachment.id)
   }
@@ -367,7 +369,7 @@ const validateCardTasks = (tasks: CardTask[]): void => {
   if (!Array.isArray(tasks) || tasks.length > MAX_CARD_TASKS) throw new Error('Project mission brief has an invalid list of info card tasks')
   const ids = new Set<string>()
   for (const task of tasks) {
-    if (!task || typeof task !== 'object' || !isShortText(task.id, MAX_LABEL_LENGTH) || !task.id || !isShortText(task.title, MAX_LABEL_LENGTH) || !['blanks', 'prompts'].includes(task.kind)) {
+    if (!task || typeof task !== 'object' || !isShortText(task.id, MAX_LABEL_LENGTH) || !task.id || !isShortText(task.title, MAX_LABEL_LENGTH) || !['blanks', 'prompts'].includes(task.kind) || (task.objectId !== undefined && (!isShortText(task.objectId, MAX_LABEL_LENGTH) || !task.objectId))) {
       throw new Error('Project mission brief contains an invalid info card task')
     }
     validateCardFields(task.fields)

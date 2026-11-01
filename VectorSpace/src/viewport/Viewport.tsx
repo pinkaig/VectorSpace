@@ -42,6 +42,8 @@ import {
 } from '../../packages/interaction/src/index'
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../../packages/audio/src/index'
 import { clickPanelFor, registerMediaActions } from '../runtime/builtInInteractions'
+import { createInRoomMedia } from './inRoomMedia'
+import { resolveLocalMedia } from '../runtime/mediaLibrary'
 import { TextLibrary, TextSystem, createTextEventBridge, registerTextActions } from '../../packages/text/src/index'
 import TextPanelHost from '../runtime/TextPanelHost'
 import { audioResolver } from '../content/audioResolution'
@@ -479,6 +481,16 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const { requestRender } = scheduler
     requestRenderRef.current = requestRender
 
+    // Info inside the room: fact cards shown as signs and videos on screens above their
+    // things (see inRoomMedia.ts). Rebuilt with the objects, placed every frame.
+    const inRoom = createInRoomMedia({
+      scene,
+      objectsGroup,
+      resolveMedia: resolveLocalMedia,
+      getText: (assetId) => textLibraryRef.current?.getMeta(assetId),
+      requestRender,
+    })
+
     const resize = () => {
       const width = mount.clientWidth
       const height = mount.clientHeight
@@ -503,6 +515,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         onModelLoaded: () => { synced = null },
       })
       synced = { objects, selectedId, syncToken }
+      inRoom.sync(objects)
       requestRender()
     }
 
@@ -569,7 +582,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // video if it has no card, before and alongside any reactions the student added.
       if (event.kind === 'click' && event.objectId) {
         const panel = clickPanelFor((dataRef.current.objects as readonly SceneObject[]).find((object) => object.id === event.objectId))
-        if (panel) {
+        // a video already playing on a screen in the room: the click turns its sound on or
+        // off instead of opening a second, pop-up copy of it
+        const screenHandled = panel?.id.startsWith('video:') === true && inRoom.click(event.objectId)
+        if (panel && !screenHandled) {
           const handle = text.open(panel)
           effects.add(() => handle.close())
         }
@@ -751,6 +767,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           // one-way boolean per the modal-input-boundary decision: text
           // reports, this controller decides what the modal means for input
           modalOpen: text.store.getSnapshot().modalOpen,
+          panelOpen: text.store.getSnapshot().panels.length > 0,
           playMove: dataRef.current.playMove ?? null,
         }),
         select: (id) => dataRef.current.onSelect(id),
@@ -915,6 +932,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         statsWindowStart = now
         if (!statsOn) setStats(null)
       }
+      // signs and screens follow their things and turn to the viewer; a playing video needs frames
+      if (inRoom.update(activeCameraRef.current, playing)) requestRender()
       if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
 
@@ -957,6 +976,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       text.closeAll()
       restartRuntimeRef.current = () => {}
       requestRenderRef.current = () => {}
+      inRoom.dispose()
       playActionsRef.current = { goToSpot: () => {}, spotScreenPoint: () => null }
       playMovement.dispose()
       observer.disconnect()

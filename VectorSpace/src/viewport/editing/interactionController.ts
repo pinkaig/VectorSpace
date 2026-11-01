@@ -67,6 +67,8 @@ export interface ViewportInteractionData {
   // for input is decided here: pointer picking, look, drags, runtime key
   // triggers, and walk movement all pause until the panel closes.
   modalOpen: boolean
+  // a text panel or info card is showing: Walk must not take the mouse away from it
+  panelOpen?: boolean
   // How the visitor moves in play mode ('tap' to go, 'walk', 'tour' spots); look is a drag
   // in all three. null keeps the older pointer-lock look.
   playMove: 'tap' | 'walk' | 'tour' | null
@@ -181,6 +183,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
 })
   const pick = (event: PointerEvent) => {
     getPointer(event)
+    // Walk holds the mouse for looking around, which freezes the cursor where the lock
+    // began; what the visitor clicks then is what they look at, the centre of the view
+    if (document.pointerLockElement === element) pointer.set(0, 0)
     raycaster.setFromCamera(pointer, activeCamera.current)
     // An object whose asset is still resolving or has failed has no confirmed
     // visual representation yet, so it must not be selectable or draggable.
@@ -373,7 +378,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       // Play's Walk with a mouse is first-person too; touch keeps drag-to-look.
       const mouseLook = data.playMove === null || (data.playMove === 'walk' && event.pointerType === 'mouse')
       if (!interactive && data.runtimeActive && mouseLook) {
-        if (document.pointerLockElement !== element) element.requestPointerLock()
+        // with a card open the visitor keeps the mouse to read and close it; the click
+        // still selects (and can open another card), it just does not lock the mouse
+        if (!data.panelOpen && document.pointerLockElement !== element) element.requestPointerLock()
         return
       }
       looking = { startPointerX: event.clientX, startPointerY: event.clientY, startYaw: yaw.current, startPitch: pitch.current }

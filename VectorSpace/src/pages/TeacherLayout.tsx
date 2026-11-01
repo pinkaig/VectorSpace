@@ -21,6 +21,7 @@ import { apiUrl } from "../api/client";
 import { listStudentMuseums } from "../api/projects";
 import { useSession } from "../session/session";
 import { LandingPageTopBar } from "../ui/LandingPageTopBar";
+import { usePendingLinkCount } from "../sections/mediaLibrary/LinkApprovalAlert";
 import "./TeacherLayout.css";
 
 // what the tab pages get from this layout (useOutletContext): Review calls refreshWaiting after
@@ -40,6 +41,8 @@ export default function TeacherLayout() {
 
   // how many museums wait for this teacher, shown on the Review tab
   const [waiting, setWaiting] = useState(0);
+  // and how many YouTube or image links students added wait for approval
+  const pendingLinks = usePendingLinkCount();
   const refreshWaiting = useCallback(() => {
     if (!apiUrl) return;
     listStudentMuseums(getToken).then(
@@ -62,7 +65,7 @@ export default function TeacherLayout() {
         tabs={
           <>
             <NavLink to="/teacher" end className={tabClass}>Classes</NavLink>
-            <NavLink to="/teacher/review" className={tabClass}>{`Review (${waiting})`}</NavLink>
+            <NavLink to="/teacher/review" className={tabClass}>{`Review (${waiting})`}{pendingLinks > 0 && <span className="review-tab-links" title="Links waiting for your approval"> · {pendingLinks} {pendingLinks === 1 ? "link" : "links"}</span>}</NavLink>
             <NavLink to="/teacher/results" className={tabClass}>Results</NavLink>
           </>
         }

@@ -57,6 +57,9 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
   const doneText = `${doneCount} of ${todos.length} done`;
 
   const cardTasks = (brief.cardTasks ?? []).map((task, index) => ({ task, index, status: taskStatus(project, task) }));
+  // the thing the teacher suggested a card for, by name, if it is still in the project
+  const suggestedName = (objectId?: string) =>
+    objectId ? project.scenes.flatMap((scene) => scene.objects).find((object) => object.id === objectId)?.name : undefined;
 
   if (todos.length === 0 && brief.rules.length === 0 && cardTasks.length === 0) return null;
 
@@ -116,7 +119,9 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
                 </span>
                 <span className="mb-todo-text">{task.title || `Card ${index + 1}`}</span>
                 <span className="mb-todo-count">
-                  {status.state === "todo" ? (task.kind === "blanks" ? "fill in the blanks" : "answer the questions") : status.state === "done" ? `on ${status.objectName}` : `started on ${status.objectName}`}
+                  {status.state === "todo"
+                    ? suggestedName(task.objectId) ? `for ${suggestedName(task.objectId)}` : task.kind === "blanks" ? "fill in the blanks" : "answer the questions"
+                    : status.state === "done" ? `on ${status.objectName}` : `started on ${status.objectName}`}
                 </span>
               </li>
             ))}

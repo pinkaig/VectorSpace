@@ -124,6 +124,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [step, setStep] = useState<EditStep>(1)
   // a short line telling the student where a step took them ("Add info to Pedestal")
   const [stepNotice, setStepNotice] = useState<string | null>(null)
+  // a short "saved" pop-up in the corner after the student saves a fact card, a video or a link
+  const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
+  const showToast = (text: string) => setToast({ text, key: Date.now() })
   // the object panel's Snap switch: the viewport's drags land on the floor grid, in 15° turns
   // and 0.25 size steps while it is on (viewport/editing/snapping.ts)
   const [snapOn, setSnapOn] = useState(false)
@@ -286,6 +289,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // what each step still needs, for its green tick and for where a step click goes
   const roomRules = (project.rules ?? []).filter((rule) => scene.objects.some((object) => object.id === rule.objectId))
   const needInfo = scene.objects.filter((object) => !findCard(project, object))
+  const withInfo = scene.objects.length - needInfo.length
   const stepDone: Record<TutorialStep, boolean> = {
     1: scene.objects.length > 0,
     2: scene.objects.length > 0 && needInfo.length === 0,
@@ -303,6 +307,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     }
     if (playing) setViewMode('editor')
     setStep(n)
+    // Add info opens the things list, where each thing shows whether it has its fact card yet
+    if (n === 2) setThingsOpen(true)
     if (n === 1 || selected) return
     if (scene.objects.length === 0) {
       setStepNotice('Place something from the catalogue first.')
@@ -329,6 +335,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     return () => window.clearTimeout(timer)
   }, [stepNotice])
 
+  // the saved pop-up goes after a moment; a new save restarts it
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 2600)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -354,7 +367,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         {tutorialSteps.map(({ step: n, label }) => {
           const viewing = n === (playing ? 4 : step)
           const colour = viewing ? 'viewing' : stepDone[n] ? 'green' : 'todo'
-          const title = `Step ${n}: ${label}${stepDone[n] && !viewing ? ' (done)' : ''}`
+          // step 2 counts per thing: green once every thing in this room has a fact card
+          const progress = n === 2 && scene.objects.length > 0 ? ` · ${withInfo}/${scene.objects.length}` : ''
+          const title = `Step ${n}: ${label}${n === 2 && scene.objects.length > 0 ? ` (${withInfo} of ${scene.objects.length} things have info)` : ''}${stepDone[n] && !viewing ? ' (done)' : ''}`
           return (
             <button
               key={n}
@@ -365,7 +380,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onClick={() => goToStep(n)}
             >
             <span className="button-num">{n}</span>
-              <span className="button-label">{label}</span>
+              <span className="button-label">{label}{progress}</span>
             </button>
                   )})}
         </nav>
@@ -489,7 +504,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           <div className="floating-controls bottom-left">
             <div className="float-group things-in-room">
               <button className="float-button things-toggle" aria-expanded={thingsOpen} onClick={() => setThingsOpen((open) => !open)}>
-                Things in this room · {scene.objects.length}<span>{thingsOpen ? '▾' : '▴'}</span>
+                Things in this room · {scene.objects.length}{step === 2 && scene.objects.length > 0 && <em className="things-info-count">{withInfo} with info</em>}<span>{thingsOpen ? '▾' : '▴'}</span>
               </button>
               {thingsOpen && <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
                 <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
@@ -498,7 +513,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
                   </div>
                   <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
-                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}
+                    {findCard(project, row.object)
+                      ? <span className="info-status done" title="Has a fact card" aria-label="Has a fact card"><Check size={11} strokeWidth={3.5} /></span>
+                      : <span className="info-status todo" title="No fact card yet" aria-label="No fact card yet" />}
+                    <span className="tree-chevron">›</span>
                   </button>
                 </div>
               ))}</div>}
@@ -540,6 +559,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
         </section>
+        {toast && (
+          <div className="save-toast" role="status" key={toast.key}>
+            <Check size={16} strokeWidth={3} /> {toast.text}
+          </div>
+        )}
         {stepNotice && (
           <div className="step-notice" role="status">
             {stepNotice}
@@ -587,23 +611,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             }}
             onAddMediaLink={(url) => {
               const added = addLocalMediaLink(url, 'editor')
-              return 'error' in added ? added : choiceFor(added)
+              if ('error' in added) return added
+              showToast('Link sent to your teacher to approve')
+              return choiceFor(added)
             }}
             video={videoFor(selected, mediaLibrary)}
-            onSaveVideo={(assetId) => {
-              const result = saveObjectVideo(project, scene.id, selected.id, assetId)
+            onSaveVideo={(assetId, screen) => {
+              const result = saveObjectVideo(project, scene.id, selected.id, assetId, screen)
               if (!result.ok) return result.error
               commit('Save video', result.project)
+              showToast('Video saved')
               return null
             }}
-            onRemoveVideo={() => commit('Remove video', removeObjectVideo(project, scene.id, selected.id))}
+            onRemoveVideo={() => { commit('Remove video', removeObjectVideo(project, scene.id, selected.id)); showToast('Video removed') }}
             onSaveCard={(input) => {
               const result = saveObjectCard(project, scene.id, selected.id, input)
               if (!result.ok) return result.error
               commit('Save info card', result.project)
+              showToast('Fact card saved')
               return null
             }}
-            onRemoveCard={() => commit('Remove info card', removeObjectCard(project, scene.id, selected.id))}
+            onRemoveCard={() => { commit('Remove info card', removeObjectCard(project, scene.id, selected.id)); showToast('Fact card removed') }}
           />
         </aside>}
       </div>
@@ -677,19 +705,20 @@ const choiceFor = (entry: LocalMediaEntry) => ({ assetId: entry.id, kind: entry.
 const videoFor = (object: SceneObject, library: readonly LocalMediaEntry[]) => {
   const video = findVideo(object)
   if (!video) return null
-  return { attachmentId: video.id, assetId: video.assetId, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
+  return { attachmentId: video.id, assetId: video.assetId, screen: video.screen === true, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
 }
 
 const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
   const card = findCard(project, object)
   if (!card || card.attachment.presentation.mode !== 'card') return null
-  const { title, media, autoCloseMs, fields, taskId } = card.attachment.presentation
+  const { title, media, autoCloseMs, fields, taskId, inRoom } = card.attachment.presentation
   return {
     title: title ?? '',
     body: card.meta?.content ?? '',
     ...(media ? { media } : {}),
     ...(autoCloseMs !== undefined ? { autoCloseMs } : {}),
     ...(fields && taskId ? { fields, taskId } : {}),
+    ...(inRoom ? { inRoom } : {}),
   }
 }
 
