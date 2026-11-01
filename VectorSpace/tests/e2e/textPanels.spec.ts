@@ -97,3 +97,23 @@ test('an info card shows its media slot (unavailable offline), ignores clicks el
   await expect(card).toBeHidden()
   await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
 })
+
+test('an info card shows by itself when a tour reaches its exhibit, with no reaction set up', async ({ page }) => {
+  const project = structuredClone(demoProject) as { rules: unknown[]; scenes: { objects: { attachments?: { id: string; presentation?: Record<string, unknown> }[] }[] }[] }
+  project.rules = []
+  const welcomeAttachment = project.scenes[0].objects.flatMap((object) => object.attachments ?? []).find((item) => item.id === 'att-welcome')!
+  welcomeAttachment.presentation = { mode: 'card', title: 'Welcome' }
+  await page.addInitScript((value) => {
+    localStorage.setItem('vectorspace-project-v1', JSON.stringify(value))
+  }, project)
+
+  await openEditor(page)
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await expect(page.getByText('Playing · exactly what visitors will see')).toBeVisible()
+  // nothing opens on its own: there is no rule
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Tour spots' }).click()
+  await page.getByRole('button', { name: 'Next spot' }).click()
+  await expect(page.getByRole('dialog', { name: 'Welcome' })).toBeVisible({ timeout: 10_000 })
+})

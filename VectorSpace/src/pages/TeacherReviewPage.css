@@ -656,3 +656,46 @@
     animation: none;
   }
 }
+
+/* ── No page scroll: the picture takes whatever height is left ─────────── */
+/* the detail panel is a column; the strip, fields and buttons keep their size,
+   and the picture area shrinks so a published museum's sign-in strip still fits */
+.review-detail-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.review-detail-body {
+  flex: 1;
+  min-height: 0; /* lets it shrink below the picture's natural height */
+}
+
+.review-preview {
+  height: 100%;
+  min-height: 0;
+}
+
+.review-preview .museum-preview {
+  height: 100%;
+  object-fit: cover; /* cropped, never stretched */
+}
+
+/* chip on the right of the header, with the sign-in page switch beside it when published */
+.review-detail-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.review-showcase-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-2);
+  white-space: nowrap;
+}

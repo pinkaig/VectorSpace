@@ -21,6 +21,10 @@ export type ClickRuleChoice =
   | { action: 'changeColor'; color: number }
   | { action: 'playAudio'; assetId: string }
   | { action: 'showText'; message: string }
+  // an info card or a video is an attachment on the object; the rule points at it by id,
+  // so editing the card later changes what the rule shows (Weian Ching)
+  | { action: 'showCard'; attachmentId: string }
+  | { action: 'playVideo'; attachmentId: string }
 
 // every text asset the editor creates starts with this, so clean-up can tell them from hand-authored ones
 const MESSAGE_ASSET_PREFIX = 'message-'
@@ -33,6 +37,8 @@ const buildAction = (objectId: string, choice: ClickRuleChoice, textAssetId: str
   if (choice.action === 'changeColor') return changeColorAction(objectId, choice.color)
   // showPanel opens a panel straight from a text asset's id, so the rule needs no attachment
   if (choice.action === 'showText') return { kind: 'showPanel', params: { assetId: textAssetId } }
+  if (choice.action === 'showCard') return { kind: 'showPanel', params: { attachmentId: choice.attachmentId } }
+  if (choice.action === 'playVideo') return { kind: 'playMedia', params: { attachmentId: choice.attachmentId } }
   // play the sound on the channel its catalog entry suggests, the same way the audio demo's rules do
   const asset = audioAssetCatalog.find((item) => item.assetId === choice.assetId)
   return playAudioAction(choice.assetId, asset ? { channel: asset.defaultChannel } : {})

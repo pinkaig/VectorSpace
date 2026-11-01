@@ -7,11 +7,13 @@
  *              editor box with WHEN and THEN rows to add a new reaction.
  *
  * @responsibility
- * Shows rules and calls back; it builds nothing itself. A new reaction is the
- * same ClickRuleChoice the old When/Do section sent (change colour, play a
- * sound, show a message), so EditorPage adds it through
- * ruleEditorOperations.ts as before. Rules cannot be edited in place yet, so
- * opening a card offers Delete only.
+ * Shows rules and calls back; it builds nothing itself. A new reaction is a
+ * ClickRuleChoice (change colour, play a sound, show a message, and, when the
+ * object has them, show its info card or play its video), which EditorPage
+ * adds through ruleEditorOperations.ts. The info card and video are referred
+ * to by attachment id. Rules cannot be edited in place yet, so opening a card
+ * offers Delete only. After a first fact card is saved, a box suggests what
+ * to add next.
  *
  * @documentation
  * VectorSpace-V3.03_Demo.html, Reactions tab.
@@ -33,7 +35,8 @@ const whenText: Record<string, string> = {
 
 const thenText = (action: ActionSpec): string => {
   if (action.kind === CHANGE_COLOR_KIND) return 'change its colour'
-  if (action.kind === 'showPanel') return 'show a message'
+  if (action.kind === 'showPanel') return typeof action.params?.attachmentId === 'string' ? 'show its info card' : 'show a message'
+  if (action.kind === 'playMedia') return 'play its video'
   if (action.kind === 'playAudio' || action.kind === 'stopAudio') {
     const assetId = action.params?.assetId
     const sound = typeof assetId === 'string' ? audioAssetCatalog.find((asset) => asset.assetId === assetId)?.label ?? assetId : null
@@ -43,12 +46,13 @@ const thenText = (action: ActionSpec): string => {
 }
 
 type ThenAction = ClickRuleChoice['action']
-const thenChoices: { action: ThenAction; label: string }[] = [
+const baseChoices: { action: ThenAction; label: string }[] = [
   { action: 'changeColor', label: 'change its colour' },
   { action: 'playAudio', label: 'play a sound' },
   { action: 'showText', label: 'show a message' },
 ]
-const thenQuestion: Record<ThenAction, string> = { changeColor: 'Which colour?', playAudio: 'Which sound?', showText: 'What message?' }
+// only the settings that need a question; showing the card or playing the video needs none
+const thenQuestion: Partial<Record<ThenAction, string>> = { changeColor: 'Which colour?', playAudio: 'Which sound?', showText: 'What message?' }
 
 // the first sound effect in the catalog, a sensible default for a click, falling back to any sound
 const defaultSoundId = audioAssetCatalog.find((asset) => asset.defaultChannel === 'sfx')?.assetId ?? audioAssetCatalog[0]?.assetId ?? ''
@@ -95,7 +99,20 @@ function DeleteButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-export function ReactionsSection({ rules, onAdd, onRemove }: { rules: InteractionRule[]; onAdd: (choice: ClickRuleChoice) => void; onRemove: (ruleId: string) => void }) {
+export function ReactionsSection({ rules, cardId, videoId, suggest, onDismissSuggest, onAdd, onRemove }: {
+  rules: InteractionRule[]
+  cardId?: string     // the object's info card attachment, if it has one
+  videoId?: string    // the object's video attachment, if it has one
+  suggest?: boolean   // a fact card was just made: suggest what to add next
+  onDismissSuggest?: () => void
+  onAdd: (choice: ClickRuleChoice) => void
+  onRemove: (ruleId: string) => void
+}) {
+  const thenChoices = [
+    ...(cardId ? [{ action: 'showCard' as const, label: 'show its info card' }] : []),
+    ...(videoId ? [{ action: 'playVideo' as const, label: 'play its video' }] : []),
+    ...baseChoices,
+  ]
   const [editing, setEditing] = useState(false)
   const [openRuleId, setOpenRuleId] = useState<string | null>(null)
   const [then, setThen] = useState<ThenAction | null>(null)
@@ -105,19 +122,23 @@ export function ReactionsSection({ rules, onAdd, onRemove }: { rules: Interactio
   const [message, setMessage] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
 
-  const startNew = () => {
+  // a suggestion starts the editor with its THEN already picked
+  const startNew = (preset?: ThenAction) => {
     setEditing(true)
     setOpenRuleId(null)
-    setThen(null)
-    setPickingThen(true)
+    setThen(preset ?? null)
+    setPickingThen(!preset)
     setMessage('')
     setProblem(null)
+    onDismissSuggest?.()
   }
   const close = () => { setEditing(false); setPickingThen(false); setProblem(null) }
 
   const done = () => {
     if (!then) return setProblem('Pick what happens')
-    if (then === 'changeColor') onAdd({ action: 'changeColor', color: parseInt(hex.slice(1), 16) })
+    if (then === 'showCard' && cardId) onAdd({ action: 'showCard', attachmentId: cardId })
+    else if (then === 'playVideo' && videoId) onAdd({ action: 'playVideo', attachmentId: videoId })
+    else if (then === 'changeColor') onAdd({ action: 'changeColor', color: parseInt(hex.slice(1), 16) })
     else if (then === 'playAudio') {
       if (!soundId) return setProblem('There are no sounds to play yet')
       onAdd({ action: 'playAudio', assetId: soundId })
@@ -133,8 +154,30 @@ export function ReactionsSection({ rules, onAdd, onRemove }: { rules: Interactio
 
   return (
     <div className="object-panel-tab-body react-list">
+      {suggest && !editing && (
+        <div className="react-suggest" role="status">
+          <div className="react-suggest-head">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E9E6A" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+            <span><b>Fact card ready.</b> Visitors see it when they click this exhibit or reach it on a tour.</span>
+          </div>
+          <div className="react-suggest-label">Make it react too:</div>
+          <div className="react-suggest-row">
+            {videoId && <button className="react-suggest-chip" onClick={() => startNew('playVideo')}>Play its video</button>}
+            <button className="react-suggest-chip" onClick={() => startNew('playAudio')}>Play a sound</button>
+            <button className="react-suggest-chip" onClick={() => startNew('changeColor')}>Change its colour</button>
+            <button className="react-suggest-chip" onClick={() => startNew('showText')}>Show a message</button>
+          </div>
+        </div>
+      )}
       {rules.length === 0 && !editing && (
-        <div className="react-empty"><b>No reactions yet.</b> Visitors can look at this exhibit, but nothing happens when they click it or walk near.</div>
+        <div className="react-empty">
+          <b>No reactions yet.</b>{' '}
+          {cardId
+            ? 'Its fact card already shows when visitors click it or reach it on a tour. Add a reaction to do more.'
+            : videoId
+              ? 'Its video already opens when visitors click it or reach it on a tour. Add a reaction to do more.'
+              : 'Visitors can look at this exhibit, but nothing happens when they click it or walk near.'}
+        </div>
       )}
 
       {rules.map((rule, index) => (
@@ -186,7 +229,7 @@ export function ReactionsSection({ rules, onAdd, onRemove }: { rules: Interactio
                 </div>
               </>
             )}
-            {then && !pickingThen && (
+            {then && !pickingThen && thenQuestion[then] && (
               <>
                 <div />
                 <div className="react-extra">
@@ -221,7 +264,7 @@ export function ReactionsSection({ rules, onAdd, onRemove }: { rules: Interactio
           </div>
         </div>
       ) : (
-        <button className="react-add" onClick={startNew}>+ Add reaction</button>
+        <button className="react-add" onClick={() => startNew()}>+ Add reaction</button>
       )}
     </div>
   )

@@ -22,10 +22,11 @@
  * @documentation
  * docs/handover/image-video-work-package.md step B6; overview section 4.
  */
-import { useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { AssetDescriptor } from '../../packages/assets/src/index'
 import type { CardMedia, MediaViewProps, MediaViewState } from '../project/model'
 import { MediaLibraryContext } from './mediaLibrary'
+import { listLocalMedia, subscribeLocalMedia } from '../content/localMediaLibrary'
 import { loadYouTubeApi, youtubeEmbedUrl, type YouTubePlayer } from './youtube'
 
 type Report = (state: MediaViewState) => void
@@ -187,6 +188,10 @@ export default function MediaView({ media, autoplay = false, onState }: MediaVie
     onStateRef.current?.(state)
   }).current
 
+  // the local library changing (an admin approving a link, a file removed) re-resolves, so
+  // the slot updates without reopening the card
+  const libraryVersion = useSyncExternalStore(subscribeLocalMedia, listLocalMedia, listLocalMedia)
+
   const { kind, assetId } = media
   useEffect(() => {
     let live = true
@@ -198,7 +203,7 @@ export default function MediaView({ media, autoplay = false, onState }: MediaVie
       (error: unknown) => { if (live) setDescriptor({ ref: { kind, assetId }, status: 'error', errorMessage: String(error) }) },
     )
     return () => { live = false }
-  }, [kind, assetId, resolve, report])
+  }, [kind, assetId, resolve, report, libraryVersion])
 
   return <MediaViewBody media={media} descriptor={descriptor} autoplay={autoplay} report={report} />
 }
