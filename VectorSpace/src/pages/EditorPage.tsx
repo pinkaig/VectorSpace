@@ -43,7 +43,7 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
-import { getProject, setProjectStatus, submitProject, type ShareWith } from '../api/projects'
+import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawSubmission, type ShareWith } from '../api/projects'
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
@@ -282,6 +282,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
       setPublishing(false)
     }
   }
+  // a student takes back a hand-in still waiting (DELETE /projects/:id/submit); the project goes
+  // back to its earlier review state, so a sent-back comment from before shows again
+  const withdraw = async () => {
+    if (!canShare || publishing || !sent) return
+    setPublishing(true)
+    setPublishError(null)
+    try {
+      await withdrawSubmission(getToken, project.id)
+      const [previous] = await listSubmissions(getToken, project.id).catch(() => [])
+      setSharing((current) => ({
+        ...current,
+        reviewStatus: previous?.status ?? null,
+        shareWith: previous?.share_with ?? current.shareWith,
+        reviewComment: previous?.comment ?? null,
+      }))
+    } catch (problem) {
+      setPublishError(`That didn't go through: ${problem instanceof Error ? problem.message : 'unknown error'}`)
+    } finally {
+      setPublishing(false)
+    }
+  }
   const closeShare = () => setShareOpen(false)
 
   const limitRooms = preview || role === 'student'
@@ -414,6 +435,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           busy={publishing}
           error={publishError}
           onSend={(shareWith) => void publish(shareWith)}
+          onWithdraw={() => void withdraw()}
           onClose={closeShare}
         />
       )}

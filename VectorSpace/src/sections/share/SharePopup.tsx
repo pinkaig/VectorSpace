@@ -31,6 +31,8 @@ type SharePopupProps = {
   busy: boolean;
   error: string | null;
   onSend: (shareWith: ShareWith) => void;
+  // takes back a hand-in that is still waiting for the teacher
+  onWithdraw: () => void;
   onClose: () => void;
 };
 
@@ -80,7 +82,7 @@ function ShareLink({ link }: { link: string }) {
   );
 }
 
-export function SharePopup({ project, status, sharing, needsReview, busy, error, onSend, onClose }: SharePopupProps) {
+export function SharePopup({ project, status, sharing, needsReview, busy, error, onSend, onWithdraw, onClose }: SharePopupProps) {
   const [visibility, setVisibility] = useState<ShareWith>(sharing.shareWith ?? "sign_in_only");
   const teacher = sharing.teacherName ?? "your teacher";
 
@@ -109,6 +111,13 @@ export function SharePopup({ project, status, sharing, needsReview, busy, error,
             <p className="share-state share-state-waiting">Waiting for {teacher} to approve</p>
             <p className="share-note">Your link is ready. It will start working once it's approved.</p>
             {link && <ShareLink link={link} />}
+            <p className="share-note">Want to change something first? Cancel and send it again when you're ready.</p>
+            {error && <p className="share-error" role="alert">{error}</p>}
+            <div className="share-actions">
+              <button type="button" className="share-secondary" onClick={onWithdraw} disabled={busy}>
+                {busy ? "Cancelling…" : "Cancel submission"}
+              </button>
+            </div>
           </>
         )}
 

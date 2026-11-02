@@ -63,6 +63,28 @@ def test_review_only_happens_while_waiting(client, school) -> None:
     assert submit(client, copy).status_code == 409  # already approved
 
 
+def test_the_student_can_take_back_a_waiting_hand_in(client, school) -> None:
+    copy = assigned_copy(client, school)
+    withdraw = lambda key="s1": client.delete(f"/projects/{copy['id']}/submit", headers=as_user(key))
+    assert withdraw().status_code == 409  # nothing sent yet
+
+    submit(client, copy)
+    client.post(f"/projects/{copy['id']}/send-back", json={"comment": "Add a second room"}, headers=as_user("t1"))
+    submit(client, copy)
+    assert withdraw("t1").status_code == 403
+    assert withdraw().status_code == 204
+    # back to how it was: the sent-back hand-in is the newest again
+    history = client.get(f"/projects/{copy['id']}/submissions", headers=as_user("s1")).json()
+    assert [h["status"] for h in history] == ["sent_back"]
+    assert client.get(f"/projects/{copy['id']}", headers=as_user("s1")).json()["review_status"] == "sent_back"
+    assert client.post(f"/projects/{copy['id']}/approve", json={}, headers=as_user("t1")).status_code == 409
+
+    # it can be sent again, and once approved it can't be taken back
+    submit(client, copy)
+    client.post(f"/projects/{copy['id']}/approve", json={}, headers=as_user("t1"))
+    assert withdraw().status_code == 409
+
+
 def test_only_assigned_work_can_be_submitted(client, school) -> None:
     own = client.post("/projects", json={"name": "Mine", "class_id": str(school["class1"].id)}, headers=as_user("s1")).json()
     assert submit(client, own).status_code == 409

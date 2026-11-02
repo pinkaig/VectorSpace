@@ -266,6 +266,11 @@ export function submitProject(getToken: GetToken, projectId: string, shareWith?:
   return apiFetch<Submission>(getToken, `/projects/${projectId}/submit`, { method: 'POST', body: { share_with: shareWith } }, base)
 }
 
+/** Students only: takes back a hand-in that is still waiting. The review state goes back to the one before. */
+export function withdrawSubmission(getToken: GetToken, projectId: string, base?: string): Promise<void> {
+  return apiFetch<void>(getToken, `/projects/${projectId}/submit`, { method: 'DELETE' }, base)
+}
+
 /** Teachers only: approves a waiting museum, which publishes it. */
 export function approveProject(getToken: GetToken, projectId: string, review: { grade?: string; comment?: string } = {}, base?: string): Promise<Submission> {
   return apiFetch<Submission>(getToken, `/projects/${projectId}/approve`, { method: 'POST', body: review }, base)
