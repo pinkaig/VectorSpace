@@ -43,7 +43,7 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
-import { setProjectStatus, submitProject, type ShareWith } from '../api/projects'
+import { getProject, setProjectStatus, submitProject, type ShareWith } from '../api/projects'
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
@@ -247,6 +247,17 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [publishError, setPublishError] = useState<string | null>(null)
   const canShare = !preview && isRemoteProject(project.id)
   const teacherName = sharing.teacherName ?? 'your teacher'
+  // who assigned this museum, for "From Ms Tan" on the mission brief; none for a browser draft
+  const [assignedByName, setAssignedByName] = useState<string | null>(null)
+  useEffect(() => {
+    if (!isRemoteProject(project.id)) return
+    let current = true
+    getProject(getToken, project.id).then(
+      (row) => { if (current) setAssignedByName(row.assigned_by_name ?? null) },
+      () => {},
+    )
+    return () => { current = false }
+  }, [project.id])
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
     : published ? 'This project is published'
@@ -477,7 +488,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
 
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} />}
+          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={assignedByName} />}
 
           {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
           <div className="floating-controls top-right">
