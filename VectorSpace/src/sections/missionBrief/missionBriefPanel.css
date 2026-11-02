@@ -313,3 +313,16 @@
     animation: none;
   }
 }
+
+/* On a short screen the card stops at the room's height and scrolls. The button stays pinned
+   at its bottom, above the torn edge, so it is never cut; the list scrolls behind it. */
+.mb-card > * {
+  flex-shrink: 0; /* the lists keep their size and scroll, instead of getting squashed */
+}
+
+.mb-fold {
+  position: sticky;
+  bottom: 0;
+  /* a strip of white above the button, so scrolled text does not show right behind its top edge */
+  box-shadow: 0 -10px 0 var(--surface);
+}
