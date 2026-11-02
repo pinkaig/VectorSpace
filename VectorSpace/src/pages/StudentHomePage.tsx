@@ -34,7 +34,8 @@ import "./StudentHomePage.css";
 // None until the backend sends notifications (new project, visits, approvals and grades).
 const notifications: AppNotification[] = [];
 
-// the chip on the assigned project: published, untouched since the teacher sent it, or being built
+// the chip on the assigned project: published, waiting for the teacher, sent back by them,
+// untouched since the teacher sent it, or being built
 const statusLabel = (project: Project): string => {
   if (project.review_status === "sent_back") return "Sent back";
   if (project.review_status === "waiting") return "Waiting for approval";

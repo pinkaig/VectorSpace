@@ -36,6 +36,7 @@
 import { AssetKind, type ProjectData } from '../project/model'
 import { getUserModelUrlModifier } from './userAssets'
 import { registerLocalAsset, resolveLocalAssetUrl } from '../content/assetResolution'
+import { registerPlaceholderModels } from './placeholderModels'
 
 // ── CATALOGUE CATEGORIES ──
 // The catalogue's tabs, left to right. Each asset lists the tabs it shows under
@@ -112,6 +113,9 @@ export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
 assetCatalog.forEach((asset) => {
   if (asset.modelUrl) registerLocalAsset(asset.assetId, { url: asset.modelUrl })
 })
+
+// three.js stand-ins for models not made yet, temporary placeholder
+registerPlaceholderModels()
 
 // The single place renderer code resolves a model SceneObject's assetId to a URL.
 export const resolveModelUrl = (assetId: string): string | undefined => resolveLocalAssetUrl(assetId)

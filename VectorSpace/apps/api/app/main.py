@@ -19,7 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from .config import get_settings
-from .routers import admin, analytics, classes, me, media, projects, publish, rules, showcase, submissions
+from .routers import admin, analytics, classes, me, media, projects, publish, rules, showcase, submissions, visit
 
 
 logger = logging.getLogger("vectorspace.api")
@@ -67,9 +67,11 @@ app.include_router(projects.router)
 app.include_router(media.router)
 app.include_router(publish.router)
 app.include_router(analytics.router)
+app.include_router(analytics.results_router)
 app.include_router(rules.router)
 app.include_router(showcase.router)
 app.include_router(submissions.router)
+app.include_router(visit.router)
 
 
 @app.get("/health")

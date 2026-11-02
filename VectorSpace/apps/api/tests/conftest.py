@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from apps.api.app.auth import TokenPayload, get_current_token
+from apps.api.app.auth import TokenPayload, get_current_token, get_optional_token
 from apps.api.app.db import Base, get_db
 from apps.api.app.main import app
 from apps.api.app.models import Actor, ClassMember, Classroom, Organisation
@@ -26,6 +26,10 @@ def client(db: Session):
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_current_token] = lambda authorization=Header(...): TokenPayload(
         {"sub": authorization.removeprefix("Bearer ")}
+    )
+    # the same fake login where signing in is optional (the visitor's page): no header, no one
+    app.dependency_overrides[get_optional_token] = lambda authorization=Header(None): (
+        TokenPayload({"sub": authorization.removeprefix("Bearer ")}) if authorization else None
     )
     yield TestClient(app)
     app.dependency_overrides.clear()

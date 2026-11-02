@@ -32,7 +32,10 @@ import { isTypingTarget } from "../viewport/viewportTypes";
 
 interface RuntimeViewProps {
   project: ProjectData;
-  onExit: () => void;
+  // the editor's way back (the button and Esc); left out on the visitor's page, which has none
+  onExit?: () => void;
+  // the banner's text; the editor's Play leaves it out
+  title?: string;
 }
 
 const VOLUME_KEY = "vectorspace-visitor-volume";
@@ -106,7 +109,7 @@ function Joystick({ onChange }: { onChange: (x: number, z: number) => void }) {
   );
 }
 
-export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
+export default function RuntimeView({ project, onExit, title }: RuntimeViewProps) {
   const scene =
     project.scenes.find((item) => item.id === project.activeSceneId) ??
     project.scenes[0];
@@ -167,7 +170,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
       if (isTypingTarget(event.target) || event.repeat) return;
       if (event.code === "Escape") {
         if (document.pointerLockElement || performance.now() - releasedAt < 300) return;
-        onExit();
+        onExit?.();
       }
       else if (event.code === "KeyM") setMuted((current) => !current);
       else if (event.code === "KeyR") {
@@ -232,9 +235,9 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
       />
 
       <div className="play-banner">
-        <span>Playing · exactly what visitors will see</span>
+        <span>{title ?? "Playing · exactly what visitors will see"}</span>
         <AudioControls volume={volume} muted={muted} onVolumeChange={setVolume} onMutedChange={setMuted} />
-        <button onClick={onExit}>Back to building</button>
+        {onExit && <button onClick={onExit}>Back to building</button>}
       </div>
 
       <div className="play-panel">

@@ -139,6 +139,23 @@
   font-weight: 800;
 }
 
+/* a thing the teacher locked: one calm line instead of the move/turn/size tools */
+.object-panel-locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #F1EEFD;
+  color: #4B3FC4;
+}
+
+.object-panel-locked > svg { flex-shrink: 0; margin-top: 1px; }
+
+.object-panel-locked strong { display: block; color: #1E1B3A; font-size: 14px; }
+
+.object-panel-locked span { display: block; margin-top: 2px; color: #5E5878; font-size: 13px; line-height: 1.4; }
+
 .object-panel-hint {
   margin-top: 8px;
   color: #5E5878;
