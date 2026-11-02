@@ -60,7 +60,7 @@ function readiness(project: ProjectData): { ok: boolean; text: string }[] {
   return lines;
 }
 
-// the museum's link in a read-only box, and a button that copies it
+// the project's link in a read-only box, and a button that copies it
 function ShareLink({ link }: { link: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -74,7 +74,7 @@ function ShareLink({ link }: { link: string }) {
   };
   return (
     <div className="share-link">
-      <input className="share-link-box" value={link} readOnly aria-label="Your museum's link" onFocus={(event) => event.target.select()} />
+      <input className="share-link-box" value={link} readOnly aria-label="Your project's link" onFocus={(event) => event.target.select()} />
       <button type="button" className="share-primary" onClick={() => void copy()}>{copied ? "Copied" : "Copy link"}</button>
     </div>
   );
@@ -92,7 +92,7 @@ export function SharePopup({ project, status, sharing, needsReview, busy, error,
 
   const chosen = VISIT_OPTIONS.find((option) => option.value === sharing.shareWith);
   // the visitor link, on whatever address the site is served from (localhost, the live host).
-  // The app is a HashRouter, so the route goes after "#". The /visit page is not built yet.
+  // The app is a HashRouter, so the route goes after "#"; it opens VisitPage.
   const link = sharing.slug ? `${window.location.origin}${window.location.pathname}#/visit/${sharing.slug}` : null;
 
   return (

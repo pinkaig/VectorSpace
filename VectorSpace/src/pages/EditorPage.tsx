@@ -229,7 +229,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Play keeps the top bar (Play turns into Stop) and swaps the building stage for the visitor's view.
   const playing = viewMode === 'runtime'
 
-  // Publish opens "Share your museum" (SharePopup). A student's send goes to their teacher
+  // Publish opens "Share your project" (SharePopup). A student's send goes to their teacher
   // (POST /projects/:id/submit, with who can visit) and goes live once the teacher approves it on
   // Review; anyone else's project is published straight away (PATCH /projects/:id). Either saves
   // first. A browser draft has no server row to share, and a teacher preview changes nothing.
@@ -239,7 +239,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [sharing, setSharing] = useState<ProjectSharing>(
     initialLoad.sharing ?? { reviewStatus: null, shareWith: null, reviewComment: null, teacherName: null, slug: null },
   )
-  // a student's museum is waiting for the teacher
+  // a student's project is waiting for the teacher
   const sent = !published && sharing.reviewStatus === 'waiting'
   const shareStatus: ShareStatus = published ? 'published' : sent ? 'submitted' : 'draft'
   const [shareOpen, setShareOpen] = useState(false)
@@ -249,9 +249,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const teacherName = sharing.teacherName ?? 'your teacher'
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
-    : published ? 'This museum is published'
+    : published ? 'This project is published'
     : sent ? `Sent to ${teacherName}: waiting for them to approve it`
-    : 'Share this museum'
+    : 'Share this project'
   const publish = async (shareWith: ShareWith) => {
     if (!canShare || publishing) return
     setPublishing(true)
@@ -380,7 +380,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
           <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => (playing ? setViewMode('editor') : goToStep(4))}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
-          {/* opens "Share your museum"; the label follows where the museum is: draft, waiting, live */}
+          {/* opens "Share your project"; the label follows where the project is: draft, waiting, live */}
           <button className="top-publish" onClick={() => { setPublishError(null); setShareOpen(true) }} disabled={!canShare} title={publishTitle}>
             {published ? <><Check size={15} /> Published</> : sent ? <><Clock size={15} /> Waiting</> : 'Publish'}
           </button>

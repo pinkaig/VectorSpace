@@ -62,7 +62,7 @@ export interface ProjectLoadResult {
   source: ProjectLoadSource
   /** A server project's status (draft, published or archived); unset for a browser draft. */
   status?: 'draft' | 'published' | 'archived'
-  /** A server project's sharing state, for "Share your museum"; unset for a browser draft. */
+  /** A server project's sharing state, for "Share your project"; unset for a browser draft. */
   sharing?: ProjectSharing
 }
 
