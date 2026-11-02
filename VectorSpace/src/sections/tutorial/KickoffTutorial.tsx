@@ -41,6 +41,8 @@ const TIPS = [
 const SEEN_KEY = "vectorspace.kickoffTutorialSeen";
 
 export const tutorialSeen = (): boolean => {
+  // automated browser tests (Playwright) skip it, so it does not sit over the editor they click through
+  if (typeof navigator !== "undefined" && navigator.webdriver) return true;
   try {
     return localStorage.getItem(SEEN_KEY) === "yes";
   } catch {
