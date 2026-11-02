@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
@@ -99,10 +99,10 @@ const FACE_LABEL_PRESET: Record<string, ViewPreset> = { TOP: 'top', FRONT: 'fron
 const WALL_CUT_LABEL: Record<WallCut, string> = { full: 'Full', half: 'Half', low: 'Low' }
 const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low: 'full' } 
 // Gap between a floating control group and the stage edge.
-const FLOAT_GAP = 5
+const FLOAT_GAP = 16
 // The viewport's right-edge widget column (OctaOrb, axis indicator, stats) starts below the
 // View bar: FLOAT_GAP + the bar's 46px height + a little air.
-const VIEW_BAR_CLEARANCE = 58
+const VIEW_BAR_CLEARANCE = 70
 
 // start: the project to open, when the caller already has one (from the server); without it
 // the page opens the draft saved in this browser
@@ -475,6 +475,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
           {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
 
+          {/* steps 2 and 3 hide the catalogue; this takes the student back to step 1 to add more */}
+          {step !== 1 && (
+            <button type="button" className="add-things" onClick={() => goToStep(1)}>
+              <Plus size={18} /> Add things
+            </button>
+          )}
+
           {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
           <div className="floating-controls top-right">
             <div className="float-group">
@@ -532,6 +539,18 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <div className="float-group">
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(0.8)} title="Zoom in">+</button>
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(1.25)} title="Zoom out">−</button>
+              {/* Snap: drags land on the floor grid, in 15° turns and 0.25 size steps */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={snapOn}
+                className="float-button float-snap"
+                onClick={() => setSnapOn((on) => !on)}
+                title="Drags land on the floor grid while this is on"
+              >
+                <span className={snapOn ? 'object-panel-snap-track on' : 'object-panel-snap-track'}><span className="object-panel-snap-knob" /></span>
+                Snap
+              </button>
               <button className="float-button" onClick={() => setWalls(NEXT_WALL_CUT[walls])} title="Cut the room's walls down so you can see inside">Walls: {WALL_CUT_LABEL[walls]}</button>
               <button className="float-button" disabled={!selected || cameraMode !== 'orbit'} onClick={() => viewportRef.current?.focusSelected()} title="Frame the selected object">◎ Focus <kbd>F</kbd></button>
               <button className="float-button" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.frameAll()} title="Frame the whole room">⛶ Whole room <kbd>H</kbd></button>
@@ -608,7 +627,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           />
         </aside>}
       </div>
-      <section className="catalogue">
+      {step === 1 && <section className="catalogue">
         <div className="catalogue-head">
           <h2>Catalogue</h2>
             <div className="catalogue-types" role="tablist">
@@ -625,13 +644,16 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     role="tab"
                     title={`${item.label}`}
                     onClick={()=>{setCategory(item.id);}}
-                    >{item.label}</button>
+                    >{item.tone === 'zone' && <CircleDashed size={16} aria-hidden="true" />}{item.label}</button>
                   )
               })}
             </div>
             <div role="tabpanel">
               {/**add no items found part here */}
-              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                <label className="catalogue-search">
+                  <Search size={18} aria-hidden="true" />
+                  <input aria-label="Search assets" placeholder="dinosaur, lamp, sign…" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                </label>
                 <div className="catalogue-list">
                   {shownAssets.map((asset, index) => {
                     const Icon = catalogueIcons[asset.kind] ?? Box
@@ -655,11 +677,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     </button>
                     )
                   })}
-                  {shownAssets.length === 0 && <div className="asset-empty">{assetQuery.trim() ? 'No approved assets match this search.' : 'Nothing here yet.'}</div>}
+                  {shownAssets.length === 0 && <div className="asset-empty">{assetQuery.trim() ? 'No approved assets match this search.' : 'Nothing in this tab yet. Try another tab.'}</div>}
                 </div>
             </div>
         </div>
-      </section>
+      </section>}
       </>}
     </main>
   )
