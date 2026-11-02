@@ -14,7 +14,7 @@
  */
 /****************************************************************************************************/
 
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
@@ -37,6 +37,8 @@ import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
 import { MissionBriefPanel } from '../sections/missionBrief/MissionBriefPanel'
+import { KickoffTutorial, markTutorialSeen, tutorialSeen } from '../sections/tutorial/KickoffTutorial'
+import { ReactionsTip } from '../sections/tutorial/Reactionstip'
 import { useUserAssets } from '../editor/hooks/useUserAssets'
 import { useUserAudio } from '../editor/hooks/useUserAudio'
 import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
@@ -188,6 +190,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [moreMenuOpen])
+  // the "?" menu ("Show a tip again"); closes on a press outside it or Escape, like More
+  const [helpMenuOpen, setHelpMenuOpen] = useState(false)
+  const helpMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!helpMenuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element
+      // opening or folding the mission brief leaves this menu as it is
+      if (target.closest('.mb-card, .mb-tab')) return
+      if (!helpMenuRef.current?.contains(target)) setHelpMenuOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setHelpMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [helpMenuOpen])
   const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
   useBlockStrayFileDrop()
@@ -234,6 +257,21 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // teacher preview changes nothing.
   const { getToken, role } = useSession()
   const sendsToTeacher = role === 'student'
+  // the kick-off tutorial: opens the first time in this browser; the "?" opens it again.
+  // A teacher preview never marks it seen, so the student still gets it.
+  const [tutorialOpen, setTutorialOpen] = useState(() => !tutorialSeen())
+  // The mission brief waits until the first tutorial is closed, then opens (manual: Opening a
+  // project). After that it stays on screen, so reopening the tutorial with "?" keeps it open
+  // or folded the way the student left it.
+  const [briefReady, setBriefReady] = useState(() => tutorialSeen())
+  const closeTutorial = useCallback(() => {
+    setTutorialOpen(false)
+    setBriefReady(true)
+    if (!preview) markTutorialSeen()
+  }, [preview])
+  // the Step 3 tip ("Make things happen"): only opened from "?" → Make it react, never on its own
+  const [reactionsTipOpen, setReactionsTipOpen] = useState(false)
+  const closeReactionsTip = useCallback(() => setReactionsTipOpen(false), [])
   const [published, setPublished] = useState(initialLoad.status === 'published')
   // a student's museum is waiting for the teacher
   const [sent, setSent] = useState(false)
@@ -298,6 +336,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // thing for the student: the first one still missing a fact card, or one with no reaction yet.
   const goToStep = (n: TutorialStep) => {
     setStepNotice(null)
+    // moving to any step closes the Step 3 tip (the "?" menu reopens it after this)
+    setReactionsTipOpen(false)
     if (n === 4) {
       setViewMode('runtime')
       return
@@ -372,6 +412,24 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         </nav>
 
         <div className="top-actions"> {/**** Top bar buttons *****/}
+          {/* "?": Show a tip again. Getting started reopens the kick-off tutorial; Make it react goes
+              to Step 3 and shows its tip (the only way it opens). Zones comes later. */}
+          <div className="help-anchor" ref={helpMenuRef}>
+            <button className="top-icon-button top-help-button" onClick={() => { setReactionsTipOpen(false); setHelpMenuOpen((open) => !open) }} disabled={playing} aria-expanded={helpMenuOpen} title="Show a tip again" aria-label="Show a tip again">?</button>
+            {helpMenuOpen && (
+              <div className="help-menu" role="menu" aria-label="Show a tip again">
+                <span className="help-menu-label">Show a tip again</span>
+                <button type="button" role="menuitem" className="help-menu-item" onClick={() => { setHelpMenuOpen(false); setTutorialOpen(true) }}>
+                  <strong>Getting started</strong>
+                  <small>The 3 first tips</small>
+                </button>
+                <button type="button" role="menuitem" className="help-menu-item" onClick={() => { setHelpMenuOpen(false); goToStep(3); setReactionsTipOpen(true) }}>
+                  <strong>Make it react</strong>
+                  <small>WHEN and THEN</small>
+                </button>
+              </div>
+            )}
+          </div>
           <button className="top-icon-button" onClick={undo} disabled={playing || !timelineRef.current.canUndo} title="Undo" aria-label="Undo"><Undo2 size={18} /></button>
           <button className="top-icon-button" onClick={redo} disabled={playing || !timelineRef.current.canRedo} title="Redo" aria-label="Redo"><Redo2 size={18} /></button>
           <span className="topbar-divider" />
@@ -473,7 +531,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
 
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
+          {project.missionBrief && briefReady && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
 
           {/* steps 2 and 3 hide the catalogue; this takes the student back to step 1 to add more */}
           {step !== 1 && (
@@ -683,6 +741,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         </div>
       </section>}
       </>}
+      {tutorialOpen && <KickoffTutorial onClose={closeTutorial} />}
+      {/* never over the kick-off tutorial or while playing */}
+      {reactionsTipOpen && !tutorialOpen && !playing && (
+        <ReactionsTip onClose={closeReactionsTip} onMakeFirst={closeReactionsTip} />
+      )}
     </main>
   )
 }

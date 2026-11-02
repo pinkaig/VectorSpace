@@ -8,7 +8,7 @@
  *              row is 46px tall: 34px buttons + 6px padding). The open card has a torn-paper
  *              zigzag bottom (a CSS mask), grows to fit its content with no scrollbar, and lists
  *              the rules with small bullets lined up with the RULES heading, as in the 3.05
- *              prototype.
+ *              prototype. It slides down a little as it appears (none with reduced motion).
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -281,4 +281,35 @@
   margin: 6px 0 0;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* the open card drops in with a small bounce when it appears (after the first tutorial,
+   or when the folded tab is opened again) */
+.mb-card {
+  animation: mb-drop-in 550ms ease-out;
+}
+
+@keyframes mb-drop-in {
+  0% {
+    opacity: 0;
+    translate: 0 -20px;
+  }
+  55% {
+    opacity: 1;
+    translate: 0 5px; /* goes a little too far */
+  }
+  80% {
+    translate: 0 -2px; /* bounces back up */
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0; /* settles */
+  }
+}
+
+/* no movement for people who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  .mb-card {
+    animation: none;
+  }
 }

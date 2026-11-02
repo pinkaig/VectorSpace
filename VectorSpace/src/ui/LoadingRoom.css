@@ -5,6 +5,7 @@
  * @brief       Styles for LoadingRoom: the page behind dimmed, and a white card in the middle with
  *              a purple spinning ring, the title, a purple bar sliding along a lilac track, and a
  *              tip, as in the 3.05 prototype. Movement stops for people who ask for reduced motion.
+ *              The 0.9s and 1.4s loop times must match the numbers in LoadingRoom.tsx.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the

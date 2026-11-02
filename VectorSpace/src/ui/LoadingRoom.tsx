@@ -7,7 +7,9 @@
  *              the editor opens: while the project is fetched and while the editor's code is
  *              downloaded (the Suspense fallbacks in App.tsx, ProjectEditorPage and
  *              TeacherPreviewPage). There is no real percentage at that point, so the bar moves
- *              on its own instead of filling up.
+ *              on its own instead of filling up. Every copy follows the same clock, so when one
+ *              loading screen hands over to the next the ring and bar carry on instead of
+ *              restarting.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the

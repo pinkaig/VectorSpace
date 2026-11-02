@@ -151,6 +151,79 @@ button:disabled {
 }
 .top-icon-button:hover:not(:disabled) { border-color: var(--accent); }
 .top-icon-button:disabled { opacity: 0.55; cursor: default; }
+
+/* the "?" (Show a tip again): a bold question mark in the same box as Undo / Redo */
+.top-help-button {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* the "?" menu: hangs under the button, lined up with its right edge (3.05 prototype) */
+.help-anchor {
+  position: relative;
+  display: flex;
+}
+
+.help-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 300px;
+  box-sizing: border-box;
+  padding: 12px 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  text-align: left;
+}
+
+.help-menu-label {
+  padding: 0 10px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.help-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.help-menu-item strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.help-menu-item small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.help-menu-item:hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
+}
+
+.help-menu-item:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: -2px;
+}
+
 .top-saved {
   display: inline-flex;
   align-items: center;
