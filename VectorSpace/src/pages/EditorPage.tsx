@@ -14,9 +14,9 @@
  */
 /****************************************************************************************************/
 
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
 import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
@@ -37,6 +37,8 @@ import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
 import { MissionBriefPanel } from '../sections/missionBrief/MissionBriefPanel'
+import { KickoffTutorial, markTutorialSeen, tutorialSeen } from '../sections/tutorial/KickoffTutorial'
+import { ReactionsTip } from '../sections/tutorial/ReactionsTip'
 import { useUserAssets } from '../editor/hooks/useUserAssets'
 import { useUserAudio } from '../editor/hooks/useUserAudio'
 import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
@@ -99,10 +101,10 @@ const FACE_LABEL_PRESET: Record<string, ViewPreset> = { TOP: 'top', FRONT: 'fron
 const WALL_CUT_LABEL: Record<WallCut, string> = { full: 'Full', half: 'Half', low: 'Low' }
 const NEXT_WALL_CUT: Record<WallCut, WallCut> = { full: 'half', half: 'low', low: 'full' } 
 // Gap between a floating control group and the stage edge.
-const FLOAT_GAP = 5
+const FLOAT_GAP = 16
 // The viewport's right-edge widget column (OctaOrb, axis indicator, stats) starts below the
 // View bar: FLOAT_GAP + the bar's 46px height + a little air.
-const VIEW_BAR_CLEARANCE = 58
+const VIEW_BAR_CLEARANCE = 70
 
 // start: the project to open, when the caller already has one (from the server); without it
 // the page opens the draft saved in this browser
@@ -188,6 +190,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [moreMenuOpen])
+  // the "?" menu ("Show a tip again"); closes on a press outside it or Escape, like More
+  const [helpMenuOpen, setHelpMenuOpen] = useState(false)
+  const helpMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!helpMenuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element
+      // opening or folding the mission brief leaves this menu as it is
+      if (target.closest('.mb-card, .mb-tab')) return
+      if (!helpMenuRef.current?.contains(target)) setHelpMenuOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setHelpMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [helpMenuOpen])
   const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
   useBlockStrayFileDrop()
@@ -234,6 +257,21 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // teacher preview changes nothing.
   const { getToken, role } = useSession()
   const sendsToTeacher = role === 'student'
+  // the kick-off tutorial: opens the first time in this browser; the "?" opens it again.
+  // A teacher preview never marks it seen, so the student still gets it.
+  const [tutorialOpen, setTutorialOpen] = useState(() => !tutorialSeen())
+  // The mission brief waits until the first tutorial is closed, then opens (manual: Opening a
+  // project). After that it stays on screen, so reopening the tutorial with "?" keeps it open
+  // or folded the way the student left it.
+  const [briefReady, setBriefReady] = useState(() => tutorialSeen())
+  const closeTutorial = useCallback(() => {
+    setTutorialOpen(false)
+    setBriefReady(true)
+    if (!preview) markTutorialSeen()
+  }, [preview])
+  // the Step 3 tip ("Make things happen"): only opened from "?" → Make it react, never on its own
+  const [reactionsTipOpen, setReactionsTipOpen] = useState(false)
+  const closeReactionsTip = useCallback(() => setReactionsTipOpen(false), [])
   const [published, setPublished] = useState(initialLoad.status === 'published')
   // a student's museum is waiting for the teacher
   const [sent, setSent] = useState(false)
@@ -298,6 +336,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // thing for the student: the first one still missing a fact card, or one with no reaction yet.
   const goToStep = (n: TutorialStep) => {
     setStepNotice(null)
+    // moving to any step closes the Step 3 tip (the "?" menu reopens it after this)
+    setReactionsTipOpen(false)
     if (n === 4) {
       setViewMode('runtime')
       return
@@ -372,6 +412,24 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         </nav>
 
         <div className="top-actions"> {/**** Top bar buttons *****/}
+          {/* "?": Show a tip again. Getting started reopens the kick-off tutorial; Make it react goes
+              to Step 3 and shows its tip (the only way it opens). Zones comes later. */}
+          <div className="help-anchor" ref={helpMenuRef}>
+            <button className="top-icon-button top-help-button" onClick={() => { setReactionsTipOpen(false); setHelpMenuOpen((open) => !open) }} disabled={playing} aria-expanded={helpMenuOpen} title="Show a tip again" aria-label="Show a tip again">?</button>
+            {helpMenuOpen && (
+              <div className="help-menu" role="menu" aria-label="Show a tip again">
+                <span className="help-menu-label">Show a tip again</span>
+                <button type="button" role="menuitem" className="help-menu-item" onClick={() => { setHelpMenuOpen(false); setTutorialOpen(true) }}>
+                  <strong>Getting started</strong>
+                  <small>The 3 first tips</small>
+                </button>
+                <button type="button" role="menuitem" className="help-menu-item" onClick={() => { setHelpMenuOpen(false); goToStep(3); setReactionsTipOpen(true) }}>
+                  <strong>Make it react</strong>
+                  <small>WHEN and THEN</small>
+                </button>
+              </div>
+            )}
+          </div>
           <button className="top-icon-button" onClick={undo} disabled={playing || !timelineRef.current.canUndo} title="Undo" aria-label="Undo"><Undo2 size={18} /></button>
           <button className="top-icon-button" onClick={redo} disabled={playing || !timelineRef.current.canRedo} title="Redo" aria-label="Redo"><Redo2 size={18} /></button>
           <span className="topbar-divider" />
@@ -473,7 +531,14 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
 
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
+          {project.missionBrief && briefReady && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
+
+          {/* steps 2 and 3 hide the catalogue; this takes the student back to step 1 to add more */}
+          {step !== 1 && (
+            <button type="button" className="add-things" onClick={() => goToStep(1)}>
+              <Plus size={18} /> Add things
+            </button>
+          )}
 
           {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
           <div className="floating-controls top-right">
@@ -532,6 +597,18 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <div className="float-group">
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(0.8)} title="Zoom in">+</button>
               <button className="float-button icon" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.zoomBy(1.25)} title="Zoom out">−</button>
+              {/* Snap: drags land on the floor grid, in 15° turns and 0.25 size steps */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={snapOn}
+                className="float-button float-snap"
+                onClick={() => setSnapOn((on) => !on)}
+                title="Drags land on the floor grid while this is on"
+              >
+                <span className={snapOn ? 'object-panel-snap-track on' : 'object-panel-snap-track'}><span className="object-panel-snap-knob" /></span>
+                Snap
+              </button>
               <button className="float-button" onClick={() => setWalls(NEXT_WALL_CUT[walls])} title="Cut the room's walls down so you can see inside">Walls: {WALL_CUT_LABEL[walls]}</button>
               <button className="float-button" disabled={!selected || cameraMode !== 'orbit'} onClick={() => viewportRef.current?.focusSelected()} title="Frame the selected object">◎ Focus <kbd>F</kbd></button>
               <button className="float-button" disabled={cameraMode !== 'orbit'} onClick={() => viewportRef.current?.frameAll()} title="Frame the whole room">⛶ Whole room <kbd>H</kbd></button>
@@ -608,7 +685,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           />
         </aside>}
       </div>
-      <section className="catalogue">
+      {step === 1 && <section className="catalogue">
         <div className="catalogue-head">
           <h2>Catalogue</h2>
             <div className="catalogue-types" role="tablist">
@@ -625,13 +702,16 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     role="tab"
                     title={`${item.label}`}
                     onClick={()=>{setCategory(item.id);}}
-                    >{item.label}</button>
+                    >{item.tone === 'zone' && <CircleDashed size={16} aria-hidden="true" />}{item.label}</button>
                   )
               })}
             </div>
             <div role="tabpanel">
               {/**add no items found part here */}
-              <input aria-label="Search assets" placeholder="Search" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                <label className="catalogue-search">
+                  <Search size={18} aria-hidden="true" />
+                  <input aria-label="Search assets" placeholder="dinosaur, lamp, sign…" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+                </label>
                 <div className="catalogue-list">
                   {shownAssets.map((asset, index) => {
                     const Icon = catalogueIcons[asset.kind] ?? Box
@@ -655,12 +735,17 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     </button>
                     )
                   })}
-                  {shownAssets.length === 0 && <div className="asset-empty">{assetQuery.trim() ? 'No approved assets match this search.' : 'Nothing here yet.'}</div>}
+                  {shownAssets.length === 0 && <div className="asset-empty">{assetQuery.trim() ? 'No approved assets match this search.' : 'Nothing in this tab yet. Try another tab.'}</div>}
                 </div>
             </div>
         </div>
-      </section>
+      </section>}
       </>}
+      {tutorialOpen && <KickoffTutorial onClose={closeTutorial} />}
+      {/* never over the kick-off tutorial or while playing */}
+      {reactionsTipOpen && !tutorialOpen && !playing && (
+        <ReactionsTip onClose={closeReactionsTip} onMakeFirst={closeReactionsTip} />
+      )}
     </main>
   )
 }

@@ -24,6 +24,7 @@ import { Eye } from "lucide-react";
 import { loadProjectWithSource } from "../project/serializer";
 import { tidyBrief, type MissionBrief } from "../mission/missionBrief";
 import StudentHomePage from "./StudentHomePage";
+import { LoadingRoom } from "../ui/LoadingRoom";
 import "./TeacherPreviewPage.css";
 
 // the editor is large, so it is only downloaded when a preview shows it (as /editor does)
@@ -54,7 +55,7 @@ export default function TeacherPreviewPage() {
   // the pages a preview can show
   const pages: Record<PreviewTarget, () => ReactNode> = {
     editor: () => (
-      <Suspense fallback={<p>Loading editor…</p>}>
+      <Suspense fallback={<LoadingRoom />}>
         <EditorApplication start={start} preview />
       </Suspense>
     ),
