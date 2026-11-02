@@ -17,6 +17,7 @@ import { Link, useParams } from 'react-router'
 import { ApiError, apiUrl } from '../api/client'
 import { loadRemoteProject } from '../project/remoteProject'
 import type { ProjectLoadResult } from '../project/serializer'
+import { LoadingRoom } from '../ui/LoadingRoom'
 import { useSession } from '../session/session'
 
 const EditorApplication = lazy(() => import('../../apps/editor/src/EditorApplication'))
@@ -49,8 +50,8 @@ export default function ProjectEditorPage() {
   }, [projectId])
 
   if (!apiUrl) return <p role="alert">Opening a project by id needs the server: set VITE_API_URL. <Link to="/editor">Open the local editor</Link></p>
-  if (state.kind === 'loading') return <p>Opening project…</p>
+  if (state.kind === 'loading') return <LoadingRoom />
   if (state.kind === 'problem') return <p role="alert">{state.text}</p>
   // keyed by project so moving between ids starts a fresh editor
-  return <Suspense fallback={<p>Loading editor…</p>}><EditorApplication key={state.start.project.id} start={state.start} /></Suspense>
+  return <Suspense fallback={<LoadingRoom />}><EditorApplication key={state.start.project.id} start={state.start} /></Suspense>
 }

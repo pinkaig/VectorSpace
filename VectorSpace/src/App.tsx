@@ -23,6 +23,7 @@ import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherLayout from './pages/TeacherLayout'
+import { LoadingRoom } from './ui/LoadingRoom'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
@@ -185,8 +186,8 @@ export default function App() {
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
           <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
-          <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
-          <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
+          <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<LoadingRoom />}><EditorApplication /></Suspense></RequireRole>} />
+          <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<LoadingRoom />}><ProjectEditorPage /></Suspense></RequireRole>} />
           {import.meta.env.DEV && MotionBoard && <Route path="/motion-board" element={<Suspense fallback={<p>Loading board…</p>}><MotionBoard /></Suspense>} />}
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           {import.meta.env.DEV && AssetInventoryBoard && <Route path="/asset-inventory" element={<Suspense fallback={<p>Loading inventory…</p>}><AssetInventoryBoard /></Suspense>} />}

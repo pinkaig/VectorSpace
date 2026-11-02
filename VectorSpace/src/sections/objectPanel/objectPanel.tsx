@@ -103,8 +103,8 @@ const kindLabel = (kind: string) => (kind === 'model' ? 'Exhibit' : 'Shape')
 
 export function ObjectPanel(props: ObjectPanelProps) {
   const { object, step, onStepChange, onClose } = props
-  // after a first fact card is saved the panel moves to Reactions and suggests what to add;
-  // remembered per object, so another object's Reactions tab does not show it
+  // after a first fact card is saved, its Reactions tab suggests what to add next (when the student
+  // goes there); remembered per object, so another object's Reactions tab does not show it
   const [suggestFor, setSuggestFor] = useState<string | null>(null)
 
   if (!object) {
@@ -170,7 +170,7 @@ export function ObjectPanel(props: ObjectPanelProps) {
           onSaveVideo={props.onSaveVideo}
           onRemoveVideo={props.onRemoveVideo}
           onGoToReactions={() => onStepChange(3)}
-          onCardCreated={() => { setSuggestFor(object.id); onStepChange(3) }}
+          onCardCreated={() => setSuggestFor(object.id)}
         />
       )}
       {activeStep === 3 && (
@@ -189,7 +189,7 @@ export function ObjectPanel(props: ObjectPanelProps) {
   )
 }
 
-function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, snap, onSnapChange, onCopy, onRemove }: ObjectPanelProps & { object: ObjectPanelItem }) {
+function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, onCopy, onRemove }: ObjectPanelProps & { object: ObjectPanelItem }) {
   // open or closed is only how the panel looks, not editor data, so it can live here
   const [exactOpen, setExactOpen] = useState(false)
   const activeHint = tools.find((item) => item.tool === tool)?.hint ?? 'Pick what to change, then drag in the 3D view.'
@@ -227,11 +227,6 @@ function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, sn
             <path d="M20 4v6h-6" />
             <path d="M4 15a8 8 0 0014.9 2M19.5 10A8 8 0 005 8" />
           </svg>
-        </button>
-        <div className="object-panel-spacer" />
-        <button role="switch" aria-checked={snap} className="object-panel-snap" onClick={() => onSnapChange(!snap)}>
-          <span className={snap ? 'object-panel-snap-track on' : 'object-panel-snap-track'}><span className="object-panel-snap-knob" /></span>
-          Snap
         </button>
       </div>
 
