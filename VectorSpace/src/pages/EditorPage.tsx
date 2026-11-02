@@ -43,8 +43,8 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
-import { listSubmissions, setProjectStatus, submitProject } from '../api/projects'
 import { isRemoteProject } from '../project/remoteProject'
+import { getProject, listSubmissions, setProjectStatus, submitProject } from '../api/projects'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -239,12 +239,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [sent, setSent] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
-  // a museum already sent shows as sent when it is opened again
+  // who assigned this museum, for "From Ms Tan" on the mission brief; none for a browser draft
+  const [teacherName, setTeacherName] = useState<string | null>(null)
   useEffect(() => {
-    if (preview || !sendsToTeacher || !isRemoteProject(project.id)) return
+    if (!isRemoteProject(project.id)) return
     let current = true
-    listSubmissions(getToken, project.id).then(
-      (history) => { if (current && history[0]?.status === 'waiting') setSent(true) },
+    getProject(getToken, project.id).then(
+      (row) => { if (current) setTeacherName(row.assigned_by_name ?? null) },
       () => {},
     )
     return () => { current = false }
@@ -472,7 +473,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
 
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} />}
+          {project.missionBrief && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
 
           {/* Top-right: view angles; the OctaOrb column starts below them (overlayInsetTop) */}
           <div className="floating-controls top-right">
