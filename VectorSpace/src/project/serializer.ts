@@ -37,6 +37,8 @@ const MAX_SCENES = 100
 const MAX_OBJECTS = 5_000
 const MAX_LABEL_LENGTH = 200
 const MAX_ZONES = 500
+const MAX_SPOTS = 50
+const MAX_SPOT_TEXT = 60
 const MAX_RULES = 5_000
 const MAX_AUDIO_ASSETS = 1_000
 const MAX_ATTACHMENTS_PER_HOST = 16
@@ -187,6 +189,19 @@ const validateSceneZones = (scene: ProjectData['scenes'][number], zoneIds: Set<s
     if (zoneIds.has(zone.id)) throw new Error('Project contains duplicate zone IDs')
     zoneIds.add(zone.id)
     validateAttachments(zone.attachments, attachmentTracker)
+  }
+}
+
+/** The teacher's suggested spots: short text, on the floor, a unique id within the room. */
+const validateSceneSpots = (scene: ProjectData['scenes'][number]): void => {
+  if (scene.spots === undefined) return
+  if (!Array.isArray(scene.spots) || scene.spots.length > MAX_SPOTS) throw new Error('Project contains an invalid spot list')
+  const ids = new Set<string>()
+  for (const spot of scene.spots) {
+    if (!spot || typeof spot !== 'object' || !isShortText(spot.id, MAX_LABEL_LENGTH) || !spot.id || !isTuple(spot.position) || !isShortText(spot.text, MAX_SPOT_TEXT)) throw new Error('Project contains an invalid spot')
+    if (ids.has(spot.id)) throw new Error('Project contains duplicate spot IDs')
+    ids.add(spot.id)
+    spot.text = spot.text.replace(CONTROL_CHARS, '')
   }
 }
 
@@ -420,13 +435,14 @@ const validateProject = (parsed: unknown): ProjectData => {
     for (const object of scene.objects) {
       objectCount += 1
       if (objectCount > MAX_OBJECTS) throw new Error('Project contains too many scene objects')
-      if (!object || typeof object !== 'object' || typeof object.id !== 'string' || typeof object.name !== 'string' || typeof object.assetId !== 'string' || object.id.length > MAX_LABEL_LENGTH || object.name.length > MAX_LABEL_LENGTH || object.assetId.length > MAX_LABEL_LENGTH || !['cube', 'sphere', 'cylinder', 'model'].includes(object.assetKind) || (object.visible !== undefined && typeof object.visible !== 'boolean') || (object.enabled !== undefined && typeof object.enabled !== 'boolean') || (object.parentId !== undefined && (typeof object.parentId !== 'string' || object.parentId.length > MAX_LABEL_LENGTH)) || !object.transform || !isTuple(object.transform.position) || !isTuple(object.transform.rotation) || !isTuple(object.transform.scale)) throw new Error('Project contains an invalid scene object')
+      if (!object || typeof object !== 'object' || typeof object.id !== 'string' || typeof object.name !== 'string' || typeof object.assetId !== 'string' || object.id.length > MAX_LABEL_LENGTH || object.name.length > MAX_LABEL_LENGTH || object.assetId.length > MAX_LABEL_LENGTH || !['cube', 'sphere', 'cylinder', 'model'].includes(object.assetKind) || (object.visible !== undefined && typeof object.visible !== 'boolean') || (object.enabled !== undefined && typeof object.enabled !== 'boolean') || (object.parentId !== undefined && (typeof object.parentId !== 'string' || object.parentId.length > MAX_LABEL_LENGTH)) || (object.locked !== undefined && typeof object.locked !== 'boolean') || !object.transform || !isTuple(object.transform.position) || !isTuple(object.transform.rotation) || !isTuple(object.transform.scale)) throw new Error('Project contains an invalid scene object')
       if (objectIds.has(object.id)) throw new Error('Project contains duplicate object IDs')
       objectIds.add(object.id)
       validateAttachments(object.attachments, attachmentTracker)
     }
     validateSceneHierarchy(scene)
     validateSceneZones(scene, zoneIds, attachmentTracker)
+    validateSceneSpots(scene)
   }
   if (!sceneIds.has(candidate.activeSceneId)) throw new Error('Project active scene does not exist')
   // Rules are validated after every scene, so object and zone ids from the whole

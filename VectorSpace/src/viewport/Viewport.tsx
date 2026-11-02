@@ -74,6 +74,7 @@ import { AssetStatusBadge } from '../viewport/editing/AssetStatusBadge'
 import { createChangeColorExecutor} from '../viewport/actions/changeColorAction'
 import { CHANGE_COLOR_KIND } from '../viewport/actions/changeColorActionBuilder'
 import { createRenderScheduler } from '../viewport/renderScheduler'
+import { createSceneMarkers, type SceneMarker } from '../viewport/editing/sceneMarkers'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -147,7 +148,16 @@ interface ViewportProps {
   showHint?: boolean
   /** Play mode's movement; looking is a drag in every one. Absent keeps pointer-lock look. */
   playMove?: PlayMove
+  /** Pins and lock badges drawn over the room (suggested spots, locked objects); look-only. */
+  markers?: readonly SceneMarker[]
+  /**
+   * A click (not a drag) in the viewport: the object under the pointer, if any, and where the
+   * pointer meets the floor (y = 0), if it does. For tools that place or pick without the gizmo.
+   */
+  onPick?: (pick: ViewportPick) => void
 }
+
+export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null }
 
 // What the pointer and keys do right now, for the hint line in the viewport or editor footer.
 export const viewportHintText = (cameraMode: CameraMode, interactive: boolean, gizmoMode: GizmoMode): string | null =>
@@ -280,6 +290,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     onViewLabelChange,
     showHint = true,
     playMove,
+    markers,
+    onPick,
   },
   ref,
 ) {
@@ -288,8 +300,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -359,6 +371,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // Tracks every object currently loading/erroring so the interaction controller
   // can skip them at pick time; see requirement 2 in the Stage 6 plan section.
   const unpickableAssetIdsRef = useRef<Set<string>>(new Set())
+  const markersRef = useRef<ReturnType<typeof createSceneMarkers> | null>(null)
   const [selectedAssetDescriptor, setSelectedAssetDescriptor] = useState<AssetDescriptor | undefined>(undefined)
 
   useImperativeHandle(ref, () => ({
@@ -800,6 +813,36 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // keydown handling, so it fires in both edit and play mode and needs no
     // change to that controller's picking logic.
     const onGestureUnlock = () => { void audio.unlock() }
+
+    // MARKERS and PICKING for the teacher's tools (onPick / markers props). A press that
+    // moves less than a few pixels before release is a click; anything more was an orbit drag.
+    const markers = createSceneMarkers(scene)
+    markersRef.current = markers
+    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+    let pressAt: { x: number; y: number } | null = null
+    const onPickDown = (event: PointerEvent) => { pressAt = event.button === 0 ? { x: event.clientX, y: event.clientY } : null }
+    const onPickUp = (event: PointerEvent) => {
+      const handler = dataRef.current.onPick
+      const start = pressAt
+      pressAt = null
+      if (!handler || !start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return
+      const rect = renderer.domElement.getBoundingClientRect()
+      const ndc = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1)
+      const picker = new THREE.Raycaster()
+      picker.setFromCamera(ndc, activeCameraRef.current)
+      // the nearest hit that belongs to an authored object (meshes are nested under one named by its id)
+      const ids = new Set(dataRef.current.objects.map((object) => object.id))
+      let objectId: string | null = null
+      for (const hit of picker.intersectObjects(objectsGroup.children, true)) {
+        let node: THREE.Object3D | null = hit.object
+        while (node && !ids.has(node.name)) node = node.parent
+        if (node) { objectId = node.name; break }
+      }
+      const point = picker.ray.intersectPlane(floorPlane, new THREE.Vector3())
+      handler({ objectId, floorPoint: point ? [point.x, 0, point.z] : null })
+    }
+    renderer.domElement.addEventListener('pointerdown', onPickDown)
+    renderer.domElement.addEventListener('pointerup', onPickUp)
     renderer.domElement.addEventListener('pointerdown', onGestureUnlock)
     window.addEventListener('keydown', onGestureUnlock)
     // A hidden tab freezes its audio; showing it again carries on from the same spot.
@@ -948,6 +991,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       stopRun(false)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       renderer.domElement.removeEventListener('pointerdown', onGestureUnlock)
+      renderer.domElement.removeEventListener('pointerdown', onPickDown)
+      renderer.domElement.removeEventListener('pointerup', onPickUp)
+      markers.dispose()
+      markersRef.current = null
       window.removeEventListener('keydown', onGestureUnlock)
       audioRef.current = null
       // The comment where the system is created says only unmount disposes it; closing the context
@@ -982,6 +1029,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   useEffect(() => {
     if (playMove !== 'walk' && document.pointerLockElement && mountRef.current?.contains(document.pointerLockElement)) document.exitPointerLock()
   }, [playMove])
+
+  // markers are redrawn only when their list changes; the setup effect above may have rebuilt
+  // the layer (interactive flipped), so this also runs after it
+  useEffect(() => {
+    markersRef.current?.update(markers ?? [])
+    requestRenderRef.current()
+  }, [markers, interactive])
 
   // Any prop change (gizmo mode, overlays, orthographic, …) may alter what the
   // frame shows, so wake one draw after every React render. Cheap: it only sets a flag.

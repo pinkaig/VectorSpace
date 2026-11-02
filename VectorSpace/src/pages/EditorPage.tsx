@@ -14,7 +14,7 @@
  */
 /****************************************************************************************************/
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Clock, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
@@ -48,6 +48,7 @@ import { homePath, useSession } from '../session/session'
 import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawSubmission, type ShareWith } from '../api/projects'
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
+import { markersFor } from '../editor/teacherTools'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -218,6 +219,14 @@ export default function EditorPage({ start, preview = false }: { start?: Project
 
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
 
+  const { getToken, role } = useSession()
+  // what a student sees: locks apply and suggested spots show (a teacher previewing too)
+  const studentView = preview || role === 'student'
+  // the teacher's suggested spots, and a lock over each locked thing, for anyone editing
+  // the selected thing is locked for this person: no arrows on it and no move/remove buttons
+  const selectedLocked = studentView && !!selected?.locked
+  const sceneMarkers = useMemo(() => markersFor(scene, { spots: true, locks: true }), [scene])
+
   const toggleSceneExpanded = (id: string) => {
     setExpandedSceneIds((current) => {
       const next = new Set(current)
@@ -235,7 +244,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
     addSelectedClickRule, removeRuleById, addScene, removeScene, moveSceneInOrder, renameScene, setSceneSurfaces,
-  } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
+  } = useSceneEditing({
+    project, scene, selected, setSelectedId, commit, runCommand, viewportRef,
+    // a student (or a teacher previewing as one) can't change what the teacher locked
+    isLocked: (objectId) => studentView && !!scene.objects.find((object) => object.id === objectId)?.locked,
+    // a gizmo drag has already moved the mesh, so pull it back to the saved pose
+    onLocked: (object) => { bumpSync(); setStepNotice(`${object.name} is locked by your teacher. You can't move or delete it.`) },
+  })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
     project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
@@ -256,7 +271,6 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // (POST /projects/:id/submit, with who can visit) and goes live once the teacher approves it on
   // Review; anyone else's project is published straight away (PATCH /projects/:id). Either saves
   // first. A browser draft has no server row to share, and a teacher preview changes nothing.
-  const { getToken, role } = useSession()
   const sendsToTeacher = role === 'student'
   // the kick-off tutorial: opens the first time in this browser; the "?" opens it again.
   // A teacher preview never marks it seen, so the student still gets it.
@@ -519,7 +533,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onMove={moveObject}
               onScale={scaleObject}
               onRotate={rotateObject}
-              gizmoMode={gizmoMode}
+              gizmoMode={selectedLocked ? 'select' : gizmoMode}
               scaleSpace={scaleSpace}
               rotateSpace={rotateSpace}
               snap={snapOn}
@@ -530,6 +544,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               cameraMode={cameraMode}
               resetToken={resetToken}
               syncToken={syncToken}
+              markers={sceneMarkers}
               // The quad layout's main pane is always perspective - only the three reference
               // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
               orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}
@@ -689,6 +704,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onSnapChange={setSnapOn}
             onCopy={duplicateSelected}
             onRemove={deleteSelected}
+            locked={selectedLocked}
             rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)}
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}

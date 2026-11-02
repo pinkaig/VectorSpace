@@ -72,6 +72,7 @@ export type {
   RoomSurfaces,
   SceneData,
   SceneObject,
+  SuggestedSpot,
   TextAssetMeta,
   TextAttachment,
   TextFormat,

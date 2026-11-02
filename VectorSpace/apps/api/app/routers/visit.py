@@ -16,6 +16,8 @@ first name, the class and the school. Uploaded media still needs a sign-in to lo
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -26,7 +28,7 @@ from sqlalchemy.orm import Session
 from ..access import can_read, class_ids
 from ..auth import get_optional_actor
 from ..db import get_db
-from ..models import Actor, Classroom, Organisation, Project, ProjectVersion, Submission
+from ..models import Actor, AnalyticsEvent, Classroom, Organisation, Project, ProjectVersion, Submission
 
 router = APIRouter(prefix="/visit", tags=["visit"])
 
@@ -65,6 +67,23 @@ def _let_in(db: Session, visitor: Actor | None, project: Project, share_with: st
         raise missing
 
 
+# the same signed-in visitor counts once per half hour; a signed-out one can't be told apart, so only
+# an immediate reload (the page asking twice) is left out
+SAME_VISIT_SIGNED_IN = timedelta(minutes=30)
+SAME_VISIT_SIGNED_OUT = timedelta(seconds=10)
+
+
+def _just_counted(db: Session, project: Project, visitor: Actor | None) -> bool:
+    window = SAME_VISIT_SIGNED_OUT if visitor is None else SAME_VISIT_SIGNED_IN
+    query = select(AnalyticsEvent.id).where(
+        AnalyticsEvent.project_id == project.id,
+        AnalyticsEvent.event_type == "visit",
+        AnalyticsEvent.occurred_at >= datetime.now(timezone.utc) - window,
+        AnalyticsEvent.actor_id.is_(None) if visitor is None else AnalyticsEvent.actor_id == visitor.id,
+    )
+    return db.scalar(query.limit(1)) is not None
+
+
 @router.get("/{slug}", response_model=VisitResponse)
 def visit(slug: str, visitor: Actor | None = Depends(get_optional_actor), db: Session = Depends(get_db)) -> VisitResponse:
     missing = HTTPException(status_code=404, detail="This project isn't open to visitors")
@@ -85,6 +104,16 @@ def visit(slug: str, visitor: Actor | None = Depends(get_optional_actor), db: Se
     version = db.get(ProjectVersion, project.current_version_id)
     if version is None or version.content_snapshot is None:
         raise missing
+    # one visit for the teacher's Results, unless it is the student looking at their own museum
+    if (visitor is None or visitor.id != project.created_by_id) and not _just_counted(db, project, visitor):
+        db.add(AnalyticsEvent(
+            project_id=project.id,
+            actor_id=visitor.id if visitor else None,
+            session_id=str(uuid.uuid4()),
+            event_type="visit",
+            occurred_at=datetime.now(timezone.utc),
+        ))
+        db.commit()
     student = db.get(Actor, project.created_by_id)
     school = db.get(Organisation, project.organisation_id)
     classroom = db.get(Classroom, project.class_id) if project.class_id else None

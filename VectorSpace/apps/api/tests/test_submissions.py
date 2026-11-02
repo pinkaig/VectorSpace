@@ -101,3 +101,13 @@ def test_a_student_cannot_publish_assigned_work_directly(client, school) -> None
     # their own project that nobody assigned still publishes as before
     own = client.post("/projects", json={"name": "Mine", "class_id": str(school["class1"].id)}, headers=as_user("s1")).json()
     assert client.patch(f"/projects/{own['id']}", json={"status": "published"}, headers=as_user("s1")).status_code == 200
+
+def test_teacher_list_counts_published_copies(client, school) -> None:
+    copy = assigned_copy(client, school)
+    mine = lambda: {p["id"]: p for p in client.get("/projects?kind=project&mine=true", headers=as_user("t1")).json()}
+    source_id = next(pid for pid, p in mine().items() if p["sent"])
+    assert mine()[source_id]["published_copies"] == 0
+
+    submit(client, copy)
+    client.post(f"/projects/{copy['id']}/approve", json={}, headers=as_user("t1"))
+    assert mine()[source_id]["published_copies"] == 1

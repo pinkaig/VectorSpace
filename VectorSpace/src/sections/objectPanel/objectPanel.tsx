@@ -60,6 +60,9 @@ export type ObjectPanelProps = {
   onSnapChange: (snap: boolean) => void
   onCopy: () => void
   onRemove: () => void
+  // locked by the teacher: no moving, turning, resizing or removing, only copying (the Info
+  // and Reactions tabs still work). Absent = not locked.
+  locked?: boolean
   rules: InteractionRule[]
   onAddRule: (choice: ClickRuleChoice) => void
   onRemoveRule: (ruleId: string) => void
@@ -189,10 +192,31 @@ export function ObjectPanel(props: ObjectPanelProps) {
   )
 }
 
-function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, onCopy, onRemove }: ObjectPanelProps & { object: ObjectPanelItem }) {
+function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, onCopy, onRemove, locked }: ObjectPanelProps & { object: ObjectPanelItem }) {
   // open or closed is only how the panel looks, not editor data, so it can live here
   const [exactOpen, setExactOpen] = useState(false)
   const activeHint = tools.find((item) => item.tool === tool)?.hint ?? 'Pick what to change, then drag in the 3D view.'
+
+  // a locked thing: say so, and offer only a copy, which is the student's own to change
+  if (locked) {
+    return (
+      <div className="object-panel-tab-body">
+        <div className="object-panel-locked" role="note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V7a4 4 0 018 0v4" />
+          </svg>
+          <div>
+            <strong>Locked by your teacher</strong>
+            <span>It stays where it is. Make a copy if you want one you can move.</span>
+          </div>
+        </div>
+        <div className="object-panel-actions">
+          <button className="object-panel-action" onClick={onCopy}>Copy</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="object-panel-tab-body">

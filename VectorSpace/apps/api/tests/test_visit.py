@@ -64,3 +64,18 @@ def test_a_draft_or_unknown_link_is_not_found(client, school) -> None:
     client.post(f"/projects/{draft['id']}/versions", json={"base_revision": 0, "data": SCENE}, headers=as_user("s1"))
     assert client.get(f"/visit/{draft['slug']}", headers=as_user("s1")).status_code == 404
     assert client.get("/visit/nothing-here").status_code == 404
+
+
+def test_visits_are_counted_for_the_teachers_results(client, school) -> None:
+    project = approved_project(client, school, "public")
+    path = f"/visit/{project['slug']}"
+    client.get(path)  # signed out
+    client.get(path)  # the page asking twice: one visit
+    client.get(path, headers=as_user("s2"))  # a classmate
+    client.get(path, headers=as_user("s2"))  # the same classmate again soon after: one visit
+    client.get(path, headers=as_user("s1"))  # the owner: not counted
+
+    assert client.get("/analytics/visits", headers=as_user("s1")).status_code == 403
+    rows = client.get("/analytics/visits?days=7", headers=as_user("t1")).json()
+    assert rows == [{"project_id": project["id"], "visits": 2, "last_7_days": [0, 0, 0, 0, 0, 0, 2]}]
+    assert client.get("/analytics/visits", headers=as_user("other")).json() == []  # another school

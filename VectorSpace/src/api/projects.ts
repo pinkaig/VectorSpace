@@ -53,6 +53,12 @@ export interface Project {
   mission_brief?: MissionBrief | null
   /** A copy has been sent to at least one student: it can then only be archived, not deleted. */
   sent?: boolean
+  /** How many students' copies of this project are published (a teacher's own project). */
+  published_copies?: number
+  /** The assignments made from this project (a teacher's own project); a copy has assignment_id. */
+  assignment_ids?: string[]
+  /** The share link's last part: #/visit/<slug>. */
+  slug?: string
   /** A teacher chose it for the public sign-in page (published museums only). */
   showcase?: boolean
   /** The newest hand-in for review; null if never handed in. */
@@ -191,6 +197,14 @@ export async function sendToStudents(getToken: GetToken, projectId: string, stud
   return { sent: studentIds.length - failed, failed }
 }
 
+/**
+ * Teachers only: carries the template's saved spots, locks and starter objects into the copies
+ * students already have (their own work is left alone). Copies under review are skipped.
+ */
+export function pushSetup(getToken: GetToken, projectId: string, base?: string): Promise<{ updated: number; skipped: number }> {
+  return apiFetch<{ updated: number; skipped: number }>(getToken, `/projects/${projectId}/push-setup`, { method: 'POST' }, base)
+}
+
 /** How sending to a class went: copies made now, students who had one already, and sends that failed. */
 export interface ClassSendResult {
   sent: number
@@ -284,4 +298,16 @@ export function sendBackProject(getToken: GetToken, projectId: string, review: {
 /** Every hand-in of a museum, newest first. */
 export function listSubmissions(getToken: GetToken, projectId: string, base?: string): Promise<Submission[]> {
   return apiFetch<Submission[]>(getToken, `/projects/${projectId}/submissions`, {}, base)
+}
+/** Visits to one published museum, from GET /analytics/visits. */
+export interface MuseumVisits {
+  project_id: string
+  visits: number
+  /** Oldest day first, today last. */
+  last_7_days: number[]
+}
+
+/** Teachers only: visits to the published museums they can see; days = the last that many days, none = all time. */
+export function listMuseumVisits(getToken: GetToken, days?: number, base?: string): Promise<MuseumVisits[]> {
+  return apiFetch<MuseumVisits[]>(getToken, `/analytics/visits${days ? `?days=${days}` : ''}`, {}, base)
 }
