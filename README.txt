@@ -17,6 +17,7 @@ a browser-based spatial authoring tool
 GitHub repository:
 https://github.com/gsherman01/Project5_Team17_DoReMi-yaki
 M1 submission branch: M1-Submission
+Branch flow: feature branch -> PR into `Working` (Render deploys `Working`) -> `Working` into `main` at each milestone.
 
 Github Wiki + M1 deliverable:
 https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
@@ -24,7 +25,7 @@ https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki
 Jira board:
 https://doremiyaki.atlassian.net/jira/software/projects/PROJ5/summary
 Active front-end website via Render,
-https://vthere-spatial-experience-builder.onrender.com
+https://vectorspace-tigs.onrender.com  (API: https://vectorspace-api-bcsx.onrender.com)
 
 One-command build, test, and run
 ./run.sh          # macOS/Linux
