@@ -48,6 +48,7 @@ import { homePath, useSession } from '../session/session'
 import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawSubmission, type ShareWith } from '../api/projects'
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
+import { getProjectSyncStatus } from '../project/projectSync'
 import { markersFor } from '../editor/teacherTools'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
@@ -324,8 +325,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     if (!canShare || publishing) return
     setPublishing(true)
     setPublishError(null)
-    save()
     try {
+      // the teacher reviews the newest save on the server, so the last edits must reach it first
+      await save()
+      if (getProjectSyncStatus() !== 'idle') {
+        setPublishError("Your latest changes haven't saved yet. Check your connection and try again.")
+        return
+      }
       if (sendsToTeacher) {
         const submission = await submitProject(getToken, project.id, shareWith)
         setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with, reviewComment: submission.comment, reviewGrade: submission.grade }))
