@@ -20,7 +20,8 @@ import type { ShareWith } from "../../api/projects";
 import { checkGoal } from "../../mission/checkTodo";
 import "./sharePopup.css";
 
-export type ShareStatus = "draft" | "submitted" | "published";
+// update-waiting: published, with an update the student sent that the teacher hasn't OK'd yet
+export type ShareStatus = "draft" | "submitted" | "published" | "update-waiting";
 
 type SharePopupProps = {
   project: ProjectData;
@@ -31,6 +32,8 @@ type SharePopupProps = {
   busy: boolean;
   error: string | null;
   onSend: (shareWith: ShareWith) => void;
+  // a student's published museum: sends the changes since approval to the teacher
+  onSendUpdate: () => void;
   // takes back a hand-in that is still waiting for the teacher
   onWithdraw: () => void;
   onClose: () => void;
@@ -82,7 +85,7 @@ function ShareLink({ link }: { link: string }) {
   );
 }
 
-export function SharePopup({ project, status, sharing, needsReview, busy, error, onSend, onWithdraw, onClose }: SharePopupProps) {
+export function SharePopup({ project, status, sharing, needsReview, busy, error, onSend, onSendUpdate, onWithdraw, onClose }: SharePopupProps) {
   const [visibility, setVisibility] = useState<ShareWith>(sharing.shareWith ?? "sign_in_only");
   const teacher = sharing.teacherName ?? "your teacher";
 
@@ -123,10 +126,44 @@ export function SharePopup({ project, status, sharing, needsReview, busy, error,
 
         {status === "published" && (
           <>
-            <p className="share-state share-state-live">Your project is published</p>
+            <p className="share-state share-state-live">Your project is live</p>
             {chosen && <p className="share-note">Who can visit: <strong>{chosen.label}</strong></p>}
             {link && <ShareLink link={link} />}
             {sharing.reviewStatus === "approved" && sharing.reviewComment && <p className="share-comment"><strong>{teacher}:</strong> {sharing.reviewComment}</p>}
+            {needsReview && (
+              <>
+                {sharing.reviewStatus === "sent_back" && sharing.reviewComment && (
+                  <p className="share-comment share-comment-back">
+                    <strong>{teacher} sent your update back:</strong> {sharing.reviewComment}
+                  </p>
+                )}
+                <p className="share-note">
+                  <strong>Changes you make now are a draft.</strong> Visitors keep seeing the approved version until {teacher} OKs your update.
+                </p>
+                {error && <p className="share-error" role="alert">{error}</p>}
+                <div className="share-actions">
+                  <button type="button" className="share-secondary" onClick={onClose}>Keep building</button>
+                  <button type="button" className="share-primary" onClick={onSendUpdate} disabled={busy}>
+                    {busy ? "Sending…" : `Send update to ${teacher}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {status === "update-waiting" && (
+          <>
+            <p className="share-state share-state-waiting">Update waiting for {teacher}</p>
+            <p className="share-note">Visitors still see the approved version. Your changes go live once {teacher} OKs them.</p>
+            {link && <ShareLink link={link} />}
+            {error && <p className="share-error" role="alert">{error}</p>}
+            <div className="share-actions">
+              <button type="button" className="share-secondary" onClick={onWithdraw} disabled={busy}>
+                {busy ? "Cancelling…" : "Cancel update"}
+              </button>
+              <button type="button" className="share-primary" onClick={onClose}>Keep building</button>
+            </div>
           </>
         )}
 

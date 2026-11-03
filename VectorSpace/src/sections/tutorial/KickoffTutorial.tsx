@@ -23,7 +23,7 @@ import "./kickoffTutorial.css";
 // the three tips, in order (manual: Student flow, 2. Opening a project)
 const TIPS = [
   {
-    title: "Welcome to your museum!",
+    title: "Welcome to your project!",
     text: "You will build it in 4 steps. The bar at the top always shows which step you are on.",
   },
   {

@@ -40,6 +40,8 @@ const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
 const TeacherTemplateSetupPage = lazy(() => import('./pages/TeacherTemplateSetupPage'))
 // a shared project's page (/visit/:slug) shows the 3D project, so it is lazy too
 const VisitPage = lazy(() => import('./pages/VisitPage'))
+// the Review tab's "Walk through it as a visitor": full page, like a share link
+const TeacherWalkPage = lazy(() => import('./pages/TeacherWalkPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 // The motion board (/motion-board, dev only). The ternary, not a bare lazy(), so a production build folds
@@ -184,6 +186,7 @@ export default function App() {
           </Route>
           <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><Suspense fallback={<p>Loading template setup…</p>}><TeacherTemplateSetupPage /></Suspense></AdminNav></RequireRole>} />
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
+          <Route path="/teacher/review/:projectId/walk" element={<RequireRole role="teacher"><Suspense fallback={<p>Opening the project…</p>}><TeacherWalkPage /></Suspense></RequireRole>} />
           <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<LoadingRoom />}><EditorApplication /></Suspense></RequireRole>} />

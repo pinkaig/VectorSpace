@@ -36,6 +36,10 @@ interface RuntimeViewProps {
   onExit?: () => void;
   // the banner's text; the editor's Play leaves it out
   title?: string;
+  // the exit button's text; "Back to building" unless given
+  exitLabel?: string;
+  // false: Esc does not leave (the visitor's page, where leaving means a different page)
+  escapeExits?: boolean;
 }
 
 const VOLUME_KEY = "vectorspace-visitor-volume";
@@ -109,7 +113,7 @@ function Joystick({ onChange }: { onChange: (x: number, z: number) => void }) {
   );
 }
 
-export default function RuntimeView({ project, onExit, title }: RuntimeViewProps) {
+export default function RuntimeView({ project, onExit, title, exitLabel = "Back to building", escapeExits = true }: RuntimeViewProps) {
   const scene =
     project.scenes.find((item) => item.id === project.activeSceneId) ??
     project.scenes[0];
@@ -169,7 +173,7 @@ export default function RuntimeView({ project, onExit, title }: RuntimeViewProps
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target) || event.repeat) return;
       if (event.code === "Escape") {
-        if (document.pointerLockElement || performance.now() - releasedAt < 300) return;
+        if (!escapeExits || document.pointerLockElement || performance.now() - releasedAt < 300) return;
         onExit?.();
       }
       else if (event.code === "KeyM") setMuted((current) => !current);
@@ -184,7 +188,7 @@ export default function RuntimeView({ project, onExit, title }: RuntimeViewProps
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerlockchange", onLockChange);
     };
-  }, [onExit]);
+  }, [onExit, escapeExits]);
 
   // Tour markers sit on the floor, so they're re-placed every frame as the visitor moves
   // and looks; hidden while behind the visitor.
@@ -237,7 +241,7 @@ export default function RuntimeView({ project, onExit, title }: RuntimeViewProps
       <div className="play-banner">
         <span>{title ?? "Playing · exactly what visitors will see"}</span>
         <AudioControls volume={volume} muted={muted} onVolumeChange={setVolume} onMutedChange={setMuted} />
-        {onExit && <button onClick={onExit}>Back to building</button>}
+        {onExit && <button onClick={onExit}>{exitLabel}</button>}
       </div>
 
       <div className="play-panel">

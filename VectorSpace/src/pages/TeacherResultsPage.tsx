@@ -124,11 +124,11 @@ function ClassResults({
     <>
       <div className="results-tiles">
         <StatTile
-          label="Museums published"
+          label="Projects published"
           value={`${museums.length} of ${copies.length}`}
           sub={waiting.length ? `${waiting.length} waiting for you to approve` : "none waiting for you"}
         />
-        <StatTile label="Visits" value={String(totalVisits)} sub="across all published museums" />
+        <StatTile label="Visits" value={String(totalVisits)} sub="across all published projects" />
         <StatTile
           label="Not started"
           value={String(notStarted)}
@@ -146,12 +146,12 @@ function ClassResults({
           <div className="results-chart-head">
             <h3 className="results-chart-title">Visits by student</h3>
             {museums.length > 0 && (
-              <span className="results-chart-hint">Click a name to see their museum</span>
+              <span className="results-chart-hint">Click a name to see their project</span>
             )}
           </div>
           {museums.length === 0 ? (
             <p className="results-chart-note">
-              Nobody's museum is published yet. Approve one from Review and it shows here.
+              Nobody's project is published yet. Approve one from Review and it shows here.
             </p>
           ) : (
             <ul className="results-bars">
@@ -265,7 +265,7 @@ function StudentResults({ museum, range }: { museum: Museum; range: Range }) {
               </div>
             ))}
           </div>
-          <p className="results-chart-note">A visit is anyone but {copy.created_by_name.split(" ")[0]} opening the museum's link.</p>
+          <p className="results-chart-note">A visit is anyone but {copy.created_by_name.split(" ")[0]} opening the project's link.</p>
         </div>
 
         <div className="results-chart">
@@ -280,7 +280,7 @@ function StudentResults({ museum, range }: { museum: Museum; range: Range }) {
               target="_blank"
               rel="noreferrer"
             >
-              Visit the museum <ExternalLink size={14} />
+              Visit the project <ExternalLink size={14} />
             </a>
           )}
         </div>
@@ -356,7 +356,7 @@ export default function TeacherResultsPage() {
       <main className="results">
         <section className="results-list-panel">
           <h1 className="results-list-title">Results</h1>
-          <p className="results-list-sub">Published museums show here, most visited first.</p>
+          <p className="results-list-sub">Published projects show here, most visited first.</p>
         </section>
         <section className="results-detail-panel">
           <header className="results-detail-header">

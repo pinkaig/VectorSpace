@@ -73,7 +73,7 @@ def test_review_only_happens_while_waiting(client, school) -> None:
     submit(client, copy)
     assert submit(client, copy).status_code == 409  # already waiting
     client.post(f"/projects/{copy['id']}/approve", json={}, headers=as_user("t1"))
-    assert submit(client, copy).status_code == 409  # already approved
+    assert submit(client, copy).status_code == 409  # approved, and nothing changed since
 
 
 def test_the_student_can_take_back_a_waiting_hand_in(client, school) -> None:

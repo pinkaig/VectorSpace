@@ -24,6 +24,8 @@ export type VisitProject = {
   schoolName: string;
   shareWith: ShareWith;
   project: ProjectData;
+  /** The project's id when the visitor is its owner (for "Edit my project"); null for anyone else. */
+  ownProjectId: string | null;
 };
 
 type VisitRow = {
@@ -33,6 +35,7 @@ type VisitRow = {
   school_name: string;
   share_with: ShareWith;
   data: unknown;
+  own_project_id?: string | null;
 };
 
 /** Throws ApiError 401 (sign in first) or 404 (not published, or not for this visitor). */
@@ -44,6 +47,7 @@ export async function getVisitProject(getToken: GetToken, slug: string): Promise
     className: row.class_name,
     schoolName: row.school_name,
     shareWith: row.share_with,
+    ownProjectId: row.own_project_id ?? null,
     project: deserializeProject(JSON.stringify({ ...(row.data as object), name: row.title })),
   };
 }
