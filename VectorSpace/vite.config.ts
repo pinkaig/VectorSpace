@@ -35,6 +35,12 @@ export default defineConfig({
     // the warning still fires if our own code grows past this
     chunkSizeWarningLimit: 700,
     rollupOptions: {
+      // second page: the standalone UI-audio prototype, so it ships at
+      // /prototypes/ui-audio/index.html instead of existing only on the dev server
+      input: {
+        main: 'index.html',
+        uiAudio: 'prototypes/ui-audio/index.html',
+      },
       output: {
         // three.js in a file of its own: it rarely changes, so after an update returning
         // visitors keep it cached and only download the app code that did change
