@@ -476,3 +476,35 @@
   text-align: right;
   font-weight: 800;
 }
+/* which project's results: shown when more than one was sent to students */
+.results-project-picker {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* "Open Review" and "Visit the museum" */
+.results-chart-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--purple-600);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.results-chart-link:hover {
+  text-decoration: underline;
+}

@@ -31,6 +31,7 @@ import {
   Copy,
   Info,
   MoreHorizontal,
+  Pencil,
   Plus,
   RotateCcw,
   Trash2,
@@ -119,21 +120,30 @@ const newestFirst = (a: Project, b: Project): number =>
   (b.saved_at ?? b.updated_at).localeCompare(a.saved_at ?? a.updated_at);
 
 // one of the teacher's projects from the database, as a row in All projects
-const rowFromServer = (project: Project): ProjectRow => ({
+const rowFromServer = (project: Project): ProjectRow => {
+  const published = project.published_copies ?? 0;
+  return {
   id: project.id,
   className: project.class_name,
   name: project.name,
-  details: project.saved_at
-    ? `Saved ${daysAgo(project.saved_at)} · revision ${project.current_revision}`
-    : "Not assigned yet",
-  action: "Set up project",
-  actionIsPrimary: !project.saved_at,
+  details:
+    published > 0
+      ? `Published · ${published} ${published === 1 ? "museum" : "museums"}`
+      : project.saved_at
+        ? `Saved ${daysAgo(project.saved_at)} · revision ${project.current_revision}`
+        : "Not assigned yet",
+  published: published > 0,
+  // a student has published one: see how visitors used it (Edit project moves to the ⋯ menu);
+  // never saved: still to be set up (and highlighted); saved once: open it to change it
+  action: published > 0 ? "See results" : project.saved_at ? "Edit project" : "Set up project",
+  actionIsPrimary: !project.saved_at && published === 0,
   hasStudentWork: deleteHintFor(project) !== undefined,
   isPastDue: dueHasPassed(project.due_at),
   archived: project.status === "archived",
   onServer: true,
   deleteHint: deleteHintFor(project),
-});
+  };
+};
 
 // Offline mode only (no VITE_API_URL): the list as the teacher left it. It lives outside the
 // component, so leaving the page (Results, template setup) and coming back keeps new,
@@ -148,9 +158,22 @@ type AssignedNote = {
   due?: string;
   sent?: ClassSendResult; // how sending to the class's students went, for a server project
   sendProblem?: string; // why sending to the class failed outright
+  // copies students already had that got the latest spots, locks and starter objects
+  setupUpdated?: { updated: number; skipped: number };
+  setupProblem?: string;
 };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+// the banner's sentence about copies students already had
+const setupLine = (note: AssignedNote): string => {
+  if (note.setupProblem) return ` Couldn't update the copies students already have: ${note.setupProblem}`;
+  const { updated = 0, skipped = 0 } = note.setupUpdated ?? {};
+  const parts: string[] = [];
+  if (updated > 0) parts.push(`Updated the copies of ${plural(updated, "student")} with your room setup`);
+  if (skipped > 0) parts.push(`left ${skipped} ${skipped === 1 ? "copy" : "copies"} under review unchanged`);
+  return parts.length > 0 ? ` ${parts.join(", ")}.`.replace(/^ \w/, (first) => first.toUpperCase()) : "";
+};
 
 // the banner's sentence after "<project> is saved for <class>"
 const sentLine = (note: AssignedNote): string => {
@@ -199,6 +222,8 @@ type ProjectMenuProps = {
   onDuplicate: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  // set when the row's own button is See results, so the project can still be edited
+  onEdit?: () => void;
 };
 
 // The ⋯ button and its dropdown. It floats above the page (position: fixed), so the
@@ -215,6 +240,7 @@ function ProjectMenu({
   onDuplicate,
   onArchive,
   onDelete,
+  onEdit,
 }: ProjectMenuProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [place, setPlace] = useState<CSSProperties>({});
@@ -264,6 +290,20 @@ function ProjectMenu({
             </button>
           ) : (
             <>
+              {onEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="teacher-home-menu-item"
+                  onClick={onEdit}
+                >
+                  <Pencil size={16} />
+                  <span>
+                    <strong>Edit project</strong>
+                    <small>Change the setup for students still building</small>
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 role="menuitem"
@@ -571,7 +611,7 @@ export default function TeacherHomePage() {
   const activeProjects = projects.filter((p) => !p.archived && p.id !== pickUpRow?.id);
   const archivedProjects = projects.filter((p) => p.archived);
 
-  // "Set up project" (or "Set up and assign") opens template setup with that project
+  // "Set up project", "Edit project" (or "Set up and assign") opens template setup with that project
   const openSetup = (project: ProjectRow) =>
     navigate("/teacher/template", {
       state: project.onServer ? { projectId: project.id } : null,
@@ -591,6 +631,7 @@ export default function TeacherHomePage() {
       onDuplicate={() => duplicate(project)}
       onArchive={() => toggleArchived(project)}
       onDelete={() => askToDelete(project)}
+      onEdit={project.action === "See results" ? () => openSetup(project) : undefined}
     />
   );
   // archived ones go at the bottom, only when shown
@@ -605,7 +646,7 @@ export default function TeacherHomePage() {
           <Check size={18} />
           <span>
             <strong>{banner.projectName}</strong> is saved for{" "}
-            {banner.className}.{sentLine(banner)}
+            {banner.className}.{sentLine(banner)}{setupLine(banner)}
           </span>
           <button
             type="button"
@@ -671,7 +712,7 @@ export default function TeacherHomePage() {
                   className="teacher-home-primary"
                   onClick={() => openSetup(pickUpRow)}
                 >
-                  Set up project
+                  Edit project
                 </button>
                 <button
                   type="button"
@@ -774,10 +815,11 @@ export default function TeacherHomePage() {
                   }
                   onClick={() => {
                     if (project.action === "See results")
-                      navigate("/teacher/results");
+                      navigate("/teacher/results", { state: { projectId: project.id } });
                     if (
                       project.action === "Set up and assign" ||
-                      project.action === "Set up project"
+                      project.action === "Set up project" ||
+                      project.action === "Edit project"
                     )
                       openSetup(project);
                   }}

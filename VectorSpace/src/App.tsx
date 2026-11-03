@@ -13,7 +13,7 @@
  */
 /****************************************************************************************************/
 import { lazy, Suspense, useState, type ReactNode } from 'react'
-import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router'
+import { HashRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router'
 import AdminAccountsPage from './pages/AdminAccountsPage'
 import AdminLayout from './pages/AdminLayout'
 import AdminOverviewPage from './pages/AdminOverviewPage'
@@ -23,6 +23,7 @@ import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
 import TeacherLayout from './pages/TeacherLayout'
+import { LoadingRoom } from './ui/LoadingRoom'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
@@ -37,6 +38,8 @@ const EditorApplication = lazy(() => import('../apps/editor/src/EditorApplicatio
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
 // the template setup page embeds the 3D viewport, which pulls in the audio package, so it is lazy too
 const TeacherTemplateSetupPage = lazy(() => import('./pages/TeacherTemplateSetupPage'))
+// a shared project's page (/visit/:slug) shows the 3D project, so it is lazy too
+const VisitPage = lazy(() => import('./pages/VisitPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 // The motion board (/motion-board, dev only). The ternary, not a bare lazy(), so a production build folds
@@ -55,11 +58,15 @@ function SignIn() {
   const { signIn, rejected, signOut } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
+  // a shared project's "Sign in" sends ?next=/visit/<slug> so the visitor goes back to it;
+  // nothing else is honoured, so the link cannot send someone elsewhere
+  const [params] = useSearchParams()
+  const next = params.get('next')?.startsWith('/visit/') ? params.get('next') : null
   // where it navigates to is what signIn lands on, which the server decides when there is one:
   // an admin goes to /admin, everyone else to the page named after their role
   const onSignIn = (role: Role, admin?: boolean) => {
     setProblem(null)
-    signIn(role, { admin }).then((landed) => navigate(homePath(landed.role, landed.admin)), (error: Error) => setProblem(
+    signIn(role, { admin }).then((landed) => navigate(next ?? homePath(landed.role, landed.admin)), (error: Error) => setProblem(
       error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
     ))
   }
@@ -161,6 +168,8 @@ export default function App() {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<SignIn />} />
+          {/* a project's share link: open to anyone, the server decides who sees it */}
+          <Route path="/visit/:slug" element={<Suspense fallback={<p>Opening the project…</p>}><VisitPage /></Suspense>} />
           {/* the VThere Admin area: one frame (top bar, sidebar) around four pages */}
           <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
             <Route index element={<AdminOverviewPage />} />
@@ -177,8 +186,8 @@ export default function App() {
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
           <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
-          <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<p>Loading editor…</p>}><EditorApplication /></Suspense></RequireRole>} />
-          <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<p>Loading editor…</p>}><ProjectEditorPage /></Suspense></RequireRole>} />
+          <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<LoadingRoom />}><EditorApplication /></Suspense></RequireRole>} />
+          <Route path="/editor/:projectId" element={<RequireRole role={['teacher', 'student']}><Suspense fallback={<LoadingRoom />}><ProjectEditorPage /></Suspense></RequireRole>} />
           {import.meta.env.DEV && MotionBoard && <Route path="/motion-board" element={<Suspense fallback={<p>Loading board…</p>}><MotionBoard /></Suspense>} />}
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           {import.meta.env.DEV && AssetInventoryBoard && <Route path="/asset-inventory" element={<Suspense fallback={<p>Loading inventory…</p>}><AssetInventoryBoard /></Suspense>} />}

@@ -38,9 +38,20 @@ import {
 } from '../../packages/sync/src/index'
 import { ApiError, apiFetch, type GetToken } from '../api/client'
 import { defaultProject, type ProjectData } from './model'
-import { deserializeProject } from './serializer'
+import { deserializeProject, type ProjectSharing } from './serializer'
 
-type ProjectRow = { id: string; name: string; status: RemoteProject['status']; current_version_id: string | null; mission_brief?: unknown }
+type ProjectRow = {
+  id: string
+  name: string
+  status: RemoteProject['status']
+  current_version_id: string | null
+  mission_brief?: unknown
+  slug?: string
+  assigned_by_name?: string | null
+  review_status?: ProjectSharing['reviewStatus']
+  review_comment?: string | null
+  share_with?: ProjectSharing['shareWith']
+}
 type VersionSaved = { revision: number }
 type VersionDetail = VersionSaved & { data: unknown }
 
@@ -54,6 +65,7 @@ export interface RemoteProject {
   project: ProjectData
   revision: number
   status: 'draft' | 'published' | 'archived'
+  sharing: ProjectSharing
 }
 
 export async function loadRemoteProject(getToken: GetToken, projectId: string, base?: string): Promise<RemoteProject> {
@@ -70,7 +82,14 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
   }
   project = withAssignedBrief({ ...project, id: row.id }, row.mission_brief)
   registry.set(row.id, { revision, getToken })
-  return { project, revision, status: row.status }
+  const sharing: ProjectSharing = {
+    reviewStatus: row.review_status ?? null,
+    shareWith: row.share_with ?? null,
+    reviewComment: row.review_comment ?? null,
+    teacherName: row.assigned_by_name ?? null,
+    slug: row.slug ?? null,
+  }
+  return { project, revision, status: row.status, sharing }
 }
 
 /**

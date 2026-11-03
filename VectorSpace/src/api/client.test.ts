@@ -43,6 +43,8 @@ describe('apiFetch', () => {
   })
 
   it('refuses to run with no API address', async () => {
-    await expect(apiFetch(async () => 't', '/me', {}, undefined)).rejects.toThrow('VITE_API_URL')
+    // '' rather than undefined: an undefined argument takes the default (apiUrl), which is set
+    // whenever VITE_API_URL is (e.g. in .env.local), and the test would then call that server
+    await expect(apiFetch(async () => 't', '/me', {}, '')).rejects.toThrow('VITE_API_URL')
   })
 })

@@ -1,0 +1,110 @@
+/**
+ * @file        loadingRoom.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for LoadingRoom: the page behind dimmed, and a white card in the middle with
+ *              a purple spinning ring, the title, a purple bar sliding along a lilac track, and a
+ *              tip, as in the 3.05 prototype. Movement stops for people who ask for reduced motion.
+ *              The 0.9s and 1.4s loop times must match the numbers in LoadingRoom.tsx.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── The page behind, with the card in the middle ─────────────────────── */
+.loading-room {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  box-sizing: border-box;
+  background: var(--bg-app);
+  font-family: var(--font-body);
+}
+
+.loading-room-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  padding: 28px 28px 24px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  text-align: center;
+}
+
+/* ── Spinning ring: a lilac circle with a purple quarter going round ──── */
+.loading-room-ring {
+  width: 52px;
+  height: 52px;
+  box-sizing: border-box;
+  border: 5px solid var(--purple-100);
+  border-top-color: var(--purple-500);
+  border-right-color: var(--purple-500);
+  border-radius: 50%;
+  animation: loading-room-spin 0.9s linear infinite;
+}
+
+.loading-room-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ── The bar: a purple piece sliding along a lilac track ──────────────── */
+.loading-room-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--purple-100);
+}
+
+.loading-room-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  border-radius: var(--radius-pill);
+  background: var(--purple-500);
+  animation: loading-room-slide 1.4s ease-in-out infinite;
+}
+
+.loading-room-tip {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+@keyframes loading-room-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading-room-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(170%);
+  }
+}
+
+/* no spinning or sliding for people who ask for less motion: the card still says it is loading */
+@media (prefers-reduced-motion: reduce) {
+  .loading-room-ring,
+  .loading-room-fill {
+    animation: none;
+  }
+}
