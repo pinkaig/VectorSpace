@@ -49,8 +49,7 @@ Sounds and cues live in `cue-map.json`, and are what a sound designer edits. Bin
 | `soundboard.ts`, `overlay.ts`, `soundboard.css` | The board (two tabs), and the numbered outlines drawn over the page. |
 | `overrides.ts` | Keeps board edits across reloads. |
 | `main.ts` | Boot, in the same order `Viewport.tsx` uses. |
-| `sfx/`, `sfx/placeholder/` | Synthesised stand-ins (swap a file of the same name for real audio). |
-| `tools/make-placeholders.mjs` | Regenerates the stand-ins. Deterministic. |
+| `sfx/placeholder/`, `tools/make-placeholders.mjs` | Old synthesised stand-ins. Nothing references them any more; kept only until someone deletes them. |
 
 In the console, `vsSfx` holds `bank`, `system`, `director`, `map` (the live list of controls) and `probe`: for example `vsSfx.bank.play('editor.drop')`.
 
@@ -78,7 +77,7 @@ In the console, `vsSfx` holds `bank`, `system`, `director`, `map` (the live list
 
 **Not checked**: how it sounds (nothing here can listen), touch devices, Safari and Firefox, and a real user's first-gesture unlock on iPad.
 
-**Stand-ins.** 26 of 27 sounds are synthesised tones, flagged `placeholder`; no third-party sample pack is shipped. Room music "Soft piano" is a plucked loop and "Museum hum" is a real museum-foyer ambience from `public/audio`.
+**Sound files.** Every sound is a supplied file under `public/audio`: the five masterlist sounds (`SFX/Tip`, `Brief`, `Success`, `Error`, `Next`), the ten-file UI pack (`SFX/ui-*.wav`) and the museum ambience. Cues with no supplied file are silent on purpose (`ui.loading`, `ui.task-complete`, `nav.screen`, `play.bgm.piano`, `world.reaction-sound`); cues whose press has no dedicated file reuse the nearest supplied click. The soundboard lists which.
 
 **Real-app future.** `CueBank` and `cue-map.json` carry over unchanged. Bindings do not: in React they become a prop or hook on each component (`<Button cue="ui.click.confirm">`, `useCue('editor.drop')`), and state outcomes become calls from the code that causes them rather than a watcher.
 

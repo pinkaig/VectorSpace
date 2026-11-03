@@ -43,7 +43,9 @@
     { "cue": "play.stop", "component": "Stop and Back to building", "on": "state", "watch": "state.view", "leaves": "play" },
     { "cue": "play.card-open", "component": "The 'Meet the T-rex' card in Play mode", "on": "state", "watch": "vals.playCardOpen", "becomes": true },
     { "cue": "play.tour-move", "component": "Tour spot arrows in Play mode", "on": "state", "watch": "state.tourIdx", "changes": true },
-    { "cue": "ui.dialog.open", "component": "New project, Rooms, Share, Mission brief, tutorial, Step 3 tip, WHEN / THEN dropdowns", "on": "state", "watch": ["vals.newOpen", "vals.roomsOpen", "vals.publishOpen", "vals.briefOpen", "vals.tutorial", "vals.showReactTip", "vals.dropdownOpen"], "becomes": true },
+    { "cue": "ui.tip", "component": "The tutorial and the Step 3 tip appear (masterlist: Tip)", "on": "state", "watch": ["vals.tutorial", "vals.showReactTip"], "becomes": true },
+    { "cue": "ui.brief", "component": "The tutorial ends and the Mission brief opens (masterlist: Brief)", "on": "state", "watch": "vals.briefOpen", "becomes": true, "if": [{ "watch": "vals.tutorial", "equals": true, "prev": true }] },
+    { "cue": "ui.dialog.open", "component": "New project, Rooms, Share, WHEN / THEN dropdowns", "on": "state", "watch": ["vals.newOpen", "vals.roomsOpen", "vals.publishOpen", "vals.dropdownOpen"], "becomes": true },
     { "cue": "ui.select", "component": "Segmented buttons, chips, radio rows, list rows, dropdown choices", "on": "state", "watch": ["state.gizmo", "state.cat", "state.opt", "state.move", "state.access", "state.mode", "state.bgm", "state.bgmVol", "state.when", "state.act", "state.range", "state.accFilter", "state.aPage", "state.reviewIdx", "state.resIdx", "state.walls", "state.soundWhere", "state.vmoves"], "changes": true },
 
     { "cue": "play.bgm.hum", "component": "Entering Play mode with Music set to Museum hum (the default)", "on": "while", "if": [{ "watch": "state.view", "equals": "play" }, { "watch": "state.bgm", "equals": "hum", "default": "hum" }], "volumeBy": { "watch": "state.bgmVol", "default": "quiet", "map": { "quiet": 0.35, "normal": 0.6, "loud": 0.9 } }, "fadeOutMs": 500 },
