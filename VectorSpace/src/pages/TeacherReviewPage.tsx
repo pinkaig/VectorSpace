@@ -22,6 +22,7 @@ import { useOutletContext } from "react-router";
 import type { TeacherOutletContext } from "./TeacherLayout";
 import { Check, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { apiUrl } from "../api/client";
+import { uiSound } from "../audio";
 import {
   approveProject,
   listStudentMuseums,
@@ -248,6 +249,7 @@ export default function TeacherReviewPage() {
             : s,
         ),
       );
+      uiSound.play(status === "Published" ? "review.approve" : "review.send-back");
       setMessage(
         status === "Published"
           ? {

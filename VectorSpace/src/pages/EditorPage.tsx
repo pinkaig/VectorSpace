@@ -33,6 +33,7 @@ import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLa
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
+import { uiSound } from '../audio'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
@@ -272,9 +273,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [briefReady, setBriefReady] = useState(() => tutorialSeen())
   const closeTutorial = useCallback(() => {
     setTutorialOpen(false)
+    // the Brief sound marks the brief opening for the first time, not every close of the tutorial
+    if (!briefReady) uiSound.play('ui.brief')
     setBriefReady(true)
     if (!preview) markTutorialSeen()
-  }, [preview])
+  }, [preview, briefReady])
   // the Step 3 tip ("Make things happen"): only opened from "?" → Make it react, never on its own
   const [reactionsTipOpen, setReactionsTipOpen] = useState(false)
   const closeReactionsTip = useCallback(() => setReactionsTipOpen(false), [])
@@ -310,6 +313,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
       if (sendsToTeacher) {
         await submitProject(getToken, project.id)
         setSent(true)
+        uiSound.play('publish.sent')
       } else {
         const saved = await setProjectStatus(getToken, project.id, 'published')
         setPublished(saved.status === 'published')

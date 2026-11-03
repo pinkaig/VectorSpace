@@ -18,6 +18,7 @@
 /******************************************************************************/
 
 import { useEffect } from "react";
+import { useUiSoundIn } from "../../audio";
 import "./reactionsTip.css";
 
 // the three example rules, as in the prototype: "When <someone clicks it> then <play a sound>"
@@ -54,6 +55,8 @@ type ReactionsTipProps = {
 };
 
 export function ReactionsTip({ onClose, onMakeFirst }: ReactionsTipProps) {
+  // the masterlist Tip sound, as the tip appears
+  useUiSoundIn("ui.tip");
   // Escape works like Got it
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

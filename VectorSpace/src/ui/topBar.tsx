@@ -14,6 +14,7 @@
 
 import { Box } from "lucide-react";
 import type { ReactNode } from "react";
+import { SoundToggle } from "../audio";
 import { useSession } from "../session/session";
 import { Button } from "./button";
 import "./topBar.css";
@@ -46,8 +47,9 @@ export function TopBar({ role, subline, centre, beforeAccount }: TopBarProps) {
       {/* MIDDLE: tabs, if this role has any */}
       <div className="ui-topbar-centre">{centre}</div>
 
-      {/* RIGHT: extra controls, a divider, then who is signed in */}
+      {/* RIGHT: extra controls, the sound on/off button, a divider, then who is signed in */}
       {beforeAccount}
+      <SoundToggle />
       <div className="ui-topbar-divider" />
       <div className="ui-topbar-account">
         <div className={`ui-topbar-avatar ui-topbar-avatar-${role}`}>{initials}</div>
