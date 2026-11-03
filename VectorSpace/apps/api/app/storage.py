@@ -23,25 +23,31 @@ def get_s3_client():
     )
 
 
+def bucket_for(storage_key: str) -> str:
+    """library/ keys go to the public library bucket when one is set; everything else stays private."""
+    settings = get_settings()
+    if storage_key.startswith("library/") and settings.s3_library_bucket:
+        return settings.s3_library_bucket
+    return settings.s3_bucket
+
+
 def generate_presigned_upload_url(
     storage_key: str, content_type: str, expires_in: int = 900, cache_control: str | None = None
 ) -> str:
     """A presigned PUT. A cache_control becomes part of the signature, so the browser must send
     that exact Cache-Control header with the upload or the bucket answers SignatureDoesNotMatch."""
-    settings = get_settings()
     client = get_s3_client()
-    params = {"Bucket": settings.s3_bucket, "Key": storage_key, "ContentType": content_type}
+    params = {"Bucket": bucket_for(storage_key), "Key": storage_key, "ContentType": content_type}
     if cache_control:
         params["CacheControl"] = cache_control
     return client.generate_presigned_url("put_object", Params=params, ExpiresIn=expires_in)
 
 
 def generate_presigned_download_url(storage_key: str, expires_in: int = 900) -> str:
-    settings = get_settings()
     client = get_s3_client()
     return client.generate_presigned_url(
         "get_object",
-        Params={"Bucket": settings.s3_bucket, "Key": storage_key},
+        Params={"Bucket": bucket_for(storage_key), "Key": storage_key},
         ExpiresIn=expires_in,
     )
 
@@ -61,10 +67,9 @@ def head_object(storage_key: str) -> tuple[int, str] | None:
     Used to confirm an upload: a presigned PUT cannot cap the size, so the real size and type
     are checked here after the browser says it finished.
     """
-    settings = get_settings()
     client = get_s3_client()
     try:
-        response = client.head_object(Bucket=settings.s3_bucket, Key=storage_key)
+        response = client.head_object(Bucket=bucket_for(storage_key), Key=storage_key)
     except client.exceptions.ClientError as error:
         if error.response.get("Error", {}).get("Code") in ("404", "NoSuchKey", "NotFound"):
             return None
@@ -73,5 +78,4 @@ def head_object(storage_key: str) -> tuple[int, str] | None:
 
 
 def delete_object(storage_key: str) -> None:
-    settings = get_settings()
-    get_s3_client().delete_object(Bucket=settings.s3_bucket, Key=storage_key)
+    get_s3_client().delete_object(Bucket=bucket_for(storage_key), Key=storage_key)
