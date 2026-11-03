@@ -1,6 +1,7 @@
 """The test-data seed: a few rows in every table, the same after every run, and the states a tester
 needs reachable from the logins the sign-in picker uses."""
 
+import pytest
 from sqlalchemy import select
 
 from apps.api.app import seed
@@ -75,3 +76,21 @@ def test_media_shows_to_the_teacher_but_only_approved_links_to_a_student(db, cli
     dino = next(p for p in copy if p["name"] == "Dinosaur museum")
     # a copy sees its own media only, and the copy has none: the teacher's library stays with the teacher's project
     assert client.get(f"/projects/{dino['id']}/media", headers=as_user("dev|student1")).status_code == 200
+
+
+def test_add_template_gives_a_provisioned_school_one_published_template_once(db, client, school) -> None:
+    """For a school with real logins, where seed() cannot run: no people made, nothing wiped."""
+    people = len(db.scalars(select(Actor)).all())
+    made = seed.add_template(db, "a")
+    assert made is not None and (made.kind, made.status, made.created_by_id) == ("template", "published", school["t1"].id)
+    assert seed.add_template(db, "a") is None
+    assert len(db.scalars(select(Actor)).all()) == people
+    listed = client.get("/projects", params={"kind": "template"}, headers=as_user("t2")).json()
+    assert [(p["name"], p["current_revision"]) for p in listed] == [("Museum hall", 1)]
+    # the other school does not see it
+    assert client.get("/projects", params={"kind": "template"}, headers=as_user("other")).json() == []
+
+
+def test_add_template_refuses_a_school_that_is_not_there(db) -> None:
+    with pytest.raises(ValueError):
+        seed.add_template(db, "nowhere")
