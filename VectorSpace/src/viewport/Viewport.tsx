@@ -498,7 +498,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       camera.aspect = width / Math.max(height, 1)
       camera.updateProjectionMatrix()
       renderer.setSize(width, height, false)
-      requestRender()
+      // setSize wipes the canvas. Draw again straight away instead of on the next frame, or the
+      // browser shows the empty canvas for a frame (the blink when the side panel opens or
+      // closes, and on every step while it slides).
+      drawNow()
     }
     // Every edit produces a new ProjectData via cloneProject, so reference
     // equality on `objects` is an exact change signal — no per-frame serialisation.
@@ -876,6 +879,29 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     let frame = 0
     let lastTime = performance.now()
+    // Draws the scene and its overlay widgets at the current size: from the frame loop, and from
+    // resize() straight after the canvas changes size, so the canvas is never shown blank.
+    const drawNow = (now?: number) => {
+      const width = mount.clientWidth
+      const height = mount.clientHeight
+      if (dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic) syncOrthoCamera(camera, orthoCamera, controls.target)
+      renderer.setScissorTest(false)
+      renderer.setViewport(0, 0, width, height)
+      renderer.render(scene, activeCameraRef.current)
+      if (now !== undefined && dataRef.current.showStats) sampleStats(now)
+      if (dataRef.current.cameraMode === 'orbit') {
+        overlays.render(renderer, {
+          camera,
+          target: controls.target,
+          width,
+          height,
+          showOctaOrb: dataRef.current.showOctaOrb,
+          showAxisIndicator: dataRef.current.showAxisIndicator,
+          compact: dataRef.current.compactOverlays,
+          insetTop: dataRef.current.overlayInsetTop,
+        })
+      }
+    }
     const animate = () => {
       frame = requestAnimationFrame(animate)
       const now = performance.now()
@@ -960,26 +986,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       }
       if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
-
-      const width = mount.clientWidth
-      const height = mount.clientHeight
-      renderer.setScissorTest(false)
-      renderer.setViewport(0, 0, width, height)
-      renderer.render(scene, activeCameraRef.current)
-      if (statsOn) sampleStats(now)
-
-      if (dataRef.current.cameraMode === 'orbit') {
-        overlays.render(renderer, {
-          camera,
-          target: controls.target,
-          width,
-          height,
-          showOctaOrb: dataRef.current.showOctaOrb,
-          showAxisIndicator: dataRef.current.showAxisIndicator,
-          compact: dataRef.current.compactOverlays,
-          insetTop: dataRef.current.overlayInsetTop,
-        })
-      }
+      drawNow(now)
     }
     resize()
     animate()
