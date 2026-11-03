@@ -56,6 +56,7 @@ import {
 import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../ruleEditorOperations'
 import { grandparentId, previousSibling } from '../sceneTree'
 import { freeCell, isAllowedCell, roomAt, roomCell } from '../roomLayout'
+import { unlockNewObjects } from '../teacherTools'
 
 type SceneEditingInputs = {
   project: ProjectData
@@ -65,9 +66,21 @@ type SceneEditingInputs = {
   commit: (label: string, next: ProjectData) => void
   runCommand: (build: EditorCommandBuilder) => unknown
   viewportRef: RefObject<ViewportHandle | null>
+  // true for an object this person may not move, turn, resize, delete or re-parent (a student
+  // and an object the teacher locked); absent = nothing is locked
+  isLocked?: (objectId: string) => boolean
+  // called instead of the edit when it hits a locked object
+  onLocked?: (object: SceneObject) => void
 }
 
-export function useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef }: SceneEditingInputs) {
+export function useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef, isLocked, onLocked }: SceneEditingInputs) {
+  // refuses an edit to a locked object, and says so; true when the edit may go ahead
+  const allowed = (objectId: string) => {
+    if (!isLocked?.(objectId)) return true
+    const object = scene.objects.find((item) => item.id === objectId)
+    if (object) onLocked?.(object)
+    return false
+  }
   const setEnvironment = (environmentId: string) => {
     commit('Change environment', updateEditorScene(project, project.activeSceneId, { environmentId }).project)
   }
@@ -82,17 +95,20 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     setSelectedId(result.objectId ?? null)
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
-    if (!selected) return
+    if (!selected || !allowed(selected.id)) return
     const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
     if (builder) runCommand(builder)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
+    if (!allowed(id)) return
     runCommand(moveEditorObjectCommand(scene.id, id, position))
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
+    if (!allowed(id)) return
     runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
   const rotateObject = (id: string, rotation: [number, number, number], position?: [number, number, number]) => {
+    if (!allowed(id)) return
     runCommand(position
       ? rotateEditorObjectAboutPivotCommand(scene.id, id, rotation, position)
       : rotateEditorObjectCommand(scene.id, id, rotation))
@@ -106,17 +122,19 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     commit('Change asset ID', setEditorObjectAssetId(project, scene.id, selected.id, assetId).project)
   }
   const deleteSelected = () => {
-    if (!selected) return
+    if (!selected || !allowed(selected.id)) return
     commit('Delete object', removeEditorObject(project, scene.id, selected.id).project)
     setSelectedId(null)
   }
   const duplicateSelected = () => {
     if (!selected) return
     const result = duplicateEditorObject(project, scene.id, selected.id)
-    commit('Duplicate object', result.project)
+    // a copy of a locked thing is the copier's own, so it comes out unlocked
+    commit('Duplicate object', unlockNewObjects(project, result.project, scene.id))
     setSelectedId(result.objectId ?? null)
   }
   const reparentObjectTo = (objectId: string, parentId: string | null) => {
+    if (!allowed(objectId)) return
     commit('Reparent object', reparentEditorObject(project, scene.id, objectId, parentId).project)
   }
   const indentObject = (objectId: string) => {

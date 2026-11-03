@@ -63,6 +63,9 @@ export interface SceneObject {
   // (e.g. 0x4ea7a0) that overrides the primitive material for just this object,
   // without needing a new AssetKind or touching asset resolution.
   color?: number
+  // Set by the teacher on a template (template setup, "Lock things"): a student can't move,
+  // turn, resize or delete it. Absent = not locked; the teacher can always change it.
+  locked?: boolean
 }
 
 /**
@@ -204,6 +207,15 @@ export interface SceneData {
   // Wall and floor style picked in "Your rooms" (style names, e.g. 'Style 4'; see
   // src/content/roomSurfaces.ts). Absent = the room's own look from its model.
   surfaces?: RoomSurfaces
+  // Numbered spots the teacher suggests on the floor ("Put an exhibit here"); students see
+  // them while they build. Absent = none. Their number is their place in this list.
+  spots?: SuggestedSpot[]
+}
+
+export interface SuggestedSpot {
+  id: string
+  position: [number, number, number]
+  text: string
 }
 
 export interface RoomSurfaces {

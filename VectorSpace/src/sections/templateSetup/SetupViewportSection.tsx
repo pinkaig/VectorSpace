@@ -3,14 +3,16 @@
  * @project     VectorSpace
  * @author      Goh Pin Kai
  * @author      Daniel Tee
- * @brief       Template setup, middle panel: a preview of the room, with an "Edit room" button,
+ * @brief       Template setup, middle panel: a preview of the room with the teacher's tools,
  *              over "Rooms every student starts with".
- *              The room is never edited on this page. Editing it (and the teacher tools: suggest
- *              a spot, lock things, add a starter object) belongs in the editor at
- *              /editor/:projectId, in a teacher mode, so there is only one place a scene can
- *              be changed (see docs/handover/project-templates.md, section 8.4).
- *              The preview is the editor's own viewport, look-only: drag to orbit, scroll to
- *              zoom, nothing can be selected or moved. "Edit room" opens the no-logic popup.
+ *              The preview is the editor's own viewport: drag to orbit, scroll to zoom, nothing
+ *              is selected or dragged. The TEACHER TOOLS (editor/teacherTools.ts) work by
+ *              clicking in it: Suggest a spot (click the floor for a numbered pin with a note),
+ *              Lock things (click a thing to lock or unlock it), Add starter object (pick
+ *              one, click the floor; it starts locked) and Remove (click a spot's ring or a
+ *              thing to take it out). They change the page's draft, so they
+ *              are saved with the template and every student's copy has them. The expand
+ *              button gives the preview the whole page (Escape shrinks it back).
  *
  *              ROOMS: the template's rooms, in visit order. Room 1 is where students start and
  *              can't be removed; click a room to preview it. "+ Add room" asks where (the same
@@ -26,14 +28,14 @@
  */
 /******************************************************************************/
 
-import { useEffect, useRef, useState } from "react";
-import { Pencil, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, Minimize2, Pencil, Plus, X } from "lucide-react";
 import { environmentLibrary, makeScene, type EnvironmentDefinition, type ProjectData, type RoomCell } from "../../project/model";
 import { createEditorScene, removeEditorScene, selectEditorScene, updateEditorScene } from "../../editor/editorOperations";
 import { cellBeside, freeCell, isAllowedCell, roomAt, roomCell, ROOM_SIDES, type RoomSide } from "../../editor/roomLayout";
-import Viewport from "../../viewport/Viewport";
+import Viewport, { type ViewportPick } from "../../viewport/Viewport";
 import { Button } from "../../ui/button";
-import { useNoLogic } from "../../ui/noLogic";
+import { addSpot, addStarterObject, markersFor, removeSpot, removeThing, setSpotText, spotAt, SPOT_TEXT_MAX, STARTER_OBJECTS, toggleLock } from "../../editor/teacherTools";
 import "./templateSetup.css";
 
 const doNothing = () => undefined;
@@ -73,14 +75,24 @@ const centredOnFirst = (project: ProjectData): ProjectData | null => {
   return moved.every((room) => isAllowedCell(room.layout)) ? { ...stored, scenes: moved } : null;
 };
 
+type Tool = "spot" | "lock" | "starter" | "remove";
+const TOOLS: { id: Tool; label: string }[] = [
+  { id: "spot", label: "Suggest a spot" },
+  { id: "lock", label: "Lock things" },
+  { id: "starter", label: "Add starter object" },
+  { id: "remove", label: "Remove" },
+];
+
 type SetupViewportSectionProps = {
   // the page's copy of the editor draft: its rooms are the template's rooms
   draft: ProjectData;
   onChange: (next: ProjectData) => void;
+  // the preview has the whole page (the page hides the other panels)
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
 };
 
-export function SetupViewportSection({ draft, onChange }: SetupViewportSectionProps) {
-  const [noLogic, noLogicPopup] = useNoLogic();
+export function SetupViewportSection({ draft, onChange, expanded, onExpandedChange }: SetupViewportSectionProps) {
   // the room in the preview; falls back to Room 1 when that room is removed
   const [previewId, setPreviewId] = useState(draft.scenes[0].id);
   const scene = draft.scenes.find((item) => item.id === previewId) ?? draft.scenes[0];
@@ -135,6 +147,59 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
     onChange(removeEditorScene(draft, sceneId).project);
   };
 
+  // TEACHER TOOLS: which one is on (none = look only), the spot whose note is being edited,
+  // and the starter object waiting for a floor click
+  const [tool, setTool] = useState<Tool | null>(null);
+  const [spotId, setSpotId] = useState<string | null>(null);
+  const [starterId, setStarterId] = useState<string | null>(null);
+  const spots = scene.spots ?? [];
+  // the chosen spot, else the newest one
+  const spot = spots.find((item) => item.id === spotId) ?? spots[spots.length - 1];
+  const spotNumber = spot ? spots.indexOf(spot) + 1 : 0;
+  const starter = STARTER_OBJECTS.find((item) => item.id === starterId);
+  const markers = useMemo(() => markersFor(scene, { spots: true, locks: true }), [scene]);
+  const picking = tool === "spot" || tool === "lock" || tool === "remove" || (tool === "starter" && !!starter);
+  // what the last Remove click took out, so the teacher sees it worked
+  const [removed, setRemoved] = useState<string | null>(null);
+
+  const pickTool = (next: Tool) => {
+    setTool(tool === next ? null : next);
+    setStarterId(null);
+    setRemoved(null);
+  };
+  const onPick = ({ objectId, floorPoint }: ViewportPick) => {
+    if (tool === "lock" && objectId) onChange(toggleLock(draft, scene.id, objectId));
+    if (tool === "spot" && floorPoint && !objectId) {
+      // a click in a spot's ring picks that spot to edit; anywhere else adds one
+      const existing = spotAt(scene, floorPoint);
+      if (existing) {
+        setSpotId(existing.id);
+        return;
+      }
+      const result = addSpot(draft, scene.id, floorPoint);
+      onChange(result.project);
+      setSpotId(result.spotId);
+    }
+    if (tool === "starter" && starter && floorPoint) onChange(addStarterObject(draft, scene.id, starter, floorPoint));
+    if (tool === "remove") {
+      // a spot's ring first: it sits on the floor, often under nothing else
+      const hitSpot = floorPoint ? spotAt(scene, floorPoint) : null;
+      if (hitSpot) {
+        onChange(removeSpot(draft, scene.id, hitSpot.id));
+        setRemoved(`Spot ${spots.indexOf(hitSpot) + 1}`);
+      } else if (objectId) {
+        setRemoved(scene.objects.find((object) => object.id === objectId)?.name ?? "That thing");
+        onChange(removeThing(draft, scene.id, objectId));
+      }
+    }
+  };
+  const toolHint =
+    tool === "spot" ? "Click the floor to add a numbered spot, or click a spot's ring to change it. Students see spots while they build."
+    : tool === "lock" ? "Click a thing to lock or unlock it. Students can't move or delete locked things."
+    : tool === "remove" ? (removed ? `${removed} removed. Click another spot's ring or a thing to remove it too.` : "Click a spot's ring or a thing to take it out of every student's room.")
+    : starter ? `Click the floor to place the ${starter.label.toLowerCase()}. It starts locked.`
+    : "Pick one, then click the floor. Every student gets it.";
+
   // RENAME the room in the preview, the same way the editor's "Your rooms" map does: saving
   // happens only on blur (Enter blurs too), so it runs once; Escape marks the edit cancelled
   // first, because removing the input can still fire a blur. An empty name keeps the old one.
@@ -154,6 +219,14 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
   };
   // a different room in the preview drops a half-typed name
   useEffect(() => setNameDraft(null), [scene.id]);
+
+  // Escape shrinks an expanded preview; an open "+ Add room" or a rename takes Escape first
+  useEffect(() => {
+    if (!expanded || adding || nameDraft !== null) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onExpandedChange(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded, adding, nameDraft, onExpandedChange]);
 
   // ENVIRONMENT of the room in the preview (Room 1 too). A room still named after its old
   // environment takes the new one's name; a name the teacher typed is kept.
@@ -201,12 +274,52 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
               {environmentLibrary.map((env) => <option key={env.id} value={env.id}>{env.name}</option>)}
             </select>
           </label>
-          <Button onClick={() => noLogic("Edit room")}>
-            <Pencil size={16} /> Edit room
-          </Button>
         </div>
       </div>
-      <div className="viewport-stage">{/*THE ROOM: the editor's viewport, look-only*/}
+      <div className={`viewport-stage ${picking ? "viewport-stage-picking" : ""}`}>{/*BOTTOM: the teacher's tools and the preview*/}
+        <div className="setup-tools">{/*TEACHER TOOLS: tabs, what the one that's on does, and its options*/}
+          <div className="setup-tools-tabs" role="toolbar" aria-label="Room tools">
+            {TOOLS.map((item) => (
+              <button key={item.id} type="button" className={`setup-tool ${tool === item.id ? "setup-tool-on" : ""}`} aria-pressed={tool === item.id} onClick={() => pickTool(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {tool && <p className="setup-tools-hint">{toolHint}</p>}
+          {tool === "spot" && spot && (
+            <div className="setup-tools-row">
+              {spots.length > 1 && (
+                <span className="setup-spot-numbers">
+                  {spots.map((item, index) => (
+                    <button key={item.id} type="button" className={`setup-spot-number ${item.id === spot.id ? "setup-spot-number-on" : ""}`} onClick={() => setSpotId(item.id)} aria-label={`Edit spot ${index + 1}`}>
+                      {index + 1}
+                    </button>
+                  ))}
+                </span>
+              )}
+              <label className="setup-spot-text">
+                <span>Spot {spotNumber} says</span>
+                <input value={spot.text} maxLength={SPOT_TEXT_MAX} onChange={(event) => onChange(setSpotText(draft, scene.id, spot.id, event.target.value))} />
+              </label>
+              <button type="button" className="setup-spot-remove" onClick={() => { onChange(removeSpot(draft, scene.id, spot.id)); setSpotId(null); }} title={`Remove spot ${spotNumber}`} aria-label={`Remove spot ${spotNumber}`}>
+                <X size={14} strokeWidth={3} />
+              </button>
+            </div>
+          )}
+          {tool === "starter" && (
+            <div className="setup-tools-row">
+              {STARTER_OBJECTS.map((item) => (
+                <button key={item.id} type="button" className={`setup-starter ${item.id === starterId ? "setup-starter-on" : ""}`} aria-pressed={item.id === starterId} onClick={() => setStarterId(item.id === starterId ? null : item.id)}>
+                  <span className="setup-starter-swatch" style={{ background: item.swatch }} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button type="button" className="setup-expand" onClick={() => onExpandedChange(!expanded)} title={expanded ? "Shrink the preview" : "Make the preview bigger"} aria-label={expanded ? "Shrink the preview" : "Make the preview bigger"}>
+          {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
         <Viewport
           objects={scene.objects}
           selectedId={null}
@@ -221,11 +334,10 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
           showOctaOrb={false}
           showAxisIndicator={false}
           showHint={false}
+          markers={markers}
+          onPick={picking ? onPick : undefined}
         />
       </div>
-      <p className="setup-viewport-hint">{/*HINT: where the teacher tools are*/}
-        <strong>Edit room</strong> to suggest spots, lock things or add starter objects.
-      </p>
 
       <div className="setup-rooms">{/*ROOMS EVERY STUDENT STARTS WITH: one chip per room, then + Add room*/}
         <h3 className="setup-rooms-title">Rooms every student starts with</h3>
@@ -303,8 +415,6 @@ export function SetupViewportSection({ draft, onChange }: SetupViewportSectionPr
           </div>
         </div>
       </div>
-
-      {noLogicPopup}
     </section>
   );
 }

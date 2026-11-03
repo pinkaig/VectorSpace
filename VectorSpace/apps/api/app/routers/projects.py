@@ -30,6 +30,7 @@ from ..models import (
     ProjectVersion,
     Submission,
 )
+from ..teacher_setup import push_setup
 from ._skeleton import not_implemented
 
 
@@ -81,6 +82,10 @@ class ProjectResponse(BaseModel):
     assigned_by_name: str | None = None
     # a copy of this project has been sent to at least one student (it has an assignment)
     sent: bool = False
+    # how many students' copies of this project are published (0 for a student's own copy)
+    published_copies: int = 0
+    # the assignments made from this project (one per class or student it was sent to)
+    assignment_ids: list[uuid.UUID] = []
     # a teacher chose it for the public sign-in page
     showcase: bool = False
     # the newest hand-in for review, None if never handed in: filled in by _describe
@@ -97,12 +102,25 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
     whether they were sent to students: six lookups for the lot."""
     # the teacher's own projects: the assignment made from each (one per class it was sent to)
     given_out: dict[uuid.UUID, Assignment] = {}
+    # every assignment made from one of these projects -> that project
+    assignment_source: dict[uuid.UUID, uuid.UUID] = {}
     for a in db.scalars(select(Assignment).where(Assignment.project_id.in_({p.id for p in projects}))):
+        assignment_source[a.id] = a.project_id
         kept = given_out.get(a.project_id)
         # sent to more than one class: the latest due date counts
         if kept is None or (a.due_at or date.min) > (kept.due_at or date.min):
             given_out[a.project_id] = a
     sent = set(given_out)
+    # how many students' copies of each project are published
+    published_copies: dict[uuid.UUID, int] = {}
+    if assignment_source:
+        for assignment_id in db.scalars(
+            select(Project.assignment_id).where(
+                Project.assignment_id.in_(set(assignment_source)), Project.status == "published"
+            )
+        ):
+            source_id = assignment_source[assignment_id]
+            published_copies[source_id] = published_copies.get(source_id, 0) + 1
     versions = {
         v.id: v
         for v in db.scalars(select(ProjectVersion).where(ProjectVersion.id.in_({p.current_version_id for p in projects if p.current_version_id})))
@@ -145,6 +163,8 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
                     "due_at": assignment.due_at if assignment else None,
                     "assigned_by_name": people.get(assignment.created_by_id) if assignment else None,
                     "sent": p.id in sent,
+                    "published_copies": published_copies.get(p.id, 0),
+                    "assignment_ids": [a for a, source in assignment_source.items() if source == p.id],
                     "review_status": review.status if review else None,
                     "review_grade": review.grade if review else None,
                     "review_comment": review.comment if review else None,
@@ -302,6 +322,27 @@ def assign_project(
     db.commit()
     db.refresh(copy)
     return _describe(db, [copy])[0]
+
+
+class PushSetupResponse(BaseModel):
+    # copies that got the teacher's latest setup, and copies left alone because they are under review
+    updated: int
+    skipped: int
+
+
+@router.post("/{project_id}/push-setup", response_model=PushSetupResponse)
+def push_project_setup(
+    project_id: uuid.UUID, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)
+) -> PushSetupResponse:
+    """Carries the teacher's spots, locks and starter objects into copies students already have
+    (see teacher_setup.py). The template's saved content is what is carried, so save first."""
+    if actor.role == "student":
+        raise HTTPException(status_code=403, detail="Only teachers can update students' copies")
+    source = _load(db, actor, project_id)
+    if not can_write(actor, source):
+        raise HTTPException(status_code=403, detail="You cannot change this project")
+    updated, skipped = push_setup(db, source, actor)
+    return PushSetupResponse(updated=updated, skipped=skipped)
 
 
 def _send_copy(db: Session, source: Project, student: Actor, class_id: uuid.UUID, sender: Actor) -> Project:

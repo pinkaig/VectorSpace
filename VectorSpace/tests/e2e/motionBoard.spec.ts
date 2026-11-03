@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test'
 
 test('the board lists every cue and marks the undecided ones', async ({ page }) => {
   await page.goto('/#/motion-board')
-  await expect(page.getByRole('heading', { name: 'Motion board' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Motion board' })).toBeVisible({ timeout: 30_000 }) // the first visit builds the page on the dev server; give it time like the actions below
   await expect(page.locator('code', { hasText: /^popup\.enter$/ })).toBeVisible()
   await expect(page.locator('.motion-board-badge').first()).toHaveText('undecided')
 })

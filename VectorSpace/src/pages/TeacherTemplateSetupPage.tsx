@@ -33,7 +33,7 @@ import { studentRoomEnv } from "../editor/roomLayout";
 import { loadRemoteProject } from "../project/remoteProject";
 import { removeEditorScene, selectEditorScene, updateEditorScene } from "../editor/editorOperations";
 import { ApiError, apiUrl } from "../api/client";
-import { getProject, saveProjectContent, sendToStudents, setProjectClass, type ClassSendResult } from "../api/projects";
+import { getProject, pushSetup, saveProjectContent, sendToStudents, setProjectClass, type ClassSendResult } from "../api/projects";
 import { useSession } from "../session/session";
 import { Button } from "../ui/button";
 import { StatusChip } from "../ui/statusChip";
@@ -121,12 +121,12 @@ type SetupStart = {
 };
 
 // a brand new project's start: the popup's picks over Room 1 of this browser's draft
-const newStart = (newProject: NewProject, returnedBrief?: MissionBrief): SetupStart => {
+const newStart = (newProject: NewProject, returnedBrief?: MissionBrief, returnedDraft?: ProjectData): SetupStart => {
   const [year, month, day] = newProject.due.split("-").map(Number);
   return {
     project: { ...SAMPLE_PROJECT, title: newProject.name, className: newProject.className },
     brief: returnedBrief ?? { ...SAMPLE_BRIEF, due: formatDueDate(new Date(year, month - 1, day)) },
-    draft: withFirstRoom(onlyFirstRoom(loadProject()), newProject.firstRoom),
+    draft: returnedDraft ?? withFirstRoom(onlyFirstRoom(loadProject()), newProject.firstRoom),
     projectId: newProject.projectId,
     revision: 0,
     classId: newProject.classId,
@@ -134,10 +134,10 @@ const newStart = (newProject: NewProject, returnedBrief?: MissionBrief): SetupSt
 };
 
 // offline, or no project picked: this browser's draft, as before there was a server
-const localStart = (returnedBrief?: MissionBrief): SetupStart => ({
+const localStart = (returnedBrief?: MissionBrief, returnedDraft?: ProjectData): SetupStart => ({
   project: SAMPLE_PROJECT,
   brief: returnedBrief ?? startingBrief(),
-  draft: loadProject(),
+  draft: returnedDraft ?? loadProject(),
   revision: 0,
 });
 
@@ -145,13 +145,15 @@ export default function TeacherTemplateSetupPage() {
   const routeState = useLocation().state as SetupRouteState;
   const { getToken } = useSession();
   const returnedBrief = routeState?.brief;
+  // the rooms as they were when the teacher went to the preview, unsaved changes and all
+  const returnedDraft = routeState?.draft;
   const newProject = routeState?.newProject;
   // a project already on the server, opened from the list or back from the preview
   const openId = !newProject && apiUrl ? routeState?.projectId : undefined;
 
   const [start, setStart] = useState<SetupStart | null>(() => {
-    if (newProject) return newStart(newProject, returnedBrief);
-    return openId ? null : localStart(returnedBrief);
+    if (newProject) return newStart(newProject, returnedBrief, returnedDraft);
+    return openId ? null : localStart(returnedBrief, returnedDraft);
   });
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -167,7 +169,7 @@ export default function TeacherTemplateSetupPage() {
         setStart({
           project: { ...SAMPLE_PROJECT, title: row.name, className: row.class_name ?? "no class" },
           brief: returnedBrief ?? (saved ? remote.project.missionBrief : undefined) ?? SAMPLE_BRIEF,
-          draft: saved ? remote.project : withFirstRoom(onlyFirstRoom(loadProject()), null),
+          draft: returnedDraft ?? (saved ? remote.project : withFirstRoom(onlyFirstRoom(loadProject()), null)),
           projectId: openId,
           revision: remote.revision,
           classId: row.class_id,
@@ -228,6 +230,9 @@ function SetupScreen({ start }: { start: SetupStart }) {
     let className = project.className;
     let sent: ClassSendResult | undefined;
     let sendProblem: string | undefined;
+    // copies students already had, brought up to date with the spots, locks and starter objects
+    let setupUpdated: { updated: number; skipped: number } | undefined;
+    let setupProblem: string | undefined;
     if (projectId) {
       setSaving(true);
       try {
@@ -244,6 +249,12 @@ function SetupScreen({ start }: { start: SetupStart }) {
           } catch (error) {
             sendProblem = (error as Error).message;
           }
+        }
+        // after the save, so the copies get what was just saved; a failure leaves the save in place
+        try {
+          setupUpdated = await pushSetup(getToken, projectId);
+        } catch (error) {
+          setupProblem = (error as Error).message;
         }
       } catch (error) {
         setFailed(
@@ -270,15 +281,20 @@ function SetupScreen({ start }: { start: SetupStart }) {
           due: brief.due,
           sent,
           sendProblem,
+          setupUpdated,
+          setupProblem,
         },
       },
     });
   };
 
+  // the room preview has the whole row (its expand button)
+  const [expanded, setExpanded] = useState(false);
+
   // show the brief as a student sees it; it travels with the visit, nothing is saved. A server
   // project's id goes along so Exit preview comes back to it.
   const previewAsStudent = () => {
-    const state: PreviewState = { brief, projectId };
+    const state: PreviewState = { brief, projectId, draft };
     navigate(STUDENT_PREVIEW_PATH, { state });
   };
 
@@ -304,10 +320,10 @@ function SetupScreen({ start }: { start: SetupStart }) {
       </header>
       {/*WHAT HAPPENED: one line after a failed Assign*/}
       {failed && <p className="setup-notice setup-notice-red">{failed}</p>}
-      <div className="setup-body">{/*THE THREE PANELS, side by side*/}
-        <MissionBriefSection brief={brief} onChange={editBrief} things={draft.scenes.flatMap((scene) => scene.objects.map((object) => ({ id: object.id, name: object.name, room: scene.name })))} />
-        <SetupViewportSection draft={draft} onChange={editDraft} />
-        <ProjectDetailsSection className={project.className} due={brief.due} draft={draft} onChange={editDraft} />
+      <div className={`setup-body ${expanded ? "setup-body-expanded" : ""}`}>{/*THE THREE PANELS, side by side; an expanded preview has the row to itself*/}
+        {!expanded && <MissionBriefSection brief={brief} onChange={editBrief} things={draft.scenes.flatMap((scene) => scene.objects.map((object) => ({ id: object.id, name: object.name, room: scene.name })))} />}
+        <SetupViewportSection draft={draft} onChange={editDraft} expanded={expanded} onExpandedChange={setExpanded} />
+        {!expanded && <ProjectDetailsSection className={project.className} due={brief.due} draft={draft} onChange={editDraft} />}
       </div>
       {choosing && projectId && (
         <AssignDialogSection

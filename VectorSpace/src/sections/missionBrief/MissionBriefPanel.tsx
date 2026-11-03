@@ -2,11 +2,14 @@
  * @file        MissionBriefPanel.tsx
  * @project     VectorSpace
  * @author      <your name>
- * @brief       The mission brief as students see it in the editor: floats over the top-left of
- *              the room, under the Select / Move tools. Two looks:
+ * @brief       The mission brief as students see it in the editor: hangs from the top edge of
+ *              the room, 24px in from the left. Two looks:
  *                open:   the full card (to-dos, rules, "Got it, let's build")
  *                folded: a slim tab with one bar per to-do and "2 of 4 done"; click to open
  *              It starts open, and "Got it, let's build" folds it so it is out of the way.
+ *              Under the title: who it is from and when it is due ("From Ms Tan · due Friday,
+ *              6 Nov"), with the teacher's name shortened to title and surname (teacherName,
+ *              passed in by the editor); just "Due …" when no teacher is known.
  *
  *              The to-dos TICK THEMSELVES: each one's text is read by parseTodo and counted
  *              against the live project by checkGoal, so placing an exhibit updates it at once.
@@ -40,12 +43,22 @@ type MissionBriefPanelProps = {
   brief: MissionBrief;
   // the project being built, which the to-dos are counted against
   project: ProjectData;
+  // the teacher who assigned it, for "From Ms Tan" under the title; left out = only the due date
+  teacherName?: string | null;
 };
 
 // one to-do, worked out: its text, and how far along it is (null = the teacher ticks it)
 type TodoState = { id: string; text: string; progress: GoalProgress | null };
 
-export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
+// "Ms Tan Hui Min" → "Ms Tan": the title and the surname, the way students address a teacher.
+// A name without a title (or a lone word) is shown as it is.
+const TITLES = ["Mr", "Ms", "Mrs", "Mdm", "Miss", "Dr"];
+const shortTeacherName = (name: string): string => {
+  const [title, surname] = name.trim().split(/\s+/);
+  return TITLES.includes(title.replace(".", "")) && surname ? `${title} ${surname}` : name.trim();
+};
+
+export function MissionBriefPanel({ brief, project, teacherName }: MissionBriefPanelProps) {
   const [open, setOpen] = useState(true);
 
   // worked out again on every render, so the ticks follow the student's edits
@@ -55,6 +68,12 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
   });
   const doneCount = todos.filter((todo) => todo.progress?.complete).length;
   const doneText = `${doneCount} of ${todos.length} done`;
+  // "Friday, 6 Nov" → "Friday": the prototype shows only the day
+  const dueDay = brief.due ? brief.due.split(",")[0].trim() : "";
+  // "From Ms Tan · due Friday", or just "Due Friday" when the teacher isn't known
+  const subline = teacherName
+    ? `From ${shortTeacherName(teacherName)}${dueDay ? ` · due ${dueDay}` : ""}`
+    : dueDay ? `Due ${dueDay}` : "";
 
   const cardTasks = (brief.cardTasks ?? []).map((task, index) => ({ task, index, status: taskStatus(project, task) }));
   // the thing the teacher suggested a card for, by name, if it is still in the project
@@ -85,7 +104,7 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
         <div className="mb-head-icon"><ClipboardList size={22} /></div>
         <div className="mb-head-text">
           <h2 className="mb-title">Mission brief</h2>
-          {brief.due && <p className="mb-due">Due {brief.due}</p>}
+          {subline && <p className="mb-due">{subline}</p>}
         </div>
         <span className="mb-done-chip">{doneText}</span>
       </div>

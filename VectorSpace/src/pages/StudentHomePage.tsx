@@ -3,15 +3,16 @@
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
  * @brief       Student home: greeting, the project assigned by the teacher
- *              (with Start building, which opens the editor), the student's
- *              other projects, and the notification bell in the top bar. Uses
- *              the shared LandingPageTopBar. Everything shown comes from the
- *              API: the assigned project, its task, due date and teacher
- *              (assignments), and its status, worked out from who saved it
- *              last. There are no notifications until the backend sends them.
- *              "Your submissions" lists every museum the student sent to a
- *              teacher with where it stands: waiting, sent back (with the
- *              teacher's comment and a way to fix it) or published (Weian Ching).
+ *              (with Start building / Keep building / Fix my museum, which
+ *              opens the editor), the student's other projects, and the
+ *              notification bell in the top bar. Uses the shared
+ *              LandingPageTopBar. Everything shown comes from the API: the
+ *              assigned project, its task, due date and teacher (assignments),
+ *              and its status chip: Waiting for approval or Sent back from its
+ *              newest hand-in, otherwise Published, Building or Not started.
+ *              When the teacher sends it back, an amber banner and a popup
+ *              show the teacher's comment. There are no notifications until
+ *              the backend sends them.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -19,7 +20,7 @@
  */
 /******************************************************************************/
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useSession } from "../session/session";
 import { LandingPageTopBar } from "../ui/LandingPageTopBar";
@@ -27,21 +28,33 @@ import { MuseumPreview } from "../ui/museumPreview";
 import { NotificationBell, type AppNotification } from "../ui/NotificationBell";
 import { listMyProjects, type Project } from "../api/projects";
 import { useLoad } from "../api/useLoad";
+import { AlertTriangle, X } from "lucide-react";
 import "./StudentHomePage.css";
 
 // None until the backend sends notifications (new project, visits, approvals and grades).
 const notifications: AppNotification[] = [];
 
-// the chip on the assigned project: published, waiting for the teacher, sent back,
+// the chip on the assigned project: published, waiting for the teacher, sent back by them,
 // untouched since the teacher sent it, or being built
 const statusLabel = (project: Project): string => {
+  if (project.review_status === "sent_back") return "Sent back";
+  if (project.review_status === "waiting") return "Waiting for approval";
   if (project.status === "published") return "Published";
   if (project.status === "archived") return "Archived";
-  if (project.review_status === "waiting") return "Waiting for approval";
-  if (project.review_status === "sent_back") return "Sent back";
   if (project.current_revision === 0) return "Not started";
   // a copy the teacher sent is saved once, by the teacher; the student's first save makes it theirs
-  return project.saved_by_name === project.created_by_name ? "Building" : "Not started";
+  return project.saved_by_name === project.created_by_name
+    ? "Building"
+    : "Not started";
+};
+
+// the status chip's colour, from the manual's chip colours
+const STATUS_CHIP: Record<string, string> = {
+  "Sent back": "student-home-chip-red",
+  "Waiting for approval": "student-home-chip",
+  Published: "student-home-chip-green",
+  Building: "student-home-chip-purple",
+  "Not started": "student-home-chip-muted",
 };
 
 // "Due Friday" when it's within a week, otherwise "Due 30 Oct"
@@ -64,15 +77,28 @@ const daysAgo = (iso: string): string => {
 
 export default function StudentHomePage() {
   const { signOut, displayName, getToken } = useSession();
-  const { data: projects, error, loading } = useLoad(
-    () => listMyProjects(getToken),
-    "my-projects",
-  );
+  const {
+    data: projects,
+    error,
+    loading,
+  } = useLoad(() => listMyProjects(getToken), "my-projects");
   const firstName = displayName.split(" ")[0];
   const navigate = useNavigate();
 
   // the bell's dot shows while there is something new, until the student opens the list
   const [unread, setUnread] = useState(notifications.length > 0);
+
+  // the "sent it back" popup with the teacher's comment
+  const [commentOpen, setCommentOpen] = useState(false);
+
+  useEffect(() => {
+    if (!commentOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCommentOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [commentOpen]);
 
   // the student's projects, without archived ones
   const myProjects = (projects ?? []).filter((p) => p.status !== "archived");
@@ -85,10 +111,10 @@ export default function StudentHomePage() {
   // everything except the assigned one goes under "Your other projects"
   const otherProjects = myProjects.filter((p) => p.id !== assignedProject?.id);
 
-  // every museum the student has sent to a teacher, newest hand-in first
-  const submissions = myProjects
-    .filter((p) => p.review_status)
-    .sort((a, b) => (b.submitted_at ?? "").localeCompare(a.submitted_at ?? ""));
+  // the assigned project's status, and whether the teacher sent it back
+  const status = assignedProject ? statusLabel(assignedProject) : "";
+  const sentBack = status === "Sent back";
+  const teacher = assignedProject?.assigned_by_name ?? "Your teacher";
 
   return (
     <div className="student-home">
@@ -111,10 +137,30 @@ export default function StudentHomePage() {
           <p className="student-home-lead">
             {loading
               ? "Loading your projects…"
-              : assignedProject
-                ? "You have a project waiting for you."
-                : "No projects yet. Your teacher will send you one."}
+              : sentBack
+                ? `${teacher} left you a comment on your museum.`
+                : assignedProject
+                  ? "You have a project waiting for you."
+                  : "No projects yet. Your teacher will send you one."}
           </p>
+        )}
+
+        {sentBack && assignedProject && (
+          <div className="student-home-banner" role="status">
+            <span className="student-home-banner-icon">
+              <AlertTriangle size={18} />
+            </span>
+            <span className="student-home-banner-text">
+              {teacher} sent your {assignedProject.name} back with a comment.
+            </span>
+            <button
+              type="button"
+              className="student-home-banner-button"
+              onClick={() => setCommentOpen(true)}
+            >
+              See comment
+            </button>
+          </div>
         )}
 
         {assignedProject?.assigned_by_name && (
@@ -136,8 +182,10 @@ export default function StudentHomePage() {
                     {dueLabel(assignedProject.due_at)}
                   </span>
                 )}
-                <span className="student-home-chip student-home-chip-muted">
-                  {statusLabel(assignedProject)}
+                <span
+                  className={`student-home-chip ${STATUS_CHIP[status] ?? ""}`}
+                >
+                  {status}
                 </span>
               </div>
 
@@ -154,25 +202,17 @@ export default function StudentHomePage() {
                 </p>
               )}
 
-              {/* the teacher sent it back: what they said, right where the student picks it up */}
-              {assignedProject.review_status === "sent_back" && (
-                <div className="student-home-feedback" role="note">
-                  <strong>Your teacher sent it back{assignedProject.review_grade ? ` · ${assignedProject.review_grade}` : ""}</strong>
-                  <p>{assignedProject.review_comment || "Make your changes, then send it again."}</p>
-                </div>
-              )}
-
               <button
                 type="button"
                 className="student-home-start"
                 onClick={() => navigate(`/editor/${assignedProject.id}`)}
               >
-                {statusLabel(assignedProject) === "Not started"
+                {status === "Not started"
                   ? "Start building"
-                  : statusLabel(assignedProject) === "Sent back"
-                    ? "Fix and send again"
-                    : statusLabel(assignedProject) === "Published"
-                      ? "Open"
+                  : sentBack
+                    ? "Fix my museum"
+                    : status === "Published"
+                      ? "Open my museum"
                       : "Keep building"}
               </button>
             </div>
@@ -181,64 +221,119 @@ export default function StudentHomePage() {
 
         {error && <p role="alert">Could not load your projects.</p>}
 
-        {/* YOUR SUBMISSIONS: what was sent to a teacher, and where it stands */}
-        {submissions.length > 0 && (
-          <section className="student-home-submissions" aria-label="Your submissions">
-            <h2 className="student-home-label">Your submissions</h2>
-            <ul className="student-home-submission-list">
-              {submissions.map((project) => (
-                <li key={project.id} className="student-home-submission">
-                  <div className="student-home-submission-main">
-                    <span className="student-home-submission-name">{project.name}</span>
-                    <span className="student-home-submission-meta">
-                      {project.assigned_by_name ? `For ${project.assigned_by_name} · ` : ""}
-                      {project.submitted_at ? `sent ${daysAgo(project.submitted_at)}` : "sent"}
-                      {project.review_grade ? ` · grade ${project.review_grade}` : ""}
-                    </span>
-                    {project.review_comment && (
-                      <span className="student-home-submission-comment">“{project.review_comment}”</span>
+        {otherProjects.length > 0 && (
+          <section className="student-home-all">
+            <h2 className="student-home-all-title">
+              All projects ({otherProjects.length})
+            </h2>
+            <div className="student-home-all-list">
+              {!loading && otherProjects.length === 0 && (
+                <p className="student-home-empty">No other projects yet.</p>
+              )}
+              {otherProjects.map((project) => {
+                const rowStatus = statusLabel(project);
+                const published = rowStatus === "Published";
+                return (
+                  <div key={project.id} className="student-home-row">
+                    {project.assigned_by_name && (
+                      <span className="student-home-from">
+                        From {project.assigned_by_name}
+                      </span>
                     )}
+                    <span className="student-home-row-name">
+                      {project.name}
+                    </span>
+                    <span
+                      className={
+                        published
+                          ? "student-home-row-details student-home-row-details-published"
+                          : "student-home-row-details"
+                      }
+                    >
+                      {published
+                        ? `Published${project.review_grade ? ` · Grade ${project.review_grade}` : ""}`
+                        : rowStatus === "Not started" ||
+                            rowStatus === "Building"
+                          ? `Draft · edited ${daysAgo(project.updated_at)}`
+                          : rowStatus}
+                    </span>
+                    <button
+                      type="button"
+                      className={
+                        published
+                          ? "student-home-small"
+                          : "student-home-small student-home-small-primary"
+                      }
+                      onClick={() => navigate(`/editor/${project.id}`)}
+                    >
+                      {published
+                        ? "Open my museum"
+                        : rowStatus === "Sent back"
+                          ? "Fix my museum"
+                          : "Keep building"}
+                    </button>
                   </div>
-                  <span className={`student-home-submission-status ${project.review_status}`}>
-                    {project.review_status === "approved" ? "Published" : project.review_status === "sent_back" ? "Sent back" : "Waiting for approval"}
-                  </span>
-                  <button type="button" className="student-home-submission-open" onClick={() => navigate(`/editor/${project.id}`)}>
-                    {project.review_status === "sent_back" ? "Fix and send again" : "Open"}
-                  </button>
-                </li>
-              ))}
-            </ul>
+                );
+              })}
+            </div>
           </section>
         )}
 
-        {otherProjects.length > 0 && (
-          <section className="student-home-others">
-            <h2 className="student-home-label">Your other projects</h2>
-
-            <div className="student-home-others-grid">
-              {otherProjects.map((project) => (
+        {commentOpen && assignedProject && (
+          <div
+            className="student-home-overlay"
+            onClick={() => setCommentOpen(false)}
+          >
+            <div
+              className="student-home-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="student-home-comment-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="student-home-dialog-head">
+                <span className="student-home-banner-icon student-home-dialog-icon">
+                  <AlertTriangle size={24} />
+                </span>
+                <div>
+                  <h2
+                    id="student-home-comment-title"
+                    className="student-home-dialog-title"
+                  >
+                    {teacher} sent it back
+                  </h2>
+                  <p className="student-home-dialog-text">
+                    {assignedProject.name} · {assignedProject.review_comment}
+                  </p>
+                </div>
                 <button
-                  key={project.id}
                   type="button"
-                  className="student-home-other"
-                  onClick={() => navigate(`/editor/${project.id}`)}
+                  className="student-home-dialog-close"
+                  aria-label="Close"
+                  onClick={() => setCommentOpen(false)}
                 >
-                  <span className="student-home-other-name">
-                    {project.name}
-                  </span>
-                  {project.status === "published" ? (
-                    <span className="student-home-other-sub student-home-other-sub-published">
-                      Published
-                    </span>
-                  ) : (
-                    <span className="student-home-other-sub">
-                      Draft · edited {daysAgo(project.updated_at)}
-                    </span>
-                  )}
+                  <X size={18} />
                 </button>
-              ))}
+              </div>
+              <div className="student-home-dialog-actions">
+                <button
+                  type="button"
+                  className="student-home-secondary"
+                  onClick={() => setCommentOpen(false)}
+                  autoFocus
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="student-home-start"
+                  onClick={() => navigate(`/editor/${assignedProject.id}`)}
+                >
+                  Fix it now
+                </button>
+              </div>
             </div>
-          </section>
+          </div>
         )}
       </main>
     </div>
