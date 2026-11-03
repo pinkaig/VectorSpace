@@ -339,6 +339,51 @@ class MediaLink(Base):
     )
 
 
+class LibraryAsset(Base):
+    """One file in the shared, admin-curated asset library.
+
+    A sibling of media_assets, not a loosened version of it: no project_id (a curated asset
+    belongs to a pack, not a project) and no organisation_id (packs are platform-wide). The key
+    is library/<content_sha256>/<filename>, so the bytes at a key can never change, which is what
+    makes an immutable cache header honest. One row per distinct file: the unique hash is what
+    turns the hash-first upload ticket into a dedup.
+    """
+
+    __tablename__ = "library_assets"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(150), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    # the sanitised name the bytes arrived under; title is what a person sees and edits
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    # licence or source; it has to survive into a published manifest or the licence is broken
+    attribution: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    visibility: Mapped[str] = mapped_column(String(20), nullable=False, default="public")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    uploaded_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    uploaded_by: Mapped["Actor"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("content_sha256", name="uq_library_assets_sha256"),
+        CheckConstraint("kind in ('model', 'environment', 'image', 'audio', 'video')", name="ck_library_assets_kind"),
+        CheckConstraint("visibility in ('public', 'signed')", name="ck_library_assets_visibility"),
+        CheckConstraint("status in ('pending', 'uploaded', 'failed')", name="ck_library_assets_status"),
+        CheckConstraint("size_bytes >= 0", name="ck_library_assets_size_nonnegative"),
+        Index("ix_library_assets_kind_created", "kind", "created_at"),
+    )
+
+
 class ContentSnapshot(Base):
     __tablename__ = "content_snapshots"
 

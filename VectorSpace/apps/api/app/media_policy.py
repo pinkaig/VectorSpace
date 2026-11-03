@@ -20,6 +20,19 @@ MEDIA_KIND_SPECS: dict[str, dict[str, object]] = {
     "video": {"content_types": ("video/mp4", "video/webm"), "max_bytes": 200_000_000},
 }
 
+# What an admin may put in the shared library (app/routers/library.py): everything a project may
+# upload, plus the two kinds only the library carries. .glb only, never .gltf: a .gltf is JSON that
+# fetches sibling files by relative path, which in a shared bucket is a fetch of whatever sits next
+# to the key. The two model kinds must match LIBRARY_MODEL_KIND_SPECS in
+# packages/assets/src/mediaKinds.ts; tests/test_media_policy.py reads both.
+GLB_CONTENT_TYPE = "model/gltf-binary"
+LIBRARY_KIND_SPECS: dict[str, dict[str, object]] = {
+    **MEDIA_KIND_SPECS,
+    "model": {"content_types": (GLB_CONTENT_TYPE,), "max_bytes": 50_000_000},
+    "environment": {"content_types": (GLB_CONTENT_TYPE,), "max_bytes": 100_000_000},
+}
+GLB_ONLY_KINDS = ("model", "environment")
+
 # a YouTube video id is exactly 11 of these characters
 _YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 _YOUTUBE_WATCH_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com"}

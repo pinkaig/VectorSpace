@@ -25,7 +25,7 @@ Internet --443/80--> Caddy --> frontend (nginx, static build)
   single small VM, move this to a managed Postgres instance and drop the
   `postgres` service from `docker-compose.prod.yml`.
 - Object storage (MinIO/S3) is **not** included in `docker-compose.prod.yml`
-  — production should point `MINIO_ENDPOINT_URL` at a managed S3-compatible
+  — production should point `S3_ENDPOINT_URL` at a managed S3-compatible
   bucket rather than running MinIO as a single-node container.
 
 ## Hosting on Render
@@ -49,8 +49,10 @@ https://vectorspace-api.onrender.com (Neon project "Vector Space", Singapore).
 | Pinger   | cron-job.org                    | Keeps the API awake (750 h covers one service all month)  |
 
 Media uploads (MinIO/S3) are not set up: the bundled models and audio ship
-with the frontend. Add an S3-compatible bucket later (e.g. Backblaze B2, 10 GB
-free) and set the `MINIO_*` variables on the API if uploads are needed.
+with the frontend. To turn uploads on, create a bucket by following
+[Object storage on R2](#object-storage-on-r2) below and set the `S3_*`
+variables on the API. Never run MinIO on Render: the free plan has no disk, so
+anything it stored would vanish on the next deploy.
 
 ### Steps
 
@@ -88,6 +90,66 @@ offline mode (role picker, saves in the browser). Production refuses the
 `dev|` sign-in the picker uses against a server, so connect the site to the API
 (uncomment `VITE_API_URL` in `render.yaml`) only once the browser app signs in
 through Auth0.
+
+## Object storage on R2
+
+The API talks plain S3, so any S3-compatible bucket works. Cloudflare R2 is the
+recommendation: 10 GB free, no egress fees, and a custom domain gives the public
+library a CDN. One bucket holds two kinds of object:
+
+| Prefix | Who can read it | How |
+|--------|-----------------|-----|
+| `projects/…` | the project's own users | private; the API hands out short-lived presigned URLs |
+| `library/…`  | everyone | public; served from the custom domain, never signed |
+
+1. **Create the bucket.** Cloudflare dashboard → R2 → *Create bucket*, name
+   `vectorspace-media`, location nearest the API. Leave public access off for now.
+2. **Create an API token.** R2 → *Manage R2 API Tokens* → *Create API token*,
+   permission *Object Read & Write*, **scoped to this one bucket**. Copy the
+   Access Key ID and Secret Access Key now (the secret is shown once), and the
+   S3 endpoint `https://<account-id>.r2.cloudflarestorage.com` from the same page.
+3. **Set CORS on the bucket.** The browser PUTs the file straight to the bucket,
+   so the bucket must allow the site's origin. Bucket → *Settings* → *CORS Policy*:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://vectorspace-tuw2.onrender.com", "http://localhost:5173"],
+       "AllowedMethods": ["GET", "PUT", "HEAD"],
+       "AllowedHeaders": ["*"],
+       "ExposeHeaders": ["ETag"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+   Use the site's real address, exactly, no trailing slash. A wrong or missing
+   entry shows up as an opaque "CORS error" in the browser console with no
+   useful body, which is why this is the step that takes time. Test it with a
+   real upload from the deployed site, not with curl (curl ignores CORS).
+4. **Serve the public prefix.** Bucket → *Settings* → *Custom Domains* → connect
+   a hostname such as `assets.example.com` (the domain must be on Cloudflare).
+   Do **not** use the `r2.dev` address: it is rate-limited and for testing only.
+5. **Hide everything except `library/`.** R2 public access is per bucket, not per
+   prefix: the custom domain would also serve `projects/…`. Cloudflare dashboard
+   → the domain → *Security* → *WAF* → *Custom rules* → create a rule that
+   **blocks** when `Hostname` equals the assets hostname and `URI Path` does not
+   start with `/library/`. Check it: a `https://assets.example.com/library/…` file
+   loads, and the same hostname with any `projects/…` key answers 403.
+6. **Give the API the settings.** On Render, vectorspace-api → *Environment*:
+
+   | Variable | Value |
+   |----------|-------|
+   | `S3_ENDPOINT_URL` | `https://<account-id>.r2.cloudflarestorage.com` |
+   | `S3_ACCESS_KEY_ID` | from step 2 |
+   | `S3_SECRET_ACCESS_KEY` | from step 2 |
+   | `S3_BUCKET` | `vectorspace-media` |
+   | `S3_PUBLIC_BASE_URL` | `https://assets.example.com` |
+
+   They are `sync: false` in `render.yaml`, so they are entered by hand and never
+   committed. On a VM, put the same names in `.env.prod`.
+
+Done when an image uploads in the deployed app and opens afterwards.
 
 ## One-time VM provisioning
 
@@ -153,10 +215,11 @@ manager commands for a different distro). Run as a user with `sudo`.
    POSTGRES_DB=vectorspace
    POSTGRES_USER=vectorspace_app
    POSTGRES_PASSWORD=<generate a strong password>
-   MINIO_ENDPOINT_URL=https://<your-s3-compatible-endpoint>
-   MINIO_ROOT_USER=<access key>
-   MINIO_ROOT_PASSWORD=<secret key>
-   MINIO_BUCKET=vectorspace-media
+   S3_ENDPOINT_URL=https://<your-s3-compatible-endpoint>
+   S3_ACCESS_KEY_ID=<access key>
+   S3_SECRET_ACCESS_KEY=<secret key>
+   S3_BUCKET=vectorspace-media
+   S3_PUBLIC_BASE_URL=https://<your-public-assets-hostname>
    AUTH0_DOMAIN=
    AUTH0_AUDIENCE=
    EOF

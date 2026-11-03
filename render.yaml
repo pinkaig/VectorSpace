@@ -1,78 +1,48 @@
-# Render Blueprint
-#
-#   vectorspace      static site: the React app, served from Render's CDN, never sleeps
-#                    https://vectorspace-tuw2.onrender.com
-#   vectorspace-api  Docker web service: FastAPI, free plan (sleeps after 15 min idle,
-#                    so an external pinger hits /health every 10 min to keep it awake)
-#                    https://vectorspace-api.onrender.com
-#   database         Neon free Postgres (sleeps when idle, wakes in under a second)
-#
-# Both deploy from Working once the team's CI (.github/workflows/ci.yml) passes.
-services:
-  - type: web
-    name: vectorspace-api
-    runtime: docker
-    plan: free
-    branch: Working
-    rootDir: VectorSpace/apps/api
-    dockerfilePath: ./VectorSpace/apps/api/Dockerfile
-    dockerContext: ./VectorSpace/apps/api
-    # no dockerCommand: the Dockerfile's CMD runs migrations then starts uvicorn on $PORT,
-    # since pre-deploy commands are not on the free plan
-    healthCheckPath: /health
-    autoDeployTrigger: checksPass
-    envVars:
-      - key: APP_ENV
-        value: production
-      # Neon connection string (Dashboard > Connect), e.g.
-      # postgresql://user:pw@ep-xxx.aws.neon.tech/vectorspace?sslmode=require
-      - key: DATABASE_URL
+# Exported from Render on 2026-11-03T01:55:16Z
+version: "1"
+projects:
+- name: VectorSpace
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: vectorspace-api
+      runtime: docker
+      repo: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki
+      branch: Working
+      plan: free
+      envVars:
+      - key: AUTH_DEV_BYPASS
         sync: false
-      # the static site's address, exactly, e.g. https://vectorspace-tuw2.onrender.com
       - key: CORS_ORIGINS
         sync: false
-      - key: AUTH0_DOMAIN
+      - key: APP_ENV
         sync: false
-      - key: AUTH0_AUDIENCE
+      - key: DATABASE_URL
         sync: false
-      # Only needed if the provisioning tool (app/provision.py) is ever run from here
-      # rather than from a laptop. Management API client, create:users +
-      # create:user_tickets.
-      - key: AUTH0_MGMT_CLIENT_ID
-        sync: false
-      - key: AUTH0_MGMT_CLIENT_SECRET
-        sync: false
-
-  - type: web
-    name: vectorspace
-    runtime: static
-    branch: Working
-    rootDir: VectorSpace
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
-    autoDeployTrigger: checksPass
-    envVars:
-      - key: NODE_VERSION
-        value: "22"
-      # These four are one switch, flipped together, and every one of them is sync: false
-      # so that nothing takes effect until a person has entered all four in the dashboard.
-      # All four set makes the deployed app sign in through Auth0 and read its role from
-      # GET /me; any one missing makes the build fall back to the prototype role picker,
-      # which the production API refuses to serve because it has no AUTH_DEV_BYPASS, so
-      # the site would offer a sign-in that cannot succeed. That is why VITE_API_URL is
-      # sync: false here rather than carrying its value inline: a value would arrive with
-      # the blueprint and leave the switch half-flipped until someone typed the other
-      # three. Its value is https://vectorspace-api.onrender.com (the API service above).
-      # VITE_AUTH0_AUDIENCE must equal the API service's AUTH0_AUDIENCE, exactly.
-      #
-      # Before entering them: the Neon roster has to carry real auth0|... subjects, written
-      # by app/provision.py --apply. The seeded dev|... ones can never authenticate.
-      # See Desktop/docs/handover/short render-auth0-setup.md for the whole sequence.
-      - key: VITE_AUTH0_DOMAIN
-        sync: false
-      - key: VITE_AUTH0_CLIENT_ID
-        sync: false
-      - key: VITE_AUTH0_AUDIENCE
-        sync: false
+      region: singapore
+      healthCheckPath: /health
+      dockerContext: .
+      dockerfilePath: Dockerfile
+      autoDeployTrigger: commit
+      buildFilter:
+        paths:
+        - '**'
+      rootDir: VectorSpace/apps/api
+    - type: web
+      name: vectorspace
+      runtime: static
+      repo: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki
+      branch: Working
+      envVars:
       - key: VITE_API_URL
         sync: false
+      - key: NODE_VERSION
+        sync: false
+      buildCommand: 'npm ci && npm run build  '
+      staticPublishPath: dist
+      autoDeployTrigger: commit
+      buildFilter:
+        paths:
+        - '**'
+      rootDir: VectorSpace/
