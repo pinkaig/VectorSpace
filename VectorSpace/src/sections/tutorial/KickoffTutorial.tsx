@@ -18,6 +18,7 @@
 /******************************************************************************/
 
 import { useEffect, useState } from "react";
+import { useUiSoundIn } from "../../audio";
 import "./kickoffTutorial.css";
 
 // the three tips, in order (manual: Student flow, 2. Opening a project)
@@ -64,6 +65,8 @@ type KickoffTutorialProps = {
 };
 
 export function KickoffTutorial({ onClose }: KickoffTutorialProps) {
+  // the masterlist Tip sound, as the tip appears
+  useUiSoundIn("ui.tip");
   const [index, setIndex] = useState(0);
   const tip = TIPS[index];
   const last = index === TIPS.length - 1;

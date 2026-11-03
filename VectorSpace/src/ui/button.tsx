@@ -12,6 +12,7 @@
 /******************************************************************************/
 
 import type { ButtonHTMLAttributes } from "react";
+import { uiSound, type UiCue } from "../audio";
 import { motion } from "../motion/motion";
 import "./button.css";
 
@@ -20,9 +21,12 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   // danger: small red text for turning something off; add: dashed "+ Add ..." button
   variant?: "primary" | "secondary" | "danger" | "add";
   size?: "normal" | "small";
+  // the sound a press makes (a cue in src/audio/cue-map.json); null for none. Left out, the
+  // purple button makes the main-action click and the rest the plain one
+  cue?: UiCue;
 };
 
-export function Button({ variant = "secondary", size = "normal", className = "", onClick, ...rest }: ButtonProps) {
+export function Button({ variant = "secondary", size = "normal", className = "", onClick, cue, ...rest }: ButtonProps) {
   // type="button" so a button inside a form never submits it by accident
   return (
     <button
@@ -31,6 +35,8 @@ export function Button({ variant = "secondary", size = "normal", className = "",
       onClick={(event) => {
         // the click animation sits on top of the CSS hover and press response, which stay in button.css
         motion.play("control.button.click", event.currentTarget);
+        // waits for the end of the click: a dialog this press closes plays its close sound instead
+        uiSound.press(cue !== undefined ? cue : variant === "primary" ? "ui.click.primary" : "ui.click");
         onClick?.(event);
       }}
       {...rest}
