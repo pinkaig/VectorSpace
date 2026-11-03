@@ -219,6 +219,12 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   }, [helpMenuOpen])
   const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
+  // The object panel slides shut instead of vanishing (styles.css, .workspace): while it closes
+  // it keeps showing the last thing that was selected, and cannot be clicked, so the room widens
+  // smoothly behind it instead of jumping.
+  const lastSelectedRef = useRef<SceneObject | null>(null)
+  if (selected) lastSelectedRef.current = selected
+  const panelObject = selected ?? lastSelectedRef.current
   useBlockStrayFileDrop()
 
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
@@ -723,17 +729,20 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <button onClick={() => setStepNotice(null)} aria-label="Dismiss">×</button>
           </div>
         )}
-        {/* clicking a thing opens the panel on the tab of the step being worked on */}
-        {selected && <aside className="inspector-popup">
+        {/* clicking a thing opens the panel on the tab of the step being worked on; it slides open
+            and shut (styles.css) and stays mounted while shut so it can slide */}
+        {panelObject && <aside className={selected ? 'inspector-popup open' : 'inspector-popup'} inert={!selected}>
           {/* The panel only shows things and calls back; every action below decides what happens. */}
           <ObjectPanel
+            // a fresh panel for each thing, as when it used to unmount between selections
+            key={panelObject.id}
             object={{
-              id: selected.id,
-              name: selected.name,
-              kind: selected.assetKind,
-              position: selected.transform.position,
-              rotation: selected.transform.rotation.map(radToDeg) as Vec3,
-              scale: selected.transform.scale,
+              id: panelObject.id,
+              name: panelObject.name,
+              kind: panelObject.assetKind,
+              position: panelObject.transform.position,
+              rotation: panelObject.transform.rotation.map(radToDeg) as Vec3,
+              scale: panelObject.transform.scale,
             }}
             step={step}
             onStepChange={(n) => goToStep(n as TutorialStep)}
@@ -741,7 +750,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             tool={gizmoMode === 'select' ? null : gizmoMode}
             onToolChange={setGizmoMode}
             onRotateBy={(degrees) => {
-              const [x, y, z] = selected.transform.rotation
+              const [x, y, z] = panelObject.transform.rotation
               updateSelected({ rotation: [x, degToRad(wrapDegrees(radToDeg(y) + degrees)), z] })
             }}
             onExactChange={(field, value) => {
@@ -752,11 +761,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onCopy={duplicateSelected}
             onRemove={deleteSelected}
             locked={selectedLocked}
-            rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)}
+            rules={(project.rules ?? []).filter((rule) => rule.objectId === panelObject.id)}
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}
-            infoCard={cardInputFor(project, selected)}
-            infoCardId={findCard(project, selected)?.attachment.id}
+            infoCard={cardInputFor(project, panelObject)}
+            infoCardId={findCard(project, panelObject)?.attachment.id}
             cardTasks={project.missionBrief?.cardTasks}
             mediaChoices={mediaChoices}
             onUploadMedia={async (file) => {
@@ -769,27 +778,31 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               showToast('Link sent to your teacher to approve')
               return choiceFor(added)
             }}
-            video={videoFor(selected, mediaLibrary)}
+            video={videoFor(panelObject, mediaLibrary)}
             onSaveVideo={(assetId, screen) => {
-              const result = saveObjectVideo(project, scene.id, selected.id, assetId, screen)
+              const result = saveObjectVideo(project, scene.id, panelObject.id, assetId, screen)
               if (!result.ok) return result.error
               commit('Save video', result.project)
               showToast('Video saved')
               return null
             }}
-            onRemoveVideo={() => { commit('Remove video', removeObjectVideo(project, scene.id, selected.id)); showToast('Video removed') }}
+            onRemoveVideo={() => { commit('Remove video', removeObjectVideo(project, scene.id, panelObject.id)); showToast('Video removed') }}
             onSaveCard={(input) => {
-              const result = saveObjectCard(project, scene.id, selected.id, input)
+              const result = saveObjectCard(project, scene.id, panelObject.id, input)
               if (!result.ok) return result.error
               commit('Save info card', result.project)
               showToast('Fact card saved')
               return null
             }}
-            onRemoveCard={() => { commit('Remove info card', removeObjectCard(project, scene.id, selected.id)); showToast('Fact card removed') }}
+            onRemoveCard={() => { commit('Remove info card', removeObjectCard(project, scene.id, panelObject.id)); showToast('Fact card removed') }}
           />
         </aside>}
       </div>
-      {step === 1 && <section className="catalogue">
+      {/* the catalogue slides down out of the way on steps 2-3 so the room grows into its space,
+          and back up on step 1 (styles.css, .catalogue-slot); it stays mounted so it can slide */}
+      <div className={step === 1 ? 'catalogue-slot' : 'catalogue-slot closed'} inert={step !== 1}>
+      <div className="catalogue-clip">
+      <section className="catalogue">
         <div className="catalogue-head">
           <h2>Catalogue</h2>
             <div className="catalogue-types" role="tablist">
@@ -843,7 +856,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                 </div>
             </div>
         </div>
-      </section>}
+      </section>
+      </div>
+      </div>
       </>}
       {tutorialOpen && <KickoffTutorial onClose={closeTutorial} />}
       {/* never over the kick-off tutorial or while playing */}
