@@ -19,10 +19,15 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     database_url: str | None = None
 
-    minio_root_user: str = "vectorspace_minio"
-    minio_root_password: str = "vectorspace_minio_local"
-    minio_endpoint_url: str = "http://localhost:9000"
-    minio_bucket: str = "vectorspace-media"
+    # Any S3-compatible bucket. The defaults are the local docker-compose MinIO's, so a checkout
+    # with no .env still works; a deployment points these at R2, B2 or S3 instead.
+    s3_access_key_id: str = "vectorspace_minio"
+    s3_secret_access_key: str = "vectorspace_minio_local"
+    s3_endpoint_url: str = "http://localhost:9000"
+    s3_bucket: str = "vectorspace-media"
+    # Where the bucket's public-read prefix (library/) is served from, e.g. an R2 custom domain.
+    # Empty until that prefix is set up; storage.public_url() refuses to guess an address.
+    s3_public_base_url: str = ""
 
     auth0_domain: str = ""
     auth0_audience: str = ""
