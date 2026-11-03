@@ -343,6 +343,13 @@
   color: var(--text-muted);
 }
 
+/* an update to a published museum: what visitors see meanwhile */
+.review-detail-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* ── Detail: picture left, brief and tiles right ──────────────────────── */
 .review-detail-body {
   display: grid;

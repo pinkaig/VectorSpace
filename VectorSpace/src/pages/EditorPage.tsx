@@ -304,9 +304,12 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [sharing, setSharing] = useState<ProjectSharing>(
     initialLoad.sharing ?? { reviewStatus: null, shareWith: null, reviewComment: null, reviewGrade: null, teacherName: null, slug: null },
   )
-  // a student's project is waiting for the teacher
-  const sent = !published && sharing.reviewStatus === 'waiting'
-  const shareStatus: ShareStatus = published ? 'published' : sent ? 'submitted' : 'draft'
+  // a student's hand-in is waiting for the teacher: a first one, or an update to a published
+  // museum (visitors keep seeing the approved save until the teacher OKs the update)
+  const sent = sharing.reviewStatus === 'waiting'
+  const shareStatus: ShareStatus = sent
+    ? (published ? 'update-waiting' : 'submitted')
+    : published ? 'published' : 'draft'
   const [shareOpen, setShareOpen] = useState(false)
   // the teacher's sent-back comment shows over the room; × folds it into a chip (Weian Ching)
   const [sentBackOpen, setSentBackOpen] = useState(true)
@@ -327,15 +330,18 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   }, [project.id])
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
-    : published ? 'This project is published'
+    : sent && published ? `Update sent to ${teacherName}: visitors see the approved version until they OK it`
     : sent ? `Sent to ${teacherName}: waiting for them to approve it`
+    : published && sendsToTeacher ? 'Share your project, or send your changes to your teacher'
+    : published ? 'This project is published'
     : 'Share this project'
-  const publish = async (shareWith: ShareWith) => {
+  // shareWith is left out for an update: it keeps who-can-visit from the approved hand-in
+  const publish = async (shareWith?: ShareWith) => {
     if (!canShare || publishing) return
     setPublishing(true)
     setPublishError(null)
     try {
-      // the teacher reviews the newest save on the server, so the last edits must reach it first
+      // the teacher reviews the save the hand-in points at, so the last edits must reach the server first
       await save()
       if (getProjectSyncStatus() !== 'idle') {
         setPublishError("Your latest changes haven't saved yet. Check your connection and try again.")
@@ -343,7 +349,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
       }
       if (sendsToTeacher) {
         const submission = await submitProject(getToken, project.id, shareWith)
-        setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with, reviewComment: submission.comment, reviewGrade: submission.grade }))
+        setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with ?? current.shareWith, reviewComment: submission.comment, reviewGrade: submission.grade }))
         uiSound.play('publish.sent')
       } else {
         const saved = await setProjectStatus(getToken, project.id, 'published')
@@ -541,6 +547,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           busy={publishing}
           error={publishError}
           onSend={(shareWith) => void publish(shareWith)}
+          onSendUpdate={() => void publish()}
           onWithdraw={() => void withdraw()}
           onClose={closeShare}
         />

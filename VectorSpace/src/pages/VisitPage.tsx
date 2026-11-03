@@ -7,7 +7,8 @@
  *                public, unlisted  anyone, signed in or not
  *                sign_in_only     signed in and in the project's class
  *              A project sent to the teacher and not approved yet shows "Waiting for approval".
- *              Once loaded it is the same view as the editor's Play, with no way back to building.
+ *              Once loaded it is the same view as the editor's Play. Its owner also gets
+ *              "Back to my projects" and "Edit my project" (the server says who owns it).
  *
  *              Uploaded images and videos still need the owner's sign-in to load, so a visitor
  *              sees "unavailable" in their place for now.
@@ -19,7 +20,7 @@
 /******************************************************************************/
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { ApiError, apiUrl } from "../api/client";
 import { getVisitProject, type VisitProject } from "../api/visit";
 import RuntimeView from "../../apps/runtime/src/RuntimeApplication";
@@ -47,6 +48,7 @@ const WAITING = {
 export default function VisitPage() {
   const { slug = "" } = useParams();
   const { getToken, role, signIn } = useSession();
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: "loading" });
 
   // role changes when the visitor signs in, which can open a class-only project
@@ -83,13 +85,34 @@ export default function VisitPage() {
 
   const { shared } = state;
   const byline = [shared.studentName && `By ${shared.studentName}`, shared.className, shared.schoolName].filter(Boolean).join(" · ");
+  // the owner looking at their own link: it is what visitors see (the approved version), with a
+  // way back to their projects ("/" lands on their home) and to editing it
+  const ownProjectId = shared.ownProjectId;
   return (
     <div className="visit-page">
       <header className="visit-head">
-        <h1 className="visit-title">{shared.title}</h1>
-        {byline && <p className="visit-byline">{byline}</p>}
+        <div className="visit-head-text">
+          <h1 className="visit-title">{shared.title}</h1>
+          {byline && <p className="visit-byline">{byline}</p>}
+        </div>
+        {ownProjectId && (
+          <div className="visit-owner-actions">
+            <span className="visit-live">Live</span>
+            <button type="button" className="visit-button" onClick={() => navigate(`/editor/${ownProjectId}`)}>
+              Edit my project
+            </button>
+          </div>
+        )}
       </header>
-      <RuntimeView project={shared.project} title={shared.title} />
+      {ownProjectId
+        ? <RuntimeView
+            project={shared.project}
+            title="Viewing · exactly what visitors see"
+            onExit={() => navigate("/")}
+            exitLabel="Back to my projects"
+            escapeExits={false}
+          />
+        : <RuntimeView project={shared.project} title={shared.title} />}
     </div>
   );
 }

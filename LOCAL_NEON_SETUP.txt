@@ -22,6 +22,46 @@ It migrates, offers the demo seed when the database has none, refuses to start i
 DATABASE_URL points at localhost (that is scripts\dev-stack-docker.bat), and opens the
 two windows itself. The manual route below is still correct and worth reading once.
 
+NOTE: scripts\dev-stack-neon.bat runs .venv\Scripts\python.exe, so it will NOT work on a
+PC where Windows blocks that file (see "IF WINDOWS BLOCKS .venv\Scripts\python.exe" below).
+Use the manual steps with the workaround instead.
+
+IF WINDOWS BLOCKS .venv\Scripts\python.exe
+-------------------------------------------
+Symptom:
+   '...\apps\api\.venv\Scripts\python.exe' was blocked by your organization's
+   Device Guard policy. Contact your support person for more info.
+
+Cause: Windows 11 Smart App Control (not your school/IT, despite the wording). The
+python.exe inside .venv is a small unsigned launcher that uv copies in; Smart App
+Control can start blocking it at any time, even if it worked before. The real Python
+that the launcher points to is signed/reputable and still runs.
+
+Workaround: run the real Python directly and point it at the venv's packages.
+Do this ONCE in every new CMD window, from apps\api, before any python command:
+
+   cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace\apps\api
+   set PYTHONPATH=%CD%\.venv\Lib\site-packages
+   set PY="C:\Users\User\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe"
+
+   (The PY path is the "home =" line in apps\api\.venv\pyvenv.cfg, plus \python.exe.
+   Check that file if your path is different.)
+
+Then everywhere below, replace  .\.venv\Scripts\python.exe  with  %PY%  e.g.
+
+   %PY% -m alembic upgrade head
+   %PY% -m app.seed --apply
+   %PY% -m uvicorn app.main:app --reload --port 8000
+
+Tips:
+   - Paste each command as ONE line. If "--port 8000" ends up on its own line, CMD runs
+     it separately ("'--port' is not recognized").
+   - Leave the backend window open. Pressing Ctrl+C in it stops the server.
+   - "set" only lasts for that window. A new window needs both "set" lines again.
+   - Turning Smart App Control off (Windows Security > App & browser control) also fixes
+     it, but on many Windows builds it cannot be turned back on without reinstalling
+     Windows. Prefer the workaround.
+
 ONE-TIME SETUP
 --------------
 
@@ -83,6 +123,11 @@ EVERY TIME YOU RUN THE APP
    > cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace\apps\api
    > .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 
+     If that is blocked by "Device Guard policy", use the workaround near the top:
+   > set PYTHONPATH=%CD%\.venv\Lib\site-packages
+   > set PY="C:\Users\User\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe"
+   > %PY% -m uvicorn app.main:app --reload --port 8000
+
    TERMINAL 2 - FRONTEND
    > cd C:\Project5_DoReMi-yaki_MockPrototype\VectorSpace
    > npm run dev
@@ -102,6 +147,8 @@ TROUBLESHOOTING / NOTES
 - After pulling new code: rerun Step 5.
 - Wrong sign-in name: sign out and in again.
 - Windows blocks .exe tools: use .\.venv\Scripts\python.exe -m <tool>.
+- Windows blocks .venv\Scripts\python.exe itself ("Device Guard policy"): see
+  "IF WINDOWS BLOCKS .venv\Scripts\python.exe" near the top and use %PY% -m <tool>.
 - For offline frontend tests (npm test / npx playwright test),
   temporarily rename or remove VectorSpace\.env.local.
 - Never put DATABASE_URL in the frontend .env.local file.

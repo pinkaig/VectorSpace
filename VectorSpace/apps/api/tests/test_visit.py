@@ -27,7 +27,8 @@ def test_a_public_or_unlisted_project_opens_without_signing_in(client, school) -
         body = visit.json()
         assert body["data"] == SCENE and body["share_with"] == choice
         assert (body["student_name"], body["class_name"], body["school_name"]) == ("s1", "1A", "A")
-        assert set(body) == {"title", "student_name", "class_name", "school_name", "share_with", "data"}
+        assert set(body) == {"title", "student_name", "class_name", "school_name", "share_with", "data", "own_project_id"}
+        assert body["own_project_id"] is None  # signed out: not the owner
 
 
 def test_class_only_needs_a_sign_in_from_the_class(client, school) -> None:
@@ -90,3 +91,64 @@ def test_visitors_see_the_approved_save_not_later_edits(client, school) -> None:
     assert saved.status_code == 201, saved.text
     assert client.get(f"/visit/{project['slug']}").json()["data"] == SCENE
 
+
+def _save(client, project_id: str, data: dict, key: str = "s1") -> None:
+    row = client.get(f"/projects/{project_id}", headers=as_user(key)).json()
+    saved = client.post(
+        f"/projects/{project_id}/versions", json={"base_revision": row["current_revision"], "data": data}, headers=as_user(key)
+    )
+    assert saved.status_code == 201, saved.text
+
+
+def test_edits_after_approval_stay_a_draft_until_the_teacher_approves_the_update(client, school) -> None:
+    project = approved_project(client, school, "public")
+    path, pid = f"/visit/{project['slug']}", project["id"]
+    edited = {**SCENE, "scenes": [{"id": "a", "objects": [{"id": "o1"}, {"id": "o2"}]}]}
+
+    # the student keeps editing: visitors still see the approved save
+    _save(client, pid, edited)
+    assert client.get(path).json()["data"] == SCENE
+
+    # the update waits for the teacher: still the approved save, and it can be cancelled
+    sent = client.post(f"/projects/{pid}/submit", json={}, headers=as_user("s1"))
+    assert sent.status_code == 201, sent.text
+    assert sent.json()["share_with"] == "public"  # kept from the approved hand-in
+    assert client.get(path).json()["data"] == SCENE
+    assert client.delete(f"/projects/{pid}/submit", headers=as_user("s1")).status_code == 204
+    assert client.get(path).json()["data"] == SCENE
+
+    # sent back: the approved save stays live
+    client.post(f"/projects/{pid}/submit", json={}, headers=as_user("s1"))
+    client.post(f"/projects/{pid}/send-back", json={"comment": "Add a caption"}, headers=as_user("t1"))
+    assert client.get(path).json()["data"] == SCENE
+
+    # approved: the update goes live
+    client.post(f"/projects/{pid}/submit", json={}, headers=as_user("s1"))
+    assert client.post(f"/projects/{pid}/approve", json={}, headers=as_user("t1")).status_code == 200
+    assert client.get(path).json()["data"] == edited
+
+
+def test_an_update_needs_a_change_since_approval(client, school) -> None:
+    project = approved_project(client, school, "public")
+    again = client.post(f"/projects/{project['id']}/submit", json={}, headers=as_user("s1"))
+    assert again.status_code == 409
+
+
+def test_saving_soon_after_a_hand_in_never_changes_the_handed_in_save(client, school) -> None:
+    project = approved_project(client, school, "public")
+    pid = project["id"]
+    first = {**SCENE, "scenes": [{"id": "a", "objects": [{"id": "o2"}]}]}
+    _save(client, pid, first)
+    client.post(f"/projects/{pid}/submit", json={}, headers=as_user("s1"))
+    client.post(f"/projects/{pid}/approve", json={}, headers=as_user("t1"))
+    # within the merge window, by the same student: must be a new revision, not a rewrite
+    _save(client, pid, {**SCENE, "scenes": [{"id": "a", "objects": [{"id": "o3"}]}]})
+    assert client.get(f"/visit/{project['slug']}").json()["data"] == first
+
+
+def test_only_the_owner_is_told_which_project_it_is(client, school) -> None:
+    project = approved_project(client, school, "public")
+    path = f"/visit/{project['slug']}"
+    assert client.get(path, headers=as_user("s1")).json()["own_project_id"] == project["id"]
+    assert client.get(path, headers=as_user("s2")).json()["own_project_id"] is None  # a classmate
+    assert client.get(path, headers=as_user("t1")).json()["own_project_id"] is None  # the teacher

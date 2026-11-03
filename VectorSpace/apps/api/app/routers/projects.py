@@ -473,9 +473,9 @@ def update_project(
             actor.role == "teacher" and (project.created_by_id == actor.id or project.class_id in class_ids(db, actor))
         )
         if not teaches_it:
-            raise HTTPException(status_code=403, detail="Only a teacher of its class can put a museum on the sign-in page")
+            raise HTTPException(status_code=403, detail="Only a teacher of its class can put a project on the sign-in page")
         if body.showcase and changes.get("status", project.status) != "published":
-            raise HTTPException(status_code=409, detail="Only a published museum can be shown on the sign-in page")
+            raise HTTPException(status_code=409, detail="Only a published project can be shown on the sign-in page")
     for field, value in changes.items():
         setattr(project, field, value)
     # a museum that is no longer published comes off the sign-in page

@@ -69,7 +69,7 @@ export default function LoginPage({
           <span className="login-brand-name">VectorSpace</span>
         </div>
 
-        <h1 className="login-museum">Build a museum you can walk through.</h1>
+        <h1 className="login-museum">Build a project you can walk through.</h1>
         {museum && (
           <p className="login-lead">Here's what students have made this term.</p>
         )}
@@ -103,7 +103,7 @@ export default function LoginPage({
             <button
               type="button"
               className="login-arrow"
-              aria-label="Previous museum"
+              aria-label="Previous project"
               onClick={showPrev}
             >
               <ChevronLeft size={22} />
@@ -125,7 +125,7 @@ export default function LoginPage({
             <button
               type="button"
               className="login-arrow"
-              aria-label="Next museum"
+              aria-label="Next project"
               onClick={showNext}
             >
               <ChevronRight size={22} />

@@ -7,7 +7,8 @@ Activate (publishing a chosen revision) is not built yet.
 History is kept to checkpoints, not every autosave: a save by the same person within
 MERGE_WINDOW of their last one replaces that revision's content instead of adding a revision,
 and only the newest KEEP_REVISIONS revisions are kept, plus every labelled one (such as
-"Sent by Ms Tan"). A revision someone else saved, or a labelled one, is never merged into.
+"Sent by Ms Tan") and every one a hand-in points at (routers/submissions.py). A revision someone
+else saved, a labelled one, or a handed-in one is never merged into.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ from sqlalchemy.orm import Session
 from ..access import can_write
 from ..auth import get_current_actor
 from ..db import get_db
-from ..models import Actor, ContentSnapshot, ProjectVersion
+from ..models import Actor, ContentSnapshot, ProjectVersion, Submission
 from ._skeleton import not_implemented
 from .projects import _load
 
@@ -86,12 +87,25 @@ def _drop_unused_snapshots(db: Session, snapshot_ids: set[uuid.UUID]) -> None:
         db.execute(delete(ContentSnapshot).where(ContentSnapshot.id.in_(snapshot_ids - used)))
 
 
+def _handed_in(db: Session, version_id: uuid.UUID) -> bool:
+    """True for a revision a hand-in points at: what the teacher reviews, and once approved what
+    visitors see. It is never merged into or pruned, so a student's later edits stay a draft."""
+    return db.scalar(select(Submission.id).where(Submission.version_id == version_id).limit(1)) is not None
+
+
 def _prune(db: Session, project_id: uuid.UUID, current_id: uuid.UUID) -> None:
-    """Keeps the newest KEEP_REVISIONS unlabelled revisions, every labelled one and the current one."""
+    """Keeps the newest KEEP_REVISIONS unlabelled revisions, every labelled one, every handed-in
+    one and the current one."""
+    handed_in = select(Submission.version_id).where(Submission.project_id == project_id, Submission.version_id.is_not(None))
     old = list(
         db.scalars(
             select(ProjectVersion)
-            .where(ProjectVersion.project_id == project_id, ProjectVersion.label.is_(None), ProjectVersion.id != current_id)
+            .where(
+                ProjectVersion.project_id == project_id,
+                ProjectVersion.label.is_(None),
+                ProjectVersion.id != current_id,
+                ProjectVersion.id.not_in(handed_in),
+            )
             .order_by(ProjectVersion.revision.desc())
             .offset(KEEP_REVISIONS - 1)  # the current one counts towards the kept
         )
@@ -156,6 +170,7 @@ def save_version(
         and latest.label is None
         and body.label is None
         and now - _utc(latest.created_at) < MERGE_WINDOW
+        and not _handed_in(db, latest.id)
     ):
         replaced = latest.content_snapshot_id
         latest.content_snapshot_id, latest.created_at = snapshot.id, now

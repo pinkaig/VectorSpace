@@ -10,8 +10,11 @@ treated as sign_in_only. A project handed in and waiting for the teacher is a 40
 for approval"), but only to a visitor its choice would let in. Anything else not published,
 or not visible to this visitor, is a 404, so a link does not confirm that a draft exists.
 
-Visitors see the save the teacher approved (submissions.version_id), so edits made since stay
-in the student's draft. The answer carries the scene and only what the page shows about who made it: the student's
+Visitors see the save the teacher approved (the approved hand-in's version), not the student's
+latest one: edits after approval are a draft until the teacher approves them as an update. A
+project published without a hand-in (a teacher's own) shows its latest save.
+
+The answer carries the scene and only what the page shows about who made it: the student's
 first name, the class and the school. Uploaded media still needs a sign-in to load.
 """
 
@@ -43,6 +46,9 @@ class VisitResponse(BaseModel):
     school_name: str
     share_with: str
     data: dict[str, Any]
+    # the project's id, only to its owner: their page shows "Edit my project" and "Back to my
+    # projects"; anyone else gets None, so the link reveals nothing more
+    own_project_id: uuid.UUID | None = None
 
 
 def _newest_hand_in(db: Session, project: Project, status: str | None = None) -> Submission | None:
@@ -102,9 +108,9 @@ def visit(slug: str, visitor: Actor | None = Depends(get_optional_actor), db: Se
     share_with = (approved.share_with if approved else None) or "sign_in_only"
     _let_in(db, visitor, project, share_with, missing)
 
-    # the save the teacher approved, not the newest one, so later edits don't go live unreviewed;
-    # a project published without a hand-in (a teacher's own) shows its newest save
-    version = db.get(ProjectVersion, (approved.version_id if approved else None) or project.current_version_id)
+    # the approved save; a teacher's own project (no hand-in) shows its latest
+    version_id = approved.version_id if approved and approved.version_id else project.current_version_id
+    version = db.get(ProjectVersion, version_id)
     if version is None or version.content_snapshot is None:
         raise missing
     # one visit for the teacher's Results, unless it is the student looking at their own museum
@@ -127,4 +133,5 @@ def visit(slug: str, visitor: Actor | None = Depends(get_optional_actor), db: Se
         school_name=school.name if school else "",
         share_with=share_with,
         data=version.content_snapshot.data,
+        own_project_id=project.id if visitor is not None and visitor.id == project.created_by_id else None,
     )

@@ -80,7 +80,8 @@ export interface ProjectSync {
   stage(project: ProjectData): void
   /** Re-drives the queue — call on network reconnect or a manual "retry now". A no-op if nothing is queued. */
   retry(): void
-  /** Sends every held project now: on Save, on leaving the editor, and when the tab is hidden. Resolves once the queue has been tried. */
+  /** Sends every held project now: on Save, on leaving the editor, and when the tab is hidden.
+   *  Resolves once the queue has been sent (or has failed and is waiting to retry). */
   flush(): Promise<void>
   status(): ProjectSyncStatus
   subscribe(listener: ProjectSyncListener): () => void

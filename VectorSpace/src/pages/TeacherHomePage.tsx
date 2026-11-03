@@ -128,7 +128,7 @@ const rowFromServer = (project: Project): ProjectRow => {
   name: project.name,
   details:
     published > 0
-      ? `Published · ${published} ${published === 1 ? "museum" : "museums"}`
+      ? `Published · ${published} ${published === 1 ? "project" : "projects"}`
       : project.saved_at
         ? `Saved ${daysAgo(project.saved_at)} · revision ${project.current_revision}`
         : "Not assigned yet",
