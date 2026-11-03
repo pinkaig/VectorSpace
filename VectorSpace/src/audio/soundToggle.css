@@ -1,0 +1,24 @@
+/* The sound on/off button in the top bars: a 34px square, the same height as Sign out. */
+.ui-sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ui-sound-toggle:hover {
+  background: var(--purple-50);
+}
+
+/* off: muted grey, so the state reads at a glance and not only from the icon */
+.ui-sound-toggle[aria-pressed="false"] {
+  color: var(--ink-2);
+}
