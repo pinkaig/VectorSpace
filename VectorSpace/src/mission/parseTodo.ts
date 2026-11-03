@@ -1,7 +1,7 @@
 /**
  * @file        parseTodo.ts
  * @project     VectorSpace
- * @author      <your name>
+ * @author      Daniel
  * @brief       Reads a teacher's to-do ("Place 5 exhibits") and works out what to count.
  *
  *              HOW IT READS A SENTENCE (no AI, just word lists, so it is predictable):
@@ -94,11 +94,14 @@ function singular(word: string): string {
 function rawWords(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/['’]/g, '')        // "don't" -> "dont"
-    .replace(/[^a-z0-9\s-]/g, ' ')    // other punctuation becomes a space
+    .replace(/['’]/g, '')          // "don't" -> "dont"
+    .replace(/[^a-z0-9\s-]/g, ' ') // other punctuation becomes a space
     .split(/[\s-]+/)
     .filter(Boolean)
 }
+
+// a count a to-do can ask for: at least 1, and not so big it must be a typo
+const isSensibleTarget = (count: number): boolean => count >= 1 && count <= MAX_TARGET
 
 // "5" -> 5, "five" -> 5, "2nd" -> 2, anything else -> null
 function numberOf(word: string): number | null {
@@ -193,7 +196,7 @@ export function parseTodo(text: string): MissionGoal | null {
     // "no less than 5" / "no fewer than 5" is a floor: at least 5
     if (hasBelowWords(words.slice(negativeAt, goal.at))) {
       const floor = numberBefore(words, goal.at, negativeAt)
-      if (floor === null || floor < 1 || floor > MAX_TARGET) return null
+      if (floor === null || !isSensibleTarget(floor)) return null
       return { kind: goal.kind, target: floor, compare: 'atLeast' }
     }
     // "no MORE THAN 5" keeps its number; otherwise "don't add a/any sound" means none at all
@@ -216,12 +219,9 @@ export function parseTodo(text: string): MissionGoal | null {
   // ── otherwise: the first thing named, and the number just before it ──
   const goal = things[0]
   const target = numberBefore(words, goal.at, 0) ?? 1
+  if (!isSensibleTarget(target)) return null
   // "less than 5 exhibits": at most 4
-  if (hasBelowWords(words.slice(0, goal.at))) {
-    if (target < 1 || target > MAX_TARGET) return null
-    return { kind: goal.kind, target: target - 1, compare: 'atMost' }
-  }
-  if (target < 1 || target > MAX_TARGET) return null
+  if (hasBelowWords(words.slice(0, goal.at))) return { kind: goal.kind, target: target - 1, compare: 'atMost' }
   return { kind: goal.kind, target, compare: hasLimitWords(words) ? 'atMost' : 'atLeast' }
 }
 
@@ -246,7 +246,6 @@ export function describeGoal(goal: MissionGoal): string {
   if (goal.compare === 'atMost') return goal.target === 0 ? `no ${many}` : `at most ${goal.target} ${goal.target === 1 ? one : many}`
   return [goal.target, goal.target === 1 ? one : many, done].filter(Boolean).join(' ')
 }
-
 
 // ── CLASHES: to-dos in one brief that cannot both be ticked ─────────────────
 // e.g. "Place 3 exhibits" with "Don't put any items" (a limit of 0 objects, and every

@@ -1,7 +1,7 @@
 /**
  * @file        missionBrief.ts
  * @project     VectorSpace
- * @author      <your name>
+ * @author      Daniel
  * @brief       Mission brief helpers. The brief itself (due date, to-dos, rules) is stored on
  *              the project as ProjectData.missionBrief; its shape is in the shared project model.
  *
@@ -16,6 +16,13 @@
  */
 /******************************************************************************/
 
+import type { MissionBrief } from '../project/model'
+import { tidyCardTasks } from './cardTasks'
+
+// The stored shapes (what is saved in the project file) live in the shared project model,
+// so the serializer and every app read the same ones. Re-exported here for convenience.
+export type { CardField, CardTask, MissionBrief, MissionRule, MissionTodo } from '../project/model'
+
 // the kinds of thing the app can count in a project
 export type GoalKind =
   | 'exhibits'   // objects from the Exhibits part of the catalogue
@@ -29,25 +36,21 @@ export type GoalKind =
 // the reactions that hang off an exhibit, so "give EACH exhibit a ..."
 export const PER_EXHIBIT_KINDS: readonly GoalKind[] = ['factCards', 'sounds', 'reactions']
 
+// 'atLeast': "Place 3 exhibits" -> 3 or more is done
+// 'atMost':  a limit, "Don't add any sounds" -> 0 or fewer, "Up to 5 exhibits" -> 5 or fewer
+export type Compare = 'atLeast' | 'atMost'
+
 // what a to-do asks for, once understood
 export interface MissionGoal {
   kind: GoalKind
   // a number: how many in the whole project
   // 'eachExhibit': "every exhibit has at least one" (only for PER_EXHIBIT_KINDS, only atLeast)
   target: number | 'eachExhibit'
-  // 'atLeast': "Place 3 exhibits" -> 3 or more is done
-  // 'atMost':  a limit, "Don't add any sounds" -> 0 or fewer, "Up to 5 exhibits" -> 5 or fewer
-  compare: 'atLeast' | 'atMost'
+  compare: Compare
 }
 
-// The stored shapes (what is saved in the project file) live in the shared project model,
-// so the serializer and every app read the same ones. Re-exported here for convenience.
-import type { MissionBrief } from '../project/model'
-import { tidyCardTasks } from './cardTasks'
-export type { CardField, CardTask, MissionBrief, MissionRule, MissionTodo } from '../project/model'
-
-// The due date as the brief shows it, e.g. "Thursday, 22 Oct". A new brief is due today until the teacher changes it. Built in two parts
-// because en-GB 
+// The due date as the brief shows it, e.g. "Thursday, 22 Oct". A new brief is due today
+// until the teacher changes it. Built in two parts so the comma sits after the weekday.
 export const formatDueDate = (date: Date): string =>
   `${date.toLocaleDateString('en-GB', { weekday: 'long' })}, ${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
 
@@ -55,7 +58,8 @@ export const formatDueDate = (date: Date): string =>
 let nextId = 0
 export const newBriefId = (prefix: 'todo' | 'rule'): string => `${prefix}-${Date.now().toString(36)}-${nextId++}`
 
-// The brief as it should be saved: text trimmed, empty to-dos and rules (a row added but never typed in) dropped. Run before saving, so students never see a blank line.
+// The brief as it should be saved: text trimmed, and empty to-dos and rules (a row added
+// but never typed in) dropped. Run before saving, so students never see a blank line.
 export const tidyBrief = (brief: MissionBrief): MissionBrief => {
   const tidy = <T extends { text: string }>(items: T[]): T[] =>
     items.map((item) => ({ ...item, text: item.text.trim() })).filter((item) => item.text !== '')
