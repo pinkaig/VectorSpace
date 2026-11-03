@@ -15,7 +15,9 @@ test('the login page downloads neither the editor nor any audio', async ({ page 
   await page.waitForLoadState('networkidle')
 
   expect(requested.filter((url) => /EditorPage|EditorApplication/.test(url))).toEqual([])
-  expect(requested.filter((url) => url.includes('/audio/'))).toEqual([])
+  // src/audio is the UI sound player Button imports, with no engine and no sound files in it.
+  // The engine (packages/audio), the cue map and every sound file wait for the first gesture.
+  expect(requested.filter((url) => url.includes('/audio/') && !/\/src\/audio\/(?!cue-map)/.test(url))).toEqual([])
 })
 
 test('a teacher can walk login, home, editor, home and sign out', async ({ page }) => {

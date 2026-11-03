@@ -18,7 +18,7 @@
  * what each control plays (probe.ts). That is how the debug view stays right.
  */
 import { AudioSystem, CueBank, FakeAudioBackend, WebAudioBackend, type CueMap } from '../../packages/audio/src/index'
-import cueMapJson from './cue-map.json'
+import cueMapJson from '../../src/audio/cue-map.json'
 import bindingsJson from './bindings.json'
 import type { Binding } from './conditions'
 import { UiSoundDirector } from './director'

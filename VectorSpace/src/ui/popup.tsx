@@ -12,6 +12,7 @@
 /******************************************************************************/
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { uiSound, type UiCue } from "../audio";
 import { exitAsGhost } from "../motion/exitAsGhost";
 import { motion } from "../motion/motion";
 import "./popup.css";
@@ -23,9 +24,12 @@ type PopupProps = {
   // the buttons, placed bottom-right: pass the secondary one first, then the primary
   actions: ReactNode;
   children: ReactNode;
+  // the sound it opens with (a cue in src/audio/cue-map.json), e.g. "ui.error" for a popup that
+  // reports a problem; null for none. Closing always plays the close sound
+  cue?: UiCue;
 };
 
-export function Popup({ title, subtitle, onClose, actions, children }: PopupProps) {
+export function Popup({ title, subtitle, onClose, actions, children, cue = "ui.dialog.open" }: PopupProps) {
   // Escape closes the dialog, as people expect
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
@@ -43,7 +47,12 @@ export function Popup({ title, subtitle, onClose, actions, children }: PopupProp
     if (!backdrop || !card) return;
     motion.play("popup.backdrop.enter", backdrop);
     motion.play("popup.enter", card);
-    return () => exitAsGhost(backdrop, "popup.backdrop.exit", [{ selector: ".ui-popup", cue: "popup.exit" }]);
+    // the sounds replace the click of the button that opened or closed it (one sound per action)
+    uiSound.play(cue);
+    return () => {
+      uiSound.play("ui.close");
+      exitAsGhost(backdrop, "popup.backdrop.exit", [{ selector: ".ui-popup", cue: "popup.exit" }]);
+    };
   }, []);
 
   return (
