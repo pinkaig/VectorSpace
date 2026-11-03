@@ -321,7 +321,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
       {/*WHAT HAPPENED: one line after a failed Assign*/}
       {failed && <p className="setup-notice setup-notice-red">{failed}</p>}
       <div className={`setup-body ${expanded ? "setup-body-expanded" : ""}`}>{/*THE THREE PANELS, side by side; an expanded preview has the row to itself*/}
-        {!expanded && <MissionBriefSection brief={brief} onChange={editBrief} />}
+        {!expanded && <MissionBriefSection brief={brief} onChange={editBrief} things={draft.scenes.flatMap((scene) => scene.objects.map((object) => ({ id: object.id, name: object.name, room: scene.name })))} />}
         <SetupViewportSection draft={draft} onChange={editDraft} expanded={expanded} onExpandedChange={setExpanded} />
         {!expanded && <ProjectDetailsSection className={project.className} due={brief.due} draft={draft} onChange={editDraft} />}
       </div>

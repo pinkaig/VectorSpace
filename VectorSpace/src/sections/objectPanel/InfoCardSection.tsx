@@ -75,15 +75,22 @@ function MediaPicker({ kind, choices, selectedId, onPick, addMedia }: {
     setProblem(null)
     onPick(result)
   }
-  const shown = choices.filter((choice) => choice.kind === kind && choice.status !== 'rejected')
+  const shown = choices.filter((choice) => choice.kind === kind)
   return (
     <div className="info-pick-list">
       {shown.length === 0 && <div className="info-note">Nothing in the media library yet. Upload one or paste a link.</div>}
       {shown.map((choice) => (
-        <button key={choice.assetId} className={selectedId === choice.assetId ? 'info-pick selected' : 'info-pick'} onClick={() => onPick(choice)}>
+        <button
+          key={choice.assetId}
+          className={selectedId === choice.assetId ? 'info-pick selected' : 'info-pick'}
+          disabled={choice.status === 'rejected'}
+          title={choice.status === 'rejected' ? 'Your teacher sent this link back' : undefined}
+          onClick={() => onPick(choice)}
+        >
           <span className="info-pick-label">{choice.label}</span>
           {choice.status === 'pending'
             ? <span className="info-pick-status">Waiting for approval</span>
+            : choice.status === 'rejected' ? <span className="info-pick-status rejected">Sent back</span>
             : kind === 'video' && <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" /></svg>}
         </button>
       ))}
@@ -148,6 +155,20 @@ function AutoNote() {
   )
 }
 
+// "Show it": a pop-up only, or inside the room as well
+function ShowAs({ value, onChange, off, on, note }: { value: boolean; onChange: (value: boolean) => void; off: string; on: string; note?: string }) {
+  return (
+    <div className="info-field">
+      Show it
+      <div className="info-show-as" role="radiogroup" aria-label="Show it">
+        <button role="radio" aria-checked={!value} className={!value ? 'object-panel-seg active' : 'object-panel-seg'} onClick={() => onChange(false)}>{off}</button>
+        <button role="radio" aria-checked={value} className={value ? 'object-panel-seg active' : 'object-panel-seg'} onClick={() => onChange(true)}>{on}</button>
+      </div>
+      {note && <div className="info-note">{note}</div>}
+    </div>
+  )
+}
+
 // a card from a task whose task was since removed still opens: its kind is read from its fields
 const kindOf = (fields: CardField[]): CardTask['kind'] => (fields.some((field) => field.locked) ? 'blanks' : 'prompts')
 
@@ -189,15 +210,16 @@ function TaskFields({ kind, fields, onChange }: { kind: CardTask['kind']; fields
   )
 }
 
-export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions, onCardCreated }: {
+export function InfoCardSection({ objectId, card, video, mediaChoices, addMedia, cardTasks, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions, onCardCreated }: {
   card: CardInput | null
-  video: { assetId: string; label: string } | null
+  video: { assetId: string; label: string; screen?: boolean } | null
   mediaChoices: MediaChoice[]
   addMedia: AddMedia
   cardTasks: CardTask[]           // the info cards the teacher's mission brief asks for
+  objectId: string                // the thing this panel is for: its suggested cards come first
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
-  onSaveVideo?: (assetId: string) => string | null
+  onSaveVideo?: (assetId: string, screen: boolean) => string | null
   onRemoveVideo?: () => void
   onGoToReactions: () => void
   // a brand-new fact card was saved: the panel moves on to Reactions
@@ -224,6 +246,9 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks
   }
   // video draft
   const [videoId, setVideoId] = useState(video?.assetId ?? '')
+  // where visitors see it: as a pop-up only, or also inside the room (a sign, a screen)
+  const [inRoom, setInRoom] = useState(card?.inRoom === true)
+  const [screen, setScreen] = useState(video?.screen === true)
 
   const choiceFor = (assetId: string) => mediaChoices.find((choice) => choice.assetId === assetId)
 
@@ -236,8 +261,12 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks
       setPicture(card?.media?.kind === 'image' ? card.media : null)
       setTaskId(card?.taskId ?? null)
       setFields(card?.fields ?? [])
+      setInRoom(card?.inRoom === true)
     }
-    if (next === 'video') setVideoId(video?.assetId ?? '')
+    if (next === 'video') {
+      setVideoId(video?.assetId ?? '')
+      setScreen(video?.screen === true)
+    }
     setView(next)
   }
 
@@ -248,6 +277,7 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks
       // a task card's text is built from its answers, so it shows in Play like any card
       body: fromTask ? cardBody(taskKind, fields) : body,
       ...(fromTask ? { fields, taskId } : {}),
+      ...(inRoom ? { inRoom: true } : {}),
       ...(picture ? { media: picture } : {}),
       // the form has no timer, so a timer set elsewhere is kept as it was
       ...(card?.autoCloseMs !== undefined ? { autoCloseMs: card.autoCloseMs } : {}),
@@ -260,7 +290,7 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks
 
   const doneVideo = () => {
     if (!videoId) return setProblem('Pick a video')
-    const error = onSaveVideo ? onSaveVideo(videoId) : 'Saving videos is not connected in this editor yet'
+    const error = onSaveVideo ? onSaveVideo(videoId, screen) : 'Saving videos is not connected in this editor yet'
     if (error) return setProblem(error)
     open('list')
   }
@@ -284,10 +314,10 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks
               <div className="info-field">
                 Start from your teacher's card
                 <div className="info-pick-list">
-                  {cardTasks.map((item, index) => (
-                    <button key={item.id} className="info-pick" onClick={() => startTask(item)}>
-                      <span className="info-pick-label">{item.title || `Card ${index + 1}`}</span>
-                      <span className="info-pick-status">{item.kind === 'blanks' ? `${blankCount(item.fields)} blanks` : `${blankCount(item.fields)} questions`}</span>
+                  {[...cardTasks].sort((a, b) => Number(b.objectId === objectId) - Number(a.objectId === objectId)).map((item) => (
+                    <button key={item.id} className={item.objectId === objectId ? 'info-pick suggested' : 'info-pick'} onClick={() => startTask(item)}>
+                      <span className="info-pick-label">{item.title || `Card ${cardTasks.indexOf(item) + 1}`}</span>
+                      <span className="info-pick-status">{item.objectId === objectId ? 'Suggested for this' : item.kind === 'blanks' ? `${blankCount(item.fields)} blanks` : `${blankCount(item.fields)} questions`}</span>
                     </button>
                   ))}
                 </div>
@@ -351,9 +381,25 @@ export function InfoCardSection({ card, video, mediaChoices, addMedia, cardTasks
             <div className="info-heading">Pick a video</div>
             <MediaPicker kind="video" choices={mediaChoices} selectedId={videoId} addMedia={addMedia} onPick={(choice) => { setVideoId(choice.assetId); setProblem(null) }} />
             <div className="info-note">From your school's video library. Visitors open it in a pop-up and can play, pause and close it.</div>
+            <ShowAs
+              value={screen}
+              onChange={setScreen}
+              off="Pop-up when clicked"
+              on="Screen in the room"
+              note={screen ? 'It also plays on a screen above the exhibit. Visitors click the exhibit to turn the sound on. A YouTube video shows a "click to watch" screen.' : undefined}
+            />
           </>
         )}
 
+        {view === 'fact' && (
+          <ShowAs
+            value={inRoom}
+            onChange={setInRoom}
+            off="Pop-up when clicked"
+            on="Also a sign in the room"
+            note={inRoom ? 'A sign with the title, picture and text floats above the exhibit. Clicking still opens the full card.' : undefined}
+          />
+        )}
         {problem && <div className="info-problem" role="alert">{problem}</div>}
         <button className="info-done" onClick={view === 'fact' ? doneFact : doneVideo}>Done</button>
         {view === 'fact' && card && onRemoveCard && <button className="info-link danger" onClick={() => { onRemoveCard(); open('list') }}>Remove fact card</button>}

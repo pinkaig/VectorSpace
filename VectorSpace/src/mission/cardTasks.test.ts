@@ -83,6 +83,24 @@ describe('tidying and saving', () => {
     expect(deserializeProject(JSON.stringify(old)).missionBrief).toEqual({ due: 'Friday', todos: [], rules: [] })
   })
 
+  it('keeps the thing a task is suggested for, and the sign and screen settings, through a save', () => {
+    const project = defaultProject()
+    const thing = makeObject('cube', 0)
+    thing.id = 'obj-1'
+    thing.attachments = [
+      { id: 'att-card', kind: 'text', assetId: 'missing-text', presentation: { mode: 'card', title: 'T', inRoom: true } },
+      { id: 'att-video', kind: 'video', assetId: 'clip', screen: true },
+    ]
+    project.scenes[0].objects.push(thing)
+    project.missionBrief = { due: '', todos: [], rules: [], cardTasks: [{ ...blanksTask, objectId: 'obj-1' }] }
+    const loaded = deserializeProject(serializeProject(project))
+    expect(loaded.missionBrief?.cardTasks?.[0].objectId).toBe('obj-1')
+    expect(loaded.scenes[0].objects[0].attachments).toEqual(thing.attachments)
+    const bad = JSON.parse(serializeProject(project))
+    bad.scenes[0].objects[0].attachments[1].screen = 'yes'
+    expect(() => deserializeProject(JSON.stringify(bad))).toThrow(/screen setting/)
+  })
+
   it('refuses a task of an unknown kind or with a bad field', () => {
     const project = defaultProject()
     const json = (cardTasks: unknown) => JSON.stringify({ ...project, missionBrief: { due: '', todos: [], rules: [], cardTasks } })

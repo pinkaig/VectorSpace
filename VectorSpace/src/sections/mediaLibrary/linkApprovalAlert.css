@@ -1,0 +1,132 @@
+/**
+ * @file        linkApprovalAlert.css
+ * @project     Spatial Experience Builder
+ * @author      Weian Ching
+ * @brief       The "links need your approval" alert on the teacher's Review page.
+ *              Only the inside; the Review page decides where it sits.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.link-approval {
+  margin: 0 0 14px;
+  border: 1px solid #F3D29C;
+  border-radius: 14px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-family: var(--font-body);
+}
+
+.link-approval-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.link-approval-head > span:nth-child(2) {
+  flex: 1;
+}
+
+.link-approval-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #E3A93B;
+  box-shadow: 0 0 0 4px rgba(227, 169, 59, 0.25);
+}
+
+.link-approval-toggle {
+  color: #4A3BC4;
+  font-weight: 800;
+}
+
+.link-approval-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 12px 12px;
+  list-style: none;
+}
+
+.link-approval-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 10px;
+  border-radius: 12px;
+  background: #FFFFFF;
+}
+
+.link-approval-main {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.link-approval-name {
+  overflow: hidden;
+  color: #1F1B3A;
+  font-weight: 800;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.link-approval-meta {
+  color: #5E5878;
+  font-size: 12px;
+}
+
+.link-approval-comment {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid #D5CEF2;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.link-approval-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.link-approval-approve,
+.link-approval-back {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.link-approval-approve {
+  border: 1px solid #5B4BD6;
+  background: #5B4BD6;
+  color: #FFFFFF;
+}
+
+.link-approval-back {
+  border: 1px solid #E3DFF3;
+  background: #FFFFFF;
+  color: #3B3363;
+}

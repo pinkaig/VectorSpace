@@ -80,8 +80,8 @@ export interface ProjectSync {
   stage(project: ProjectData): void
   /** Re-drives the queue — call on network reconnect or a manual "retry now". A no-op if nothing is queued. */
   retry(): void
-  /** Sends every held project now: on Save, on leaving the editor, and when the tab is hidden. */
-  flush(): void
+  /** Sends every held project now: on Save, on leaving the editor, and when the tab is hidden. Resolves once the queue has been tried. */
+  flush(): Promise<void>
   status(): ProjectSyncStatus
   subscribe(listener: ProjectSyncListener): () => void
 }
@@ -218,6 +218,7 @@ export const createProjectSync = (options: ProjectSyncOptions = {}): ProjectSync
     },
     flush() {
       for (const id of [...waiting.keys()]) release(id)
+      return drainChain
     },
     status: () => currentStatus,
     subscribe(listener) {
@@ -248,6 +249,6 @@ if (typeof window !== 'undefined' && defaultProjectSync) {
 
 export const stageProjectSync = (project: ProjectData): void => defaultProjectSync?.stage(project)
 export const retryProjectSync = (): void => defaultProjectSync?.retry()
-export const flushProjectSync = (): void => defaultProjectSync?.flush()
+export const flushProjectSync = (): Promise<void> => defaultProjectSync?.flush() ?? Promise.resolve()
 export const getProjectSyncStatus = (): ProjectSyncStatus => defaultProjectSync?.status() ?? 'idle'
 export const subscribeProjectSync = (listener: ProjectSyncListener): (() => void) => defaultProjectSync?.subscribe(listener) ?? (() => {})

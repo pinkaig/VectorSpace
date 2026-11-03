@@ -10,7 +10,8 @@ treated as sign_in_only. A project handed in and waiting for the teacher is a 40
 for approval"), but only to a visitor its choice would let in. Anything else not published,
 or not visible to this visitor, is a 404, so a link does not confirm that a draft exists.
 
-The answer carries the scene and only what the page shows about who made it: the student's
+Visitors see the save the teacher approved (submissions.version_id), so edits made since stay
+in the student's draft. The answer carries the scene and only what the page shows about who made it: the student's
 first name, the class and the school. Uploaded media still needs a sign-in to load.
 """
 
@@ -101,7 +102,9 @@ def visit(slug: str, visitor: Actor | None = Depends(get_optional_actor), db: Se
     share_with = (approved.share_with if approved else None) or "sign_in_only"
     _let_in(db, visitor, project, share_with, missing)
 
-    version = db.get(ProjectVersion, project.current_version_id)
+    # the save the teacher approved, not the newest one, so later edits don't go live unreviewed;
+    # a project published without a hand-in (a teacher's own) shows its newest save
+    version = db.get(ProjectVersion, (approved.version_id if approved else None) or project.current_version_id)
     if version is None or version.content_snapshot is None:
         raise missing
     # one visit for the teacher's Results, unless it is the student looking at their own museum

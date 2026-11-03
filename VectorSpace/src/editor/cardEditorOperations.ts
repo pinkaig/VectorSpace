@@ -42,6 +42,7 @@ export interface CardInput {
   // and which task it is. body is then built from the answers (src/mission/cardTasks.ts).
   fields?: CardField[]
   taskId?: string
+  inRoom?: boolean        // also show the card as a sign above its thing in the room
 }
 
 export type CardOperationResult =
@@ -78,6 +79,7 @@ const presentationFor = (input: CardInput): TextAttachment['presentation'] => ({
   ...(input.media ? { media: cleanMedia(input.media) } : {}),
   ...(input.autoCloseMs !== undefined ? { autoCloseMs: input.autoCloseMs } : {}),
   ...(input.fields && input.taskId ? { fields: input.fields.map((field) => ({ ...field })), taskId: input.taskId } : {}),
+  ...(input.inRoom ? { inRoom: true } : {}),
 })
 
 const cleanMedia = (media: CardMedia): CardMedia => {
@@ -181,7 +183,7 @@ export const findVideo = (host: { attachments?: SceneObject['attachments'] }): V
  * changing the one it has. Playing it (the "play a video" reaction) is the
  * rules side's job; this only records which video belongs to the object.
  */
-export const saveObjectVideo = (project: ProjectData, sceneId: string, objectId: string, assetId: string): CardOperationResult => {
+export const saveObjectVideo = (project: ProjectData, sceneId: string, objectId: string, assetId: string, screen = false): CardOperationResult => {
   if (!assetId) return { ok: false, error: 'Pick a video from the library' }
   const next = cloneProject(project)
   const object = findObject(next, sceneId, objectId)
@@ -189,10 +191,12 @@ export const saveObjectVideo = (project: ProjectData, sceneId: string, objectId:
   const existing = findVideo(object)
   if (existing) {
     existing.assetId = assetId
+    if (screen) existing.screen = true
+    else delete existing.screen
     return { ok: true, project: next, attachmentId: existing.id }
   }
   if ((object.attachments?.length ?? 0) >= MAX_ATTACHMENTS_PER_HOST) return { ok: false, error: 'This object already has as many attachments as it can hold' }
-  const attachment: VideoAttachment = { id: `${VIDEO_ATTACHMENT_PREFIX}${crypto.randomUUID()}`, kind: 'video', assetId }
+  const attachment: VideoAttachment = { id: `${VIDEO_ATTACHMENT_PREFIX}${crypto.randomUUID()}`, kind: 'video', assetId, ...(screen ? { screen: true } : {}) }
   object.attachments = [...(object.attachments ?? []), attachment]
   return { ok: true, project: next, attachmentId: attachment.id }
 }

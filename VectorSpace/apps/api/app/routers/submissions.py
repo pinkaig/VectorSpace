@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from ..access import class_ids
 from ..auth import get_current_actor
 from ..db import get_db
-from ..models import Actor, Project, Submission
+from ..models import Actor, Project, ProjectVersion, Submission
 from .projects import _load
 
 
@@ -26,6 +26,9 @@ router = APIRouter(prefix="/projects", tags=["submissions"])
 
 # the same limit as a media link's review comment
 MAX_COMMENT_LENGTH = 500
+# the save a hand-in points at gets this label: publish.py never merges into or prunes a
+# labelled save, so the teacher reviews (and visitors later see) exactly what was sent
+SENT_LABEL = "Sent to teacher"
 
 
 class SubmitRequest(BaseModel):
@@ -98,10 +101,17 @@ def submit_project(
         raise HTTPException(status_code=409, detail="It is already waiting for your teacher")
     if latest is not None and latest.status == "approved":
         raise HTTPException(status_code=409, detail="Your teacher already approved it")
+    sent = db.get(ProjectVersion, project.current_version_id) if project.current_version_id else None
+    if sent is None:
+        raise HTTPException(status_code=409, detail="Nothing is saved yet")
+    # labelled in place, not copied, so the revision stays the same and the editor's next save
+    # still lines up; a save that already has a label (such as "Sent by Ms Tan") keeps it
+    if sent.label is None:
+        sent.label = SENT_LABEL
 
     submission = Submission(
         project_id=project.id,
-        version_id=project.current_version_id,
+        version_id=sent.id,
         status="waiting",
         share_with=body.share_with,
         submitted_by_id=actor.id,

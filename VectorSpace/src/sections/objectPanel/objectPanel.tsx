@@ -76,8 +76,8 @@ export type ObjectPanelProps = {
   onAddMediaLink?: (url: string) => MediaChoice | { error: string }
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
-  video?: { attachmentId?: string; assetId: string; label: string } | null
-  onSaveVideo?: (assetId: string) => string | null
+  video?: { attachmentId?: string; assetId: string; label: string; screen?: boolean } | null
+  onSaveVideo?: (assetId: string, screen: boolean) => string | null
   onRemoveVideo?: () => void
 }
 
@@ -168,6 +168,7 @@ export function ObjectPanel(props: ObjectPanelProps) {
           mediaChoices={props.mediaChoices ?? []}
           addMedia={{ upload: props.onUploadMedia, link: props.onAddMediaLink }}
           cardTasks={props.cardTasks ?? []}
+          objectId={object.id}
           onSaveCard={props.onSaveCard}
           onRemoveCard={props.onRemoveCard}
           onSaveVideo={props.onSaveVideo}

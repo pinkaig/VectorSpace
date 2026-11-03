@@ -34,6 +34,7 @@ import { useLoad } from "../api/useLoad";
 import { useSession } from "../session/session";
 import { MuseumPreview } from "../ui/museumPreview";
 import { Toggle } from "../ui/toggle";
+import { LinkApprovalAlert } from "../sections/mediaLibrary/LinkApprovalAlert";
 import "./TeacherReviewPage.css";
 
 type Status =
@@ -278,6 +279,8 @@ export default function TeacherReviewPage() {
         <p className="review-list-sub">
           Every student's museum. Pick a tab to see who needs you.
         </p>
+        {/* YouTube and image links students added wait here for approval (Weian Ching) */}
+        <LinkApprovalAlert />
 
         <div className="review-tabs" role="tablist">
           {tabs.map((t) => (
