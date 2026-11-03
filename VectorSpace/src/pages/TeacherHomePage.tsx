@@ -1081,12 +1081,6 @@ export default function TeacherHomePage() {
           </div>
         </div>
       )}
-
-      {/* Temporary: Sherman's lists and the "send to a student" dev tool, until the real UI replaces them. */}
-      <details className="teacher-home-dev">
-        <summary>Developer: real projects and dev tools</summary>
-        <ProjectListsSection />
-      </details>
     </main>
   );
 }
