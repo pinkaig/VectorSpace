@@ -3,7 +3,8 @@
 Real infrastructure (not skeleton): fetches and caches the tenant's JWKS,
 validates bearer tokens against it, and exposes FastAPI dependencies that
 routers can use to require a verified token (get_current_token) or a known,
-active school user (get_current_actor).
+active school user (get_current_actor), or to learn who is asking where signing in
+is optional (get_optional_actor).
 """
 
 from __future__ import annotations
@@ -24,6 +25,8 @@ from .db import get_db
 from .models import Actor
 
 security = HTTPBearer(auto_error=True)
+# for a route a visitor may open signed out: no Authorization header is not an error there
+optional_security = HTTPBearer(auto_error=False)
 
 # A real Auth0 subject looks like "auth0|abc..."; "dev|" can never collide with one.
 DEV_PREFIX = "dev|"
@@ -144,3 +147,19 @@ def get_current_actor(
     if actor is None or not actor.active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active account for this login")
     return actor
+
+
+def get_optional_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
+) -> TokenPayload | None:
+    """get_current_token, or None when no token is sent. A token that is sent but invalid is
+    still refused (401), so an expired login is not quietly treated as signed out."""
+    return get_current_token(credentials) if credentials is not None else None
+
+
+def get_optional_actor(
+    token: TokenPayload | None = Depends(get_optional_token),
+    db: Session = Depends(get_db),
+) -> Actor | None:
+    """The signed-in school user, or None for someone not signed in."""
+    return get_current_actor(token, db) if token is not None else None

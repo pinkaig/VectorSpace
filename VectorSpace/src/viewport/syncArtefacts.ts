@@ -28,6 +28,7 @@ import type { SceneObject } from '../project/model'
 import { colorFor } from './viewportTypes'
 import { resolveModelUrl, resolveModelUrlModifier } from '../content/assets'
 import { cloneModel, getCachedModel, loadModel } from '../content/modelCache'
+import { buildPlaceholderModel } from '../content/placeholderModels'
 
 export interface ArtefactSyncInput {
   group: THREE.Group
@@ -134,6 +135,15 @@ const createPrimitiveArtefact = (item: SceneObject): THREE.Mesh => {
 
 const createModelArtefact = (item: SceneObject, onModelLoaded?: () => void): THREE.Object3D | null => {
   const url = resolveModelUrl(item.assetId)
+  // a model not made yet: used three.js placeholder
+  //BENCH PLACEHOLDER
+  const placeholder = url ? buildPlaceholderModel(url) : undefined
+  if (placeholder) {
+    placeholder.name = item.id
+    placeholder.userData.entityId = item.id
+    applyTransform(placeholder, item)
+    return placeholder
+  }
   const template = url ? getCachedModel(url) : undefined
   // The assetId is passed through only so the Asset Manager can account for this
   // load (engineAssetRegistry); the loader itself still keys on the URL.

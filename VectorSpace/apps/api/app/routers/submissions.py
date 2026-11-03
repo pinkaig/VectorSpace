@@ -114,6 +114,22 @@ def submit_project(
     return SubmissionResponse.model_validate(submission)
 
 
+@router.delete("/{project_id}/submit", status_code=204, response_model=None)
+def withdraw_submission(
+    project_id: uuid.UUID, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)
+) -> None:
+    """The student takes back a hand-in the teacher hasn't looked at yet. The waiting row is
+    removed, so the project's review state goes back to what it was before (none, or sent_back)."""
+    project = _load(db, actor, project_id)
+    if project.created_by_id != actor.id or actor.role != "student":
+        raise HTTPException(status_code=403, detail="Only the student whose museum it is can take it back")
+    latest = latest_submission(db, project.id)
+    if latest is None or latest.status != "waiting":
+        raise HTTPException(status_code=409, detail="This museum is not waiting for review")
+    db.delete(latest)
+    db.commit()
+
+
 @router.post("/{project_id}/approve", response_model=SubmissionResponse)
 def approve_project(
     project_id: uuid.UUID, body: ReviewRequest, actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db)

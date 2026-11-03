@@ -144,7 +144,7 @@
   background: var(--viewport-bg);
 }
 
-/* the top row: label on the left, Edit room on the right */
+/* the top row: room name on the left, Environment picker on the right */
 .viewport-bar {
   display: flex;
   align-items: center;
@@ -161,7 +161,7 @@
   color: var(--ink-2);
 }
 
-/* the right of the top row: the Environment picker, then Edit room */
+/* the right of the top row: the Environment picker */
 .viewport-bar-actions {
   display: flex;
   flex-wrap: wrap;
@@ -273,10 +273,123 @@
   font-size: 14px;
   color: var(--ink-2);
 }
+/* ── Teacher tools, floating over the room ─────────────────────────────── */
+.viewport-stage { position: relative; }
 
-.setup-viewport-hint strong {
-  color: var(--ink);
+/* a tool that clicks into the room shows a crosshair there */
+.viewport-stage-picking canvas { cursor: crosshair; }
+
+.setup-tools {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: calc(100% - 84px);
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(30, 27, 58, 0.08);
 }
+
+.setup-tools-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.setup-tool,
+.setup-starter,
+.setup-spot-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.setup-tool:hover,
+.setup-starter:hover,
+.setup-spot-number:hover { border-color: var(--purple-300); }
+
+.setup-tool-on,
+.setup-tool-on:hover { border-color: var(--purple-500); background: var(--purple-500); color: var(--surface); }
+
+.setup-starter-on,
+.setup-spot-number-on { border-color: var(--purple-500); background: var(--purple-50); color: var(--purple-600); }
+
+.setup-tool:focus-visible,
+.setup-starter:focus-visible,
+.setup-spot-number:focus-visible,
+.setup-spot-remove:focus-visible,
+.setup-expand:focus-visible { outline: 2px solid var(--purple-500); outline-offset: 2px; }
+
+.setup-tools-hint { margin: 0; padding: 0 8px; font-size: 14px; color: var(--ink-2); }
+
+.setup-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 8px 6px; }
+
+.setup-starter { height: 36px; padding: 0 12px; font-size: 14px; }
+
+.setup-starter-swatch {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(30, 27, 58, 0.35);
+  border-radius: 4px;
+}
+
+.setup-spot-numbers { display: inline-flex; gap: 4px; }
+
+.setup-spot-number { justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; font-size: 13px; }
+
+.setup-spot-text { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 220px; font-size: 14px; font-weight: 700; }
+
+.setup-spot-text input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1.5px solid var(--purple-100);
+  border-radius: var(--radius-btn);
+  font: inherit;
+  font-weight: 500;
+}
+
+.setup-spot-text input:focus { outline: none; border-color: var(--purple-500); }
+
+.setup-spot-remove,
+.setup-expand {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.setup-spot-remove { width: 28px; height: 28px; border-radius: 50%; }
+
+.setup-spot-remove:hover { border-color: var(--red-500); color: var(--red-700); }
+
+.setup-expand {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-btn);
+  box-shadow: 0 4px 16px rgba(30, 27, 58, 0.08);
+}
+
+.setup-expand:hover { border-color: var(--purple-300); color: var(--purple-600); }
+
 /*Room colours*/
 /*the room colours, one per environment*/
 .setup-tone-blue { background: #B7D5F4; }

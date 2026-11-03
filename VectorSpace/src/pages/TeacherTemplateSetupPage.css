@@ -87,6 +87,9 @@
   min-height: 0;
 }
 
+/* the room preview expanded: it has the row to itself */
+.setup-body.setup-body-expanded { grid-template-columns: minmax(0, 1fr); }
+
 /* a narrow window: stack the panels one under another, and let the page scroll again,
    since three stacked panels cannot fit in one window */
 @media (max-width: 1100px) {
