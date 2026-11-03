@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from apps.api.app.media_policy import MEDIA_KIND_SPECS, LinkError, parse_media_link
+from apps.api.app.media_policy import LIBRARY_KIND_SPECS, MEDIA_KIND_SPECS, LinkError, parse_media_link
 
 CLIENT_TABLE = Path(__file__).resolve().parents[3] / "packages" / "assets" / "src" / "mediaKinds.ts"
 
@@ -29,7 +29,37 @@ def test_backend_allowlist_matches_the_client(kind) -> None:
 
 
 def test_svg_is_never_allowed() -> None:
-    assert all("image/svg+xml" not in spec["content_types"] for spec in MEDIA_KIND_SPECS.values())
+    assert all("image/svg+xml" not in spec["content_types"] for spec in LIBRARY_KIND_SPECS.values())
+
+
+def library_model_spec(kind: str) -> tuple[set[str], int]:
+    """Reads one kind out of LIBRARY_MODEL_KIND_SPECS in mediaKinds.ts."""
+    source = CLIENT_TABLE.read_text(encoding="utf-8")
+    table = re.search(r"LIBRARY_MODEL_KIND_SPECS = \{(.*?)\n\} as const", source, re.S)
+    assert table, "LIBRARY_MODEL_KIND_SPECS not found in mediaKinds.ts"
+    row = re.search(rf"{kind}: \{{(.*?)\}}", table.group(1), re.S)
+    assert row, f"{kind} not found in LIBRARY_MODEL_KIND_SPECS"
+    types = set(re.findall(r"'([^']+)'", re.search(r"contentTypes: \[(.*?)\]", row.group(1), re.S).group(1)))
+    return types, int(re.search(r"maxBytes: ([\d_]+)", row.group(1)).group(1).replace("_", ""))
+
+
+@pytest.mark.parametrize("kind", ["model", "environment"])
+def test_library_model_kinds_match_the_client(kind) -> None:
+    types, max_bytes = library_model_spec(kind)
+    assert set(LIBRARY_KIND_SPECS[kind]["content_types"]) == types
+    assert LIBRARY_KIND_SPECS[kind]["max_bytes"] == max_bytes
+
+
+def test_library_models_are_glb_only() -> None:
+    """A .gltf fetches sibling files by relative path, which in a shared bucket is an uncontrolled fetch."""
+    for kind in ("model", "environment"):
+        assert LIBRARY_KIND_SPECS[kind]["content_types"] == ("model/gltf-binary",)
+    assert all("gltf+json" not in t for spec in LIBRARY_KIND_SPECS.values() for t in spec["content_types"])
+
+
+def test_library_keeps_everything_project_media_allows() -> None:
+    for kind, spec in MEDIA_KIND_SPECS.items():
+        assert LIBRARY_KIND_SPECS[kind] == spec
 
 
 # the same list the browser's parser is tested against, so the two can never disagree
