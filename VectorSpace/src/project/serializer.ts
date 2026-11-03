@@ -75,6 +75,8 @@ export interface ProjectSharing {
   shareWith: 'public' | 'unlisted' | 'sign_in_only' | null
   /** The teacher's note from their last review, e.g. why it was sent back. */
   reviewComment: string | null
+  /** The grade from that review, if the teacher gave one. */
+  reviewGrade: string | null
   /** Who assigned it, e.g. "Ms Tan"; null for a project nobody assigned. */
   teacherName: string | null
   /** The project's slug, the last part of its visitor link. */
