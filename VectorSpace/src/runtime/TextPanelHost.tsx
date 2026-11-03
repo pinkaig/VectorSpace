@@ -126,6 +126,19 @@ export default function TextPanelHost({ text }: { text: TextSystem }) {
   })
 
   const hasOverlay = overlayPanels.length > 0
+  // Walk with a mouse locks the pointer for looking around; a card that opens hands the
+  // mouse back, so the visitor can read it, scroll it and press its X
+  useEffect(() => {
+    if (!hasOverlay) return
+    const release = () => {
+      if (document.pointerLockElement) document.exitPointerLock()
+    }
+    release()
+    // the click that opens a card can also be the one that asked for the lock, which the
+    // browser grants a moment later; release it then too, for as long as a card is open
+    document.addEventListener('pointerlockchange', release)
+    return () => document.removeEventListener('pointerlockchange', release)
+  }, [hasOverlay])
   useEffect(() => {
     if (!hasOverlay) return
     // capture phase, so this runs before RuntimeView's Escape ("leave Play") and the

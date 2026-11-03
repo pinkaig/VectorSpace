@@ -14,11 +14,11 @@
  */
 /****************************************************************************************************/
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Clock, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
-import { downloadProject, loadProjectWithSource, type ProjectLoadResult } from '../project/serializer'
+import { downloadProject, loadProjectWithSource, type ProjectLoadResult, type ProjectSharing } from '../project/serializer'
 import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
 import { DEFAULT_ROOM_SURFACES, ROOM_STYLE_OPTIONS, type RoomStyle } from '../content/roomSurfaces'
 import { isUserAsset } from '../content/userAssets'
@@ -45,8 +45,11 @@ import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
 import { useProjectFile } from '../editor/hooks/useProjectFile'
 import { homePath, useSession } from '../session/session'
+import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawSubmission, type ShareWith } from '../api/projects'
+import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
-import { getProject, listSubmissions, setProjectStatus, submitProject } from '../api/projects'
+import { getProjectSyncStatus } from '../project/projectSync'
+import { markersFor } from '../editor/teacherTools'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -126,6 +129,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [step, setStep] = useState<EditStep>(1)
   // a short line telling the student where a step took them ("Add info to Pedestal")
   const [stepNotice, setStepNotice] = useState<string | null>(null)
+  // a short "saved" pop-up in the corner after the student saves a fact card, a video or a link
+  const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
+  const showToast = (text: string) => setToast({ text, key: Date.now() })
   // the object panel's Snap switch: the viewport's drags land on the floor grid, in 15° turns
   // and 0.25 size steps while it is on (viewport/editing/snapping.ts)
   const [snapOn, setSnapOn] = useState(false)
@@ -223,6 +229,14 @@ export default function EditorPage({ start, preview = false }: { start?: Project
 
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
 
+  const { getToken, role } = useSession()
+  // what a student sees: locks apply and suggested spots show (a teacher previewing too)
+  const studentView = preview || role === 'student'
+  // the teacher's suggested spots, and a lock over each locked thing, for anyone editing
+  // the selected thing is locked for this person: no arrows on it and no move/remove buttons
+  const selectedLocked = studentView && !!selected?.locked
+  const sceneMarkers = useMemo(() => markersFor(scene, { spots: true, locks: true }), [scene])
+
   const toggleSceneExpanded = (id: string) => {
     setExpandedSceneIds((current) => {
       const next = new Set(current)
@@ -240,7 +254,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, setSelectedEnabled,
     addSelectedClickRule, removeRuleById, addScene, removeScene, moveSceneInOrder, renameScene, setSceneSurfaces,
-  } = useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef })
+  } = useSceneEditing({
+    project, scene, selected, setSelectedId, commit, runCommand, viewportRef,
+    // a student (or a teacher previewing as one) can't change what the teacher locked
+    isLocked: (objectId) => studentView && !!scene.objects.find((object) => object.id === objectId)?.locked,
+    // a gizmo drag has already moved the mesh, so pull it back to the saved pose
+    onLocked: (object) => { bumpSync(); setStepNotice(`${object.name} is locked by your teacher. You can't move or delete it.`) },
+  })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
     project, scene, resetTimeline, setSelectedId, setSavedAt, setPersistenceState, fileInputRef,
@@ -257,11 +277,10 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Play keeps the top bar (Play turns into Stop) and swaps the building stage for the visitor's view.
   const playing = viewMode === 'runtime'
 
-  // Publish: saves now, then a student's museum goes to their teacher (POST /projects/:id/submit)
-  // and goes live once the teacher approves it on Review; anyone else's project is published
-  // straight away (PATCH /projects/:id). A browser draft has no server row to publish, and a
-  // teacher preview changes nothing.
-  const { getToken, role } = useSession()
+  // Publish opens "Share your project" (SharePopup). A student's send goes to their teacher
+  // (POST /projects/:id/submit, with who can visit) and goes live once the teacher approves it on
+  // Review; anyone else's project is published straight away (PATCH /projects/:id). Either saves
+  // first. A browser draft has no server row to share, and a teacher preview changes nothing.
   const sendsToTeacher = role === 'student'
   // the kick-off tutorial: opens the first time in this browser; the "?" opens it again.
   // A teacher preview never marks it seen, so the student still gets it.
@@ -279,47 +298,82 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [reactionsTipOpen, setReactionsTipOpen] = useState(false)
   const closeReactionsTip = useCallback(() => setReactionsTipOpen(false), [])
   const [published, setPublished] = useState(initialLoad.status === 'published')
-  // a student's museum is waiting for the teacher
-  const [sent, setSent] = useState(false)
+  const [sharing, setSharing] = useState<ProjectSharing>(
+    initialLoad.sharing ?? { reviewStatus: null, shareWith: null, reviewComment: null, reviewGrade: null, teacherName: null, slug: null },
+  )
+  // a student's project is waiting for the teacher
+  const sent = !published && sharing.reviewStatus === 'waiting'
+  const shareStatus: ShareStatus = published ? 'published' : sent ? 'submitted' : 'draft'
+  const [shareOpen, setShareOpen] = useState(false)
+  // the teacher's sent-back comment shows over the room; × folds it into a chip (Weian Ching)
+  const [sentBackOpen, setSentBackOpen] = useState(true)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
+  const canShare = !preview && isRemoteProject(project.id)
+  const teacherName = sharing.teacherName ?? 'your teacher'
   // who assigned this museum, for "From Ms Tan" on the mission brief; none for a browser draft
-  const [teacherName, setTeacherName] = useState<string | null>(null)
+  const [assignedByName, setAssignedByName] = useState<string | null>(null)
   useEffect(() => {
     if (!isRemoteProject(project.id)) return
     let current = true
     getProject(getToken, project.id).then(
-      (row) => { if (current) setTeacherName(row.assigned_by_name ?? null) },
+      (row) => { if (current) setAssignedByName(row.assigned_by_name ?? null) },
       () => {},
     )
     return () => { current = false }
   }, [project.id])
-  const canPublish = !preview && isRemoteProject(project.id) && !published && !sent && !publishing
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
-    : published ? 'This museum is published'
-    : sent ? 'Waiting for your teacher to approve it'
-    : publishError ? `Could not publish: ${publishError} (click to try again)`
-    : 'Publish this museum'
-  const publish = async () => {
-    if (!canPublish) return
+    : published ? 'This project is published'
+    : sent ? `Sent to ${teacherName}: waiting for them to approve it`
+    : 'Share this project'
+  const publish = async (shareWith: ShareWith) => {
+    if (!canShare || publishing) return
     setPublishing(true)
     setPublishError(null)
-    save()
     try {
+      // the teacher reviews the newest save on the server, so the last edits must reach it first
+      await save()
+      if (getProjectSyncStatus() !== 'idle') {
+        setPublishError("Your latest changes haven't saved yet. Check your connection and try again.")
+        return
+      }
       if (sendsToTeacher) {
-        await submitProject(getToken, project.id)
-        setSent(true)
+        const submission = await submitProject(getToken, project.id, shareWith)
+        setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with, reviewComment: submission.comment, reviewGrade: submission.grade }))
       } else {
         const saved = await setProjectStatus(getToken, project.id, 'published')
         setPublished(saved.status === 'published')
       }
     } catch (problem) {
-      setPublishError(problem instanceof Error ? problem.message : 'unknown error')
+      setPublishError(`That didn't go through: ${problem instanceof Error ? problem.message : 'unknown error'}`)
     } finally {
       setPublishing(false)
     }
   }
+  // a student takes back a hand-in still waiting (DELETE /projects/:id/submit); the project goes
+  // back to its earlier review state, so a sent-back comment from before shows again
+  const withdraw = async () => {
+    if (!canShare || publishing || !sent) return
+    setPublishing(true)
+    setPublishError(null)
+    try {
+      await withdrawSubmission(getToken, project.id)
+      const [previous] = await listSubmissions(getToken, project.id).catch(() => [])
+      setSharing((current) => ({
+        ...current,
+        reviewStatus: previous?.status ?? null,
+        shareWith: previous?.share_with ?? current.shareWith,
+        reviewComment: previous?.comment ?? null,
+        reviewGrade: previous?.grade ?? null,
+      }))
+    } catch (problem) {
+      setPublishError(`That didn't go through: ${problem instanceof Error ? problem.message : 'unknown error'}`)
+    } finally {
+      setPublishing(false)
+    }
+  }
+  const closeShare = () => setShareOpen(false)
 
   const limitRooms = preview || role === 'student'
   const roomKinds = limitRooms ? studentRoomEnv(project) : environmentLibrary
@@ -331,6 +385,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // what each step still needs, for its green tick and for where a step click goes
   const roomRules = (project.rules ?? []).filter((rule) => scene.objects.some((object) => object.id === rule.objectId))
   const needInfo = scene.objects.filter((object) => !findCard(project, object))
+  const withInfo = scene.objects.length - needInfo.length
   const stepDone: Record<TutorialStep, boolean> = {
     1: scene.objects.length > 0,
     2: scene.objects.length > 0 && needInfo.length === 0,
@@ -350,6 +405,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     }
     if (playing) setViewMode('editor')
     setStep(n)
+    // Add info opens the things list, where each thing shows whether it has its fact card yet
+    if (n === 2) setThingsOpen(true)
     if (n === 1 || selected) return
     if (scene.objects.length === 0) {
       setStepNotice('Place something from the catalogue first.')
@@ -376,6 +433,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     return () => window.clearTimeout(timer)
   }, [stepNotice])
 
+  // the saved pop-up goes after a moment; a new save restarts it
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 2600)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -401,7 +465,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         {tutorialSteps.map(({ step: n, label }) => {
           const viewing = n === (playing ? 4 : step)
           const colour = viewing ? 'viewing' : stepDone[n] ? 'green' : 'todo'
-          const title = `Step ${n}: ${label}${stepDone[n] && !viewing ? ' (done)' : ''}`
+          // step 2 counts per thing: green once every thing in this room has a fact card
+          const progress = n === 2 && scene.objects.length > 0 ? ` · ${withInfo}/${scene.objects.length}` : ''
+          const title = `Step ${n}: ${label}${n === 2 && scene.objects.length > 0 ? ` (${withInfo} of ${scene.objects.length} things have info)` : ''}${stepDone[n] && !viewing ? ' (done)' : ''}`
           return (
             <button
               key={n}
@@ -412,7 +478,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onClick={() => goToStep(n)}
             >
             <span className="button-num">{n}</span>
-              <span className="button-label">{label}</span>
+              <span className="button-label">{label}{progress}</span>
             </button>
                   )})}
         </nav>
@@ -448,13 +514,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             {saveProblem ? <AlertTriangle size={15} /> : <Check size={15} />} {saveLabel}
           </button>
           <button className={playing ? 'top-play playing' : 'top-play'} onClick={() => (playing ? setViewMode('editor') : goToStep(4))}><Play size={13} fill="currentColor" /> {playing ? 'Stop' : 'Play'}</button>
-          {/* a student's Publish goes to the teacher first and is live once approved; the share popup is next */}
-          <button className={publishError ? 'top-publish problem' : 'top-publish'} onClick={() => void publish()} disabled={!canPublish} title={publishTitle}>
-            {published ? <><Check size={15} /> Published</>
-              : sent ? 'Waiting for approval'
-              : publishing ? 'Publishing…'
-              : publishError ? <><AlertTriangle size={15} /> Publish</>
-              : 'Publish'}
+          {/* opens "Share your project"; the label follows where the project is: draft, waiting, live */}
+          <button className="top-publish" onClick={() => { setPublishError(null); setShareOpen(true) }} disabled={!canShare} title={publishTitle}>
+            {published ? <><Check size={15} /> Published</> : sent ? <><Clock size={15} /> Waiting</> : 'Publish'}
           </button>
           {/* Less-used actions, out of the way */}
           <div className={moreMenuOpen ? 'top-more open' : 'top-more'} ref={moreMenuRef}>
@@ -466,6 +528,19 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
         </div>
       </header>
+      {shareOpen && (
+        <SharePopup
+          project={project}
+          status={shareStatus}
+          sharing={sharing}
+          needsReview={sendsToTeacher}
+          busy={publishing}
+          error={publishError}
+          onSend={(shareWith) => void publish(shareWith)}
+          onWithdraw={() => void withdraw()}
+          onClose={closeShare}
+        />
+      )}
       {playing ? <RuntimeView project={project} onExit={() => setViewMode('editor')} /> : <>
       <div className="workspace">
         {/* TURNED OFF: left rail (Scene / Assets / Audio / Interactions panels) was removed so the
@@ -488,7 +563,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onMove={moveObject}
               onScale={scaleObject}
               onRotate={rotateObject}
-              gizmoMode={gizmoMode}
+              gizmoMode={selectedLocked ? 'select' : gizmoMode}
               scaleSpace={scaleSpace}
               rotateSpace={rotateSpace}
               snap={snapOn}
@@ -499,6 +574,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               cameraMode={cameraMode}
               resetToken={resetToken}
               syncToken={syncToken}
+              markers={sceneMarkers}
               // The quad layout's main pane is always perspective - only the three reference
               // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
               orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}
@@ -537,7 +613,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
 
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && briefReady && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={teacherName} />}
+          {project.missionBrief && briefReady && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={assignedByName} />}
 
           {/* steps 2 and 3 hide the catalogue; this takes the student back to step 1 to add more */}
           {step !== 1 && (
@@ -561,7 +637,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           <div className="floating-controls bottom-left">
             <div className="float-group things-in-room">
               <button className="float-button things-toggle" aria-expanded={thingsOpen} onClick={() => setThingsOpen((open) => !open)}>
-                Things in this room · {scene.objects.length}<span>{thingsOpen ? '▾' : '▴'}</span>
+                Things in this room · {scene.objects.length}{step === 2 && scene.objects.length > 0 && <em className="things-info-count">{withInfo} with info</em>}<span>{thingsOpen ? '▾' : '▴'}</span>
               </button>
               {thingsOpen && <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
                 <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
@@ -570,7 +646,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
                   </div>
                   <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
-                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}
+                    {findCard(project, row.object)
+                      ? <span className="info-status done" title="Has a fact card" aria-label="Has a fact card"><Check size={11} strokeWidth={3.5} /></span>
+                      : <span className="info-status todo" title="No fact card yet" aria-label="No fact card yet" />}
+                    <span className="tree-chevron">›</span>
                   </button>
                 </div>
               ))}</div>}
@@ -624,6 +704,25 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
         </section>
+        {toast && (
+          <div className="save-toast" role="status" key={toast.key}>
+            <Check size={16} strokeWidth={3} /> {toast.text}
+          </div>
+        )}
+        {/* the teacher sent the museum back: what they said, until it is sent again (Weian Ching) */}
+        {sharing.reviewStatus === 'sent_back' && !playing && (
+          sentBackOpen ? (
+            <div className="sent-back-banner" role="status">
+              <div>
+                <strong>{teacherName[0].toUpperCase()}{teacherName.slice(1)} sent this back{sharing.reviewGrade ? ` · ${sharing.reviewGrade}` : ''}</strong>
+                <p>{sharing.reviewComment || 'Make your changes, then send it again.'}</p>
+              </div>
+              <button onClick={() => setSentBackOpen(false)} aria-label="Hide the teacher's comment">×</button>
+            </div>
+          ) : (
+            <button className="sent-back-chip" onClick={() => setSentBackOpen(true)}>Teacher's comment</button>
+          )
+        )}
         {stepNotice && (
           <div className="step-notice" role="status">
             {stepNotice}
@@ -661,6 +760,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onSnapChange={setSnapOn}
             onCopy={duplicateSelected}
             onRemove={deleteSelected}
+            locked={selectedLocked}
             rules={(project.rules ?? []).filter((rule) => rule.objectId === panelObject.id)}
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}
@@ -674,23 +774,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             }}
             onAddMediaLink={(url) => {
               const added = addLocalMediaLink(url, 'editor')
-              return 'error' in added ? added : choiceFor(added)
+              if ('error' in added) return added
+              showToast('Link sent to your teacher to approve')
+              return choiceFor(added)
             }}
             video={videoFor(panelObject, mediaLibrary)}
-            onSaveVideo={(assetId) => {
-              const result = saveObjectVideo(project, scene.id, panelObject.id, assetId)
+            onSaveVideo={(assetId, screen) => {
+              const result = saveObjectVideo(project, scene.id, panelObject.id, assetId, screen)
               if (!result.ok) return result.error
               commit('Save video', result.project)
+              showToast('Video saved')
               return null
             }}
-            onRemoveVideo={() => commit('Remove video', removeObjectVideo(project, scene.id, panelObject.id))}
+            onRemoveVideo={() => { commit('Remove video', removeObjectVideo(project, scene.id, panelObject.id)); showToast('Video removed') }}
             onSaveCard={(input) => {
               const result = saveObjectCard(project, scene.id, panelObject.id, input)
               if (!result.ok) return result.error
               commit('Save info card', result.project)
+              showToast('Fact card saved')
               return null
             }}
-            onRemoveCard={() => commit('Remove info card', removeObjectCard(project, scene.id, panelObject.id))}
+            onRemoveCard={() => { commit('Remove info card', removeObjectCard(project, scene.id, panelObject.id)); showToast('Fact card removed') }}
           />
         </aside>}
       </div>
@@ -778,19 +882,20 @@ const choiceFor = (entry: LocalMediaEntry) => ({ assetId: entry.id, kind: entry.
 const videoFor = (object: SceneObject, library: readonly LocalMediaEntry[]) => {
   const video = findVideo(object)
   if (!video) return null
-  return { attachmentId: video.id, assetId: video.assetId, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
+  return { attachmentId: video.id, assetId: video.assetId, screen: video.screen === true, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
 }
 
 const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
   const card = findCard(project, object)
   if (!card || card.attachment.presentation.mode !== 'card') return null
-  const { title, media, autoCloseMs, fields, taskId } = card.attachment.presentation
+  const { title, media, autoCloseMs, fields, taskId, inRoom } = card.attachment.presentation
   return {
     title: title ?? '',
     body: card.meta?.content ?? '',
     ...(media ? { media } : {}),
     ...(autoCloseMs !== undefined ? { autoCloseMs } : {}),
     ...(fields && taskId ? { fields, taskId } : {}),
+    ...(inRoom ? { inRoom } : {}),
   }
 }
 

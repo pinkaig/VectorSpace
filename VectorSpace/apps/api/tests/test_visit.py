@@ -79,3 +79,14 @@ def test_visits_are_counted_for_the_teachers_results(client, school) -> None:
     rows = client.get("/analytics/visits?days=7", headers=as_user("t1")).json()
     assert rows == [{"project_id": project["id"], "visits": 2, "last_7_days": [0, 0, 0, 0, 0, 0, 2]}]
     assert client.get("/analytics/visits", headers=as_user("other")).json() == []  # another school
+
+
+def test_visitors_see_the_approved_save_not_later_edits(client, school) -> None:
+    project = approved_project(client, school, "public")
+    versions = client.get(f"/projects/{project['id']}/versions", headers=as_user("s1")).json()
+    current = next(v["revision"] for v in versions if v["id"] == project["current_version_id"])
+    edited = {"schemaVersion": 1, "scenes": [], "note": "not reviewed"}
+    saved = client.post(f"/projects/{project['id']}/versions", json={"base_revision": current, "data": edited}, headers=as_user("s1"))
+    assert saved.status_code == 201, saved.text
+    assert client.get(f"/visit/{project['slug']}").json()["data"] == SCENE
+

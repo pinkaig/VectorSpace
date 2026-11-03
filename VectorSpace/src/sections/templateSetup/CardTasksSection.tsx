@@ -17,6 +17,7 @@
  */
 /******************************************************************************/
 
+import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "../../ui/button";
 import type { CardTask, MissionBrief } from "../../mission/missionBrief";
@@ -28,9 +29,12 @@ const MAX_TEXT = 200;
 const MAX_PASSAGE = 1000;
 const MAX_TASKS = 20;
 
+type Thing = { id: string; name: string; room: string };
+
 type CardTasksSectionProps = {
   brief: MissionBrief;
   onChange: (next: MissionBrief) => void;
+  things: Thing[];
 };
 
 // what a new task starts as, so the teacher sees how each kind works
@@ -39,9 +43,16 @@ const starter = (kind: CardTask["kind"]): CardTask =>
     ? { id: newTaskId(), title: "", kind, fields: parseBlanks("This exhibit is a [what is it?]. It comes from [where?].") }
     : { id: newTaskId(), title: "", kind, fields: [{ key: "q0", label: "What is it?" }, { key: "q1", label: "Why is it important?" }] };
 
-export function CardTasksSection({ brief, onChange }: CardTasksSectionProps) {
+export function CardTasksSection({ brief, onChange, things }: CardTasksSectionProps) {
   const tasks = brief.cardTasks ?? [];
   const setTasks = (next: CardTask[]) => onChange({ ...brief, cardTasks: next });
+  // the task just added: it asks straight away which thing the card is for
+  const [askingFor, setAskingFor] = useState<string | null>(null);
+  const addTask = (kind: CardTask["kind"]) => {
+    const task = starter(kind);
+    setTasks([...tasks, task]);
+    setAskingFor(task.id);
+  };
   const update = (id: string, change: Partial<CardTask>) => setTasks(tasks.map((task) => (task.id === id ? { ...task, ...change } : task)));
   const remove = (id: string) => setTasks(tasks.filter((task) => task.id !== id));
 
@@ -83,13 +94,20 @@ export function CardTasksSection({ brief, onChange }: CardTasksSectionProps) {
               ))}
             </div>
             {task.kind === "blanks" ? <BlanksEditor task={task} onFields={(fields) => update(task.id, { fields })} /> : <PromptsEditor task={task} onFields={(fields) => update(task.id, { fields })} />}
+            <SuggestFor
+              task={task}
+              things={things}
+              asking={askingFor === task.id}
+              onPick={(objectId) => { update(task.id, { objectId }); setAskingFor(null); }}
+              onSkip={() => setAskingFor(null)}
+            />
           </li>
         ))}
       </ol>
       {tasks.length < MAX_TASKS && (
         <div className="tasks-add">
-          <Button variant="add" size="small" onClick={() => setTasks([...tasks, starter("blanks")])}>+ Fill in the blanks</Button>
-          <Button variant="add" size="small" onClick={() => setTasks([...tasks, starter("prompts")])}>+ Questions to answer</Button>
+          <Button variant="add" size="small" onClick={() => addTask("blanks")}>+ Fill in the blanks</Button>
+          <Button variant="add" size="small" onClick={() => addTask("prompts")}>+ Questions to answer</Button>
         </div>
       )}
     </>
@@ -148,5 +166,46 @@ function PromptsEditor({ task, onFields }: { task: CardTask; onFields: (fields: 
       </ul>
       <Button variant="add" size="small" className="brief-add" onClick={add}>+ Add a question</Button>
     </>
+  );
+}
+
+// Which thing the card is for. A new task asks it as a question; after that it is a plain
+// "Suggested for" choice. Students see a suggested card first when they pick that thing.
+function SuggestFor({ task, things, asking, onPick, onSkip }: {
+  task: CardTask;
+  things: Thing[];
+  asking: boolean;
+  onPick: (objectId: string | undefined) => void;
+  onSkip: () => void;
+}) {
+  const known = things.some((thing) => thing.id === task.objectId);
+  if (things.length === 0) {
+    return asking ? <p className="task-suggest-note">Add starter things with Edit room to suggest which thing this card is for.</p> : null;
+  }
+  const picker = (
+    <select
+      className="ui-input task-suggest-select"
+      aria-label="Suggested for"
+      value={known ? task.objectId : ""}
+      onChange={(event) => onPick(event.target.value || undefined)}
+    >
+      <option value="">Any thing (student picks)</option>
+      {things.map((thing) => <option key={thing.id} value={thing.id}>{thing.name} · {thing.room}</option>)}
+    </select>
+  );
+  if (asking) {
+    return (
+      <div className="task-suggest ask" role="group" aria-label="Suggest a thing for this card">
+        <span className="task-suggest-q">Suggest this card for a thing in the room?</span>
+        {picker}
+        <button type="button" className="task-suggest-skip" onClick={onSkip}>Not now</button>
+      </div>
+    );
+  }
+  return (
+    <label className="task-suggest">
+      <span className="task-suggest-q">Suggested for</span>
+      {picker}
+    </label>
   );
 }

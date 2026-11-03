@@ -167,3 +167,47 @@
   gap: 8px;
   margin-top: 12px;
 }
+
+/* "Suggest this card for a thing in the room?" (asked when a task is added) */
+.task-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-suggest.ask {
+  padding: 10px 12px;
+  border: 2px solid #5B4BD6;
+  border-radius: 12px;
+  background: #FFFFFF;
+}
+
+.task-suggest-q {
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.task-suggest-select {
+  flex: 1 1 180px;
+  min-width: 0;
+  height: 38px;
+  font-size: 14px;
+}
+
+.task-suggest-skip {
+  border: none;
+  background: none;
+  color: #5E5878;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.task-suggest-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}

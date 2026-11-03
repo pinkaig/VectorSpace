@@ -297,6 +297,7 @@ export interface CardTask {
   title: string
   kind: 'blanks' | 'prompts'
   fields: CardField[]
+  objectId?: string   // the thing in the template the teacher suggests this card for
 }
 
 /**
@@ -318,6 +319,7 @@ export interface TextPresentation {
   media?: CardMedia     // card mode only: the image or video under the title, by reference
   fields?: CardField[]  // card mode only: the teacher's task, with the student's answers
   taskId?: string       // card mode only: the CardTask in the mission brief this card completes
+  inRoom?: boolean      // card mode only: also shown as a sign floating above its thing in the room
 }
 
 /**
@@ -354,7 +356,9 @@ export interface TextAttachment extends AttachmentBase { kind: 'text'; assetId: 
  * time, so no bytes or URLs are ever stored in ProjectData.
  */
 export interface ImageAttachment extends AttachmentBase { kind: 'image'; assetId: string }
-export interface VideoAttachment extends AttachmentBase { kind: 'video'; assetId: string }
+// screen: the video also plays on a screen above its thing in the room (uploaded files;
+// a YouTube video shows a "click to watch" poster there, as a 3D surface cannot hold YouTube)
+export interface VideoAttachment extends AttachmentBase { kind: 'video'; assetId: string; screen?: boolean }
 export type Attachment = AudioAttachment | TextAttachment | ImageAttachment | VideoAttachment
 
 /**
