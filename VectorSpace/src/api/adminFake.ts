@@ -34,7 +34,7 @@ const DEFAULT_PERMISSIONS: PermissionRow[] = [
   { key: "from-templates", group: "Projects and data", label: "Set up projects from templates", students: false, educators: true, canAdjust: false },
   { key: "edit-after-assign", group: "Projects and data", label: "Edit a project after assigning", students: false, educators: true, canAdjust: true },
   { key: "see-results", group: "Projects and data", label: "See visitor results", students: false, educators: false, canAdjust: false },
-  { key: "delete-published", group: "Projects and data", label: "Delete published museums", students: false, educators: false, canAdjust: false },
+  { key: "delete-published", group: "Projects and data", label: "Delete published projects", students: false, educators: false, canAdjust: false },
 ];
 
 // [id, name, description]

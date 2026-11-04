@@ -4,12 +4,14 @@
  *
  * @responsibility
  * The only place a TextNode tree becomes React elements. Subscribes to
- * TextSystem.store and renders every open `panel`-mode entry as a
- * role="dialog" card: labelled heading, visible keyboard-reachable close
- * control, focus moved in on open and returned on close, any click or key
- * press anywhere closing every open panel (Escape on the focused panel is
- * consumed there so it never doubles as exit-simulation or clear-selection),
- * lang set on the container, links opening in a new tab
+ * TextSystem.store and renders every open `panel`- or `card`-mode entry as a
+ * role="dialog": labelled heading, visible keyboard-reachable close (X)
+ * control, focus moved in on open and returned on close, lang set on the
+ * container. A panel closes only by its X, by Escape (top panel only, see
+ * panelKeys.ts) or by its auto-close timer, which TextSystem.tick() drives
+ * from the viewport's frame loop. Clicks elsewhere do not close it. A card
+ * also shows its media (MediaView) and caption under the title, and its
+ * body scrolls when the text is long. Links open in a new tab
  * with rel="noopener noreferrer". No HTML ever: text renders as React children,
  * so author content cannot become markup. An error panel shows
  * "Content unavailable"; an empty text renders nothing rather than an
@@ -21,6 +23,11 @@
  */
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { InlineNode, PanelStatus, TextNode, TextSnapshot, TextSystem } from '../../packages/text/src/index'
+import MediaView from './MediaView'
+import { handlePanelKey } from './panelKeys'
+
+// modes this host draws; 'label', 'surface' and 'dialogue' are reserved and draw nothing yet
+const RENDERED_MODES: ReadonlySet<PanelStatus['mode']> = new Set(['panel', 'card'])
 
 const renderInline = (nodes: InlineNode[], keyPrefix: string): ReactNode[] =>
   nodes.map((node, index) => {
@@ -64,6 +71,11 @@ const renderBlock = (node: TextNode, index: number): ReactNode => {
   }
 }
 
+/** Draws a parsed text as React elements; shared with the editor's card preview so both look the same. */
+export function TextNodes({ nodes }: { nodes: TextNode[] }) {
+  return <>{nodes.map(renderBlock)}</>
+}
+
 function PanelDialog({ panel, nodes, modal, onClose }: {
   panel: PanelStatus
   nodes: TextNode[] | undefined
@@ -78,28 +90,23 @@ function PanelDialog({ panel, nodes, modal, onClose }: {
     return () => previous?.focus()
   }, [])
   const headingId = `${panel.id}-title`
+  const isCard = panel.mode === 'card'
   return (
     <div
       ref={dialogRef}
-      className={modal ? 'text-panel modal' : 'text-panel'}
+      className={['text-panel', isCard && 'text-card', modal && 'modal'].filter(Boolean).join(' ')}
       role="dialog"
       aria-modal={modal || undefined}
       aria-labelledby={panel.title ? headingId : undefined}
-      aria-label={panel.title ? undefined : 'Information panel'}
+      aria-label={panel.title ? undefined : isCard ? 'Information card' : 'Information panel'}
       lang={panel.lang}
       tabIndex={-1}
-      onKeyDown={(event) => {
-        if (event.key !== 'Escape') return
-        // the focused panel consumes Escape, so it never doubles as
-        // "exit simulation" (RuntimeView) or "clear selection" (editor)
-        event.stopPropagation()
-        onClose()
-      }}
     >
       <header className="text-panel-header">
         {panel.title && <h2 id={headingId}>{panel.title}</h2>}
-        <button type="button" className="text-panel-close" onClick={onClose} aria-label="Close panel">×</button>
+        <button type="button" className="text-panel-close" onClick={onClose} aria-label="Close">×</button>
       </header>
+      {isCard && panel.media && <MediaView media={panel.media} />}
       <div className="text-panel-body">
         {panel.state === 'error' ? <p className="text-panel-error">Content unavailable</p> : nodes?.map(renderBlock)}
       </div>
@@ -112,27 +119,37 @@ export default function TextPanelHost({ text }: { text: TextSystem }) {
   useEffect(() => text.store.subscribe(setSnapshot), [text])
 
   const overlayPanels = snapshot.panels.filter((panel) => {
-    if (panel.mode !== 'panel') return false
-    // an empty text renders nothing rather than an empty panel
-    if (panel.state !== 'error' && !panel.title && (text.getNodes(panel.id)?.length ?? 0) === 0) return false
+    if (!RENDERED_MODES.has(panel.mode)) return false
+    // an empty text renders nothing rather than an empty panel; a card with media still shows
+    if (panel.state !== 'error' && !panel.title && !panel.media && (text.getNodes(panel.id)?.length ?? 0) === 0) return false
     return true
   })
 
   const hasOverlay = overlayPanels.length > 0
+  // Walk with a mouse locks the pointer for looking around; a card that opens hands the
+  // mouse back, so the visitor can read it, scroll it and press its X
   useEffect(() => {
     if (!hasOverlay) return
-    // a popup is a message to dismiss, so any press closes it. Listening for the press (not the
-    // click) means the click that opened the popup, which is already over, cannot close it again
-    const dismiss = (event: Event) => {
-      if (event instanceof KeyboardEvent && event.repeat) return
-      text.closeAll()
+    const release = () => {
+      if (document.pointerLockElement) document.exitPointerLock()
     }
-    window.addEventListener('pointerdown', dismiss)
-    window.addEventListener('keydown', dismiss)
-    return () => {
-      window.removeEventListener('pointerdown', dismiss)
-      window.removeEventListener('keydown', dismiss)
+    release()
+    // the click that opens a card can also be the one that asked for the lock, which the
+    // browser grants a moment later; release it then too, for as long as a card is open
+    document.addEventListener('pointerlockchange', release)
+    return () => document.removeEventListener('pointerlockchange', release)
+  }, [hasOverlay])
+  useEffect(() => {
+    if (!hasOverlay) return
+    // capture phase, so this runs before RuntimeView's Escape ("leave Play") and the
+    // editor's Escape ("clear selection"); a handled Escape stops there
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!handlePanelKey(event, text)) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
     }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [hasOverlay, text])
 
   if (!hasOverlay) return null

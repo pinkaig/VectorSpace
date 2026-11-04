@@ -14,14 +14,16 @@
 
 import { useState } from "react";
 import type { PermissionRow } from "../../../api/admin";
+import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
+import { LoadingRows } from "../../../ui/loadingRows";
 import { TickBox, Toggle } from "../../../ui/toggle";
 import { useLoad } from "../../../api/useLoad";
 import { useAdmin } from "../adminContext";
 
 export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
   const { api } = useAdmin();
-  const { data: saved, setData: setSaved, error } = useLoad(() => api.getPermissions(schoolId), schoolId);
+  const { data: saved, setData: setSaved, error, loading } = useLoad(() => api.getPermissions(schoolId), schoolId);
 
   // the admin's changes so far, or null before the first click; what is shown is the changed
   // copy if there is one, otherwise what was saved
@@ -52,13 +54,15 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
         {/*SAVE: the label beside it says whether there is anything to save*/}
         <div className="admin-permissions-save">
           {dirty && <span className="admin-permissions-state"><span className="admin-permissions-dot" />Unsaved changes</span>}
-          {!dirty && justSaved && <span className="admin-permissions-state"><span className="admin-permissions-dot admin-permissions-dot-saved" />Saved</span>}
+          {!dirty && justSaved && <Motion as="span" cue="feedback.saved" className="admin-permissions-state"><span className="admin-permissions-dot admin-permissions-dot-saved" />Saved</Motion>}
           <Button variant="primary" disabled={!dirty} onClick={save}>Save changes</Button>
         </div>
       </div>
 
-      {error && <p role="alert">Could not load permissions: {error}</p>}
-      <div className="admin-scroll">
+      {error && <Motion as="p" cue="feedback.error" role="alert">Could not load permissions: {error}</Motion>}
+      <LoadingRows loading={loading} />
+      {/* the key changes when the answer arrives, so the grid fades in then and not before */}
+      <Motion key={saved ? "loaded" : "loading"} cue="panel.content.enter" className="admin-scroll">
         <table className="admin-table">
           <thead>
             <tr><th>Setting</th><th>Students</th><th>Educators</th><th>Can adjust</th></tr>
@@ -69,7 +73,7 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </Motion>
     </section>
   );
 }

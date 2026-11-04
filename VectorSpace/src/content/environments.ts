@@ -14,6 +14,8 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { EnvironmentDefinition, findEnvironment } from '../project/model'
+import { prepareRoomSurfaces, roomSurfaceMaterials } from './roomSurfaces'
+import { engineEnvironmentId, noteEngineLoadFailed, noteEngineLoadStarted, noteEngineLoadSucceeded } from './engineAssetRegistry'
 
 // Environment models shipped with the app. Vite bundles every src/env/*.glb and maps its
 // path to the built (hashed) URL, so catalog entries can refer to 'env/room_1.glb'.
@@ -52,7 +54,8 @@ const disposeGroup = (group: THREE.Group) => {
   group.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       child.geometry.dispose()
-      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      const materials = new Set(Array.isArray(child.material) ? child.material : [child.material])
+      roomSurfaceMaterials(child).forEach((material) => materials.add(material)) // styles not being worn too
       materials.forEach((material) => material.dispose())
     }
   })
@@ -65,18 +68,31 @@ const loadProcedural = async (definition: EnvironmentDefinition): Promise<Loaded
   return { group, dispose: () => disposeGroup(group) }
 }
 
+// Room GLBs are loaded by this bare GLTFLoader rather than through the resolver
+// chain, so every load is reported to engineAssetRegistry — otherwise the Asset
+// Manager cannot see the largest files in the scene at all. Reporting only: the
+// loading is unchanged, and a report never decides whether a room may load.
 const loadGlb = (definition: EnvironmentDefinition, handlers: EnvironmentLoadHandlers): Promise<LoadedEnvironment> =>
   new Promise((resolve, reject) => {
     if (!definition.url) { reject(new Error(`Environment "${definition.id}" has no source URL`)); return }
+    const url = resolveEnvironmentUrl(definition.url)
+    const recordId = engineEnvironmentId(definition.id)
+    noteEngineLoadStarted({ id: recordId, kind: 'environment', url })
     new GLTFLoader().load(
-      resolveEnvironmentUrl(definition.url),
+      url,
       (gltf) => {
         const group = new THREE.Group()
         group.add(gltf.scene)
+        prepareRoomSurfaces(group) // finds the 'floor'/'wall' meshes so a style can be put on them
+        noteEngineLoadSucceeded(recordId)
         resolve({ group, dispose: () => disposeGroup(group) })
       },
       (event) => { if (event.lengthComputable) handlers.onProgress?.(event.loaded / event.total) },
-      (error) => reject(error instanceof Error ? error : new Error('Failed to load environment file')),
+      (error) => {
+        const failure = error instanceof Error ? error : new Error('Failed to load environment file')
+        noteEngineLoadFailed(recordId, failure.message)
+        reject(failure)
+      },
     )
   })
 export const loadEnvironment = async (environmentId: string, handlers: EnvironmentLoadHandlers = {}): Promise<LoadedEnvironment> => {

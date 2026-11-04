@@ -38,9 +38,21 @@ import {
 } from '../../packages/sync/src/index'
 import { ApiError, apiFetch, type GetToken } from '../api/client'
 import { defaultProject, type ProjectData } from './model'
-import { deserializeProject } from './serializer'
+import { deserializeProject, type ProjectSharing } from './serializer'
 
-type ProjectRow = { id: string; name: string; current_version_id: string | null }
+type ProjectRow = {
+  id: string
+  name: string
+  status: RemoteProject['status']
+  current_version_id: string | null
+  mission_brief?: unknown
+  slug?: string
+  assigned_by_name?: string | null
+  review_status?: ProjectSharing['reviewStatus']
+  review_comment?: string | null
+  review_grade?: string | null
+  share_with?: ProjectSharing['shareWith']
+}
 type VersionSaved = { revision: number }
 type VersionDetail = VersionSaved & { data: unknown }
 
@@ -53,6 +65,8 @@ export const isRemoteProject = (id: string): boolean => registry.has(id)
 export interface RemoteProject {
   project: ProjectData
   revision: number
+  status: 'draft' | 'published' | 'archived'
+  sharing: ProjectSharing
 }
 
 export async function loadRemoteProject(getToken: GetToken, projectId: string, base?: string): Promise<RemoteProject> {
@@ -67,9 +81,32 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
     // save that lacks either still opens
     project = deserializeProject(JSON.stringify({ ...(version.data as object), id: row.id, name: row.name }))
   }
-  project = { ...project, id: row.id }
+  project = withAssignedBrief({ ...project, id: row.id }, row.mission_brief)
   registry.set(row.id, { revision, getToken })
-  return { project, revision }
+  const sharing: ProjectSharing = {
+    reviewStatus: row.review_status ?? null,
+    shareWith: row.share_with ?? null,
+    reviewComment: row.review_comment ?? null,
+    reviewGrade: row.review_grade ?? null,
+    teacherName: row.assigned_by_name ?? null,
+    slug: row.slug ?? null,
+  }
+  return { project, revision, status: row.status, sharing }
+}
+
+/**
+ * The assignment's brief replaces whatever brief the saved scene carries, so a brief the
+ * teacher changes after sending reaches copies already sent. It goes through the same
+ * checks as a brief in a file; a brief that fails them is left off rather than stopping
+ * the project from opening.
+ */
+function withAssignedBrief(project: ProjectData, brief: unknown): ProjectData {
+  if (!brief) return project
+  try {
+    return deserializeProject(JSON.stringify({ ...project, missionBrief: brief }))
+  } catch {
+    return project
+  }
 }
 
 export class ServerSyncTransport implements SyncTransport<ProjectData> {

@@ -14,11 +14,12 @@
  * Links point at the project wiki; migration is still in progress.
  */
 export type { AssetRef } from './AssetRef'
-export type { AssetDescriptor, AssetStatus } from './AssetDescriptor'
+export type { AssetDescriptor, AssetModerationState, AssetScope, AssetStatus, AssetTier } from './AssetDescriptor'
 export {
   idleAssetDescriptor,
   loadingAssetDescriptor,
   readyAssetDescriptor,
+  embedAssetDescriptor,
   errorAssetDescriptor,
 } from './AssetDescriptor'
 export type { AssetResolver } from './AssetResolver'
@@ -33,6 +34,9 @@ export {
 } from './PlaceholderAssetResolver'
 export {
   MEDIA_KIND_SPECS,
+  EMBED_PROVIDERS,
+  isAllowedEmbed,
+  type EmbedProvider,
   isAllowedContentType,
   isMediaKind,
   kindForContentType,
@@ -43,4 +47,5 @@ export { PrimitiveResolver } from './resolvers/PrimitiveResolver'
 export { LocalCatalogResolver, type LocalCatalogEntry } from './resolvers/LocalCatalogResolver'
 export { RemoteMediaResolver, type RemoteMediaResolverOptions } from './resolvers/RemoteMediaResolver'
 export { KindRouterResolver, type KindRoutes } from './resolvers/KindRouterResolver'
+export { parseMediaLink, type ParsedMediaLink } from './parseMediaLink'
 export { InlineTextResolver, type TextAssetLookup } from './resolvers/InlineTextResolver'

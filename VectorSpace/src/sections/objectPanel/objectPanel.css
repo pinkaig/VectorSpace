@@ -2,10 +2,11 @@
  * @file        objectPanel.css
  * @project     Spatial Experience Builder
  * @author      Weian Ching
- * @brief       Styles for the object panel: header, close button, tabs and
- *              the boxes inside each tab. Only styles the inside of the
- *              panel; EditorLayout sets where it sits and its width.
- *              Colours come from the V3 tokens in tokens.css.
+ * @brief       Styles for the object panel and its three tabs, copied value for
+ *              value from the V3 prototype (VectorSpace-V3.03_Demo.html, the
+ *              selected-exhibit panel). Only styles the inside of the panel;
+ *              whatever page mounts it decides where it sits and how wide it is
+ *              (the prototype's panel is 360px wide).
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -14,18 +15,29 @@
 /******************************************************************************/
 
 .object-panel {
+  position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: 100%;
+  gap: 14px;
+  min-width: 0;
   min-height: 0;
   padding: 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
-  color: var(--ink);
-  font-family: var(--font-body);
-  box-sizing: border-box;
+  border: 1px solid #E3DFF3;
+  border-radius: 22px;
+  background: #FFFFFF;
+  color: #1F1B3A;
+  font-family: 'Nunito', system-ui, sans-serif;
+  text-align: left;
+}
+
+.object-panel button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.object-panel svg {
+  flex: 0 0 auto;
 }
 
 /* ── Header ───────────────────────────────────────────────────────────── */
@@ -33,15 +45,20 @@
 .object-panel-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.object-panel-dot {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-pill);
-  background: var(--purple-500);
+.object-panel-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  box-sizing: border-box;
+  border: 2px solid #5B4BD6;
+  border-radius: 14px;
+  background: #E6E1FB;
 }
 
 .object-panel-title {
@@ -49,369 +66,1064 @@
   min-width: 0;
 }
 
-.object-panel-eyebrow {
-  display: block;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .object-panel-title h2 {
   margin: 0;
   overflow: hidden;
-  font-family: var(--font-heading);
+  font-family: 'Fredoka', sans-serif;
   font-size: 20px;
   font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
+  color: #1F1B3A;
+}
+
+.object-panel-title span {
+  display: block;
+  font-size: 13px;
+  color: #5E5878;
 }
 
 .object-panel-close {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-btn-sm);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.object-panel-close:hover {
-  background: var(--purple-50);
-  color: var(--purple-600);
+  border: none;
+  border-radius: 12px;
+  background: #F4F2FB;
 }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────── */
 
 .object-panel-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 4px;
   padding: 4px;
-  border-radius: var(--radius-btn);
-  background: var(--purple-100);
+  border-radius: 14px;
+  background: #F4F2FB;
 }
 
 .object-panel-tab {
-  padding: 8px 0;
+  flex: 1;
+  min-height: 40px;
   border: none;
-  border-radius: var(--radius-btn-sm);
+  border-radius: 10px;
   background: transparent;
-  color: var(--ink-2);
-  font: inherit;
+  color: #5E5878;
   font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.object-panel-tab:hover {
-  color: var(--purple-600);
+  font-weight: 800;
 }
 
 .object-panel-tab.active {
-  background: var(--surface);
-  color: var(--purple-600);
-  box-shadow: 0 1px 3px rgba(31, 27, 58, 0.12);
+  background: #FFFFFF;
+  color: #1F1B3A;
+  box-shadow: 0 0 0 1px #D5CEF2;
 }
 
-/* ── Body and boxes ───────────────────────────────────────────────────── */
+/* ── Shared pieces ────────────────────────────────────────────────────── */
 
-/* scrolls on its own so the header and tabs stay put */
-.object-panel-body {
+.object-panel-tab-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  gap: 14px;
 }
 
-.object-panel-box {
+.object-panel-heading {
+  margin-bottom: 8px;
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* a thing the teacher locked: one calm line instead of the move/turn/size tools */
+.object-panel-locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #F1EEFD;
+  color: #4B3FC4;
+}
+
+.object-panel-locked > svg { flex-shrink: 0; margin-top: 1px; }
+
+.object-panel-locked strong { display: block; color: #1E1B3A; font-size: 14px; }
+
+.object-panel-locked span { display: block; margin-top: 2px; color: #5E5878; font-size: 13px; line-height: 1.4; }
+
+.object-panel-hint {
+  margin-top: 8px;
+  color: #5E5878;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.object-panel-spacer {
+  flex: 1;
+}
+
+/* ── Position tab ─────────────────────────────────────────────────────── */
+
+.object-panel-tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.object-panel-seg {
+  min-height: 44px;
+  border: 1px solid #E3DFF3;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3B3363;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.object-panel-seg.active {
+  border-color: #5B4BD6;
+  background: #5B4BD6;
+  color: #FFFFFF;
+}
+
+.object-panel-turn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.object-panel-turn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid #5B4BD6;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3326A0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.object-panel-snap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.object-panel-snap-track {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 44px;
+  height: 26px;
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: 999px;
+  background: #D5CEF2;
+}
+
+.object-panel-snap-track.on {
+  justify-content: flex-end;
+  background: #2E9E6A;
+}
+
+.object-panel-snap-knob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FFFFFF;
+}
+
+.object-panel-exact {
+  padding-top: 4px;
+  border-top: 1px solid #E3DFF3;
+}
+
+.object-panel-exact-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #5E5878;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.object-panel-exact-rows {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-box);
-  background: var(--purple-50);
+  margin-top: 4px;
 }
 
-.object-panel-label {
-  color: var(--ink);
+.object-panel-exact-row {
+  display: grid;
+  grid-template-columns: 64px repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+
+.object-panel-exact-label {
+  color: #3B3363;
   font-size: 13px;
   font-weight: 800;
 }
 
-.object-panel-hint {
-  color: var(--text-muted);
-  font-size: 12px;
+.object-panel-exact-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 7px;
+  border: 1px solid #E3DFF3;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 14px;
 }
 
-.object-panel-row {
+/* the 3D view's axis colours: X red, Y green, Z blue */
+.object-panel-exact-input.axis-x { border-left: 4px solid #D93A2B; }
+.object-panel-exact-input.axis-y { border-left: 4px solid #23905C; }
+.object-panel-exact-input.axis-z { border-left: 4px solid #2F6FD6; }
+
+.object-panel-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-/* ── Buttons ──────────────────────────────────────────────────────────── */
-
-.object-panel-button {
-  padding: 9px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
+.object-panel-action {
+  min-height: 44px;
+  border: 1px solid #E3DFF3;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3B3363;
   font-size: 14px;
+  font-weight: 800;
+}
+
+.object-panel-action.danger {
+  border-color: #F0C2B8;
+  color: #A3341F;
+}
+
+/* ── Info tab: list ───────────────────────────────────────────────────── */
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid #F3D29C;
+  border-radius: 14px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  text-align: left;
+}
+
+.info-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.info-item-kind {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.info-item-name {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.info-item-edit {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-rule-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: #5E5878;
+  font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
+  text-align: left;
 }
 
-.object-panel-button:hover {
-  border-color: var(--purple-300);
-  background: var(--purple-100);
+.info-rule-line.warn {
+  color: #7A4B00;
 }
 
-.object-panel-button.danger {
-  color: var(--red-500);
+.info-rule-line > span:first-of-type {
+  flex: 1;
 }
 
-.object-panel-button.danger:hover {
-  border-color: var(--red-500);
-  background: #FDECEA;
-  color: var(--red-700);
+.info-rule-action {
+  color: #4A3BC4;
+  font-weight: 800;
 }
 
-.object-panel-actions {
-  margin-top: 2px;
-}
-
-/* Move / Rotate / Size */
-.object-panel-segmented {
+.info-add-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.info-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid #E3DFF3;
+  border-radius: 14px;
+  background: #FFFFFF;
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.info-add.wide {
+  grid-column: 1 / -1;
+}
+
+.info-add-title {
+  display: block;
+}
+
+.info-add-note {
+  display: block;
+  color: #8A5A00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── Info tab: fact card and video forms ──────────────────────────────── */
+
+.info-form {
+  gap: 12px;
+}
+
+.info-back {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #4A3BC4;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.info-form-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.info-field input,
+.info-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #D5CEF2;
+  border-radius: 12px;
+  color: #1F1B3A;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.info-field textarea {
+  resize: none;
+}
+
+.info-choose {
+  min-height: 64px;
+  border: 2px dashed #D5CEF2;
+  border-radius: 12px;
+  background: #FAF9FE;
+  color: #4A3BC4;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.info-heading {
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.info-pick-list {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
-.object-panel-segment {
-  padding: 8px 0;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-btn-sm);
-  background: var(--surface);
-  color: var(--ink-2);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.object-panel-segment:hover {
-  border-color: var(--purple-300);
-}
-
-.object-panel-segment.active {
-  border-color: var(--purple-500);
-  background: var(--purple-500);
-  color: var(--surface);
-}
-
-/* ── Snap switch ──────────────────────────────────────────────────────── */
-
-.object-panel-switch-row {
-  flex-direction: row;
+.info-pick {
+  display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #E3DFF3;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3B3363;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
 }
 
-.object-panel-switch-row > div {
+.info-pick svg {
+  color: #5E5878;
+}
+
+.info-pick.selected {
+  border: 2px solid #5B4BD6;
+  background: #EEEAFB;
+  color: #3326A0;
+}
+
+.info-note {
+  color: #5E5878;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.info-picture-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.info-link {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #4A3BC4;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-link.danger {
+  color: #A3341F;
+}
+
+.info-problem {
+  color: #A3341F;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.info-done {
+  min-height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: #5B4BD6;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* the picture preview inside the fact card form */
+.info-form .media-view {
+  margin: 0;
+}
+
+/* ── Reactions tab ────────────────────────────────────────────────────── */
+
+.react-list {
+  gap: 8px;
+}
+
+.react-empty {
+  padding: 14px;
+  border: 1px dashed #D5CEF2;
+  border-radius: 14px;
+  background: #F4F2FB;
+  color: #5E5878;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.react-empty b {
+  color: #3B3363;
+}
+
+.react-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #E3DFF3;
+  border-radius: 14px;
+  background: #F4F2FB;
+  text-align: left;
+}
+
+.react-num {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1F1B3A;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.react-lines {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.react-line {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.react-word { color: #5E5878; }
+.react-when { color: #3326A0; }
+.react-then { color: #5C3A00; }
+
+.react-edit {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  color: #4A3BC4;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.react-card-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 0;
+}
+
+.react-sub {
+  flex: 1;
+  color: #5E5878;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.react-editor {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid #5B4BD6;
+  border-radius: 16px;
+  background: #FFFFFF;
 }
 
-.object-panel-switch {
-  position: relative;
-  flex: none;
+.react-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.react-editor-num {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #5B4BD6;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.react-editor-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.react-editor-title {
+  color: #1F1B3A;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.react-grid {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+}
+
+.react-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.react-label.when { color: #3326A0; }
+.react-label.then { color: #8A5A00; }
+
+/* WHEN / THEN chips: dashed until something is picked, then filled */
+.react-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 2px dashed #C9C0F4;
+  border-radius: 10px;
+  background: #FAF9FE;
+  color: #4A3BC4;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.react-chip.active { border-color: #5B4BD6; }
+
+.react-chip.filled {
+  border: 1px solid #D5CEF2;
+  background: #FFFFFF;
+  color: #3326A0;
+}
+
+.react-chip.filled.warm {
+  border-color: #F3D29C;
+  color: #5C3A00;
+}
+
+.react-chip.filled.active { border: 2px solid #5B4BD6; }
+
+.react-chip:disabled {
+  cursor: default;
+}
+
+.react-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.react-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.react-option {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #E3DFF3;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #1F1B3A;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.react-option.selected {
+  border: 2px solid #5B4BD6;
+  background: #EEEAFB;
+}
+
+.react-extra {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 2px;
+}
+
+.react-extra-chip {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 6px 8px 6px 10px;
+}
+
+.react-extra-q {
+  color: #9A7434;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.react-extra-chip select,
+.react-extra-chip textarea {
+  flex: 1 1 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid #F3D29C;
+  border-radius: 8px;
+  color: #5C3A00;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.react-extra-chip input[type='color'] {
   width: 44px;
   height: 26px;
   padding: 0;
   border: none;
-  border-radius: var(--radius-pill);
-  background: var(--purple-300);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.object-panel-switch span {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  box-shadow: 0 1px 2px rgba(31, 27, 58, 0.25);
-  transition: transform 0.15s;
-}
-
-.object-panel-switch.on {
-  background: var(--green-500);
-}
-
-.object-panel-switch.on span {
-  transform: translateX(18px);
-}
-
-/* ── Exact numbers ────────────────────────────────────────────────────── */
-
-.object-panel-disclosure {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0;
-  border: none;
   background: none;
-  font: inherit;
-  cursor: pointer;
 }
 
-.object-panel-chevron {
-  color: var(--text-muted);
-}
-
-.object-panel-vector {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.object-panel-vector-label {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.object-panel-vector-fields {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.object-panel-number {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-btn-sm);
-  background: var(--surface);
-}
-
-.object-panel-number:focus-within {
-  border-color: var(--purple-500);
-}
-
-.object-panel-number span {
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.object-panel-number input {
-  width: 100%;
-  min-width: 0;
-  padding: 6px 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-}
-
-/* ── Info placeholders ────────────────────────────────────────────────── */
-
-.object-panel-placeholder {
-  display: grid;
-  place-items: center;
-  min-height: 36px;
-  border: 1px dashed var(--purple-300);
-  border-radius: var(--radius-btn-sm);
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.object-panel-placeholder.tall {
-  min-height: 80px;
-}
-
-/* ── Reactions: restyles the shared WhenDoRuleSection for this panel ──── */
-
-.object-panel-reactions .field-group {
-  margin: 0;
-}
-
-.object-panel-reactions .rule-row {
+.react-editor-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
+  padding-top: 8px;
+  border-top: 1px solid #E3DFF3;
 }
 
-.object-panel-reactions .rule-number {
-  color: var(--purple-600);
-  font-family: var(--font-body);
+.react-delete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #F0C2B8;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #A3341F;
+  font-size: 13px;
   font-weight: 800;
 }
 
-.object-panel-reactions .rule-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.object-panel-reactions .rule-remove {
+.react-done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 18px;
   border: none;
-  background: none;
-  color: var(--text-muted);
-  font-size: 18px;
-  cursor: pointer;
+  border-radius: 10px;
+  background: #5B4BD6;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
 }
 
-.object-panel-reactions .rule-remove:hover {
-  color: var(--red-500);
+.react-add {
+  min-height: 44px;
+  border: 2px dashed #C9C0F4;
+  border-radius: 12px;
+  background: transparent;
+  color: #4A3BC4;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 /* ── Nothing selected ─────────────────────────────────────────────────── */
 
 .object-panel-empty {
   display: grid;
-  place-items: center;
-  align-content: center;
   gap: 6px;
-  flex: 1;
   padding: 24px;
-  color: var(--text-muted);
+  color: #5E5878;
+  font-size: 13px;
   text-align: center;
 }
 
 .object-panel-empty p {
   margin: 0;
-  color: var(--ink);
+  color: #1F1B3A;
   font-weight: 700;
 }
 
-.object-panel-empty-mark {
-  color: var(--purple-300);
-  font-size: 32px;
+/* ── Media pickers: upload from this computer, paste a link ────────────── */
+
+.info-pick-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.info-pick-status {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.info-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 2px dashed #D5CEF2;
+  border-radius: 12px;
+  background: #FAF9FE;
+  color: #4A3BC4;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.info-upload.busy {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.info-upload input {
+  display: none;
+}
+
+.info-link-row {
+  display: flex;
+  gap: 6px;
+}
+
+.info-link-row input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #D5CEF2;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.info-link-add {
+  padding: 0 14px;
+  border: 1px solid #5B4BD6;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3326A0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-link-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Info tab: what the built-in behaviour is ─────────────────────────── */
+
+.info-rule-when {
+  color: #3326A0;
+}
+
+.info-auto {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #E3F5EC;
+  color: #165E3D;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.info-auto svg {
+  margin-top: 1px;
+}
+
+/* ── Reactions tab: suggestions after a fact card is made ─────────────── */
+
+.react-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #BFE6D2;
+  border-radius: 14px;
+  background: #E3F5EC;
+  color: #165E3D;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.react-suggest-head {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.react-suggest-head svg {
+  margin-top: 1px;
+}
+
+.react-suggest-label {
+  color: #3B3363;
+  font-weight: 800;
+}
+
+.react-suggest-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.react-suggest-chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #F3D29C;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: #5C3A00;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* ── Info tab: a fact card started from the teacher's task ─────────────── */
+
+/* the passage, with a box at each blank, reading like a sentence */
+.task-fill {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #D5CEF2;
+  border-radius: 12px;
+  color: #1F1B3A;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 2.2;
+}
+
+.task-fill-blank {
+  max-width: 100%;
+  margin: 0 3px;
+  padding: 2px 8px;
+  border: none;
+  border-bottom: 2px dashed #5B4BD6;
+  border-radius: 6px 6px 0 0;
+  background: #FAF9FE;
+  color: #3326A0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.task-fill-blank:focus {
+  outline: 2px solid #5B4BD6;
+  outline-offset: 1px;
+}
+
+.task-fill-blank::placeholder {
+  color: #9A92C8;
+  font-weight: 600;
+}
+
+.info-task-note {
+  color: #5E5878;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* a blank sits inside the sentence, not as a full-width box like the form's other inputs */
+.info-field .task-fill-blank {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  margin: 0 3px;
+  padding: 2px 8px;
+  border: none;
+  border-bottom: 2px dashed #5B4BD6;
+  border-radius: 6px 6px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* the teacher's card suggested for this very thing */
+.info-pick.suggested {
+  border: 2px solid #5B4BD6;
+  background: #EEEAFB;
+}
+
+/* a link the teacher sent back: still listed, so the student knows, but not pickable */
+.info-pick:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.info-pick-status.rejected {
+  background: #FDECEA;
+  color: #A3341F;
+}
+
+/* "Show it": Pop-up when clicked | Also a sign / Screen in the room */
+.info-show-as {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.info-show-as .object-panel-seg {
+  min-height: 40px;
+  padding: 4px 6px;
+  font-size: 13px;
+  line-height: 1.2;
 }

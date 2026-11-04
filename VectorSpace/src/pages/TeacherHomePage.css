@@ -2,9 +2,11 @@
  * @file        TeacherHomePage.css
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
- * @brief       Styles for the teacher home (Classes tab): greeting, class
- *              card, published rows and the new project card. The frame
- *              around it is TeacherLayout's. Values from the V3 manual.
+ * @brief       Styles for the teacher home (Classes tab): greeting with New
+ *              project, the "Pick up where you left off" card, the All projects box that
+ *              scrolls on its own, the ⋯ menu, the delete and New project
+ *              popups, and the "assigned" banner. The frame around it is
+ *              TeacherLayout's. Values from the V3 manual and the 2.03 prototype.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -12,15 +14,49 @@
  */
 /******************************************************************************/
 
-/* ── Content column: narrower, centred, with space under the top bar ──── */
+/* ── Content column: centred, a column so All projects can take the rest ── */
 .teacher-home-content {
-  width: 100%; 
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   max-width: 1100px;
+  min-height: 0;
   margin: 0 auto;
   padding: 12px 0 24px;
 }
 
-/* ── Greeting and section labels ──────────────────────────────────────── */
+/* ── "Assigned" banner after Assign on template setup ─────────────────── */
+.teacher-home-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--green-200);
+  border-radius: var(--radius-box);
+  background: var(--green-50);
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.teacher-home-banner svg {
+  flex: 0 0 auto;
+  color: var(--green-500);
+}
+
+.teacher-home-banner span {
+  flex: 1;
+}
+
+/* ── Greeting on the left, New project on the right ───────────────────── */
+.teacher-home-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 .teacher-home-greeting {
   margin: 0;
   font-family: var(--font-heading);
@@ -31,7 +67,7 @@
 }
 
 .teacher-home-lead {
-  margin: 6px 0 24px;
+  margin: 6px 0 0;
   font-size: 17px;
   color: var(--text-muted);
 }
@@ -45,8 +81,10 @@
   color: var(--text-muted);
 }
 
-/* ── Class card: picture left, info right ─────────────────────────────── */
+/* ── Last project card: picture left, info right, ⋯ top right ─────────── */
 .teacher-home-class {
+  position: relative; /* so the ⋯ can sit in its corner */
+  flex: 0 0 auto; /* never squashed by the All projects box */
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 24px;
@@ -57,10 +95,25 @@
   border-radius: var(--radius-card);
 }
 
+/* the class card's ⋯ sits in its top-right corner */
+.teacher-home-class > .teacher-home-menu-anchor {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
 .teacher-home-class-image {
   height: 196px;
   border-radius: var(--radius-box);
   overflow: hidden;
+}
+
+/* the picture fills its box, cropped rather than stretched */
+.teacher-home-class-image .museum-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .teacher-home-chips {
@@ -70,6 +123,7 @@
 }
 
 .teacher-home-chip {
+  flex: 0 0 auto;
   padding: 3px 10px;
   border: 1px solid var(--amber-200);
   border-radius: var(--radius-pill);
@@ -77,6 +131,7 @@
   color: var(--amber-900);
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .teacher-home-chip-dark {
@@ -85,12 +140,39 @@
   color: var(--surface);
 }
 
+/* manual's grey chip, for "No class yet" */
+.teacher-home-chip-muted {
+  border-color: var(--border);
+  background: var(--bg-app);
+  color: var(--text-muted);
+}
+
+/* an archived project's class */
+.teacher-home-chip-outline {
+  border-color: var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
 .teacher-home-class-title {
   margin: 0 0 12px;
+  padding-right: 48px; /* keeps a long name clear of the ⋯ */
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 26px;
   line-height: 1.15;
+}
+
+/* the task, at most two lines, until the progress bar takes its place */
+.teacher-home-class-task {
+  display: -webkit-box;
+  margin: 0 0 16px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 15px;
+  color: var(--ink-2);
 }
 
 /* ── Progress bar: three parts, widths set from the counts ────────────── */
@@ -138,6 +220,7 @@
   font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 250ms ease-in-out;
 }
 
 .teacher-home-primary {
@@ -146,7 +229,7 @@
   color: var(--surface);
 }
 
-.teacher-home-primary:hover { background: var(--purple-600); }
+.teacher-home-primary:hover:not(:disabled) { background: var(--purple-600); }
 
 .teacher-home-secondary {
   border: 1px solid var(--border);
@@ -156,32 +239,22 @@
 
 .teacher-home-secondary:hover { background: var(--purple-50); }
 
-/* ── Published row: one compact strip per published project ───────────── */
-.teacher-home-published {
+/* manual: disabled = 40% opacity */
+.teacher-home-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.teacher-home-new-button {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  gap: 6px;
+  flex: 0 0 auto;
 }
 
-.teacher-home-published-name {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.teacher-home-published-stats {
-  margin-left: auto;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--green-800);
-}
-
-/* ── Small button (manual: 32–36px, 13px ExtraBold, never wraps) ───────── */
+/* small buttons (manual: 32–36px, 13px ExtraBold, never wraps) */
 .teacher-home-small {
+  flex: 0 0 auto;
   height: 36px;
   padding: 0 12px;
   border: 1px solid var(--border);
@@ -193,63 +266,523 @@
   font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 250ms ease-in-out;
 }
 
 .teacher-home-small:hover { background: var(--purple-50); }
 
-/* ── Start a new project: dashed card ─────────────────────────────────── */
-.teacher-home-new-section {
-  margin-top: 24px;
+.teacher-home-small-primary {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
 }
 
-.teacher-home-new {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-}
+.teacher-home-small-primary:hover { background: var(--purple-600); }
 
-.teacher-home-new-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-btn);
-  background: var(--purple-100);
+/* Restore: a white small button with purple text */
+.teacher-home-small-restore {
   color: var(--purple-600);
 }
 
-.teacher-home-new-text {
+/* the ⋯ buttons: square, icon only */
+.teacher-home-more {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.teacher-home-more:hover { background: var(--purple-50); }
+
+/* ── All projects: a white box that takes the rest of the height ──────── */
+.teacher-home-all {
+  flex: 1;
+  min-height: 180px; /* never squashed below about two rows */
+  display: flex;
+  flex-direction: column;
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+/* title left, Archived toggle right */
+.teacher-home-all-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.teacher-home-all-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.teacher-home-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.teacher-home-all-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto; /* only this list scrolls */
+  padding-right: 4px; /* a little air between rows and bar */
+}
+
+/* slim, rounded scrollbar in the brand's soft purple */
+.teacher-home-all-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.teacher-home-all-list::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--purple-300);
+}
+
+.teacher-home-all-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox: no ::-webkit-scrollbar, so it uses the standard properties instead */
+@supports not selector(::-webkit-scrollbar) {
+  .teacher-home-all-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--purple-300) transparent;
+  }
+}
+
+/* one project: chip, name, details on the right, button, ⋯ */
+.teacher-home-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--bg-app);
+}
+
+/* a project that was just duplicated */
+.teacher-home-row-new {
+  border-color: var(--purple-300);
+  background: var(--purple-50);
+}
+
+/* an archived project: faded, with an outlined chip */
+.teacher-home-row-archived {
+  border-style: dashed;
+  background: var(--bg-app);
+}
+
+.teacher-home-row-archived .teacher-home-row-name {
+  color: var(--text-muted);
+}
+
+.teacher-home-row-name {
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.teacher-home-row-details {
+  margin-left: auto; /* pushes details and buttons to the right */
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.teacher-home-row-details-published {
+  color: var(--green-800);
+}
+
+/* ── ⋯ menu: floats above everything, placed from the button's position ── */
+.teacher-home-menu-anchor {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.teacher-home-menu {
+  position: fixed; /* the scrolling list can't cut it off */
+  z-index: 50;
+  width: 260px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
 }
 
-.teacher-home-new-text strong {
-  font-size: 16px;
+.teacher-home-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-btn-sm);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.teacher-home-menu-item:hover:not(:disabled) { background: var(--bg-app); }
+
+.teacher-home-menu-item:disabled {
+  opacity: 0.4; /* manual: disabled = 40% opacity */
+  cursor: not-allowed;
+}
+
+.teacher-home-menu-item svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.teacher-home-menu-item span {
+  display: flex;
+  flex-direction: column;
+}
+
+.teacher-home-menu-item strong {
+  font-size: 14px;
   font-weight: 800;
 }
 
-.teacher-home-new-text span {
-  font-size: 13px;
+.teacher-home-menu-item small {
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
 }
 
-.teacher-home-new-button {
+.teacher-home-menu-item-danger { color: var(--red-700); }
+
+/* ── Popups (delete confirm, New project) ─────────────────────────────── */
+.teacher-home-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: var(--overlay);
+}
+
+.teacher-home-dialog {
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.teacher-home-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--red-50);
+  color: var(--red-500);
+}
+
+.teacher-home-dialog-title {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.teacher-home-dialog-text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.teacher-home-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.teacher-home-danger {
+  height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--red-500);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.teacher-home-danger:hover { background: var(--red-700); }
+
+/* ── New project popup ────────────────────────────────────────────────── */
+.teacher-home-dialog-wide {
+  width: min(700px, 100%);
+}
+
+.teacher-home-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Room 1 starts as: one tile per room, then Students pick; scrolls sideways when there are many */
+.teacher-home-rooms-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-home-rooms-head small {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.teacher-home-rooms {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 120px;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 4px; /* room for the scrollbar under the tiles */
+  overflow-x: auto;
+}
+
+.teacher-home-room {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.teacher-home-room:hover { background: var(--purple-50); }
+
+.teacher-home-room strong {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.teacher-home-room small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* same as the class picks: purple-100 fill + 2px purple-500 border */
+.teacher-home-room-selected,
+.teacher-home-room-selected:hover {
+  border: 2px solid var(--purple-500);
+  padding: 7px 7px 9px; /* 1px less, so the thicker border doesn't make it jump */
+  background: var(--purple-100);
+}
+
+.teacher-home-room-selected small {
+  color: var(--purple-700);
+  font-weight: 600;
+}
+
+/* a room the school has not turned on: dashed and faded, can't be picked */
+.teacher-home-room-off,
+.teacher-home-room-students {
+  border-style: dashed;
+  border-color: var(--purple-300);
+}
+
+.teacher-home-room-off {
+  background: var(--purple-50);
+  cursor: not-allowed;
+}
+
+.teacher-home-room-off strong { color: var(--text-muted); }
+
+/* the picture: a coloured box with a little floor tile in the middle */
+.teacher-home-room-picture {
+  position: relative;
+  align-self: stretch;
+  height: 58px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-100);
+}
+
+.teacher-home-room-picture::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 26px;
+  height: 26px;
+  background: rgb(255 255 255 / 0.6);
+  transform: translate(-50%, -50%) scaleY(0.55) rotate(45deg);
+}
+
+.teacher-home-room-off .teacher-home-room-picture { background: #E3E3E6; }
+
+.teacher-home-room-students .teacher-home-room-picture {
+  background: repeating-linear-gradient(135deg, var(--purple-100) 0 8px, #F6F3FD 8px 16px);
+}
+
+/* the same colours as templateSetup.css's "Room colours", in the same order */
+.teacher-home-room-tone-0 { background: #B7D5F4; }
+.teacher-home-room-tone-1 { background: #C4E2A0; }
+.teacher-home-room-tone-2 { background: #F6CFAE; }
+.teacher-home-room-tone-3 { background: #D6CCF5; }
+.teacher-home-room-tone-4 { background: #F3C1CF; }
+.teacher-home-room-tone-5 { background: #B5E6EC; }
+
+.teacher-home-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+/* manual inputs: 1px border-strong, 12px radius, 16px text */
+.teacher-home-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.teacher-home-input::placeholder { color: var(--text-muted); }
+
+.teacher-home-input:focus {
+  outline: 2px solid var(--purple-500);
+  border-color: transparent;
+}
+
+/* a required field left empty: red border, red outline while typing in it */
+.teacher-home-input-invalid,
+.teacher-home-input-invalid:focus {
+  border-color: var(--red-500);
+  outline-color: var(--red-500);
+}
+
+.teacher-home-field-error {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-700);
+}
+
+/* class on the left, due date on the right */
+.teacher-home-new-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.teacher-home-class-picks {
+  display: flex;
+  flex-wrap: wrap; /* a teacher with many classes gets a second row */
+  gap: 8px;
+}
+
+/* loading, or no classes to pick from */
+.teacher-home-picks-note {
+  align-self: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.teacher-home-pick {
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.teacher-home-pick:hover { background: var(--purple-50); }
+
+/* manual: selected = purple-100 fill + 2px purple-500 border */
+.teacher-home-pick-selected,
+.teacher-home-pick-selected:hover {
+  border: 2px solid var(--purple-500);
+  padding: 0 13px; /* 1px less, so the thicker border doesn't make it jump */
+  background: var(--purple-100);
+  color: var(--purple-700);
+}
+
+.teacher-home-note {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: auto;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-50);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.teacher-home-note svg {
+  flex: 0 0 auto;
+  color: var(--purple-600);
 }
 
 /* ── Temporary dev section (remove with ProjectListsSection) ──────────── */
 .teacher-home-dev {
-  margin-top: 24px;
+  margin-top: 16px;
   font-size: 13px;
   color: var(--text-muted);
 }
@@ -257,4 +790,10 @@
 .teacher-home-dev summary {
   cursor: pointer;
   font-weight: 800;
+}
+
+/* when opened, the dev tools scroll inside themselves instead of stretching the page */
+.teacher-home-dev[open] {
+  max-height: 40vh;
+  overflow-y: auto;
 }

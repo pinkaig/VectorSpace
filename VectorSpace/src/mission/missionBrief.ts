@@ -43,7 +43,8 @@ export interface MissionGoal {
 // The stored shapes (what is saved in the project file) live in the shared project model,
 // so the serializer and every app read the same ones. Re-exported here for convenience.
 import type { MissionBrief } from '../project/model'
-export type { MissionBrief, MissionRule, MissionTodo } from '../project/model'
+import { tidyCardTasks } from './cardTasks'
+export type { CardField, CardTask, MissionBrief, MissionRule, MissionTodo } from '../project/model'
 
 // The due date as the brief shows it, e.g. "Thursday, 22 Oct". A new brief is due today until the teacher changes it. Built in two parts
 // because en-GB 
@@ -58,5 +59,6 @@ export const newBriefId = (prefix: 'todo' | 'rule'): string => `${prefix}-${Date
 export const tidyBrief = (brief: MissionBrief): MissionBrief => {
   const tidy = <T extends { text: string }>(items: T[]): T[] =>
     items.map((item) => ({ ...item, text: item.text.trim() })).filter((item) => item.text !== '')
-  return { due: brief.due.trim(), todos: tidy(brief.todos), rules: tidy(brief.rules) }
+  const cardTasks = tidyCardTasks(brief.cardTasks ?? [])
+  return { due: brief.due.trim(), todos: tidy(brief.todos), rules: tidy(brief.rules), ...(cardTasks.length > 0 ? { cardTasks } : {}) }
 }

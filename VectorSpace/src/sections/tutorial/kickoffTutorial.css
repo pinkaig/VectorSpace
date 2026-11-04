@@ -1,0 +1,115 @@
+/**
+ * @file        kickoffTutorial.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for KickoffTutorial: the dimmed overlay over the editor and the white tip
+ *              card near the top of it ("Tip 1 of 3" in green, title, text, Skip tutorial and
+ *              Next), as in the 3.05 prototype.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* ── The dimmed editor behind the card ────────────────────────────────── */
+.kickoff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 150px 12px 12px;
+  box-sizing: border-box;
+  background: var(--overlay);
+}
+
+/* ── The tip card ─────────────────────────────────────────────────────── */
+.kickoff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.kickoff-count {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green-800);
+}
+
+.kickoff-title {
+  margin: 4px 0 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.kickoff-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* Skip tutorial on the left, Next / Let's build on the right */
+.kickoff-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.kickoff-skip {
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.kickoff-skip:hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
+}
+
+.kickoff-next {
+  min-height: 48px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--radius-btn-lg);
+  background: var(--purple-500);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.kickoff-next:hover {
+  background: var(--purple-600);
+}
+
+.kickoff-skip:focus-visible,
+.kickoff-next:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}

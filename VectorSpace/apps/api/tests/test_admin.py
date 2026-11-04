@@ -120,6 +120,59 @@ def test_adding_an_account_to_another_school_is_refused(client, school, monkeypa
     assert reply.status_code == 404
 
 
+def _new_account(school, **changes) -> dict:
+    body = {
+        "school_id": str(school["admin"].organisation_id),
+        "name": "New Person", "email": "new.person@x.test", "role": "student", "class_names": [],
+    }
+    return {**body, **changes}
+
+
+def test_a_created_account_comes_back_with_its_one_time_password_link(client, school, monkeypatch) -> None:
+    """Nothing emails the link, so the create reply is the only chance to hand it over."""
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    reply = client.post("/admin/accounts", json=_new_account(school), headers=as_user("admin"))
+    assert reply.status_code == 201
+    assert reply.json()["invite_link"] == "https://tenant.test/invite/new.person@x.test"
+
+    # and nowhere else: the ticket is single-use and is never stored, so a listing cannot re-mint it
+    listed = {a["email"]: a for a in client.get("/admin/accounts", headers=as_user("admin")).json()}
+    assert "invite_link" not in listed["new.person@x.test"]
+
+
+def test_no_tenant_means_a_null_link_and_not_an_empty_string(client, school, monkeypatch) -> None:
+    """The local path has no link; the browser has to tell "none" from "blank"."""
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _LoginsWithoutATenant())
+    reply = client.post("/admin/accounts", json=_new_account(school), headers=as_user("admin"))
+    assert reply.status_code == 201 and reply.json()["invite_link"] is None
+
+
+def test_an_address_the_school_already_has_is_refused_and_nobody_is_edited(client, db, school, monkeypatch) -> None:
+    """provision() would update them -- right for a re-run of a roster, wrong for a form."""
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    reply = client.post(
+        "/admin/accounts",
+        json=_new_account(school, email="S1@x.test", name="Someone Else", role="teacher"),
+        headers=as_user("admin"),
+    )
+    assert reply.status_code == 409
+    assert "s1@x.test" in reply.json()["detail"] and "s1" in reply.json()["detail"]
+
+    db.refresh(school["s1"])
+    assert (school["s1"].role, school["s1"].display_name) == ("student", "s1")
+
+
+def test_a_turned_off_address_is_refused_rather_than_quietly_turned_back_on(client, db, school, monkeypatch) -> None:
+    client.patch(f"/admin/accounts/{school['s1'].id}", json={"active": False}, headers=as_user("admin"))
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    reply = client.post(
+        "/admin/accounts", json=_new_account(school, email="s1@x.test"), headers=as_user("admin")
+    )
+    assert reply.status_code == 409
+    db.refresh(school["s1"])
+    assert school["s1"].active is False  # still off: reactivating is a deliberate act, not a side effect
+
+
 def test_adding_a_school_says_why_it_cannot(client, school) -> None:
     """Honest 501: there is no operator role above the schools yet."""
     reply = client.post("/admin/schools", json={"name": "C"}, headers=as_user("admin"))
@@ -165,7 +218,18 @@ def test_students_active_this_week_uses_the_real_timestamp(client, db, school) -
 
 
 class _FakeLogins:
-    """Stands in for DevLogins/Auth0Admin in the tests, so nothing reads the settings or the network."""
+    """Stands in for Auth0Admin in the tests, so nothing reads the settings or the network.
+
+    The second element is Auth0's one-time password-set link. It is a recognisable fake rather
+    than "" so that a test can watch it travel from provision() to the create reply.
+    """
 
     def create_user(self, email: str, display_name: str) -> tuple[str, str]:
-        return f"test|{email}", ""
+        return f"test|{email}", f"https://tenant.test/invite/{email}"
+
+
+class _LoginsWithoutATenant:
+    """What DevLogins does: a local subject and no link at all, which is every local run."""
+
+    def create_user(self, email: str, display_name: str) -> tuple[str, str]:
+        return f"dev|{email.split('@')[0]}", ""

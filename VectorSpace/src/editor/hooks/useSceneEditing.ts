@@ -28,7 +28,8 @@
  * https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Application-Shell-and-Routing
  */
 import type { RefObject } from 'react'
-import { ProjectData, SceneData, SceneObject, makeScene } from '../../project/model'
+import { DEFAULT_ROOM_SURFACES } from '../../content/roomSurfaces'
+import { ProjectData, type EnvironmentDefinition, type RoomSurfaces, type RoomCell, SceneData, SceneObject, makeScene } from '../../project/model'
 import { AssetDefinition } from '../../content/assets'
 import type { ViewportHandle } from '../../viewport/Viewport'
 import {
@@ -54,7 +55,8 @@ import {
 } from '../editorOperations'
 import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../ruleEditorOperations'
 import { grandparentId, previousSibling } from '../sceneTree'
-import { cellBeside, freeCell, roomAt, roomCell, type RoomSide } from '../roomLayout'
+import { freeCell, isAllowedCell, roomAt, roomCell } from '../roomLayout'
+import { unlockNewObjects } from '../teacherTools'
 
 type SceneEditingInputs = {
   project: ProjectData
@@ -64,9 +66,21 @@ type SceneEditingInputs = {
   commit: (label: string, next: ProjectData) => void
   runCommand: (build: EditorCommandBuilder) => unknown
   viewportRef: RefObject<ViewportHandle | null>
+  // true for an object this person may not move, turn, resize, delete or re-parent (a student
+  // and an object the teacher locked); absent = nothing is locked
+  isLocked?: (objectId: string) => boolean
+  // called instead of the edit when it hits a locked object
+  onLocked?: (object: SceneObject) => void
 }
 
-export function useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef }: SceneEditingInputs) {
+export function useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef, isLocked, onLocked }: SceneEditingInputs) {
+  // refuses an edit to a locked object, and says so; true when the edit may go ahead
+  const allowed = (objectId: string) => {
+    if (!isLocked?.(objectId)) return true
+    const object = scene.objects.find((item) => item.id === objectId)
+    if (object) onLocked?.(object)
+    return false
+  }
   const setEnvironment = (environmentId: string) => {
     commit('Change environment', updateEditorScene(project, project.activeSceneId, { environmentId }).project)
   }
@@ -81,17 +95,20 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     setSelectedId(result.objectId ?? null)
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
-    if (!selected) return
+    if (!selected || !allowed(selected.id)) return
     const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
     if (builder) runCommand(builder)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
+    if (!allowed(id)) return
     runCommand(moveEditorObjectCommand(scene.id, id, position))
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
+    if (!allowed(id)) return
     runCommand(scaleEditorObjectCommand(scene.id, id, scale))
   }
   const rotateObject = (id: string, rotation: [number, number, number], position?: [number, number, number]) => {
+    if (!allowed(id)) return
     runCommand(position
       ? rotateEditorObjectAboutPivotCommand(scene.id, id, rotation, position)
       : rotateEditorObjectCommand(scene.id, id, rotation))
@@ -105,17 +122,19 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     commit('Change asset ID', setEditorObjectAssetId(project, scene.id, selected.id, assetId).project)
   }
   const deleteSelected = () => {
-    if (!selected) return
+    if (!selected || !allowed(selected.id)) return
     commit('Delete object', removeEditorObject(project, scene.id, selected.id).project)
     setSelectedId(null)
   }
   const duplicateSelected = () => {
     if (!selected) return
     const result = duplicateEditorObject(project, scene.id, selected.id)
-    commit('Duplicate object', result.project)
+    // a copy of a locked thing is the copier's own, so it comes out unlocked
+    commit('Duplicate object', unlockNewObjects(project, result.project, scene.id))
     setSelectedId(result.objectId ?? null)
   }
   const reparentObjectTo = (objectId: string, parentId: string | null) => {
+    if (!allowed(objectId)) return
     commit('Reparent object', reparentEditorObject(project, scene.id, objectId, parentId).project)
   }
   const indentObject = (objectId: string) => {
@@ -152,18 +171,16 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
   const withStoredCell = (from: ProjectData, room: SceneData): ProjectData =>
     room.layout ? from : updateEditorScene(from, room.id, { layout: roomCell(from, room) ?? freeCell(from) }).project
 
-  // Adds a room on one side of the current room, on the rooms map. Stays in the current
-  // room, so the new one shows up on the side that was clicked (the map centres on the
-  // room you're in; jumping to the new room would flip it to the opposite side).
-  const addScene = (side: RoomSide) => {
+  // Adds a room of the selected environment in an empty cell of the rooms map (one of the
+  // five allowed cells)
+  const addScene = (cell: RoomCell, environment: EnvironmentDefinition) => {
     // after a delete, scenes.length + 1 can name a scene that still exists, so skip taken ids
     let number = project.scenes.length + 1
     while (project.scenes.some((item) => item.id === `scene-${number}`)) number += 1
-    const base = withStoredCell(project, scene)
-    const here = base.scenes.find((item) => item.id === scene.id)!.layout!
-    const cell = cellBeside(here, side)
-    if (roomAt(base, cell)) return
-    const room = { ...makeScene(`scene-${number}`, `Room ${project.scenes.length + 1}`), layout: cell }
+    // pin the first room where the map shows it, so adding at the origin can't move it
+    const base = project.scenes[0] ? withStoredCell(project, project.scenes[0]) : project
+    if (!isAllowedCell(cell) || roomAt(base, cell)) return
+    const room = { ...makeScene(`scene-${number}`, environment.name), environmentId: environment.id, layout: cell }
     // createScene makes the new scene active; switch back in the same undo step
     commit('Create scene', selectEditorScene(createEditorScene(base, room).project, scene.id).project)
   }
@@ -172,6 +189,13 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     const current = project.scenes.find((item) => item.id === sceneId)
     if (!trimmed || !current || current.name === trimmed) return
     commit('Rename scene', updateEditorScene(project, sceneId, { name: trimmed }).project)
+  }
+  // Changes a room's wall and/or floor style (from "Your rooms"); the other one keeps its style.
+  const setSceneSurfaces = (sceneId: string, change: Partial<RoomSurfaces>) => {
+    const current = project.scenes.find((item) => item.id === sceneId)
+    if (!current) return
+    const surfaces: RoomSurfaces = { ...DEFAULT_ROOM_SURFACES, ...current.surfaces, ...change }
+    commit('Change room style', updateEditorScene(project, sceneId, { surfaces }).project)
   }
   // Moves a room earlier (-1) or later (+1) in the visit order.
   const moveSceneInOrder = (sceneId: string, step: -1 | 1) => {
@@ -192,6 +216,6 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     setEnvironment, captureStartView, addObject, updateSelected, moveObject, scaleObject, rotateObject,
     renameSelected, setSelectedAssetId, deleteSelected, duplicateSelected, reparentObjectTo,
     indentObject, outdentObject, setSelectedVisible, addSelectedClickRule, removeRuleById,
-    setSelectedEnabled, addScene, removeScene, moveSceneInOrder, renameScene,
+    setSelectedEnabled, addScene, removeScene, moveSceneInOrder, renameScene, setSceneSurfaces,
   }
 }

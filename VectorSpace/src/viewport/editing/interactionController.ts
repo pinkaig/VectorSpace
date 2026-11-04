@@ -45,6 +45,8 @@ export interface ViewportInteractionData {
   gizmoMode: InteractionGizmoMode
   scaleSpace: 'world' | 'local'
   rotateSpace: 'world' | 'local'
+  // the object panel's Snap switch: drags land on the floor grid, 15° and 0.25 steps (snapping.ts)
+  snap: boolean
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
@@ -65,6 +67,8 @@ export interface ViewportInteractionData {
   // for input is decided here: pointer picking, look, drags, runtime key
   // triggers, and walk movement all pause until the panel closes.
   modalOpen: boolean
+  // a text panel or info card is showing: Walk must not take the mouse away from it
+  panelOpen?: boolean
   // How the visitor moves in play mode ('tap' to go, 'walk', 'tour' spots); look is a drag
   // in all three. null keeps the older pointer-lock look.
   playMove: 'tap' | 'walk' | 'tour' | null
@@ -139,6 +143,10 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   // Where the pointer went down, so a runtime click can be distinguished from a
   // drag or a look-around by the same distance rule selection already uses.
   let pointerDownAt: { x: number; y: number } | null = null
+  // A press on empty space while Move/Rotate/Size is on. It deselects only if it ends as a
+  // click (released within 4px), so dragging from empty space to turn the camera keeps the
+  // selection.
+  let pressedEmpty = false
   // Last object reported hovered, so hover fires once on entering an object and
   // once on leaving — the same edge-triggered discipline the zone tracker uses,
   // rather than one event per pointermove.
@@ -171,9 +179,13 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   const dragSessions = createDragSessions({
   raycaster, pointer, activeCamera, objectsGroup, gizmoGroup, getPointer,
   callbacks: { commitMove: callbacks.commitMove, commitScale: callbacks.commitScale, commitRotate: callbacks.commitRotate },
+  getSnap: () => callbacks.getData().snap,
 })
   const pick = (event: PointerEvent) => {
     getPointer(event)
+    // Walk holds the mouse for looking around, which freezes the cursor where the lock
+    // began; what the visitor clicks then is what they look at, the centre of the view
+    if (document.pointerLockElement === element) pointer.set(0, 0)
     raycaster.setFromCamera(pointer, activeCamera.current)
     // An object whose asset is still resolving or has failed has no confirmed
     // visual representation yet, so it must not be selectable or draggable.
@@ -366,7 +378,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       // Play's Walk with a mouse is first-person too; touch keeps drag-to-look.
       const mouseLook = data.playMove === null || (data.playMove === 'walk' && event.pointerType === 'mouse')
       if (!interactive && data.runtimeActive && mouseLook) {
-        if (document.pointerLockElement !== element) element.requestPointerLock()
+        // with a card open the visitor keeps the mouse to read and close it; the click
+        // still selects (and can open another card), it just does not lock the mouse
+        if (!data.panelOpen && document.pointerLockElement !== element) element.requestPointerLock()
         return
       }
       looking = { startPointerX: event.clientX, startPointerY: event.clientY, startYaw: yaw.current, startPitch: pitch.current }
@@ -445,7 +459,10 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     }
     const hit = pick(event)
     if (!hit) {
-      if (data.gizmoMode === 'select') callbacks.select(null) // only deselect on empty click while in Select mode, so the gizmo doesn't vanish while actively transforming
+      // Select mode deselects at once; with a tool on, wait for the release (onPointerUp), so a
+      // camera drag that starts on empty space does not drop the selection
+      if (data.gizmoMode === 'select') callbacks.select(null)
+      else pressedEmpty = true
       return
     }
     callbacks.select(hit.name)
@@ -511,6 +528,12 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
       }
     }
 
+    // an empty-space press that stayed put was a click: deselect
+    if (pressedEmpty && event.button === 0) {
+      pressedEmpty = false
+      const travelled = pointerDownAt ? Math.hypot(event.clientX - pointerDownAt.x, event.clientY - pointerDownAt.y) : Infinity
+      if (travelled < 4) callbacks.select(null)
+    }
     if (event.button === 0) pointerDownAt = null
     if (looking) {
       const moved = Math.hypot(event.clientX - looking.startPointerX, event.clientY - looking.startPointerY); looking = null

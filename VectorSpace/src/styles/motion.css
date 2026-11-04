@@ -1,0 +1,55 @@
+/**
+ * @file        motion.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Motion tokens: how long things take, how they ease, how far they travel.
+ *              The response layer (hover, press, disabled) reads these straight from CSS;
+ *              the animation layer (src/motion) reads them through the recipes.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+/* Admin-area stylesheets use only these values: no literal duration or curve beside them.
+   Changing one number here retunes every transition that uses it, and the motion board
+   (/motion-board, dev only) writes to these same names live. */
+:root {
+  /* durations: the only four an admin page should need */
+  --mo-dur-instant: 80ms;   /* press, chip pulse */
+  --mo-dur-fast: 140ms;     /* hover, focus, toggle knob */
+  --mo-dur-base: 220ms;     /* popup and panel enter */
+  --mo-dur-slow: 320ms;     /* a whole page region swapping */
+
+  /* curves */
+  --mo-ease-standard: cubic-bezier(0.2, 0, 0, 1);    /* arriving */
+  --mo-ease-exit: cubic-bezier(0.4, 0, 1, 1);        /* leaving */
+  --mo-ease-emphasis: cubic-bezier(0.2, 0, 0, 1.2);  /* a small overshoot */
+
+  /* travel distances; multiply by --mo-scale inside calc() so the dial below works */
+  --mo-dist-sm: 4px;
+  --mo-dist-md: 8px;
+  --mo-dist-lg: 16px;
+
+  /* hover feedback: how far a control rises toward the pointer, and the shadow it casts */
+  --mo-lift: 2px;
+  --mo-shadow-hover: 0 6px 14px rgba(31, 27, 58, 0.16);
+
+  /* one global amplitude dial: 0 collapses every movement to a plain fade */
+  --mo-scale: 1;
+
+  /* a cue's own amplitude, set on the element while it animates (see src/motion/waapiDriver.ts) */
+  --mo-gain: 1;
+}
+
+/* A visitor who asked their system for less motion. Handled here once, not rule by rule. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mo-scale: 0;
+    --mo-dur-fast: 0ms;
+    --mo-dur-base: 0ms;
+    --mo-dur-slow: 0ms;
+    /* --mo-dur-instant stays: a press tint is feedback, not motion */
+  }
+}

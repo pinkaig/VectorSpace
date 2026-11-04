@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createActionRegistry, createEffectRegistry, createRuntimeState } from '@vectorspace/interaction'
 import type { ActionContext } from '@vectorspace/interaction'
 import { AudioSystem } from '../AudioSystem'
@@ -71,5 +71,67 @@ describe('registerAudioActions', () => {
     const snapshot = audio.store.getSnapshot()
     expect(snapshot.channels.find((c) => c.id === 'bgm')?.volume).toBe(0.3)
     expect(snapshot.master.volume).toBe(0.6)
+  })
+
+  describe('cooldown and fades', () => {
+    const setupWithClock = () => {
+      const backend = new FakeAudioBackend()
+      const audio = new AudioSystem({ backend, resolver })
+      const registry = createActionRegistry()
+      let clock = 1000
+      registerAudioActions(registry, audio, { now: () => clock })
+      const effects = createEffectRegistry()
+      const ctx: ActionContext = { state: createRuntimeState('scene-1'), effects }
+      return { audio, registry, ctx, advance: (ms: number) => { clock += ms } }
+    }
+
+    it('drops a repeat playAudio inside cooldownMs, then allows it after', async () => {
+      const { audio, registry, ctx, advance } = setupWithClock()
+      await audio.unlock()
+      const action = { kind: 'playAudio', params: { assetId: 'sfx1', cooldownMs: 400 } }
+
+      await registry.execute(action, ctx)
+      advance(399)
+      await registry.execute(action, ctx)
+      expect(audio.store.getSnapshot().voices).toHaveLength(1)
+
+      advance(1)
+      await registry.execute(action, ctx)
+      expect(audio.store.getSnapshot().voices).toHaveLength(2)
+    })
+
+    it('tracks cooldown per asset', async () => {
+      const { audio, registry, ctx } = setupWithClock()
+      await audio.unlock()
+      await registry.execute({ kind: 'playAudio', params: { assetId: 'a', cooldownMs: 400 } }, ctx)
+      await registry.execute({ kind: 'playAudio', params: { assetId: 'b', cooldownMs: 400 } }, ctx)
+      expect(audio.store.getSnapshot().voices).toHaveLength(2)
+    })
+
+    it('has no cooldown unless cooldownMs is given', async () => {
+      const { audio, registry, ctx } = setupWithClock()
+      await audio.unlock()
+      const action = { kind: 'playAudio', params: { assetId: 'sfx1' } }
+      await registry.execute(action, ctx)
+      await registry.execute(action, ctx)
+      expect(audio.store.getSnapshot().voices).toHaveLength(2)
+    })
+
+    it('stopAudio with fadeOut keeps the voice until the fade ends', async () => {
+      vi.useFakeTimers()
+      try {
+        const { audio, registry, ctx } = setupWithClock()
+        await audio.unlock()
+        await registry.execute({ kind: 'playAudio', params: { assetId: 'bed' } }, ctx)
+        // Decode takes several microtask turns; a voice still loading is stopped at once, not faded.
+        for (let i = 0; i < 5; i++) await Promise.resolve()
+        await registry.execute({ kind: 'stopAudio', params: { assetId: 'bed', fadeOut: 1.5 } }, ctx)
+        expect(audio.store.getSnapshot().voices).toHaveLength(1)
+        vi.advanceTimersByTime(1500)
+        expect(audio.store.getSnapshot().voices).toHaveLength(0)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 })

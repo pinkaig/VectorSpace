@@ -71,6 +71,16 @@ class AccountResponse(BaseModel):
     status: str
 
 
+class CreatedAccountResponse(AccountResponse):
+    """The create reply only. Auth0 mints a single-use password-set link and nothing emails it,
+    so the one request that mints it is the only place it can be handed over. A ticket cannot be
+    re-minted on demand, so GET /accounts keeps AccountResponse and has no such field: a column
+    that is always null on a list and sometimes set on a create is the wrong shape."""
+
+    # null, not "", when there is no link: DevLogins has no tenant to mint one
+    invite_link: str | None = None
+
+
 class NewAccountRequest(BaseModel):
     school_id: uuid.UUID
     name: str
@@ -186,14 +196,19 @@ def list_accounts(
     return _describe_accounts(db, list(people))
 
 
-@router.post("/accounts", response_model=AccountResponse, status_code=201)
+@router.post("/accounts", response_model=CreatedAccountResponse, status_code=201)
 def add_account(
     body: NewAccountRequest, actor: Actor = Depends(require_admin), db: Session = Depends(get_db)
-) -> AccountResponse:
+) -> CreatedAccountResponse:
     """The same provisioning path as the CSV tool and the seed: a login, an actor row, its classes.
 
     Nobody signs themselves up, so creating an account means creating a login first. With
     AUTH_DEV_BYPASS the login is a local "dev|..." stand-in; otherwise it is a real Auth0 user.
+
+    The reply carries that login's one-time password-set link, which is the only way in: nothing
+    emails it, because create_user marks the address verified on purpose so that roster addresses
+    need not be real ones. Hand it over and do not keep it -- it is a credential, so it is never
+    logged, never stored and never put in a URL.
     """
     if body.school_id != actor.organisation_id:
         raise HTTPException(status_code=404, detail="School not found")
@@ -201,10 +216,25 @@ def add_account(
         raise HTTPException(status_code=422, detail="role must be admin, teacher or student")
     email = body.email.strip().lower()
     org = db.get(Organisation, actor.organisation_id)
+    # provision() updates somebody it already knows rather than failing, which is what a re-run of
+    # a corrected roster needs and the wrong thing for a form: it would quietly rewrite the
+    # person's role and display name, turn a deliberately disabled account back on, and answer 201
+    # with no link. This route serves one person at a time, so here a known address is a mistake
+    # worth naming. The fix belongs here and not in provision(), whose idempotence the CSV tool is
+    # promised in its docstring.
+    taken = db.scalar(select(Actor).where(Actor.organisation_id == org.id, Actor.email == email))
+    if taken is not None:
+        raise HTTPException(
+            status_code=409, detail=f"{email} already belongs to {taken.display_name} ({taken.role})"
+        )
     row = Row(email=email, display_name=body.name.strip(), role=body.role, classes=body.class_names)
-    provision(db, logins(), org.slug, org.name, [row])
+    report = provision(db, logins(), org.slug, org.name, [row])
     person = db.scalar(select(Actor).where(Actor.organisation_id == org.id, Actor.email == email))
-    return _describe_accounts(db, [person])[0]
+    # report is (email, outcome, link) per row; an empty link means there was no tenant to mint one
+    invite_link = next((link for _, _, link in report if link), None)
+    return CreatedAccountResponse(
+        **_describe_accounts(db, [person])[0].model_dump(), invite_link=invite_link
+    )
 
 
 @router.patch("/accounts/{account_id}", response_model=AccountResponse)

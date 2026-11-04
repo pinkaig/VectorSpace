@@ -2,8 +2,11 @@
  * @file        StudentHomePage.css
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
- * @brief       Styles for the student home: greeting, assigned project card
- *              and the "Your other projects" cards. Values from the V3 manual.
+ * @brief       Styles for the student home: greeting, the sent-back banner and
+ *              its comment popup, the assigned project card with its status
+ *              chips, and the All projects box that scrolls on its own (the
+ *              page itself is one screen tall and never scrolls). Values from
+ *              the V3 manual and the 3.05 prototype.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -11,21 +14,29 @@
  */
 /******************************************************************************/
 
-/* ── Page frame: centred, with a gap around everything ────────────────── */
+/* ── Page frame: exactly one screen tall, so the page never scrolls ────── */
 .student-home {
-  /* removed max-width: 1440px and margin: 0 auto */
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
   padding: 12px;
+  gap: 12px;
   background: var(--bg-app);
   font-family: var(--font-body);
   color: var(--ink);
 }
 
-/* ── Content column: narrower, centred, with space under the top bar ──── */
+/* ── Content column: centred; All projects takes whatever height is left ── */
 .student-home-content {
+  flex: 1;
+  min-height: 0; /* lets All projects shrink and scroll instead of pushing the page down */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 24px 0;
+  padding: 12px 0 0;
 }
 
 /* ── Greeting and section labels ──────────────────────────────────────── */
@@ -39,7 +50,7 @@
 }
 
 .student-home-lead {
-  margin: 6px 0 24px;
+  margin: 4px 0 16px;
   font-size: 17px;
   color: var(--text-muted);
 }
@@ -53,8 +64,59 @@
   color: var(--text-muted);
 }
 
+/* ── Sent back banner: amber strip with See comment ───────────────────── */
+.student-home-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--amber-200);
+  border-radius: var(--radius-box);
+  background: var(--amber-50);
+}
+
+.student-home-banner-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-btn);
+  background: var(--amber-500);
+  color: var(--surface);
+}
+
+.student-home-banner-text {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.student-home-banner-button {
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.student-home-banner-button:hover {
+  background: color-mix(in srgb, var(--ink), var(--surface) 15%);
+}
+
 /* ── Assigned project card: picture left, info right ──────────────────── */
 .student-home-assigned {
+  flex: 0 0 auto; /* keeps its size; All projects below gives way instead */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
@@ -66,9 +128,17 @@
 }
 
 .student-home-assigned-image {
-  height: 294px;
+  height: clamp(180px, 30vh, 294px); /* smaller on short screens, never bigger than the manual's */
   border-radius: var(--radius-box);
   overflow: hidden;
+}
+
+/* the picture fills its box, cropped rather than stretched */
+.student-home-assigned-image .museum-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ── Assigned card: info column ───────────────────────────────────────── */
@@ -78,6 +148,7 @@
   margin-bottom: 12px;
 }
 
+/* the manual's amber chip: due dates and Waiting for approval */
 .student-home-chip {
   padding: 3px 10px;
   border: 1px solid var(--amber-200);
@@ -86,12 +157,35 @@
   color: var(--amber-900);
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
+/* grey: Not started */
 .student-home-chip-muted {
   border-color: var(--border);
   background: var(--bg-app);
   color: var(--text-muted);
+}
+
+/* red: Sent back */
+.student-home-chip-red {
+  border-color: var(--red-200);
+  background: var(--red-50);
+  color: var(--red-900);
+}
+
+/* green: Published */
+.student-home-chip-green {
+  border-color: var(--green-200);
+  background: var(--green-50);
+  color: var(--green-800);
+}
+
+/* purple: Building */
+.student-home-chip-purple {
+  border-color: var(--border-strong);
+  background: var(--purple-100);
+  color: var(--purple-700);
 }
 
 .student-home-assigned-title {
@@ -128,57 +222,257 @@
   font-size: 16px;
   white-space: nowrap;
   cursor: pointer;
-}
-
-.student-home-start:disabled {
-  opacity: 0.4;            /* manual: disabled = 40% opacity, no pointer */
-  cursor: not-allowed;
+  transition: background-color 250ms ease-in-out;
 }
 
 .student-home-start:hover {
   background: var(--purple-600);
 }
 
-/* ── Your other projects ──────────────────────────────────────────────── */
-.student-home-others {
-  margin-top: 24px;
+.student-home-start:disabled {
+  opacity: 0.4; /* manual: disabled = 40% opacity, no pointer */
+  cursor: not-allowed;
 }
 
-.student-home-others-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+/* Start building / Open my museum, and View live beside it once published */
+.student-home-start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.student-home-other {
+.student-home-start-secondary {
+  background: var(--surface);
+  color: var(--purple-500);
+  box-shadow: inset 0 0 0 2px var(--purple-500);
+}
+
+.student-home-start-secondary:hover {
+  background: var(--surface);
+  color: var(--purple-600);
+  box-shadow: inset 0 0 0 2px var(--purple-600);
+}
+
+/* ── All projects: a white box that takes the rest of the height and scrolls ── */
+.student-home-all {
+  flex: 1;
+  min-height: 140px; /* never squashed below about one row */
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px;
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--surface);
-  font-family: var(--font-body);
-  text-align: left;
-  cursor: pointer;
 }
 
-.student-home-other:hover {
-  background: var(--purple-50);
-}
-
-.student-home-other-name {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.student-home-other-sub {
-  font-size: 13px;
+.student-home-all-title {
+  margin: 0 0 12px;
+  font-family: var(--font-heading);
   font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.student-home-all-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto; /* only this list scrolls */
+  padding-right: 4px;
+}
+
+/* slim purple scrollbar, same as the teacher home */
+.student-home-all-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.student-home-all-list::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--purple-300);
+}
+
+.student-home-all-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox: no ::-webkit-scrollbar, so it uses the standard properties instead */
+@supports not selector(::-webkit-scrollbar) {
+  .student-home-all-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--purple-300) transparent;
+  }
+}
+
+.student-home-empty {
+  margin: 0;
+  font-size: 15px;
   color: var(--text-muted);
 }
 
-.student-home-other-sub-published {
+/* one project: From chip, name, status on the right, button */
+.student-home-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--bg-app);
+}
+
+.student-home-from {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.student-home-row-name {
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.student-home-row-details {
+  margin-left: auto; /* pushes the status and button to the right */
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.student-home-row-details-published {
   color: var(--green-800);
+}
+
+/* small buttons (manual: 32–36px, 13px ExtraBold, never wraps) */
+.student-home-small {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.student-home-small:hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
+}
+
+.student-home-small-primary {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.student-home-small-primary:hover {
+  background: var(--purple-600);
+}
+
+/* ── "Sent it back" popup ─────────────────────────────────────────────── */
+.student-home-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: var(--overlay);
+}
+
+.student-home-dialog {
+  width: min(560px, 100%);
+  box-sizing: border-box;
+  padding: 28px;
+  border-radius: var(--radius-popup);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.student-home-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.student-home-dialog-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-box);
+}
+
+.student-home-dialog-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.student-home-dialog-title {
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+/* the teacher's comment: wraps onto more lines rather than being cut off */
+.student-home-dialog-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.student-home-dialog-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.student-home-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.student-home-secondary {
+  height: 52px;
+  padding: 0 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-lg);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.student-home-secondary:hover,
+.student-home-dialog-close:hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
 }

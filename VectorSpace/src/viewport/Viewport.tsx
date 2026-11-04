@@ -20,6 +20,7 @@ import {
   AudioSettings,
   CameraPose,
   InteractionRule,
+  RoomSurfaces,
   SceneObject,
   TextAssetMeta,
   TextAttachment,
@@ -40,6 +41,9 @@ import {
   type RuntimeState,
 } from '../../packages/interaction/src/index'
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../../packages/audio/src/index'
+import { clickPanelFor, registerMediaActions } from '../runtime/builtInInteractions'
+import { createInRoomMedia } from './inRoomMedia'
+import { resolveLocalMedia } from '../runtime/mediaLibrary'
 import { TextLibrary, TextSystem, createTextEventBridge, registerTextActions } from '../../packages/text/src/index'
 import TextPanelHost from '../runtime/TextPanelHost'
 import { audioResolver } from '../content/audioResolution'
@@ -51,6 +55,7 @@ import { createZoneVisuals } from '../viewport/zoneVisuals'
 import { ViewportCrosshair, ViewportHint, ViewportOverlay } from '../viewport/ViewportOverlay'
 import { syncGizmo } from '../viewport/editing/syncGizmo'
 import { loadEnvironmentIntoGroup } from '../viewport/environmentController'
+import { styleRoomSurfaces } from '../content/roomSurfaces'
 import { createFloorGrid } from './floorGrid'
 import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
 import { createViewportInteractionController } from '../viewport/editing/interactionController'
@@ -71,6 +76,7 @@ import { AssetStatusBadge } from '../viewport/editing/AssetStatusBadge'
 import { createChangeColorExecutor} from '../viewport/actions/changeColorAction'
 import { CHANGE_COLOR_KIND } from '../viewport/actions/changeColorActionBuilder'
 import { createRenderScheduler } from '../viewport/renderScheduler'
+import { createSceneMarkers, type SceneMarker } from '../viewport/editing/sceneMarkers'
 
 export type CameraMode = 'orbit' | 'walk'
 export type GizmoMode = 'select' | 'move' | 'rotate' | 'scale'
@@ -88,6 +94,8 @@ interface ViewportProps {
   gizmoMode?: GizmoMode
   scaleSpace?: 'world' | 'local'
   rotateSpace?: 'world' | 'local'
+  /** Drags land on the floor grid, in 15° turns and 0.25 size steps (editing/snapping.ts). */
+  snap?: boolean
   sceneId?: string
   environmentId?: string
   startCamera?: CameraPose
@@ -117,6 +125,9 @@ interface ViewportProps {
   audioAssets?: readonly AudioAssetMeta[]
   /** Authored master/channel mix defaults; only read in play mode. */
   audioSettings?: AudioSettings
+  /** Visitor's own master volume (0 to 1) and mute, layered over the project's authored settings. */
+  audioMasterVolume?: number
+  audioMasterMuted?: boolean
   /** Authored inline text assets, fed to the text system and resolver. */
   textAssets?: readonly TextAssetMeta[]
   orthographic?: boolean
@@ -131,13 +142,24 @@ interface ViewportProps {
   showStats?: boolean
   /** How much of the environment's walls to show; lower settings clip it horizontally. */
   walls?: WallCut
+  /** The room's picked wall and floor style (SceneData.surfaces); absent = Style 1 everywhere. */
+  surfaces?: RoomSurfaces
   /** Reports the current snapped view (e.g., 'TOP', 'FRONT'), or null when the camera is freely rotated. */
   onViewLabelChange?: (label: string | null) => void
   /** Draws the hint text in the viewport corner; the editor shows it in its footer instead. */
   showHint?: boolean
   /** Play mode's movement; looking is a drag in every one. Absent keeps pointer-lock look. */
   playMove?: PlayMove
+  /** Pins and lock badges drawn over the room (suggested spots, locked objects); look-only. */
+  markers?: readonly SceneMarker[]
+  /**
+   * A click (not a drag) in the viewport: the object under the pointer, if any, and where the
+   * pointer meets the floor (y = 0), if it does. For tools that place or pick without the gizmo.
+   */
+  onPick?: (pick: ViewportPick) => void
 }
+
+export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null }
 
 // What the pointer and keys do right now, for the hint line in the viewport or editor footer.
 export const viewportHintText = (cameraMode: CameraMode, interactive: boolean, gizmoMode: GizmoMode): string | null =>
@@ -230,12 +252,19 @@ const faceLabelFor = (direction: THREE.Vector3): string | null => {
   return edgeIndex === null ? null : EDGE_VIEWS[edgeIndex].label
 }
 
+/** Layers the visitor's master volume and mute over the authored settings; an unset value leaves the authored one alone. */
+const applyAudioMaster = (audio: AudioSystem, master: { volume?: number; muted?: boolean }): void => {
+  if (master.volume !== undefined) audio.setMaster(master.volume)
+  if (master.muted !== undefined) audio.muteMaster(master.muted)
+}
+
 const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   {
     objects, selectedId, onSelect, onMove, onScale, onRotate,
     gizmoMode = 'select',
     scaleSpace = 'world',
     rotateSpace = 'world',
+    snap = false,
     sceneId = '',
     environmentId = defaultEnvironmentId,
     startCamera = defaultCameraPose(),
@@ -248,6 +277,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     zones = [],
     audioAssets = [],
     audioSettings,
+    audioMasterVolume,
+    audioMasterMuted,
     textAssets = [],
     orthographic = false,
     onOrthographicChange,
@@ -257,9 +288,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     overlayInsetTop = OVERLAY_MARGIN,
     showStats = false,
     walls = 'full',
+    surfaces,
     onViewLabelChange,
     showHint = true,
     playMove,
+    markers,
+    onPick,
   },
   ref,
 ) {
@@ -268,8 +302,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -309,6 +343,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const orbitPoseRef = useRef<{ position: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3 } | null>(null)
   // Set by the setup effect; lets the imperative handle reach the live run.
   const restartRuntimeRef = useRef<() => void>(() => {})
+  // The live AudioSystem (set by the setup effect) and the visitor's master settings, read by that
+  // effect at creation and applied by the effect below whenever the visitor changes them.
+  const audioRef = useRef<AudioSystem | null>(null)
+  const audioMasterRef = useRef({ volume: audioMasterVolume, muted: audioMasterMuted })
+  audioMasterRef.current = { volume: audioMasterVolume, muted: audioMasterMuted }
   // Set by the setup effect; lets effects outside it (environment swaps, prop
   // changes) wake the on-demand render loop.
   const requestRenderRef = useRef<() => void>(() => {})
@@ -324,6 +363,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const joystickRef = useRef({ x: 0, z: 0 })
   const wallsRef = useRef(walls)
   wallsRef.current = walls
+  const surfacesRef = useRef(surfaces)
+  surfacesRef.current = surfaces
   const [envStatus, setEnvStatus] = useState<EnvStatus>({ state: 'loading', progress: 0 })
   const [reloadToken, setReloadToken] = useState(0)
   // Name of the OctaOrb face the camera is snapped to ('TOP', 'FRONT', …), shown as a
@@ -332,6 +373,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // Tracks every object currently loading/erroring so the interaction controller
   // can skip them at pick time; see requirement 2 in the Stage 6 plan section.
   const unpickableAssetIdsRef = useRef<Set<string>>(new Set())
+  const markersRef = useRef<ReturnType<typeof createSceneMarkers> | null>(null)
   const [selectedAssetDescriptor, setSelectedAssetDescriptor] = useState<AssetDescriptor | undefined>(undefined)
 
   useImperativeHandle(ref, () => ({
@@ -452,13 +494,26 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const { requestRender } = scheduler
     requestRenderRef.current = requestRender
 
+    // Info inside the room: fact cards shown as signs and videos on screens above their
+    // things (see inRoomMedia.ts). Rebuilt with the objects, placed every frame.
+    const inRoom = createInRoomMedia({
+      scene,
+      objectsGroup,
+      resolveMedia: resolveLocalMedia,
+      getText: (assetId) => textLibraryRef.current?.getMeta(assetId),
+      requestRender,
+    })
+
     const resize = () => {
       const width = mount.clientWidth
       const height = mount.clientHeight
       camera.aspect = width / Math.max(height, 1)
       camera.updateProjectionMatrix()
       renderer.setSize(width, height, false)
-      requestRender()
+      // setSize wipes the canvas. Draw again straight away instead of on the next frame, or the
+      // browser shows the empty canvas for a frame (the blink when the side panel opens or
+      // closes, and on every step while it slides).
+      drawNow()
     }
     // Every edit produces a new ProjectData via cloneProject, so reference
     // equality on `objects` is an exact change signal — no per-frame serialisation.
@@ -476,6 +531,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         onModelLoaded: () => { synced = null },
       })
       synced = { objects, selectedId, syncToken }
+      inRoom.sync(objects)
       requestRender()
     }
 
@@ -496,6 +552,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     })
     audio.setProjectAudioAssets(dataRef.current.audioAssets as AudioAssetMeta[])
     registerAudioActions(actions, audio)
+    audioRef.current = audio
+    applyAudioMaster(audio, audioMasterRef.current)
 
     // showPanel/hidePanel/advancePanel executors. The lookup reads the live
     // scene feed, so a rule can address any text attachment on an object or
@@ -512,6 +570,14 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       return undefined
     }
     registerTextActions(actions, text, { findAttachment: findTextAttachment })
+    // "play its video": the playMedia/stopMedia executors open the video in a pop-up card
+    registerMediaActions(actions, text, (attachmentId) => {
+      for (const object of dataRef.current.objects as readonly SceneObject[]) {
+        const video = object.attachments?.find((item) => item.id === attachmentId)
+        if (video?.kind === 'video') return { object, video }
+      }
+      return undefined
+    })
 
     
     actions.register(CHANGE_COLOR_KIND, createChangeColorExecutor(objectsGroup)) // wires "changeColor" to the real executor function
@@ -528,6 +594,18 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
      */
     const emitRuntimeEvent = (event: RuntimeEvent) => {
       if (dataRef.current.runtimeMode !== 'play' || !runtimeState) return
+      // Built in: clicking a thing (or reaching it on a tour) shows its info card, or its
+      // video if it has no card, before and alongside any reactions the student added.
+      if (event.kind === 'click' && event.objectId) {
+        const panel = clickPanelFor((dataRef.current.objects as readonly SceneObject[]).find((object) => object.id === event.objectId))
+        // a video already playing on a screen in the room: the click turns its sound on or
+        // off instead of opening a second, pop-up copy of it
+        const screenHandled = panel?.id.startsWith('video:') === true && inRoom.click(event.objectId)
+        if (panel && !screenHandled) {
+          const handle = text.open(panel)
+          effects.add(() => handle.close())
+        }
+      }
       const result = dispatch(event, dataRef.current.rules, projectForDispatch(), runtimeState)
       runtimeState = result.nextState
       for (const action of result.actions) {
@@ -694,6 +772,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           gizmoMode: dataRef.current.gizmoMode,
           scaleSpace: dataRef.current.scaleSpace,
           rotateSpace: dataRef.current.rotateSpace,
+          snap: dataRef.current.snap,
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
@@ -704,6 +783,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           // one-way boolean per the modal-input-boundary decision: text
           // reports, this controller decides what the modal means for input
           modalOpen: text.store.getSnapshot().modalOpen,
+          panelOpen: text.store.getSnapshot().panels.length > 0,
           playMove: dataRef.current.playMove ?? null,
         }),
         select: (id) => dataRef.current.onSelect(id),
@@ -753,8 +833,41 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // keydown handling, so it fires in both edit and play mode and needs no
     // change to that controller's picking logic.
     const onGestureUnlock = () => { void audio.unlock() }
+
+    // MARKERS and PICKING for the teacher's tools (onPick / markers props). A press that
+    // moves less than a few pixels before release is a click; anything more was an orbit drag.
+    const markers = createSceneMarkers(scene)
+    markersRef.current = markers
+    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+    let pressAt: { x: number; y: number } | null = null
+    const onPickDown = (event: PointerEvent) => { pressAt = event.button === 0 ? { x: event.clientX, y: event.clientY } : null }
+    const onPickUp = (event: PointerEvent) => {
+      const handler = dataRef.current.onPick
+      const start = pressAt
+      pressAt = null
+      if (!handler || !start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return
+      const rect = renderer.domElement.getBoundingClientRect()
+      const ndc = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1)
+      const picker = new THREE.Raycaster()
+      picker.setFromCamera(ndc, activeCameraRef.current)
+      // the nearest hit that belongs to an authored object (meshes are nested under one named by its id)
+      const ids = new Set(dataRef.current.objects.map((object) => object.id))
+      let objectId: string | null = null
+      for (const hit of picker.intersectObjects(objectsGroup.children, true)) {
+        let node: THREE.Object3D | null = hit.object
+        while (node && !ids.has(node.name)) node = node.parent
+        if (node) { objectId = node.name; break }
+      }
+      const point = picker.ray.intersectPlane(floorPlane, new THREE.Vector3())
+      handler({ objectId, floorPoint: point ? [point.x, 0, point.z] : null })
+    }
+    renderer.domElement.addEventListener('pointerdown', onPickDown)
+    renderer.domElement.addEventListener('pointerup', onPickUp)
     renderer.domElement.addEventListener('pointerdown', onGestureUnlock)
     window.addEventListener('keydown', onGestureUnlock)
+    // A hidden tab freezes its audio; showing it again carries on from the same spot.
+    const onVisibilityChange = () => { void audio.setHidden(document.hidden) }
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     // Update the FPS display twice per second.
     let statsFrames = 0
@@ -783,6 +896,29 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     let frame = 0
     let lastTime = performance.now()
+    // Draws the scene and its overlay widgets at the current size: from the frame loop, and from
+    // resize() straight after the canvas changes size, so the canvas is never shown blank.
+    const drawNow = (now?: number) => {
+      const width = mount.clientWidth
+      const height = mount.clientHeight
+      if (dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic) syncOrthoCamera(camera, orthoCamera, controls.target)
+      renderer.setScissorTest(false)
+      renderer.setViewport(0, 0, width, height)
+      renderer.render(scene, activeCameraRef.current)
+      if (now !== undefined && dataRef.current.showStats) sampleStats(now)
+      if (dataRef.current.cameraMode === 'orbit') {
+        overlays.render(renderer, {
+          camera,
+          target: controls.target,
+          width,
+          height,
+          showOctaOrb: dataRef.current.showOctaOrb,
+          showAxisIndicator: dataRef.current.showAxisIndicator,
+          compact: dataRef.current.compactOverlays,
+          insetTop: dataRef.current.overlayInsetTop,
+        })
+      }
+    }
     const animate = () => {
       frame = requestAnimationFrame(animate)
       const now = performance.now()
@@ -865,28 +1001,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         statsWindowStart = now
         if (!statsOn) setStats(null)
       }
+      // signs and screens follow their things and turn to the viewer; a playing video needs frames
+      if (inRoom.update(activeCameraRef.current, playing)) requestRender()
       if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
-
-      const width = mount.clientWidth
-      const height = mount.clientHeight
-      renderer.setScissorTest(false)
-      renderer.setViewport(0, 0, width, height)
-      renderer.render(scene, activeCameraRef.current)
-      if (statsOn) sampleStats(now)
-
-      if (dataRef.current.cameraMode === 'orbit') {
-        overlays.render(renderer, {
-          camera,
-          target: controls.target,
-          width,
-          height,
-          showOctaOrb: dataRef.current.showOctaOrb,
-          showAxisIndicator: dataRef.current.showAxisIndicator,
-          compact: dataRef.current.compactOverlays,
-          insetTop: dataRef.current.overlayInsetTop,
-        })
-      }
+      drawNow(now)
     }
     resize()
     animate()
@@ -896,10 +1015,22 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // Unmounting is an exit from play mode: stop sequencing and dispose every
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      renderer.domElement.removeEventListener('pointerdown', onGestureUnlock)
+      renderer.domElement.removeEventListener('pointerdown', onPickDown)
+      renderer.domElement.removeEventListener('pointerup', onPickUp)
+      markers.dispose()
+      markersRef.current = null
+      window.removeEventListener('keydown', onGestureUnlock)
+      audioRef.current = null
+      // The comment where the system is created says only unmount disposes it; closing the context
+      // here is what makes that true (browsers cap how many contexts a page can keep open).
+      audio.dispose()
       unsubscribeTextBridge()
       text.closeAll()
       restartRuntimeRef.current = () => {}
       requestRenderRef.current = () => {}
+      inRoom.dispose()
       playActionsRef.current = { goToSpot: () => {}, spotScreenPoint: () => null }
       playMovement.dispose()
       observer.disconnect()
@@ -925,6 +1056,13 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   useEffect(() => {
     if (playMove !== 'walk' && document.pointerLockElement && mountRef.current?.contains(document.pointerLockElement)) document.exitPointerLock()
   }, [playMove])
+
+  // markers are redrawn only when their list changes; the setup effect above may have rebuilt
+  // the layer (interactive flipped), so this also runs after it
+  useEffect(() => {
+    markersRef.current?.update(markers ?? [])
+    requestRenderRef.current()
+  }, [markers, interactive])
 
   // Any prop change (gizmo mode, overlays, orthographic, …) may alter what the
   // frame shows, so wake one draw after every React render. Cheap: it only sets a flag.
@@ -979,6 +1117,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       currentDispose: currentEnvDisposeRef,
       onStatus: setEnvStatus,
       onReady: () => {
+        styleRoomSurfaces(holder, surfacesRef.current) // before the wall cut, so the cut lands on the worn materials
         applyWallCut(holder, wallsRef.current)
         applyPoseRef.current(dataRef.current.startCamera)
         requestRenderRef.current()
@@ -993,6 +1132,15 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     if (holder) applyWallCut(holder, walls)
   }, [walls])
 
+  // A new wall/floor style just swaps materials on the loaded room; no reload.
+  useEffect(() => {
+    const holder = environmentGroupRef.current
+    if (!holder) return
+    styleRoomSurfaces(holder, surfaces)
+    requestRenderRef.current()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surfaces?.walls, surfaces?.floor])
+
   useEffect(() => {
     onViewLabelChange?.(faceLabel)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1002,6 +1150,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     if (envStatus.state === 'ready') applyPoseRef.current(dataRef.current.startCamera)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken])
+
+  // The visitor's master volume and mute apply live, without restarting the run.
+  useEffect(() => {
+    if (audioRef.current) applyAudioMaster(audioRef.current, { volume: audioMasterVolume, muted: audioMasterMuted })
+  }, [audioMasterVolume, audioMasterMuted])
 
   // Resolving the selected object's asset is what makes loading/ready/error
   // states observable — selection is the trigger the Stage 6 acceptance

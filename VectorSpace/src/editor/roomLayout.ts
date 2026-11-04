@@ -11,7 +11,13 @@
  *             prior written consent of DigiPen Institute of Technology is prohibited.
  */
 /****************************************************************************************************/
-import type { ProjectData, RoomCell, SceneData } from '../project/model'
+import { environmentLibrary, type EnvironmentDefinition, type ProjectData, type RoomCell, type SceneData } from '../project/model'
+
+ // The environments the student can add are the ones in template setup the teacher has chosen, the kinds the template's
+export const studentRoomEnv = (project: ProjectData): EnvironmentDefinition[] => {
+  const allowed = project.validateEnvironment ?? project.scenes.map((room) => room.environmentId)
+  return environmentLibrary.filter((env) => allowed.includes(env.id))
+}
 
 export type RoomSide = 'north' | 'east' | 'south' | 'west'
 
@@ -41,7 +47,10 @@ export const roomCell = (project: ProjectData, scene: SceneData): RoomCell | und
 export const cellBeside = (cell: RoomCell, side: RoomSide): RoomCell =>
   ({ x: cell.x + SIDE_OFFSET[side].x, z: cell.z + SIDE_OFFSET[side].z })
 
-export const roomAt = (project: ProjectData, cell: RoomCell): SceneData | undefined =>
+/** Rooms may only fill five cells: the origin and the one cell on each of its sides. */
+export const isAllowedCell = (cell: RoomCell): boolean => Math.abs(cell.x) + Math.abs(cell.z) <= 1
+
+export const roomAt =(project: ProjectData, cell: RoomCell): SceneData | undefined =>
   project.scenes.find((scene) => {
     const at = roomCell(project, scene)
     return at !== undefined && sameCell(at, cell)

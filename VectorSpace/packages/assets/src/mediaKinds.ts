@@ -67,6 +67,35 @@ export const MEDIA_KIND_SPECS: Readonly<Record<MediaKind, MediaKindSpec>> = {
   },
 }
 
+/**
+ * The two kinds only the shared asset library carries (admin-curated, `.glb` only, never
+ * `.gltf`). Deliberately not in MediaKind: that union is project media, and widening it ripples
+ * through every Record<MediaKind, ...>. Must match LIBRARY_KIND_SPECS in
+ * apps/api/app/media_policy.py; tests/test_media_policy.py reads both.
+ */
+export const LIBRARY_MODEL_KIND_SPECS = {
+  model: { contentTypes: ['model/gltf-binary'], maxBytes: 50_000_000 },
+  environment: { contentTypes: ['model/gltf-binary'], maxBytes: 100_000_000 },
+} as const
+
+/**
+ * Providers whose own player may be embedded, and the exact shape of their
+ * ids. Adding a provider is a security decision, the same as adding a content
+ * type: write it down in the PR. Must match the server's parser
+ * (apps/api/app/media_policy.py).
+ */
+export const EMBED_PROVIDERS = {
+  youtube: { kinds: ['video'], idPattern: /^[A-Za-z0-9_-]{11}$/ },
+} as const satisfies Record<string, { kinds: readonly MediaKind[]; idPattern: RegExp }>
+
+export type EmbedProvider = keyof typeof EMBED_PROVIDERS
+
+export const isAllowedEmbed = (kind: MediaKind, provider: string, providerId: string): boolean => {
+  if (!Object.prototype.hasOwnProperty.call(EMBED_PROVIDERS, provider)) return false
+  const spec = EMBED_PROVIDERS[provider as EmbedProvider]
+  return (spec.kinds as readonly MediaKind[]).includes(kind) && spec.idPattern.test(providerId)
+}
+
 export const isMediaKind = (kind: string): kind is MediaKind =>
   Object.prototype.hasOwnProperty.call(MEDIA_KIND_SPECS, kind)
 

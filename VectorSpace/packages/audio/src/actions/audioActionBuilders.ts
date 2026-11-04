@@ -29,6 +29,10 @@ export interface PlayAudioOptions {
   loop?: boolean
   rate?: number
   startAt?: number
+  /** Seconds to fade up from silence when the sound starts. */
+  fadeIn?: number
+  /** Ignore repeat plays of this asset within this many milliseconds. */
+  cooldownMs?: number
 }
 
 /** Builds a `playAudio` ActionSpec. `assetId` must resolve via the app's AudioResolver at run time. */
@@ -41,6 +45,8 @@ export const playAudioAction = (assetId: string, options: PlayAudioOptions = {})
     ...(options.loop !== undefined ? { loop: options.loop } : {}),
     ...(options.rate !== undefined ? { rate: options.rate } : {}),
     ...(options.startAt !== undefined ? { startAt: options.startAt } : {}),
+    ...(options.fadeIn !== undefined ? { fadeIn: options.fadeIn } : {}),
+    ...(options.cooldownMs !== undefined ? { cooldownMs: options.cooldownMs } : {}),
   },
 })
 
@@ -57,10 +63,18 @@ const selectorParams = (sel: AudioVoiceSelector): Record<string, unknown> =>
       ? { assetId: sel.assetId }
       : { channel: sel.channel }
 
+export interface StopAudioOptions {
+  /** Seconds to fade to silence before stopping. Omitted or 0 stops at once. */
+  fadeOut?: number
+}
+
 /** Builds a `stopAudio` ActionSpec targeting one voice, every voice for an asset, or a whole channel. */
-export const stopAudioAction = (selector: AudioVoiceSelector): ActionSpec => ({
+export const stopAudioAction = (selector: AudioVoiceSelector, options: StopAudioOptions = {}): ActionSpec => ({
   kind: 'stopAudio',
-  params: selectorParams(selector),
+  params: {
+    ...selectorParams(selector),
+    ...(options.fadeOut !== undefined ? { fadeOut: options.fadeOut } : {}),
+  },
 })
 
 /** Builds a `pauseAudio` ActionSpec. Same selector rules as stopAudioAction. */

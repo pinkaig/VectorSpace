@@ -21,7 +21,7 @@
 import { errorAssetDescriptor, type AssetDescriptor } from './AssetDescriptor'
 import type { AssetRef } from './AssetRef'
 import type { AssetResolver } from './AssetResolver'
-import { MEDIA_KIND_SPECS, isAllowedContentType, isMediaKind } from './mediaKinds'
+import { MEDIA_KIND_SPECS, isAllowedContentType, isAllowedEmbed, isMediaKind } from './mediaKinds'
 
 export class ContentGuardResolver implements AssetResolver {
   constructor(private readonly delegate: AssetResolver) {}
@@ -29,6 +29,15 @@ export class ContentGuardResolver implements AssetResolver {
   async resolve(ref: AssetRef): Promise<AssetDescriptor> {
     const descriptor = await this.delegate.resolve(ref)
     if (descriptor.status !== 'ready' || !isMediaKind(ref.kind)) return descriptor
+    // an embed carries no bytes to type-check, so it passes only as an allowlisted
+    // provider and well-formed id, and only with no url or blob riding along
+    if (descriptor.embed !== undefined) {
+      const { provider, providerId } = descriptor.embed
+      if (descriptor.url !== undefined || descriptor.blob !== undefined || !isAllowedEmbed(ref.kind, provider, providerId)) {
+        return errorAssetDescriptor(ref, `Embed from "${provider}" is not allowed for kind "${ref.kind}"`)
+      }
+      return descriptor
+    }
     if (descriptor.contentType === undefined || !isAllowedContentType(ref.kind, descriptor.contentType)) {
       return errorAssetDescriptor(ref, `Content type "${descriptor.contentType ?? 'unknown'}" is not allowed for kind "${ref.kind}"`)
     }

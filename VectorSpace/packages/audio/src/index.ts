@@ -30,6 +30,19 @@ export type {
 export { FakeAudioBackend, type FakeAudioBackendOptions } from './backend/FakeAudioBackend'
 export { WebAudioBackend } from './backend/WebAudioBackend'
 
+export {
+  CueBank,
+  validateCueMap,
+  type CueMap,
+  type CueDef,
+  type CueSound,
+  type CuePick,
+  type CuePlayEvent,
+  type CuePlayOptions,
+  type CueSoundSource,
+  type CueBankOptions,
+} from './cues/CueBank'
+
 export { registerAudioActions } from './actions/registerAudioActions'
 export {
   playAudioAction,

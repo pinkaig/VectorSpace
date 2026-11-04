@@ -37,6 +37,12 @@ const SFX_OBJECT_IDS = {
 // the app's ordinary cube/sphere/cylinder palette.
 const AUDIO_TRIGGER_COLOR = 0x9b5de5
 
+// Zone beds fade rather than cut, so crossing a boundary reads as drifting into a room, not a switch.
+const MAIN_FADE_IN_SECONDS = 2
+const ZONE_FADE_SECONDS = 1.5
+// A click target ignores repeat clicks this soon after the last one, so mashing it can't stack a roar.
+const SFX_COOLDOWN_MS = 400
+
 /** Three primitives placed a few units apart, purely as click targets for the SFX demo. */
 export const demoAudioObjects: SceneObject[] = [
   {
@@ -95,27 +101,27 @@ const SEC_BGM_BY_ZONE: Record<string, string> = {
 /** One playAudio on sceneStart, one enter/exit pair per zone, one click per SFX object. */
 export const demoAudioRules: InteractionRule[] = [
   audioRule({ id: 'rule-main-bgm-start', triggers: ['sceneStart'] }, [
-    playAudioAction('main-bgm-crowd-galley', { channel: 'bgm', loop: true }),
+    playAudioAction('main-bgm-crowd-galley', { channel: 'bgm', loop: true, fadeIn: MAIN_FADE_IN_SECONDS }),
   ]),
   ...demoAudioZones.flatMap((zone): InteractionRule[] => {
     const assetId = SEC_BGM_BY_ZONE[zone.id]
     return [
       audioRule({ id: `rule-${zone.id}-enter`, triggers: ['zoneEnter'], zoneId: zone.id }, [
-        playAudioAction(assetId, { channel: 'secBgm', loop: true }),
+        playAudioAction(assetId, { channel: 'secBgm', loop: true, fadeIn: ZONE_FADE_SECONDS }),
       ]),
       audioRule({ id: `rule-${zone.id}-exit`, triggers: ['zoneExit'], zoneId: zone.id }, [
-        stopAudioAction({ assetId }),
+        stopAudioAction({ assetId }, { fadeOut: ZONE_FADE_SECONDS }),
       ]),
     ]
   }),
   audioRule({ id: 'rule-sfx-comedy-sad', triggers: ['click'], objectId: SFX_OBJECT_IDS.cartoonComedySad }, [
-    playAudioAction('sfx-cartoon-comedy-sad', { channel: 'sfx' }),
+    playAudioAction('sfx-cartoon-comedy-sad', { channel: 'sfx', cooldownMs: SFX_COOLDOWN_MS }),
   ]),
   audioRule({ id: 'rule-sfx-sneaky', triggers: ['click'], objectId: SFX_OBJECT_IDS.cartoonSneaky }, [
-    playAudioAction('sfx-cartoon-sneaky', { channel: 'sfx' }),
+    playAudioAction('sfx-cartoon-sneaky', { channel: 'sfx', cooldownMs: SFX_COOLDOWN_MS }),
   ]),
   audioRule({ id: 'rule-sfx-rock-debris', triggers: ['click'], objectId: SFX_OBJECT_IDS.rockDebris }, [
-    playAudioAction('sfx-rock-debris', { channel: 'sfx' }),
+    playAudioAction('sfx-rock-debris', { channel: 'sfx', cooldownMs: SFX_COOLDOWN_MS }),
   ]),
 ]
 

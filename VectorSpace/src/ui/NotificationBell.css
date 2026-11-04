@@ -1,0 +1,153 @@
+/**
+ * @file        NotificationBell.css
+ * @project     VectorSpace
+ * @author      Chloe Lau Rey En
+ * @brief       Styles for NotificationBell: the bell button with its unread dot,
+ *              and the Notifications dropdown under it. Values from the V3 manual
+ *              and the 2.03 prototype.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.notification-bell {
+  position: relative; /* the dropdown is placed under the bell */
+}
+
+/* ── The bell button ──────────────────────────────────────────────────── */
+.notification-bell-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.notification-bell-button:hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
+}
+
+/* the unread dot, top right of the bell */
+.notification-bell-dot {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--red-500);
+}
+
+/* ── The dropdown ─────────────────────────────────────────────────────── */
+.notification-bell-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  width: 500px;
+  box-sizing: border-box;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.notification-bell-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.notification-bell-head h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.notification-bell-head span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.notification-bell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification-bell-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.notification-bell-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-btn);
+}
+
+.notification-bell-icon-project {
+  background: var(--purple-100);
+  color: var(--purple-600);
+}
+
+.notification-bell-icon-visits {
+  background: color-mix(in srgb, var(--secondary-main2), var(--surface) 50%);
+  color: var(--secondary-main1);
+}
+
+.notification-bell-icon-approved {
+  background: var(--green-50);
+  color: var(--green-500);
+}
+
+.notification-bell-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notification-bell-text strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.notification-bell-text small {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.notification-bell-empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.notification-bell-footer {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}

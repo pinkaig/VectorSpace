@@ -1,0 +1,126 @@
+/* "Share your project" (SharePopup.tsx): a centred dialog over a dimmed editor */
+.share-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.share-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 27, 58, 0.55);
+}
+.share-popup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(600px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.share-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.share-title { margin: 0; font-family: var(--font-heading); font-size: 26px; font-weight: 600; }
+.share-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: var(--bg-app);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* what's inside: two columns of ticks (green) and warnings (amber) */
+.share-ready {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--bg-app);
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+.share-ready-ok { color: var(--green-800); }
+.share-ready-warn { color: var(--amber-900); }
+
+.share-label { padding: 0; font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+.share-visit { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; }
+.share-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--purple-100);
+  border-radius: 14px;
+  cursor: pointer;
+}
+.share-option input { width: 20px; height: 20px; margin: 0; accent-color: var(--purple-500); }
+.share-option span { display: flex; flex-direction: column; gap: 2px; }
+.share-option small { color: var(--ink-2); font-size: 13px; }
+.share-option-on { border-color: var(--purple-500); background: var(--purple-50); }
+.share-option:has(input:focus-visible) { outline: 2px solid var(--purple-500); outline-offset: 2px; }
+
+.share-note { margin: 0; color: var(--ink-2); font-size: 14px; }
+.share-error { margin: 0; color: var(--red-700); font-size: 14px; font-weight: 600; }
+
+.share-state { margin: 0; padding: 14px 16px; border-radius: 14px; font-size: 15px; font-weight: 600; }
+.share-state-waiting { border: 1.5px solid var(--amber-200); background: var(--amber-50); color: var(--amber-900); }
+.share-state-live { border: 1.5px solid var(--green-200); background: var(--green-50); color: var(--green-800); }
+
+/* the link and Copy link, side by side */
+.share-link { display: flex; gap: 10px; }
+.share-link-box {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1.5px solid var(--purple-100);
+  border-radius: 14px;
+  background: var(--purple-50);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+}
+.share-link-box:focus-visible { outline: 2px solid var(--purple-500); outline-offset: 2px; }
+.share-link .share-primary { flex-shrink: 0; }
+
+.share-comment { margin: 0; padding: 12px 16px; border-radius: 14px; background: var(--bg-app); font-size: 14px; }
+.share-comment-back { background: var(--red-50); color: var(--red-900); }
+
+.share-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.share-primary,
+.share-secondary {
+  min-height: 48px;
+  padding: 0 22px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+.share-primary { border: 0; background: var(--purple-500); color: var(--surface); }
+.share-primary:hover:not(:disabled) { background: var(--purple-600); }
+.share-secondary { border: 1.5px solid var(--purple-100); background: var(--surface); color: var(--ink); }
+.share-primary:disabled,
+.share-secondary:disabled { opacity: 0.6; cursor: default; }
+.share-close:focus-visible,
+.share-primary:focus-visible,
+.share-secondary:focus-visible { outline: 2px solid var(--purple-500); outline-offset: 2px; }

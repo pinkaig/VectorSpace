@@ -34,4 +34,9 @@ describe('attachment lookup helpers', () => {
     expect(assetRefForAttachment(audio('att-0'))).toEqual({ assetId: 'creak', kind: 'audio' })
     expect(assetRefForAttachment(text('att-1'))).toEqual({ assetId: 'text-1', kind: 'text' })
   })
+
+  it('builds the AssetRef for image and video attachments from their library entry id', () => {
+    expect(assetRefForAttachment({ id: 'att-3', kind: 'image', assetId: 'media-photo' })).toEqual({ assetId: 'media-photo', kind: 'image' })
+    expect(assetRefForAttachment({ id: 'att-4', kind: 'video', assetId: 'media-clip' })).toEqual({ assetId: 'media-clip', kind: 'video' })
+  })
 })

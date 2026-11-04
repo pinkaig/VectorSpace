@@ -151,6 +151,79 @@ button:disabled {
 }
 .top-icon-button:hover:not(:disabled) { border-color: var(--accent); }
 .top-icon-button:disabled { opacity: 0.55; cursor: default; }
+
+/* the "?" (Show a tip again): a bold question mark in the same box as Undo / Redo */
+.top-help-button {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* the "?" menu: hangs under the button, lined up with its right edge (3.05 prototype) */
+.help-anchor {
+  position: relative;
+  display: flex;
+}
+
+.help-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 300px;
+  box-sizing: border-box;
+  padding: 12px 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  text-align: left;
+}
+
+.help-menu-label {
+  padding: 0 10px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.help-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 250ms ease-in-out;
+}
+
+.help-menu-item strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.help-menu-item small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.help-menu-item:hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
+}
+
+.help-menu-item:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: -2px;
+}
+
 .top-saved {
   display: inline-flex;
   align-items: center;
@@ -192,8 +265,8 @@ button:disabled {
   background: #1c1a3a;
   color: var(--White);
 }
-/* keeps its full look while the Share flow isn't built (the global button:disabled fades it) */
-.top-publish:disabled { opacity: 1; cursor: default; }
+.top-publish:not(:disabled) { cursor: pointer; }
+.top-publish.problem { background: #b42318; }
 .button {
   border: 1px solid var(--border);
   padding: 9px 13px;
@@ -311,11 +384,11 @@ button:disabled {
   background: var(--White);
   color: var(--accent);
 }
-/* a finished step */
-.Tutorial-steps .button--green{
-  border-color: #3aa676;
-  background: #e3f4ec;
-  color: #1f5f43;
+/* a finished step: filled green with a white number, as in the 3.05 prototype */
+.Tutorial-steps .button--green {
+  border-color: var(--green-500);
+  background: var(--green-500);
+  color: var(--surface);
 }
 /*Styles concerning the 4 tutorial buttons to indicate progress*/
 
@@ -354,6 +427,25 @@ button:disabled {
   width: 44px; height: 44px; display: grid; place-items: center;
   border-radius: 12px; background: #5b4bd6; color: #fff;
 }
+
+/* the logo: its own button that goes back to your home page (EditorPage's goHome) */
+.topbar-home {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-right: -12px;      /* keeps the logo close to the project name (the top bar's gap is 18px) */
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.topbar-home:hover {
+  background: var(--purple-600);
+}
+
 .room-trigger-copy { display: flex; flex-direction: column; gap: 2px; }
 .room-trigger-copy strong { color: var(--text-main); font-size: 16px; }
 .room-trigger-copy small {
@@ -617,6 +709,35 @@ button:disabled {
   line-height: 1.45;
 }
 
+/* the "+" whose room kind is being picked */
+.rooms-cell-add.picking { border-style: solid; border-color: var(--purple-500); background: var(--purple-100); }
+
+/* "What kind of room?": the kinds on offer after a "+" */
+.rooms-kinds { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 14px; background: var(--purple-50); }
+.rooms-kinds-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rooms-kinds-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
+.rooms-kinds-cancel { padding: 4px 8px; border: none; border-radius: var(--radius-btn); background: transparent; color: var(--ink-2); font: inherit; font-weight: 700; cursor: pointer; }
+.rooms-kinds-cancel:hover { background: var(--purple-100); }
+.rooms-kinds-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; max-height: 220px; overflow-y: auto; }
+.rooms-kind {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; text-align: left;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--White); font: inherit; cursor: pointer;
+}
+.rooms-kind:hover { border-color: var(--purple-300); }
+.rooms-kind:focus-visible,
+.rooms-kinds-cancel:focus-visible { outline: 2px solid var(--purple-500); outline-offset: 2px; }
+.rooms-kind strong { display: block; font-size: 14px; color: var(--ink); }
+.rooms-kind small { font-size: 12px; color: var(--text-muted); }
+.rooms-kind-swatch { flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; }
+/* the same colours as template setup's room chips (templateSetup.css "Room colours") */
+.rooms-kind-swatch.tone-blue { background: #B7D5F4; }
+.rooms-kind-swatch.tone-green { background: #C4E2A0; }
+.rooms-kind-swatch.tone-peach { background: #F6CFAE; }
+.rooms-kind-swatch.tone-lilac { background: #D6CCF5; }
+.rooms-kind-swatch.tone-rose { background: #F3C1CF; }
+.rooms-kind-swatch.tone-sky { background: #B5E6EC; }
+.rooms-kinds-note { margin: 0; font-size: 13px; color: var(--ink-2); }
+
 /* ── Background music ─────────────────────────────────────────────────── */
 .rooms-music,
 .rooms-material {
@@ -722,7 +843,7 @@ button:disabled {
   flex-direction: column;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--bg-page);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
 }
@@ -752,17 +873,41 @@ button:disabled {
   display: contents;
 }
 
-.catalogue-head > [role="tabpanel"] > input {
+/* the search box: a lilac field with a magnifier, as in the 3.05 prototype */
+.catalogue-search {
   grid-area: search;
   justify-self: end;
-  width: 240px;
-  min-height: 36px;
-  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 360px;
+  max-width: 100%;
+  height: 48px;
+  padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--White);
-  color: var(--text-main);
-  font-size: 14px;
+  border-radius: var(--radius-btn-lg);
+  background: var(--bg-app);
+  color: var(--text-muted);
+}
+
+.catalogue-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  outline: none;
+}
+
+.catalogue-search input::placeholder {
+  color: var(--text-muted);
+}
+
+/* the whole box lights up while typing, since the input itself has no border */
+.catalogue-search:focus-within {
+  border-color: var(--purple-500);
 }
 
 .catalogue-head > [role="tabpanel"] > .catalogue-list {
@@ -799,21 +944,59 @@ button:disabled {
 .asset-tile.sky   { background: #dceafa; }
 .asset-tile.rose  { background: #fbe0e6; }
 
+/* catalogue tabs: pills, the picked one in dark ink, as in the 3.05 prototype */
 .chip {
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid var(--border);
-  background: var(--White);
-  color: var(--text-2);
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
   font-weight: 800;
+  transition: background-color 250ms ease-in-out;
+}
+
+.chip:hover:not(.is-selected) {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
 }
 
 .chip.is-selected {
-  background: var(--Black);
-  color: var(--White);
-  border-color: var(--text-2);
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+/* "Zones and markers": a mild yellow chip, so it reads as a different kind of thing */
+.chip.tone-zone {
+  background: var(--amber-50);
+  border-color: var(--amber-200);
+  color: var(--amber-900);
+}
+
+.chip.tone-zone.is-selected {
+  background: var(--amber-200);
+  border-color: var(--amber-500);
+  color: var(--amber-900);
+}
+
+/* a thin line between the object tabs and Zone, since zones are a different kind of thing */
+.chip.tone-zone {
+  position: relative;
+  margin-left: 12px;
+}
+
+.chip.tone-zone::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -11px;
+  width: 1px;
+  background: var(--border-strong);
 }
 
 
@@ -979,10 +1162,13 @@ button:disabled {
   color: var(--text-2);
   font-size: 11px;
 }
+/* white on the purple row, so the selected object's name stays readable */
 .tree-item.selected {
   background: var(--accent);
-  color: var(--accent);
+  color: var(--White);
 }
+.tree-item.selected .tree-indent-btn,
+.tree-item.selected .tree-chevron { color: var(--White); }
 .tree-indent-controls {
   display: flex;
   gap: 1px;
@@ -1498,6 +1684,32 @@ button:disabled {
   border-radius: 14px;
   box-shadow: 0 2px 10px rgba(40, 40, 90, 0.12);
 }
+
+/* "+ Add things" in steps 2–3 (the catalogue is hidden then): under the folded Mission brief */
+.add-things {
+  position: absolute;
+  top: 76px;
+  left: 24px;
+  z-index: 2; /* under the open Mission brief, which covers it while open */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-lg);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(40, 40, 90, 0.12);
+  transition: background-color 250ms ease-in-out;
+}
+
+.add-things:hover {
+  background: var(--purple-50);
+}
+
 /* Advanced dropdown: one short row per setting, opening upward from its button. */
 .float-menu {
   display: grid;
@@ -1519,6 +1731,7 @@ button:disabled {
   border-radius: 8px;
 }
 .float-segment button {
+  flex: 1;
   height: 24px;
   padding: 0 9px;
   border: 0;
@@ -1587,6 +1800,54 @@ button:disabled {
   padding: 0;
   font-size: 18px;
   font-weight: 600;
+}
+/* the Snap switch in the room's bottom bar */
+.float-snap {
+  gap: 8px;
+}
+.floating-controls.bottom-right .float-group:not(.float-menu) {
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--radius-box);
+}
+
+.floating-controls.bottom-right .float-button {
+  height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--bg-app);
+  color: var(--ink);
+  font-size: 14px;
+  transition: background-color 250ms ease-in-out;
+}
+
+.floating-controls.bottom-right .float-button.icon {
+  width: 40px;
+  padding: 0;
+  font-size: 18px;
+}
+
+/* the Snap switch's track is sized for the panel; a little smaller fits the bar */
+.floating-controls.bottom-right .float-snap .object-panel-snap-track {
+  transform: scale(0.85);
+}
+
+.floating-controls.bottom-right .float-button:hover:not(:disabled) {
+  background: var(--purple-100);
+}
+
+/* the settings button while its menu is open */
+.floating-controls.bottom-right .float-button.active {
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+/* the little F / H key labels: white chips inside the lilac box */
+.floating-controls.bottom-right .float-button kbd {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--ink-2);
 }
 .float-button kbd {
   padding: 1px 5px;
@@ -1808,14 +2069,16 @@ button:disabled {
   .catalogue-head { gap: 8px; }
   .catalogue-head > h2 { font-size: 18px; }
   .chip {
-    min-height: 30px;
-    padding: 0 11px;
-    font-size: 12px;
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
   }
-  .catalogue-head > [role="tabpanel"] > input {
-    width: 200px;
-    min-height: 30px;
-    font-size: 12px;
+  .catalogue-search {
+    width: 280px;
+    height: 40px;
+  }
+  .catalogue-search input {
+    font-size: 13px;
   }
 }
 
@@ -1825,7 +2088,7 @@ button:disabled {
     min-width: 0;
   }
   .workspace {
-    grid-template-columns: 210px minmax(450px, 1fr) 260px;
+    grid-template-columns: minmax(450px, 1fr);
   }
   .topbar {
     padding-inline: 17px;
@@ -1868,6 +2131,29 @@ button:disabled {
   color: #81989b;
   font-family: var(--font-body);
   font-size: 10px;
+}
+.runtime-audio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.runtime-audio-mute {
+  color: #a4bbb7;
+  background: transparent;
+  border: 1px solid #365158;
+  border-radius: 2px;
+  padding: 3px 8px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  cursor: pointer;
+}
+.runtime-audio-mute[aria-pressed="true"] {
+  color: #81989b;
+  border-style: dashed;
+}
+.runtime-audio input[type="range"] {
+  width: 90px;
+  accent-color: #a4bbb7;
 }
 .runtime-actions kbd {
   color: #a4bbb7;
@@ -1942,10 +2228,12 @@ button:disabled {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(91, 75, 214, 0.15); /* --accent at low alpha */
 }
+/* an empty catalogue tab or search: readable, not a faint whisper */
 .asset-empty {
-  color: var(--secondary-main2);
-  font-size: 10px;
-  padding: 10px 4px;
+  padding: 14px 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
 }
 .asset-card .icon-button {
   display: inline-flex;
@@ -2249,6 +2537,57 @@ button:disabled {
   color: #E2A845;
   font-style: italic;
 }
+/* Info card (mode 'card'): a softer, rounder panel with its media under the title.
+   Long text scrolls inside .text-panel-body, so the title and media stay in view. */
+.text-panel.text-card {
+  width: min(480px, 100%);
+  border-radius: var(--radius);
+}
+.text-card .text-panel-header {
+  border-bottom: none;
+}
+.text-card .text-panel-header h2 {
+  font-size: 18px;
+}
+/* MediaView: the media slot and its caption (placeholder box until the media track lands) */
+.media-view {
+  flex: none;
+  margin: 0 16px;
+}
+/* loading and unavailable keep the slot's 16:9 shape, so the card never jumps or shows a blank box */
+.media-view-loading,
+.media-view-fallback {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.media-view-image,
+.media-view-video,
+.media-view-embed {
+  display: block;
+  width: 100%;
+  max-height: 40vh;
+  border: 0;
+  border-radius: var(--radius);
+  background: #000;
+  object-fit: contain;
+}
+.media-view-embed {
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
+.media-view-caption {
+  padding-top: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-style: italic;
+}
 /* links above the placeholder pages (WithNav in App.tsx); goes when each page has its own */
 .page-nav {
   display: flex;
@@ -2282,19 +2621,134 @@ button:disabled {
   color: var(--red-700);
 }
 
-/* Inspector pops up over the viewport when an object is selected (tutorial step 2+). */
+/* The object panel (inspector): a column beside the room while something is selected, as in
+   the manual (editor right panel 320–380px) and the 3.05 prototype; the room narrows to make
+   space instead of being covered. The object panel draws its own white card (objectPanel.css),
+   so this only gives it its column and lets taller content scroll inside it. */
 .inspector-popup {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-radius: var(--radius-panel);
+}
+
+/* the panel's white card fills its column down to the bottom of the room, as in the prototype;
+   taller content still scrolls inside the column */
+.inspector-popup {
+  display: flex;
+  flex-direction: column;
+}
+
+.inspector-popup > * {
+  flex: 1 0 auto;
+}
+/* The panel's column is always there: 0 wide while nothing is selected, 360px while something
+   is. The width animates, so the room narrows and widens smoothly instead of jumping (the
+   viewport redraws on every step, see resize() in Viewport.tsx). */
+.workspace {
+  grid-template-columns: minmax(520px, 1fr) 0px;
+  column-gap: 0px;
+  transition: grid-template-columns 280ms ease-in-out, column-gap 280ms ease-in-out;
+}
+
+.workspace:has(> .inspector-popup.open) {
+  grid-template-columns: minmax(520px, 1fr) 360px;
+  column-gap: 12px;
+}
+
+/* the card keeps its full width and sits on the right, so it slides in from the edge instead of
+   squashing; once shut it is hidden (after the slide) so nothing can reach it */
+.inspector-popup {
+  overflow-x: hidden;
+  align-items: flex-end;
+  visibility: hidden;
+  transition: visibility 0s linear 280ms;
+}
+
+.inspector-popup.open {
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+.inspector-popup > * {
+  width: 360px;
+  min-width: 360px;
+}
+
+/* The catalogue's slot: full height on step 1, 0 on steps 2-3. The height animates, so the room
+   grows and shrinks smoothly instead of jumping. The clip wrapper hides the catalogue's padding
+   and border too, so the slot can close all the way. The negative margin takes back the shell's
+   12px gap while closed. */
+.catalogue-slot {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms ease-in-out, margin-top 280ms ease-in-out;
+}
+
+.catalogue-slot.closed {
+  grid-template-rows: 0fr;
+  margin-top: -12px;
+}
+
+.catalogue-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* hidden once it has slid away, so nothing can reach it */
+.catalogue-slot.closed .catalogue-clip {
+  visibility: hidden;
+  transition: visibility 0s linear 280ms;
+}
+
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: minmax(450px, 1fr) 0px;
+  }
+
+  .workspace:has(> .inspector-popup.open) {
+    grid-template-columns: minmax(450px, 1fr) 360px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace,
+  .catalogue-slot {
+    transition: none;
+  }
+}
+
+/* where a top bar step took the student ("3 things still need info. Start with Pedestal.") */
+.step-notice {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 286px;
-  max-height: calc(100% - 24px);
-  overflow: auto;
-  z-index: 20;
-  background: var(--White);
-  border: 1px var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  top: 24px;
+  left: 50%;
+  z-index: 25;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100% - 32px));
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: #1F1B3A;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.25);
+}
+
+.step-notice button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 /* ── Play: the visitor's view under the editor's top bar ───────────────── */
@@ -2490,3 +2944,131 @@ button:disabled {
   text-transform: uppercase;
 }
 .play-tour-spot strong { font-size: 18px; }
+
+/* the "Fact card saved" pop-up in the bottom-right corner of the room (EditorPage),
+   above the zoom and walls buttons so it never covers them */
+.save-toast {
+  position: absolute;
+  right: 24px;
+  bottom: 96px;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #165E3D;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.25);
+  animation: save-toast-in 0.2s ease-out;
+}
+
+@keyframes save-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-toast { animation: none; }
+}
+
+/* step 2, per thing: a green tick once it has a fact card, an open amber ring until then */
+.info-status {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.info-status.done {
+  background: #2E9E6A;
+  color: #FFFFFF;
+}
+
+.info-status.todo {
+  border: 2px solid #E3A93B;
+}
+
+.things-info-count {
+  margin-left: 6px;
+  color: #165E3D;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* the teacher's comment on a museum sent back, over the room until it is sent again */
+.sent-back-banner {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(560px, calc(100% - 32px));
+  box-sizing: border-box;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid #F3D29C;
+  border-radius: 14px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.18);
+}
+
+.sent-back-banner > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.sent-back-banner strong {
+  font-size: 14px;
+}
+
+.sent-back-banner p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.sent-back-banner button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(92, 58, 0, 0.1);
+  color: #5C3A00;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.sent-back-chip {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border: 1px solid #F3D29C;
+  border-radius: 999px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+/* below 1600px the F / H key chips are dropped so the camera bar fits beside "Things in this room";
+   the shortcuts still work, and the hint row under the room lists them */
+@media (max-width: 1600px) {
+  .floating-controls.bottom-right .float-button kbd {
+    display: none;
+  }
+}

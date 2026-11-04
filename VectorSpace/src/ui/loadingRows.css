@@ -1,0 +1,31 @@
+/**
+ * @file        loadingRows.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for LoadingRows: grey bars that breathe slowly while a panel waits for its data.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.ui-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.ui-loading-bar {
+  height: 44px;
+  border-radius: var(--radius-btn-sm);
+  background: var(--purple-100);
+  /* four slow beats; with reduced motion --mo-dur-slow is 0, so the bars simply stay still */
+  animation: ui-loading-breathe calc(var(--mo-dur-slow) * 4) var(--mo-ease-standard) infinite alternate;
+}
+
+@keyframes ui-loading-breathe {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
