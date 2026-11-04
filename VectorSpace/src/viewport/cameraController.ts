@@ -111,6 +111,32 @@ export const frameBox = (
   return true
 }
 
+// Breathing room around the room's floor plan in the Top view.
+const PLAN_PADDING = 1.12
+
+// The Top view of a room follows the room map's floor plan and fits the room's bounding box to the viewport
+export const frameFloorPlan = (
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  box: THREE.Box3,
+): boolean => {
+  if (box.isEmpty()) return false
+  const size = box.getSize(new THREE.Vector3())
+  const centre = box.getCenter(new THREE.Vector3())
+  const halfHeight = Math.max(size.z / 2, size.x / 2 / camera.aspect, 0.5) * PLAN_PADDING
+  const distance = THREE.MathUtils.clamp(
+    halfHeight / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) + size.y,
+    controls.minDistance,
+    controls.maxDistance,
+  )
+  controls.target.set(centre.x, box.min.y, centre.z)
+  camera.up.set(0, 0, -1)
+  camera.position.set(centre.x, box.min.y + distance, centre.z)
+  camera.lookAt(controls.target)
+  controls.update()
+  return true
+}
+
 // Moves the camera toward (factor < 1) or away from (factor > 1) the orbit pivot along the
 // current view direction — the +/- zoom buttons. Clamped to the controls' distance limits.
 export const dollyBy = (

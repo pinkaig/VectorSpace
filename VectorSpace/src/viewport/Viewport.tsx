@@ -56,8 +56,9 @@ import { ViewportCrosshair, ViewportHint, ViewportOverlay } from '../viewport/Vi
 import { syncGizmo } from '../viewport/editing/syncGizmo'
 import { loadEnvironmentIntoGroup } from '../viewport/environmentController'
 import { styleRoomSurfaces } from '../content/roomSurfaces'
-import { createFloorGrid } from './floorGrid'
-import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
+import { createFloorGrid, FLOOR_SIZE } from './floorGrid'
+import { centrePose, createRoomDoors, entrancePose, findDoorway, type DoorSide, type Doorway, type RoomDoor } from './roomDoors'
+import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameFloorPlan, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
 import { createViewportInteractionController } from '../viewport/editing/interactionController'
 import { EYE_HEIGHT, getWalkDirection } from '../viewport/viewportTypes'
 import { createPlayMovement } from './playMovement'
@@ -684,6 +685,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         const orientation = preset === 'angled'
           ? applyViewOrientation(camera, controls, direction, new THREE.Vector3(0, 1, 0))
           : snapCameraTo(camera, controls, direction)
+        // Top looks down on the whole room, north up like the room map (the floor grid for an
+        // empty room)
+        if (preset === 'top') {
+          const room = new THREE.Box3().setFromObject(environmentGroup)
+          frameFloorPlan(camera, controls, room.isEmpty() ? new THREE.Box3().setFromObject(grid) : room)
+        }
         yawRef.current = orientation.yaw
         pitchRef.current = orientation.pitch
         setFaceLabel(preset === 'angled' ? null : faceLabelFor(direction))
