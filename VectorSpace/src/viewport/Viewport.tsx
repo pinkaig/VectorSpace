@@ -153,13 +153,14 @@ interface ViewportProps {
   /** Pins and lock badges drawn over the room (suggested spots, locked objects); look-only. */
   markers?: readonly SceneMarker[]
   /**
-   * A click (not a drag) in the viewport: the object under the pointer, if any, and where the
-   * pointer meets the floor (y = 0), if it does. For tools that place or pick without the gizmo.
+   * A click (not a drag) in the viewport: the object under the pointer, if any, where the
+   * pointer meets the floor (y = 0), if it does, and the spot whose pin or label was clicked.
+   * For tools that place or pick without the gizmo.
    */
   onPick?: (pick: ViewportPick) => void
 }
 
-export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null }
+export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null; spotId?: string | null }
 
 // What the pointer and keys do right now, for the hint line in the viewport or editor footer.
 export const viewportHintText = (cameraMode: CameraMode, interactive: boolean, gizmoMode: GizmoMode): string | null =>
@@ -859,7 +860,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         if (node) { objectId = node.name; break }
       }
       const point = picker.ray.intersectPlane(floorPlane, new THREE.Vector3())
-      handler({ objectId, floorPoint: point ? [point.x, 0, point.z] : null })
+      // markers draw over everything, so a pin in front of a thing still counts as a pick
+      const spotId = markers.pickSpot(picker)
+      handler({ objectId, floorPoint: point ? [point.x, 0, point.z] : null, spotId })
     }
     renderer.domElement.addEventListener('pointerdown', onPickDown)
     renderer.domElement.addEventListener('pointerup', onPickUp)

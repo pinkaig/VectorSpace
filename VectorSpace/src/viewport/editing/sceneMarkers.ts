@@ -5,7 +5,8 @@
  * @brief      Floating markers over the room, for the teacher's tools: a numbered pin with a
  *             label and a dotted ring on the floor for a suggested spot, and a lock badge over
  *             a locked object. Drawn as screen-sized sprites, so they read the same at any zoom,
- *             and on top of everything, so a wall never hides one.
+ *             and on top of everything, so a wall never hides one. A spot's pin and label can be
+ *             clicked (pickSpot); the picked one is drawn in amber, solid ring.
  *
  * @copyright  Copyright (C) 2026 DigiPen Institute of Technology.
  *             Reproduction or disclosure of this file or its contents without the
@@ -15,11 +16,13 @@
 import * as THREE from 'three'
 
 export type SceneMarker =
-  | { kind: 'spot'; id: string; number: number; text: string; position: [number, number, number] }
+  | { kind: 'spot'; id: string; number: number; text: string; position: [number, number, number]; picked?: boolean }
   | { kind: 'lock'; id: string; position: [number, number, number] }
 
 const PURPLE = '#5b4bdb'
 const INK = '#1e1b3a'
+// a spot the student picked to fill from the catalogue
+const AMBER = '#f59e0b'
 // how tall a marker is, as a share of the viewport's height
 const PIN_HEIGHT = 0.05
 const LABEL_HEIGHT = 0.04
@@ -60,9 +63,9 @@ const circle = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, 
   }
 }
 
-const numberBadge = (n: number) =>
+const numberBadge = (n: number, colour = PURPLE) =>
   drawTexture(40, 40, (ctx) => {
-    circle(ctx, 20, 20, 17, PURPLE, '#ffffff')
+    circle(ctx, 20, 20, 17, colour, '#ffffff')
     ctx.fillStyle = '#ffffff'
     ctx.font = '800 18px system-ui, sans-serif'
     ctx.textAlign = 'center'
@@ -82,7 +85,7 @@ const lockBadge = () =>
     ctx.fillRect(13, 17, 14, 11)
   })
 
-const labelPill = (text: string) => {
+const labelPill = (text: string, edge = '#d6ccf5') => {
   const font = '700 15px system-ui, sans-serif'
   const measure = document.createElement('canvas').getContext('2d')!
   measure.font = font
@@ -93,7 +96,7 @@ const labelPill = (text: string) => {
     ctx.fillStyle = '#ffffff'
     ctx.fill()
     ctx.lineWidth = 2
-    ctx.strokeStyle = '#d6ccf5'
+    ctx.strokeStyle = edge
     ctx.stroke()
     ctx.fillStyle = INK
     ctx.font = font
@@ -103,15 +106,17 @@ const labelPill = (text: string) => {
   })
 }
 
-// a dotted circle flat on the floor, where a spot is
-const ring = () => {
+// a dotted circle flat on the floor, where a spot is; solid once picked
+const ring = (colour = PURPLE, dashed = true) => {
   const points = Array.from({ length: 65 }, (_, i) => {
     const angle = (i / 64) * Math.PI * 2
     return new THREE.Vector3(Math.cos(angle) * RING_RADIUS, 0, Math.sin(angle) * RING_RADIUS)
   })
   const line = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineDashedMaterial({ color: PURPLE, dashSize: 0.08, gapSize: 0.08, depthTest: false }),
+    dashed
+      ? new THREE.LineDashedMaterial({ color: colour, dashSize: 0.08, gapSize: 0.08, depthTest: false })
+      : new THREE.LineBasicMaterial({ color: colour, depthTest: false }),
   )
   line.computeLineDistances()
   line.renderOrder = 999
@@ -119,10 +124,10 @@ const ring = () => {
 }
 
 // the pin's stem, from the floor up to the number
-const stem = () => {
+const stem = (colour = PURPLE) => {
   const line = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, PIN_RISE, 0)]),
-    new THREE.LineBasicMaterial({ color: PURPLE, depthTest: false }),
+    new THREE.LineBasicMaterial({ color: colour, depthTest: false }),
   )
   line.renderOrder = 999
   return line
@@ -139,7 +144,10 @@ const disposeGroup = (group: THREE.Group) => {
   group.clear()
 }
 
-/** Adds a marker layer to the scene. update() redraws every marker; dispose() removes them. */
+/**
+ * Adds a marker layer to the scene. update() redraws every marker; pickSpot() is the spot whose
+ * pin or label a ray hits (null for none); dispose() removes them.
+ */
 export const createSceneMarkers = (scene: THREE.Scene) => {
   const group = new THREE.Group()
   scene.add(group)
@@ -151,16 +159,19 @@ export const createSceneMarkers = (scene: THREE.Scene) => {
       const holder = new THREE.Group()
       holder.position.set(x, y, z)
       if (marker.kind === 'spot') {
-        holder.add(ring(), stem())
-        const badge = numberBadge(marker.number)
+        const colour = marker.picked ? AMBER : PURPLE
+        holder.add(ring(colour, !marker.picked), stem(colour))
+        const badge = numberBadge(marker.number, colour)
         const pin = sprite(badge.texture, badge.aspect, PIN_HEIGHT)
         pin.position.y = PIN_RISE
+        pin.userData.spotId = marker.id
         holder.add(pin)
         if (marker.text) {
-          const pill = labelPill(marker.text)
+          const pill = labelPill(marker.text, marker.picked ? AMBER : undefined)
           // sits above the number, its bottom edge on the pin
           const label = sprite(pill.texture, pill.aspect, LABEL_HEIGHT, [0.5, -0.75])
           label.position.y = PIN_RISE
+          label.userData.spotId = marker.id
           holder.add(label)
         }
       } else {
@@ -171,10 +182,17 @@ export const createSceneMarkers = (scene: THREE.Scene) => {
     }
   }
 
+  const pickSpot = (raycaster: THREE.Raycaster): string | null => {
+    const sprites: THREE.Object3D[] = []
+    group.traverse((child) => { if (child.userData.spotId) sprites.push(child) })
+    const hit = raycaster.intersectObjects(sprites, false)[0]
+    return (hit?.object.userData.spotId as string | undefined) ?? null
+  }
+
   const dispose = () => {
     disposeGroup(group)
     scene.remove(group)
   }
 
-  return { update, dispose }
+  return { update, pickSpot, dispose }
 }
