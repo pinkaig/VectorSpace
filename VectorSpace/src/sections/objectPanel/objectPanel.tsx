@@ -63,6 +63,9 @@ export type ObjectPanelProps = {
   // locked by the teacher: no moving, turning, resizing or removing, only copying (the Info
   // and Reactions tabs still work). Absent = not locked.
   locked?: boolean
+  // standing on the teacher's spot with this number: it can turn and resize but not move (no
+  // Move tool, no position numbers). Absent = it moves freely.
+  onSpot?: number
   rules: InteractionRule[]
   onAddRule: (choice: ClickRuleChoice) => void
   onRemoveRule: (ruleId: string) => void
@@ -193,10 +196,13 @@ export function ObjectPanel(props: ObjectPanelProps) {
   )
 }
 
-function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, onCopy, onRemove, locked }: ObjectPanelProps & { object: ObjectPanelItem }) {
+function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, onCopy, onRemove, locked, onSpot }: ObjectPanelProps & { object: ObjectPanelItem }) {
   // open or closed is only how the panel looks, not editor data, so it can live here
   const [exactOpen, setExactOpen] = useState(false)
-  const activeHint = tools.find((item) => item.tool === tool)?.hint ?? 'Pick what to change, then drag in the 3D view.'
+  // on a spot it keeps its place, so there is nothing to move it with
+  const shownTools = onSpot ? tools.filter((item) => item.tool !== 'move') : tools
+  const shownRows = onSpot ? exactRows.filter((row) => row.field !== 'position') : exactRows
+  const activeHint = shownTools.find((item) => item.tool === tool)?.hint ?? 'Pick what to change, then drag in the 3D view.'
 
   // a locked thing: say so, and offer only a copy, which is the student's own to change
   if (locked) {
@@ -221,10 +227,22 @@ function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, on
 
   return (
     <div className="object-panel-tab-body">
+      {onSpot && (
+        <div className="object-panel-locked" role="note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z" />
+            <circle cx="12" cy="10" r="2.5" />
+          </svg>
+          <div>
+            <strong>On spot {onSpot}</strong>
+            <span>It stays on the spot. Turn it or resize it, or pick the spot and choose something else to swap it.</span>
+          </div>
+        </div>
+      )}
       <div>
         <div className="object-panel-heading">What do you want to change?</div>
         <div className="object-panel-tools">
-          {tools.map((item) => (
+          {shownTools.map((item) => (
             <button
               key={item.tool}
               aria-pressed={tool === item.tool}
@@ -264,7 +282,7 @@ function PositionTab({ object, tool, onToolChange, onRotateBy, onExactChange, on
         </button>
         {exactOpen && (
           <div className="object-panel-exact-rows">
-            {exactRows.map((row) => (
+            {shownRows.map((row) => (
               <div className="object-panel-exact-row" key={row.field}>
                 <div className="object-panel-exact-label">{row.label}</div>
                 {object[row.field].map((value, index) => (

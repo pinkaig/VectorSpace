@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { defaultProject } from '../project/model'
 import { deserializeProject, serializeProject } from '../project/serializer'
-import { addSpot, addStarterObject, markersFor, removeSpot, removeThing, setSpotText, spotAt, STARTER_OBJECTS, toggleLock, DEFAULT_SPOT_TEXT, unlockNewObjects } from './teacherTools'
-import { duplicateEditorObject } from './editorOperations'
+import { addSpot, addStarterObject, markersFor, objectOnSpot, removeSpot, removeThing, setSpotText, spotAt, STARTER_OBJECTS, toggleLock, DEFAULT_SPOT_TEXT, unlockNewObjects } from './teacherTools'
+import { createEditorObject, duplicateEditorObject, reparentEditorObject, updateEditorTransform } from './editorOperations'
 
 const start = () => {
   const project = defaultProject()
@@ -108,5 +108,32 @@ describe('saving', () => {
     const badLock = JSON.parse(serializeProject(addStarterObject(project, sceneId, starter('bench'), [0, 0, 0])))
     badLock.scenes[0].objects.at(-1).locked = 'yes'
     expect(() => deserializeProject(JSON.stringify(badLock))).toThrow('invalid scene object')
+  })
+})
+
+describe('the thing on a spot', () => {
+  // a spot at (2, 0, 0) and a box placed at x
+  const withBox = (x: number) => {
+    const { project, sceneId } = start()
+    const added = addSpot(project, sceneId, [2, 0, 0])
+    const box = createEditorObject(added.project, sceneId, 'cube')
+    const moved = updateEditorTransform(box.project, sceneId, box.objectId!, { position: [x, 0.5, 0] }).project
+    return { project: moved, sceneId, boxId: box.objectId!, spot: moved.scenes[0].spots![0] }
+  }
+
+  it('is the thing standing inside the ring, and nothing once it is moved off', () => {
+    const on = withBox(2.3)
+    expect(objectOnSpot(on.project.scenes[0], on.spot)?.id).toBe(on.boxId)
+    const off = withBox(4)
+    expect(objectOnSpot(off.project.scenes[0], off.spot)).toBeNull()
+  })
+
+  it("never counts the teacher's locked things or a thing's children", () => {
+    const { project, sceneId, boxId, spot } = withBox(2)
+    expect(objectOnSpot(toggleLock(project, sceneId, boxId).scenes[0], spot)).toBeNull()
+    const parent = createEditorObject(project, sceneId, 'cube')
+    const far = updateEditorTransform(parent.project, sceneId, parent.objectId!, { position: [9, 0, 9] }).project
+    const child = reparentEditorObject(far, sceneId, boxId, parent.objectId!).project
+    expect(objectOnSpot(child.scenes[0], spot)).toBeNull()
   })
 })

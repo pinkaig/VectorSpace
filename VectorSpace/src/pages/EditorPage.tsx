@@ -31,7 +31,7 @@ import { addLocalMediaFile, addLocalMediaLink, useLocalMediaLibrary, type LocalM
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
-import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
+import Viewport, { ViewportHandle, viewportHintText, type ViewportPick, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
 import { uiSound } from '../audio'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
@@ -50,7 +50,7 @@ import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawS
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
 import { getProjectSyncStatus } from '../project/projectSync'
-import { markersFor } from '../editor/teacherTools'
+import { markersFor, objectOnSpot, spotAt } from '../editor/teacherTools'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -236,7 +236,29 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // the teacher's suggested spots, and a lock over each locked thing, for anyone editing
   // the selected thing is locked for this person: no arrows on it and no move/remove buttons
   const selectedLocked = studentView && !!selected?.locked
-  const sceneMarkers = useMemo(() => markersFor(scene, { spots: true, locks: true }), [scene])
+  // a teacher's suggested spot the student clicked: the next thing from the catalogue goes there
+  const [pickedSpotId, setPickedSpotId] = useState<string | null>(null)
+  const spots = scene.spots ?? []
+  const pickedSpot = spots.find((spot) => spot.id === pickedSpotId) ?? null
+  // a student's things standing on the teacher's spots stay there: they can be turned, resized,
+  // swapped or removed, not moved. Spot number by thing id.
+  const spotNumbers = useMemo(() => {
+    const numbers = new Map<string, number>()
+    if (!studentView) return numbers
+    ;(scene.spots ?? []).forEach((spot, index) => {
+      const on = objectOnSpot(scene, spot)
+      if (on && !numbers.has(on.id)) numbers.set(on.id, index + 1)
+    })
+    return numbers
+  }, [scene, studentView])
+  const selectedSpot = selected ? spotNumbers.get(selected.id) ?? null : null
+  // whatever is in the spot, a catalogue pick swaps it out
+  const onPickedSpot = pickedSpot ? objectOnSpot(scene, pickedSpot) : null
+  const sceneMarkers = useMemo(
+    () => markersFor(scene, { spots: true, locks: true }).map((marker) =>
+      marker.kind === 'spot' && marker.id === pickedSpotId ? { ...marker, picked: true } : marker),
+    [scene, pickedSpotId],
+  )
 
   const toggleSceneExpanded = (id: string) => {
     setExpandedSceneIds((current) => {
@@ -261,6 +283,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     isLocked: (objectId) => studentView && !!scene.objects.find((object) => object.id === objectId)?.locked,
     // a gizmo drag has already moved the mesh, so pull it back to the saved pose
     onLocked: (object) => { bumpSync(); setStepNotice(`${object.name} is locked by your teacher. You can't move or delete it.`) },
+    isPinned: (objectId) => spotNumbers.has(objectId),
+    onPinned: (object) => { bumpSync(); setStepNotice(`${object.name} stays on spot ${spotNumbers.get(object.id)}. You can turn it, resize it, or pick the spot to swap it.`) },
   })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -436,6 +460,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     setStepNotice(`Make ${next.name} react: pick what happens when visitors click it.`)
   }
 
+  // CLICK A SPOT, THEN THE CATALOGUE: a click on a spot's pin, label or floor ring picks it (again
+  // to unpick); a click anywhere else lets it go. Picking one opens Place things, where the
+  // catalogue is.
+  const pickSpot = ({ objectId, floorPoint, spotId }: ViewportPick) => {
+    const hit = spotId ?? (!objectId && floorPoint ? spotAt(scene, floorPoint)?.id : null) ?? null
+    if (!hit) {
+      setPickedSpotId(null)
+      return
+    }
+    setPickedSpotId((current) => (current === hit ? null : hit))
+    if (step !== 1) goToStep(1)
+    setSelectedId(null)
+  }
+  // a catalogue click: onto the picked spot if there is one, swapping out what stands there. The
+  // spot stays picked, so the student can try one thing after another until × or a click away.
+  const placeFromCatalogue = (asset: Parameters<typeof addObject>[0]) => {
+    addObject(asset, pickedSpot?.position, onPickedSpot?.id)
+  }
+  // a picked spot belongs to its room: changing rooms lets it go
+  useEffect(() => { setPickedSpotId(null) }, [scene.id])
+
   // the notice fades on its own after a few seconds
   useEffect(() => {
     if (!stepNotice) return
@@ -574,7 +619,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onMove={moveObject}
               onScale={scaleObject}
               onRotate={rotateObject}
-              gizmoMode={selectedLocked ? 'select' : gizmoMode}
+              gizmoMode={selectedLocked || (selectedSpot !== null && gizmoMode === 'move') ? 'select' : gizmoMode}
               scaleSpace={scaleSpace}
               rotateSpace={rotateSpace}
               snap={snapOn}
@@ -586,6 +631,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               resetToken={resetToken}
               syncToken={syncToken}
               markers={sceneMarkers}
+              onPick={spots.length > 0 ? pickSpot : undefined}
               // The quad layout's main pane is always perspective - only the three reference
               // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
               orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}
@@ -734,7 +780,14 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <button className="sent-back-chip" onClick={() => setSentBackOpen(true)}>Teacher's comment</button>
           )
         )}
-        {stepNotice && (
+        {pickedSpot ? (
+          <div className="step-notice" role="status">
+            Spot {spots.indexOf(pickedSpot) + 1}{pickedSpot.text ? ` · ${pickedSpot.text}` : ''}: {onPickedSpot
+              ? `pick something from the catalogue to swap the ${onPickedSpot.name}.`
+              : 'pick something from the catalogue to put here.'}
+            <button onClick={() => setPickedSpotId(null)} aria-label="Let go of this spot">×</button>
+          </div>
+        ) : stepNotice && (
           <div className="step-notice" role="status">
             {stepNotice}
             <button onClick={() => setStepNotice(null)} aria-label="Dismiss">×</button>
@@ -758,7 +811,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             step={step}
             onStepChange={(n) => goToStep(n as TutorialStep)}
             onClose={() => { setSelectedId(null); setGizmoMode('select') }}
-            tool={gizmoMode === 'select' ? null : gizmoMode}
+            tool={gizmoMode === 'select' || (selectedSpot !== null && gizmoMode === 'move') ? null : gizmoMode}
             onToolChange={setGizmoMode}
             onRotateBy={(degrees) => {
               const [x, y, z] = panelObject.transform.rotation
@@ -772,6 +825,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onCopy={duplicateSelected}
             onRemove={deleteSelected}
             locked={selectedLocked}
+            onSpot={selectedSpot ?? undefined}
             rules={(project.rules ?? []).filter((rule) => rule.objectId === panelObject.id)}
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}
@@ -844,7 +898,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                   {shownAssets.map((asset, index) => {
                     const Icon = catalogueIcons[asset.kind] ?? Box
                     return (
-                    <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                    <button className="asset-card" key={asset.assetId} onClick={() => placeFromCatalogue(asset)}>
                       <span className={`asset-tile ${catalogueTileColours[index % catalogueTileColours.length]}`}><Icon size={20} strokeWidth={1.75} /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
