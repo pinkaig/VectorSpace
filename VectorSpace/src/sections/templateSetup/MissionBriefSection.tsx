@@ -124,10 +124,13 @@ export function MissionBriefSection({ brief, onChange, things = [] }: MissionBri
         {brief.todos.map((todo, index) => (
           <li key={todo.id} className="brief-item">
             <input
-              className="ui-input brief-due-input"
+              className="ui-input brief-input brief-input-bold"
+              placeholder="e.g. Place 3 exhibits"
               maxLength={MAX_TEXT}
-              value={brief.due}
-              onChange={(event) => onChange({ ...brief, due: event.target.value })}
+              value={todo.text}
+              autoFocus={todo.id === focusId}
+              onChange={(event) => editRow("todos", todo.id, event.target.value)}
+              onKeyDown={enterAdds("todos")}
             />
                 <TodoChip text={todo.text} clashesWith={clashText(index)} />
                 <button type="button" className="ui-icon-btn brief-remove" onClick={() => removeRow("todos", todo.id)}>
