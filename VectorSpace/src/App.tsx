@@ -57,7 +57,7 @@ function Landing() {
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
-  const { signIn, rejected, signOut } = useSession()
+  const { signIn, rejected, signOut, role, admin } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
   // a shared project's "Sign in" sends ?next=/visit/<slug> so the visitor goes back to it;
@@ -72,6 +72,9 @@ function SignIn() {
       error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
     ))
   }
+  // Auth0 returns to the hash route the sign-in started from, which is this page, and the
+  // role arrives from /me a moment later; once it has, move on instead of waiting for a click
+  if (auth0Enabled && role) return <Navigate to={next ?? homePath(role, admin)} replace />
   // a refusal from the sign-in provider's own session outlives a click, so it is shown
   // whether or not anything was clicked, and it offers the way out that a retry cannot
   return (

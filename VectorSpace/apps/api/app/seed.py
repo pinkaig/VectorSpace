@@ -297,6 +297,28 @@ def seed(db: Session) -> None:
     db.commit()
 
 
+def add_template(db: Session, slug: str, name: str = "Museum hall") -> Project | None:
+    """One published template in an already provisioned school, owned by its first teacher. Commits.
+
+    For a school whose people have real logins (app.provision with Auth0), where seed() cannot run:
+    it makes no people and wipes nothing. None if the school already has a template by that name.
+    """
+    org = db.scalar(select(Organisation).where(Organisation.slug == slug))
+    if org is None:
+        raise ValueError(f"No school '{slug}': provision its people first")
+    if db.scalar(select(Project).where(Project.organisation_id == org.id, Project.kind == "template", Project.name == name)):
+        return None
+    teacher = db.scalar(select(Actor).where(Actor.organisation_id == org.id, Actor.role == "teacher").order_by(Actor.email))
+    if teacher is None:
+        raise ValueError(f"School '{slug}' has no teacher to own the template")
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    template = _project(db, teacher, name, now, kind="template", status="published")
+    plinths = [("cube", -3, 0), ("cube", 0, -3), ("cube", 3, 0)]
+    _save(db, template, scene_data(template.id, name, [("Museum", "env-museum")], plinths), now, label="First version")
+    db.commit()
+    return template
+
+
 def counts(db: Session, slug: str = SLUG) -> dict[str, int]:
     """Rows per table that belong to the school (0s when it does not exist yet)."""
     org = db.scalar(select(Organisation).where(Organisation.slug == slug))
@@ -320,6 +342,19 @@ def counts(db: Session, slug: str = SLUG) -> dict[str, int]:
 
 def main() -> None:
     apply = "--apply" in sys.argv[1:]
+    if "--template" in sys.argv[1:]:
+        # python -m app.seed --template <school slug> [--apply]: no logins made, so no bypass needed
+        slug = sys.argv[sys.argv.index("--template") + 1]
+        if not apply:
+            print(f"Dry run only. --apply adds one published 'Museum hall' template to '{slug}' if it has none.",
+                  file=sys.stderr)
+            return
+        from .db import SessionLocal
+
+        with SessionLocal() as db:
+            made = add_template(db, slug)
+            print(f"created template {made.name} ({made.slug})" if made else f"'{slug}' already has that template")
+        return
     if not get_settings().auth_dev_bypass:
         sys.exit("Refusing to seed: set AUTH_DEV_BYPASS=true (local only). These logins would not work otherwise.")
 

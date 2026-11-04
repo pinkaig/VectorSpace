@@ -38,8 +38,8 @@ Browser --> vectorspace      (Render static site, CDN, always on)
 cron-job.org --every 10 min--> vectorspace-api /health   (keeps it from sleeping)
 ```
 
-Live: site https://vectorspace-tuw2.onrender.com, API
-https://vectorspace-api.onrender.com (Neon project "Vector Space", Singapore).
+Live: site https://vectorspace-tigs.onrender.com, API
+https://vectorspace-api-bcsx.onrender.com (Neon project "Vector Space", Singapore).
 
 | Piece    | Service                         | Free limits that matter                                   |
 |----------|---------------------------------|-----------------------------------------------------------|
@@ -65,13 +65,13 @@ anything it stored would vanish on the next deploy.
    Blueprint*, pick this repository. Render reads `render.yaml` and asks for:
    - `DATABASE_URL`: the Neon string from step 1
    - `CORS_ORIGINS`: the static site's address exactly, no trailing slash, e.g.
-     `https://vectorspace-tuw2.onrender.com` (Render adds a suffix to the name
+     `https://vectorspace-tigs.onrender.com` (Render adds a suffix to the name
      when it is taken; the address cannot be changed later)
    - `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`: leave empty until Auth0 exists
 
    The Render GitHub app needs access to the repository, so the repo owner
    installs it, or deploy from your own fork.
-3. Wait for both deploys, then check `https://vectorspace-api.onrender.com/health`
+3. Wait for both deploys, then check `https://vectorspace-api-bcsx.onrender.com/health`
    returns `{"status":"ok",...}` and the site loads. Migrations run each time the
    API starts (`alembic upgrade head` in the API Dockerfile's `CMD`), since
    Render's pre-deploy step is not on the free plan. Leave Render's *Docker
@@ -114,7 +114,7 @@ library a CDN. One bucket holds two kinds of object:
    ```json
    [
      {
-       "AllowedOrigins": ["https://vectorspace-tuw2.onrender.com", "http://localhost:5173"],
+       "AllowedOrigins": ["https://vectorspace-tigs.onrender.com", "http://localhost:5173"],
        "AllowedMethods": ["GET", "PUT", "HEAD"],
        "AllowedHeaders": ["*"],
        "ExposeHeaders": ["ETag"],
