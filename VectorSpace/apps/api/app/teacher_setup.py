@@ -5,6 +5,7 @@ A student's copy is a snapshot of the template taken when it was sent, so setup 
 afterwards never reached it. push_setup updates every copy of a template with the teacher's parts
 only, and leaves the student's own work alone:
 
+- the mission brief becomes the template's, so info cards the teacher set later reach the student;
 - each room's suggested spots become the template room's spots;
 - a thing locked in the template is put in the copy as the template has it (added back if the
   student's copy lacks it), keeping any fact card the student wrote on it;
@@ -35,6 +36,9 @@ def merge_setup(template: dict[str, Any], student: dict[str, Any]) -> dict[str, 
     merged = copying.deepcopy(student)
     template_rooms = {room.get("id"): room for room in template.get("scenes") or []}
     removed: set[str] = set()
+
+    if template.get("missionBrief"):
+        merged["missionBrief"] = copying.deepcopy(template["missionBrief"])
 
     for room in merged.get("scenes") or []:
         source = template_rooms.get(room.get("id"))
