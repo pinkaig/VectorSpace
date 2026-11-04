@@ -105,6 +105,12 @@ def push_setup(db: Session, source: Project, teacher: Actor) -> tuple[int, int]:
     _, template = _content(db, source)
     if template is None:
         return 0, 0
+    # the brief lives on the assignment and students read it from there (GET /projects/{id}), so
+    # an edited brief reaches every copy, even one under review, without a new save of the copy
+    brief = template.get("missionBrief")
+    if isinstance(brief, dict):
+        for assignment in db.scalars(select(Assignment).where(Assignment.project_id == source.id)):
+            assignment.mission_brief = brief
     assignment_ids = select(Assignment.id).where(Assignment.project_id == source.id)
     copies = db.scalars(select(Project).where(Project.assignment_id.in_(assignment_ids), Project.id != source.id))
 
