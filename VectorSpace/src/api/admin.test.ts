@@ -20,7 +20,7 @@ describe('admin api', () => {
 
     const accounts = await api().listAccounts('org-1')
 
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api/admin/accounts?school=org-1')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/admin/accounts?school=org-1')
     expect(accounts[0]).toEqual({
       id: 'a1', schoolId: 'org-1', name: 'Aisyah Rahman', email: 'aisyah@demo.test',
       role: 'student', classNames: ['1A Science', 'Art Club'], lastActive: null, status: 'invited',
@@ -31,7 +31,7 @@ describe('admin api', () => {
     const fetchMock = reply({ tiles: {}, schools: [], attention: [], recent: [] })
     vi.stubGlobal('fetch', fetchMock)
     await api().getOverview(ALL_SCHOOLS)
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api/admin/overview?school=all')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/admin/overview?school=all')
   })
 
   it('renames the overview fields the pages read, and leaves the tiles alone', async () => {
@@ -61,7 +61,7 @@ describe('admin api', () => {
     const account = await api().setAccountOff('a1', true)
 
     const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe('http://api/admin/accounts/a1')
+    expect(url).toBe('http://api/api/v1/admin/accounts/a1')
     expect(init.method).toBe('PATCH')
     expect(JSON.parse(init.body)).toEqual({ active: false })
     expect(account.status).toBe('turned_off')

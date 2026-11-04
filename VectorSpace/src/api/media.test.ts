@@ -54,11 +54,11 @@ describe('uploadMediaFile', () => {
 
     const confirmed = await uploadMediaFile(async () => 't', 'p 1', file, (value) => progress.push(value), 'http://api')
 
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api/projects/p%201/media')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/projects/p%201/media')
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ kind: 'image', content_type: 'image/png', size_bytes: 5, filename: 'stone.png' })
     expect(FakeUpload.last).toMatchObject({ method: 'PUT', url: 'https://store.test/put', headers: { 'Content-Type': 'image/png' } })
     expect(progress).toEqual([0.5])
-    expect(fetchMock.mock.calls[1][0]).toBe('http://api/projects/p%201/media/m1/confirm')
+    expect(fetchMock.mock.calls[1][0]).toBe('http://api/api/v1/projects/p%201/media/m1/confirm')
     expect(confirmed.id).toBe('m1')
   })
 
@@ -77,7 +77,7 @@ describe('links', () => {
     await addMediaLink(async () => 't', 'p', 'https://youtu.be/dQw4w9WgXcQ', 'http://api')
     await reviewMediaLink(async () => 't', 'p', 'l1', 'rejected', 'Too long', 'http://api')
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ url: 'https://youtu.be/dQw4w9WgXcQ' })
-    expect(fetchMock.mock.calls[1][0]).toBe('http://api/projects/p/media/links/l1')
+    expect(fetchMock.mock.calls[1][0]).toBe('http://api/api/v1/projects/p/media/links/l1')
     expect(fetchMock.mock.calls[1][1]?.method).toBe('PATCH')
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ approval: 'rejected', comment: 'Too long' })
   })

@@ -12,7 +12,7 @@ describe('apiFetch', () => {
     const result = await apiFetch<{ id: string }>(async () => 'dev|teacher', '/projects', { method: 'POST', body: { name: 'x' } }, 'http://api')
     expect(result).toEqual({ id: 'p1' })
     const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe('http://api/projects')
+    expect(url).toBe('http://api/api/v1/projects')
     expect((init.headers as Headers).get('Authorization')).toBe('Bearer dev|teacher')
     expect(init.body).toBe('{"name":"x"}')
   })

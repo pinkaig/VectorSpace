@@ -12,7 +12,8 @@
  *
  * @inputs
  * A function that returns the current token (so the token source can change, e.g. Auth0
- * refreshing it), a path such as '/projects', and optional fetch options with a JSON body.
+ * refreshing it), a path such as '/projects' (the /api/v1 prefix is added here), and optional
+ * fetch options with a JSON body.
  *
  * @outputs
  * The parsed JSON reply (undefined for an empty one), or a thrown ApiError.
@@ -27,6 +28,9 @@
 
 /** Address of the API, from VITE_API_URL; undefined means the app runs without a server. */
 export const apiUrl: string | undefined = import.meta.env.VITE_API_URL || undefined
+
+/** The API version every request goes to, added here so no call site names it (apps/api/app/main.py, API_PREFIX). */
+export const apiPrefix = '/api/v1'
 
 export type GetToken = () => Promise<string | null>
 
@@ -49,7 +53,7 @@ export async function apiFetch<T>(getToken: GetToken, path: string, init: ApiReq
   const headers = new Headers(init.headers)
   if (token) headers.set('Authorization', `Bearer ${token}`)
   if (init.body !== undefined) headers.set('Content-Type', 'application/json')
-  const response = await fetch(`${base}${path}`, {
+  const response = await fetch(`${base}${apiPrefix}${path}`, {
     ...init,
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),

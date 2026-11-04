@@ -182,7 +182,7 @@ def check_live_api(api: str, token: str | None) -> None:
     if not token:
         report(None, "/me skipped", "pass --token to call it")
         return
-    me = httpx.get(f"{api}/me", headers={"Authorization": f"Bearer {token}"}, timeout=10)
+    me = httpx.get(f"{api}/api/v1/me", headers={"Authorization": f"Bearer {token}"}, timeout=10)
     if me.status_code == 200:
         report(True, "/me returned an account", me.text[:200])
     elif me.status_code == 403:
