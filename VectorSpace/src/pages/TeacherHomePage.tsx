@@ -128,7 +128,7 @@ const rowFromServer = (project: Project): ProjectRow => {
   name: project.name,
   details:
     published > 0
-      ? `Published · ${published} ${published === 1 ? "museum" : "museums"}`
+      ? `Published · ${published} ${published === 1 ? "project" : "projects"}`
       : project.saved_at
         ? `Saved ${daysAgo(project.saved_at)} · revision ${project.current_revision}`
         : "Not assigned yet",
@@ -1081,12 +1081,6 @@ export default function TeacherHomePage() {
           </div>
         </div>
       )}
-
-      {/* Temporary: Sherman's lists and the "send to a student" dev tool, until the real UI replaces them. */}
-      <details className="teacher-home-dev">
-        <summary>Developer: real projects and dev tools</summary>
-        <ProjectListsSection />
-      </details>
     </main>
   );
 }

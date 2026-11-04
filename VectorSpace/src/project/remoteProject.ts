@@ -50,6 +50,7 @@ type ProjectRow = {
   assigned_by_name?: string | null
   review_status?: ProjectSharing['reviewStatus']
   review_comment?: string | null
+  review_grade?: string | null
   share_with?: ProjectSharing['shareWith']
 }
 type VersionSaved = { revision: number }
@@ -86,6 +87,7 @@ export async function loadRemoteProject(getToken: GetToken, projectId: string, b
     reviewStatus: row.review_status ?? null,
     shareWith: row.share_with ?? null,
     reviewComment: row.review_comment ?? null,
+    reviewGrade: row.review_grade ?? null,
     teacherName: row.assigned_by_name ?? null,
     slug: row.slug ?? null,
   }

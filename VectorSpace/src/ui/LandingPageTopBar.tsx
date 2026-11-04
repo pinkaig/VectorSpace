@@ -15,6 +15,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Box } from "lucide-react";
+import { SoundToggle } from "../audio";
 import { homePath, useSession } from "../session/session";
 import "./LandingPageTopBar.css";
 
@@ -59,6 +60,7 @@ export function LandingPageTopBar({
       <nav className="landing-top-bar-tabs">{tabs}</nav>
 
       {actions && <div className="landing-top-bar-actions">{actions}</div>}
+      <SoundToggle />
       <div className="landing-top-bar-divider" />
 
       <div className="landing-top-bar-account">

@@ -42,6 +42,8 @@ const MAX_TEXT = 200;
 type MissionBriefSectionProps = {
   brief: MissionBrief;
   onChange: (next: MissionBrief) => void;
+  // the template's things, so an info card task can be suggested for one
+  things?: { id: string; name: string; room: string }[];
 };
 
 // the two lists in a brief that are edited the same way: rows of { id, text }
@@ -50,7 +52,7 @@ const ID_PREFIX = { todos: "todo", rules: "rule" } as const;
 
 type Tab = "brief" | "cards";
 
-export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProps) {
+export function MissionBriefSection({ brief, onChange, things = [] }: MissionBriefSectionProps) {
   // the row just added, so its text box can take the cursor straight away
   const [focusId, setFocusId] = useState<string | null>(null);
   // which tab of the panel shows: the brief itself, or the info cards students complete
@@ -107,42 +109,26 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
           </button>
         ))}
       </div>
-
-      {tab === "cards" ? (
-        <CardTasksSection brief={brief} onChange={onChange} />
-      ) : (
-        <>
-          <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
-
-          {/* DUE DATE: a plain text box */}
-          <label className="brief-due">
-            <span className="brief-due-label">Due</span>
+      {tab === "cards" ? <CardTasksSection brief={brief} onChange={onChange} things={things} /> : <>
+      <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
+      <label className="brief-due">{/*DUE DATE: a plain text box*/}
+        <span className="brief-due-label">Due</span>
+        <input className="ui-input brief-due-input" maxLength={MAX_TEXT} value={brief.due} onChange={(event) => onChange({ ...brief, due: event.target.value })} />
+      </label>
+      <h3 className="setup-heading">To do · ticks itself when done</h3>{/*TO DO: the teacher's words, then the chip saying what the app will count*/}
+      <p className="brief-help">
+        Write it your own way, e.g. "Put 5 exhibits in the room" or "No sounds". It can count
+        exhibits, fact cards, sounds, reactions, rooms and zones.
+      </p>
+      <ul className="brief-list">
+        {brief.todos.map((todo, index) => (
+          <li key={todo.id} className="brief-item">
             <input
               className="ui-input brief-due-input"
               maxLength={MAX_TEXT}
               value={brief.due}
               onChange={(event) => onChange({ ...brief, due: event.target.value })}
             />
-          </label>
-
-          {/* TO DO: the teacher's words, then the chip saying what the app will count */}
-          <h3 className="setup-heading">To do · ticks itself when done</h3>
-          <p className="brief-help">
-            Write it your own way, e.g. "Put 5 exhibits in the room" or "No sounds". It can count
-            exhibits, fact cards, sounds, reactions, rooms and zones.
-          </p>
-          <ul className="brief-list">
-            {brief.todos.map((todo, index) => (
-              <li key={todo.id} className="brief-item">
-                <input
-                  className="ui-input brief-input brief-input-bold"
-                  placeholder="e.g. Place 3 exhibits"
-                  maxLength={MAX_TEXT}
-                  value={todo.text}
-                  autoFocus={todo.id === focusId}
-                  onChange={(event) => editRow("todos", todo.id, event.target.value)}
-                  onKeyDown={enterAdds("todos")}
-                />
                 <TodoChip text={todo.text} clashesWith={clashText(index)} />
                 <button type="button" className="ui-icon-btn brief-remove" onClick={() => removeRow("todos", todo.id)}>
                   <X size={16} />
@@ -174,7 +160,7 @@ export function MissionBriefSection({ brief, onChange }: MissionBriefSectionProp
           </ul>
           <Button variant="add" size="small" className="brief-add" onClick={() => addRow("rules")}>+ Add a rule</Button>
         </>
-      )}
+      }
     </section>
   );
 }

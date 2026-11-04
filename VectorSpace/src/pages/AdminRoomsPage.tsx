@@ -67,7 +67,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
           {/*ENVIRONMENTS: room shells, each on or off for this school*/}
           <RoomListSection
             title="Environments"
-            note="Room shells teachers can start a museum in."
+            note="Room shells teachers can start a project in."
             items={data.environments}
             onToggle={(id, enabled) => setEnabled("environment", id, enabled)}
             extra="upload"

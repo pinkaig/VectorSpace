@@ -101,9 +101,10 @@ export function useAutosave(project: ProjectData, initialSource: ReturnType<type
     flushProjectSync()
   }, [])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
-  const save = () => {
+  // resolves once the save has reached the server (or failed), so a hand-in sends this save
+  const save = (): Promise<void> => {
     persist(project, 'Saved')
-    flushProjectSync()
+    return flushProjectSync()
   }
 
   return { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, persist, save }

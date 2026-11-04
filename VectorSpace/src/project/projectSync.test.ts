@@ -154,6 +154,30 @@ describe('projectSync', () => {
     expect(transport.sent.map((p) => p.name)).toEqual(['server-1', 'local', 'server-2'])
   })
 
+  it('flush resolves once the held edit has been tried, so a caller can wait for it', async () => {
+    const transport = new ScriptedTransport([syncSuccess(1), syncRetryableFailure()])
+    let clock = 0
+    const sync = createProjectSync({
+      transport,
+      storage: new InMemoryQueueStorage(),
+      holdMs: 30_000,
+      shouldHold: () => true,
+      now: () => clock,
+      scheduleTimeout: () => 0,
+    })
+
+    sync.stage(project('first'))
+    await flush()
+    clock += 1_000
+    sync.stage(project('second'))
+    expect(sync.status()).toBe('pending')
+
+    // no microtask flush here: awaiting flush() alone is enough to see the outcome
+    await sync.flush()
+    expect(transport.sent.map((p) => p.name)).toEqual(['first', 'second'])
+    expect(sync.status()).toBe('pending') // the server refused for now: the editor must not send for review
+  })
+
   it('delivers multiple queued offline edits to the transport in order', async () => {
     const transport = new ScriptedTransport([syncSuccess(1), syncSuccess(2)])
     const sync = createProjectSync({ transport, storage: new InMemoryQueueStorage() })

@@ -40,6 +40,8 @@ const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'))
 const TeacherTemplateSetupPage = lazy(() => import('./pages/TeacherTemplateSetupPage'))
 // a shared project's page (/visit/:slug) shows the 3D project, so it is lazy too
 const VisitPage = lazy(() => import('./pages/VisitPage'))
+// the Review tab's "Walk through it as a visitor": full page, like a share link
+const TeacherWalkPage = lazy(() => import('./pages/TeacherWalkPage'))
 // Chloe's editor-layout skeleton (slot placeholders), previewed at #/layout-test in dev only.
 const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ default: module.LayoutTest })))
 // The motion board (/motion-board, dev only). The ternary, not a bare lazy(), so a production build folds
@@ -55,7 +57,7 @@ function Landing() {
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
-  const { signIn, rejected, signOut } = useSession()
+  const { signIn, rejected, signOut, role, admin } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
   // a shared project's "Sign in" sends ?next=/visit/<slug> so the visitor goes back to it;
@@ -70,6 +72,9 @@ function SignIn() {
       error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
     ))
   }
+  // Auth0 returns to the hash route the sign-in started from, which is this page, and the
+  // role arrives from /me a moment later; once it has, move on instead of waiting for a click
+  if (auth0Enabled && role) return <Navigate to={next ?? homePath(role, admin)} replace />
   // a refusal from the sign-in provider's own session outlives a click, so it is shown
   // whether or not anything was clicked, and it offers the way out that a retry cannot
   return (
@@ -184,6 +189,7 @@ export default function App() {
           </Route>
           <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><Suspense fallback={<p>Loading template setup…</p>}><TeacherTemplateSetupPage /></Suspense></AdminNav></RequireRole>} />
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
+          <Route path="/teacher/review/:projectId/walk" element={<RequireRole role="teacher"><Suspense fallback={<p>Opening the project…</p>}><TeacherWalkPage /></Suspense></RequireRole>} />
           <Route path="/teacher/preview" element={<RequireRole role="teacher"><TeacherPreviewPage /></RequireRole>} />
           <Route path="/student" element={<RequireRole role="student"><AdminNav><StudentHomePage /></AdminNav></RequireRole>} />
           <Route path="/editor" element={<RequireRole role="teacher"><Suspense fallback={<LoadingRoom />}><EditorApplication /></Suspense></RequireRole>} />

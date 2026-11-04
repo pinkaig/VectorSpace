@@ -42,6 +42,8 @@ import {
 } from '../../packages/interaction/src/index'
 import { AudioSystem, WebAudioBackend, registerAudioActions } from '../../packages/audio/src/index'
 import { clickPanelFor, registerMediaActions } from '../runtime/builtInInteractions'
+import { createInRoomMedia } from './inRoomMedia'
+import { resolveLocalMedia } from '../runtime/mediaLibrary'
 import { TextLibrary, TextSystem, createTextEventBridge, registerTextActions } from '../../packages/text/src/index'
 import TextPanelHost from '../runtime/TextPanelHost'
 import { audioResolver } from '../content/audioResolution'
@@ -492,13 +494,26 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const { requestRender } = scheduler
     requestRenderRef.current = requestRender
 
+    // Info inside the room: fact cards shown as signs and videos on screens above their
+    // things (see inRoomMedia.ts). Rebuilt with the objects, placed every frame.
+    const inRoom = createInRoomMedia({
+      scene,
+      objectsGroup,
+      resolveMedia: resolveLocalMedia,
+      getText: (assetId) => textLibraryRef.current?.getMeta(assetId),
+      requestRender,
+    })
+
     const resize = () => {
       const width = mount.clientWidth
       const height = mount.clientHeight
       camera.aspect = width / Math.max(height, 1)
       camera.updateProjectionMatrix()
       renderer.setSize(width, height, false)
-      requestRender()
+      // setSize wipes the canvas. Draw again straight away instead of on the next frame, or the
+      // browser shows the empty canvas for a frame (the blink when the side panel opens or
+      // closes, and on every step while it slides).
+      drawNow()
     }
     // Every edit produces a new ProjectData via cloneProject, so reference
     // equality on `objects` is an exact change signal — no per-frame serialisation.
@@ -516,6 +531,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         onModelLoaded: () => { synced = null },
       })
       synced = { objects, selectedId, syncToken }
+      inRoom.sync(objects)
       requestRender()
     }
 
@@ -582,7 +598,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // video if it has no card, before and alongside any reactions the student added.
       if (event.kind === 'click' && event.objectId) {
         const panel = clickPanelFor((dataRef.current.objects as readonly SceneObject[]).find((object) => object.id === event.objectId))
-        if (panel) {
+        // a video already playing on a screen in the room: the click turns its sound on or
+        // off instead of opening a second, pop-up copy of it
+        const screenHandled = panel?.id.startsWith('video:') === true && inRoom.click(event.objectId)
+        if (panel && !screenHandled) {
           const handle = text.open(panel)
           effects.add(() => handle.close())
         }
@@ -764,6 +783,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           // one-way boolean per the modal-input-boundary decision: text
           // reports, this controller decides what the modal means for input
           modalOpen: text.store.getSnapshot().modalOpen,
+          panelOpen: text.store.getSnapshot().panels.length > 0,
           playMove: dataRef.current.playMove ?? null,
         }),
         select: (id) => dataRef.current.onSelect(id),
@@ -876,6 +896,29 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     let frame = 0
     let lastTime = performance.now()
+    // Draws the scene and its overlay widgets at the current size: from the frame loop, and from
+    // resize() straight after the canvas changes size, so the canvas is never shown blank.
+    const drawNow = (now?: number) => {
+      const width = mount.clientWidth
+      const height = mount.clientHeight
+      if (dataRef.current.cameraMode === 'orbit' && dataRef.current.orthographic) syncOrthoCamera(camera, orthoCamera, controls.target)
+      renderer.setScissorTest(false)
+      renderer.setViewport(0, 0, width, height)
+      renderer.render(scene, activeCameraRef.current)
+      if (now !== undefined && dataRef.current.showStats) sampleStats(now)
+      if (dataRef.current.cameraMode === 'orbit') {
+        overlays.render(renderer, {
+          camera,
+          target: controls.target,
+          width,
+          height,
+          showOctaOrb: dataRef.current.showOctaOrb,
+          showAxisIndicator: dataRef.current.showAxisIndicator,
+          compact: dataRef.current.compactOverlays,
+          insetTop: dataRef.current.overlayInsetTop,
+        })
+      }
+    }
     const animate = () => {
       frame = requestAnimationFrame(animate)
       const now = performance.now()
@@ -958,28 +1001,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         statsWindowStart = now
         if (!statsOn) setStats(null)
       }
+      // signs and screens follow their things and turn to the viewer; a playing video needs frames
+      if (inRoom.update(activeCameraRef.current, playing)) requestRender()
       if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
-
-      const width = mount.clientWidth
-      const height = mount.clientHeight
-      renderer.setScissorTest(false)
-      renderer.setViewport(0, 0, width, height)
-      renderer.render(scene, activeCameraRef.current)
-      if (statsOn) sampleStats(now)
-
-      if (dataRef.current.cameraMode === 'orbit') {
-        overlays.render(renderer, {
-          camera,
-          target: controls.target,
-          width,
-          height,
-          showOctaOrb: dataRef.current.showOctaOrb,
-          showAxisIndicator: dataRef.current.showAxisIndicator,
-          compact: dataRef.current.compactOverlays,
-          insetTop: dataRef.current.overlayInsetTop,
-        })
-      }
+      drawNow(now)
     }
     resize()
     animate()
@@ -1004,6 +1030,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       text.closeAll()
       restartRuntimeRef.current = () => {}
       requestRenderRef.current = () => {}
+      inRoom.dispose()
       playActionsRef.current = { goToSpot: () => {}, spotScreenPoint: () => null }
       playMovement.dispose()
       observer.disconnect()

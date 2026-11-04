@@ -33,6 +33,7 @@ import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLa
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
+import { uiSound } from '../audio'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
 import { useViewportSettings } from '../editor/hooks/useViewportSettings'
 import { useAutosave } from '../editor/hooks/useAutosave'
@@ -48,6 +49,7 @@ import { homePath, useSession } from '../session/session'
 import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawSubmission, type ShareWith } from '../api/projects'
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
+import { getProjectSyncStatus } from '../project/projectSync'
 import { markersFor } from '../editor/teacherTools'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
@@ -128,6 +130,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [step, setStep] = useState<EditStep>(1)
   // a short line telling the student where a step took them ("Add info to Pedestal")
   const [stepNotice, setStepNotice] = useState<string | null>(null)
+  // a short "saved" pop-up in the corner after the student saves a fact card, a video or a link
+  const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
+  const showToast = (text: string) => setToast({ text, key: Date.now() })
   // the object panel's Snap switch: the viewport's drags land on the floor grid, in 15° turns
   // and 0.25 size steps while it is on (viewport/editing/snapping.ts)
   const [snapOn, setSnapOn] = useState(false)
@@ -215,6 +220,12 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   }, [helpMenuOpen])
   const scene =project.scenes.find((item) => item.id === project.activeSceneId) ?? project.scenes[0]
   const selected = scene.objects.find((item) => item.id === selectedId) ?? null
+  // The object panel slides shut instead of vanishing (styles.css, .workspace): while it closes
+  // it keeps showing the last thing that was selected, and cannot be clicked, so the room widens
+  // smoothly behind it instead of jumping.
+  const lastSelectedRef = useRef<SceneObject | null>(null)
+  if (selected) lastSelectedRef.current = selected
+  const panelObject = selected ?? lastSelectedRef.current
   useBlockStrayFileDrop()
 
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
@@ -281,20 +292,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [briefReady, setBriefReady] = useState(() => tutorialSeen())
   const closeTutorial = useCallback(() => {
     setTutorialOpen(false)
+    // the Brief sound marks the brief opening for the first time, not every close of the tutorial
+    if (!briefReady) uiSound.play('ui.brief')
     setBriefReady(true)
     if (!preview) markTutorialSeen()
-  }, [preview])
+  }, [preview, briefReady])
   // the Step 3 tip ("Make things happen"): only opened from "?" → Make it react, never on its own
   const [reactionsTipOpen, setReactionsTipOpen] = useState(false)
   const closeReactionsTip = useCallback(() => setReactionsTipOpen(false), [])
   const [published, setPublished] = useState(initialLoad.status === 'published')
   const [sharing, setSharing] = useState<ProjectSharing>(
-    initialLoad.sharing ?? { reviewStatus: null, shareWith: null, reviewComment: null, teacherName: null, slug: null },
+    initialLoad.sharing ?? { reviewStatus: null, shareWith: null, reviewComment: null, reviewGrade: null, teacherName: null, slug: null },
   )
-  // a student's project is waiting for the teacher
-  const sent = !published && sharing.reviewStatus === 'waiting'
-  const shareStatus: ShareStatus = published ? 'published' : sent ? 'submitted' : 'draft'
+  // a student's hand-in is waiting for the teacher: a first one, or an update to a published
+  // museum (visitors keep seeing the approved save until the teacher OKs the update)
+  const sent = sharing.reviewStatus === 'waiting'
+  const shareStatus: ShareStatus = sent
+    ? (published ? 'update-waiting' : 'submitted')
+    : published ? 'published' : 'draft'
   const [shareOpen, setShareOpen] = useState(false)
+  // the teacher's sent-back comment shows over the room; × folds it into a chip (Weian Ching)
+  const [sentBackOpen, setSentBackOpen] = useState(true)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
   const canShare = !preview && isRemoteProject(project.id)
@@ -312,18 +330,27 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   }, [project.id])
   const publishTitle = preview ? 'Publishing is off in a preview'
     : !isRemoteProject(project.id) ? 'Open this project from your home page to publish it'
-    : published ? 'This project is published'
+    : sent && published ? `Update sent to ${teacherName}: visitors see the approved version until they OK it`
     : sent ? `Sent to ${teacherName}: waiting for them to approve it`
+    : published && sendsToTeacher ? 'Share your project, or send your changes to your teacher'
+    : published ? 'This project is published'
     : 'Share this project'
-  const publish = async (shareWith: ShareWith) => {
+  // shareWith is left out for an update: it keeps who-can-visit from the approved hand-in
+  const publish = async (shareWith?: ShareWith) => {
     if (!canShare || publishing) return
     setPublishing(true)
     setPublishError(null)
-    save()
     try {
+      // the teacher reviews the save the hand-in points at, so the last edits must reach the server first
+      await save()
+      if (getProjectSyncStatus() !== 'idle') {
+        setPublishError("Your latest changes haven't saved yet. Check your connection and try again.")
+        return
+      }
       if (sendsToTeacher) {
         const submission = await submitProject(getToken, project.id, shareWith)
-        setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with, reviewComment: submission.comment }))
+        setSharing((current) => ({ ...current, reviewStatus: submission.status, shareWith: submission.share_with ?? current.shareWith, reviewComment: submission.comment, reviewGrade: submission.grade }))
+        uiSound.play('publish.sent')
       } else {
         const saved = await setProjectStatus(getToken, project.id, 'published')
         setPublished(saved.status === 'published')
@@ -348,6 +375,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         reviewStatus: previous?.status ?? null,
         shareWith: previous?.share_with ?? current.shareWith,
         reviewComment: previous?.comment ?? null,
+        reviewGrade: previous?.grade ?? null,
       }))
     } catch (problem) {
       setPublishError(`That didn't go through: ${problem instanceof Error ? problem.message : 'unknown error'}`)
@@ -367,6 +395,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // what each step still needs, for its green tick and for where a step click goes
   const roomRules = (project.rules ?? []).filter((rule) => scene.objects.some((object) => object.id === rule.objectId))
   const needInfo = scene.objects.filter((object) => !findCard(project, object))
+  const withInfo = scene.objects.length - needInfo.length
   const stepDone: Record<TutorialStep, boolean> = {
     1: scene.objects.length > 0,
     2: scene.objects.length > 0 && needInfo.length === 0,
@@ -386,6 +415,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     }
     if (playing) setViewMode('editor')
     setStep(n)
+    // Add info opens the things list, where each thing shows whether it has its fact card yet
+    if (n === 2) setThingsOpen(true)
     if (n === 1 || selected) return
     if (scene.objects.length === 0) {
       setStepNotice('Place something from the catalogue first.')
@@ -412,6 +443,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     return () => window.clearTimeout(timer)
   }, [stepNotice])
 
+  // the saved pop-up goes after a moment; a new save restarts it
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 2600)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -437,7 +475,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         {tutorialSteps.map(({ step: n, label }) => {
           const viewing = n === (playing ? 4 : step)
           const colour = viewing ? 'viewing' : stepDone[n] ? 'green' : 'todo'
-          const title = `Step ${n}: ${label}${stepDone[n] && !viewing ? ' (done)' : ''}`
+          // step 2 counts per thing: green once every thing in this room has a fact card
+          const progress = n === 2 && scene.objects.length > 0 ? ` · ${withInfo}/${scene.objects.length}` : ''
+          const title = `Step ${n}: ${label}${n === 2 && scene.objects.length > 0 ? ` (${withInfo} of ${scene.objects.length} things have info)` : ''}${stepDone[n] && !viewing ? ' (done)' : ''}`
           return (
             <button
               key={n}
@@ -448,7 +488,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onClick={() => goToStep(n)}
             >
             <span className="button-num">{n}</span>
-              <span className="button-label">{label}</span>
+              <span className="button-label">{label}{progress}</span>
             </button>
                   )})}
         </nav>
@@ -507,6 +547,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           busy={publishing}
           error={publishError}
           onSend={(shareWith) => void publish(shareWith)}
+          onSendUpdate={() => void publish()}
           onWithdraw={() => void withdraw()}
           onClose={closeShare}
         />
@@ -607,7 +648,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           <div className="floating-controls bottom-left">
             <div className="float-group things-in-room">
               <button className="float-button things-toggle" aria-expanded={thingsOpen} onClick={() => setThingsOpen((open) => !open)}>
-                Things in this room · {scene.objects.length}<span>{thingsOpen ? '▾' : '▴'}</span>
+                Things in this room · {scene.objects.length}{step === 2 && scene.objects.length > 0 && <em className="things-info-count">{withInfo} with info</em>}<span>{thingsOpen ? '▾' : '▴'}</span>
               </button>
               {thingsOpen && <div className="tree-list">{scene.objects.length === 0 ? <div className="empty-state">Your scene is quiet.<br /><span>Place an asset to begin.</span></div> : buildSceneTree(scene.objects).map((row) => (
                 <div key={row.object.id} className={row.object.id === selectedId ? 'tree-item selected' : 'tree-item'} style={{ paddingLeft: row.depth * 16 }}>
@@ -616,7 +657,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     <button className="tree-indent-btn" title="Indent under previous sibling" disabled={previousSibling(scene.objects, row.object.id) === null} onClick={() => indentObject(row.object.id)}>⇥</button>
                   </div>
                   <button className="tree-item-select" onClick={() => setSelectedId(row.object.id)}>
-                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}<span className="tree-chevron">›</span>
+                    <span className={`object-dot ${row.object.assetKind}`} />{row.object.name}
+                    {findCard(project, row.object)
+                      ? <span className="info-status done" title="Has a fact card" aria-label="Has a fact card"><Check size={11} strokeWidth={3.5} /></span>
+                      : <span className="info-status todo" title="No fact card yet" aria-label="No fact card yet" />}
+                    <span className="tree-chevron">›</span>
                   </button>
                 </div>
               ))}</div>}
@@ -670,23 +715,45 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
           <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
         </section>
+        {toast && (
+          <div className="save-toast" role="status" key={toast.key}>
+            <Check size={16} strokeWidth={3} /> {toast.text}
+          </div>
+        )}
+        {/* the teacher sent the museum back: what they said, until it is sent again (Weian Ching) */}
+        {sharing.reviewStatus === 'sent_back' && !playing && (
+          sentBackOpen ? (
+            <div className="sent-back-banner" role="status">
+              <div>
+                <strong>{teacherName[0].toUpperCase()}{teacherName.slice(1)} sent this back{sharing.reviewGrade ? ` · ${sharing.reviewGrade}` : ''}</strong>
+                <p>{sharing.reviewComment || 'Make your changes, then send it again.'}</p>
+              </div>
+              <button onClick={() => setSentBackOpen(false)} aria-label="Hide the teacher's comment">×</button>
+            </div>
+          ) : (
+            <button className="sent-back-chip" onClick={() => setSentBackOpen(true)}>Teacher's comment</button>
+          )
+        )}
         {stepNotice && (
           <div className="step-notice" role="status">
             {stepNotice}
             <button onClick={() => setStepNotice(null)} aria-label="Dismiss">×</button>
           </div>
         )}
-        {/* clicking a thing opens the panel on the tab of the step being worked on */}
-        {selected && <aside className="inspector-popup">
+        {/* clicking a thing opens the panel on the tab of the step being worked on; it slides open
+            and shut (styles.css) and stays mounted while shut so it can slide */}
+        {panelObject && <aside className={selected ? 'inspector-popup open' : 'inspector-popup'} inert={!selected}>
           {/* The panel only shows things and calls back; every action below decides what happens. */}
           <ObjectPanel
+            // a fresh panel for each thing, as when it used to unmount between selections
+            key={panelObject.id}
             object={{
-              id: selected.id,
-              name: selected.name,
-              kind: selected.assetKind,
-              position: selected.transform.position,
-              rotation: selected.transform.rotation.map(radToDeg) as Vec3,
-              scale: selected.transform.scale,
+              id: panelObject.id,
+              name: panelObject.name,
+              kind: panelObject.assetKind,
+              position: panelObject.transform.position,
+              rotation: panelObject.transform.rotation.map(radToDeg) as Vec3,
+              scale: panelObject.transform.scale,
             }}
             step={step}
             onStepChange={(n) => goToStep(n as TutorialStep)}
@@ -694,7 +761,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             tool={gizmoMode === 'select' ? null : gizmoMode}
             onToolChange={setGizmoMode}
             onRotateBy={(degrees) => {
-              const [x, y, z] = selected.transform.rotation
+              const [x, y, z] = panelObject.transform.rotation
               updateSelected({ rotation: [x, degToRad(wrapDegrees(radToDeg(y) + degrees)), z] })
             }}
             onExactChange={(field, value) => {
@@ -705,11 +772,11 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onCopy={duplicateSelected}
             onRemove={deleteSelected}
             locked={selectedLocked}
-            rules={(project.rules ?? []).filter((rule) => rule.objectId === selected.id)}
+            rules={(project.rules ?? []).filter((rule) => rule.objectId === panelObject.id)}
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}
-            infoCard={cardInputFor(project, selected)}
-            infoCardId={findCard(project, selected)?.attachment.id}
+            infoCard={cardInputFor(project, panelObject)}
+            infoCardId={findCard(project, panelObject)?.attachment.id}
             cardTasks={project.missionBrief?.cardTasks}
             mediaChoices={mediaChoices}
             onUploadMedia={async (file) => {
@@ -718,27 +785,35 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             }}
             onAddMediaLink={(url) => {
               const added = addLocalMediaLink(url, 'editor')
-              return 'error' in added ? added : choiceFor(added)
+              if ('error' in added) return added
+              showToast('Link sent to your teacher to approve')
+              return choiceFor(added)
             }}
-            video={videoFor(selected, mediaLibrary)}
-            onSaveVideo={(assetId) => {
-              const result = saveObjectVideo(project, scene.id, selected.id, assetId)
+            video={videoFor(panelObject, mediaLibrary)}
+            onSaveVideo={(assetId, screen) => {
+              const result = saveObjectVideo(project, scene.id, panelObject.id, assetId, screen)
               if (!result.ok) return result.error
               commit('Save video', result.project)
+              showToast('Video saved')
               return null
             }}
-            onRemoveVideo={() => commit('Remove video', removeObjectVideo(project, scene.id, selected.id))}
+            onRemoveVideo={() => { commit('Remove video', removeObjectVideo(project, scene.id, panelObject.id)); showToast('Video removed') }}
             onSaveCard={(input) => {
-              const result = saveObjectCard(project, scene.id, selected.id, input)
+              const result = saveObjectCard(project, scene.id, panelObject.id, input)
               if (!result.ok) return result.error
               commit('Save info card', result.project)
+              showToast('Fact card saved')
               return null
             }}
-            onRemoveCard={() => commit('Remove info card', removeObjectCard(project, scene.id, selected.id))}
+            onRemoveCard={() => { commit('Remove info card', removeObjectCard(project, scene.id, panelObject.id)); showToast('Fact card removed') }}
           />
         </aside>}
       </div>
-      {step === 1 && <section className="catalogue">
+      {/* the catalogue slides down out of the way on steps 2-3 so the room grows into its space,
+          and back up on step 1 (styles.css, .catalogue-slot); it stays mounted so it can slide */}
+      <div className={step === 1 ? 'catalogue-slot' : 'catalogue-slot closed'} inert={step !== 1}>
+      <div className="catalogue-clip">
+      <section className="catalogue">
         <div className="catalogue-head">
           <h2>Catalogue</h2>
             <div className="catalogue-types" role="tablist">
@@ -792,7 +867,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                 </div>
             </div>
         </div>
-      </section>}
+      </section>
+      </div>
+      </div>
       </>}
       {tutorialOpen && <KickoffTutorial onClose={closeTutorial} />}
       {/* never over the kick-off tutorial or while playing */}
@@ -816,19 +893,20 @@ const choiceFor = (entry: LocalMediaEntry) => ({ assetId: entry.id, kind: entry.
 const videoFor = (object: SceneObject, library: readonly LocalMediaEntry[]) => {
   const video = findVideo(object)
   if (!video) return null
-  return { attachmentId: video.id, assetId: video.assetId, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
+  return { attachmentId: video.id, assetId: video.assetId, screen: video.screen === true, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
 }
 
 const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {
   const card = findCard(project, object)
   if (!card || card.attachment.presentation.mode !== 'card') return null
-  const { title, media, autoCloseMs, fields, taskId } = card.attachment.presentation
+  const { title, media, autoCloseMs, fields, taskId, inRoom } = card.attachment.presentation
   return {
     title: title ?? '',
     body: card.meta?.content ?? '',
     ...(media ? { media } : {}),
     ...(autoCloseMs !== undefined ? { autoCloseMs } : {}),
     ...(fields && taskId ? { fields, taskId } : {}),
+    ...(inRoom ? { inRoom } : {}),
   }
 }
 

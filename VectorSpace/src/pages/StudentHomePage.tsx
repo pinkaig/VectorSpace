@@ -3,7 +3,7 @@
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
  * @brief       Student home: greeting, the project assigned by the teacher
- *              (with Start building / Keep building / Fix my museum, which
+ *              (with Start building / Keep building / Fix my project, which
  *              opens the editor), the student's other projects, and the
  *              notification bell in the top bar. Uses the shared
  *              LandingPageTopBar. Everything shown comes from the API: the
@@ -37,9 +37,10 @@ const notifications: AppNotification[] = [];
 // the chip on the assigned project: published, waiting for the teacher, sent back by them,
 // untouched since the teacher sent it, or being built
 const statusLabel = (project: Project): string => {
+  // a published museum stays published while an update waits or after one is sent back
+  if (project.status === "published") return project.review_status === "waiting" ? "Update waiting" : "Published";
   if (project.review_status === "sent_back") return "Sent back";
   if (project.review_status === "waiting") return "Waiting for approval";
-  if (project.status === "published") return "Published";
   if (project.status === "archived") return "Archived";
   if (project.current_revision === 0) return "Not started";
   // a copy the teacher sent is saved once, by the teacher; the student's first save makes it theirs
@@ -52,6 +53,7 @@ const statusLabel = (project: Project): string => {
 const STATUS_CHIP: Record<string, string> = {
   "Sent back": "student-home-chip-red",
   "Waiting for approval": "student-home-chip",
+  "Update waiting": "student-home-chip-green",
   Published: "student-home-chip-green",
   Building: "student-home-chip-purple",
   "Not started": "student-home-chip-muted",
@@ -138,7 +140,7 @@ export default function StudentHomePage() {
             {loading
               ? "Loading your projects…"
               : sentBack
-                ? `${teacher} left you a comment on your museum.`
+                ? `${teacher} left you a comment on your project.`
                 : assignedProject
                   ? "You have a project waiting for you."
                   : "No projects yet. Your teacher will send you one."}
@@ -202,19 +204,31 @@ export default function StudentHomePage() {
                 </p>
               )}
 
-              <button
-                type="button"
-                className="student-home-start"
-                onClick={() => navigate(`/editor/${assignedProject.id}`)}
-              >
-                {status === "Not started"
-                  ? "Start building"
-                  : sentBack
-                    ? "Fix my museum"
-                    : status === "Published"
-                      ? "Open my museum"
-                      : "Keep building"}
-              </button>
+              <div className="student-home-start-actions">
+                <button
+                  type="button"
+                  className="student-home-start"
+                  onClick={() => navigate(`/editor/${assignedProject.id}`)}
+                >
+                  {status === "Not started"
+                    ? "Start building"
+                    : sentBack
+                      ? "Fix my project"
+                      : status === "Published" || status === "Update waiting"
+                        ? "Open my project"
+                        : "Keep building"}
+                </button>
+                {/* the share link: the version the teacher approved, exactly as visitors see it */}
+                {assignedProject.status === "published" && assignedProject.slug && (
+                  <button
+                    type="button"
+                    className="student-home-start student-home-start-secondary"
+                    onClick={() => navigate(`/visit/${assignedProject.slug}`)}
+                  >
+                    View live
+                  </button>
+                )}
+              </div>
             </div>
           </article>
         )}
@@ -232,7 +246,7 @@ export default function StudentHomePage() {
               )}
               {otherProjects.map((project) => {
                 const rowStatus = statusLabel(project);
-                const published = rowStatus === "Published";
+                const published = rowStatus === "Published" || rowStatus === "Update waiting";
                 return (
                   <div key={project.id} className="student-home-row">
                     {project.assigned_by_name && (
@@ -251,12 +265,22 @@ export default function StudentHomePage() {
                       }
                     >
                       {published
-                        ? `Published${project.review_grade ? ` · Grade ${project.review_grade}` : ""}`
+                        ? `Published${project.review_grade ? ` · Grade ${project.review_grade}` : ""}${rowStatus === "Update waiting" ? " · update waiting" : ""}`
                         : rowStatus === "Not started" ||
                             rowStatus === "Building"
                           ? `Draft · edited ${daysAgo(project.updated_at)}`
                           : rowStatus}
                     </span>
+                    {/* the share link: the version the teacher approved, exactly as visitors see it */}
+                    {project.status === "published" && project.slug && (
+                      <button
+                        type="button"
+                        className="student-home-small"
+                        onClick={() => navigate(`/visit/${project.slug}`)}
+                      >
+                        View live
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={
@@ -267,9 +291,9 @@ export default function StudentHomePage() {
                       onClick={() => navigate(`/editor/${project.id}`)}
                     >
                       {published
-                        ? "Open my museum"
+                        ? "Open my project"
                         : rowStatus === "Sent back"
-                          ? "Fix my museum"
+                          ? "Fix my project"
                           : "Keep building"}
                     </button>
                   </div>

@@ -17,8 +17,8 @@ Open `http://localhost:5173/prototypes/ui-audio/index.html`. Press **B** to hide
 ## Swap a sound
 
 - **On the board.** Pick another sound in a row's dropdown, or drag any audio file onto the row. It plays at once. The slider scales that cue's loudness.
-- **Keep it.** Board changes persist in this browser. To keep them for everyone, click **Copy cue-map.json** and paste it over `cue-map.json`. Dropped files exist only in memory: copy the file into `sfx/`, then set its `url` in the pasted JSON.
-- **In the file.** Edit `cue-map.json` and refresh. To replace a sound everywhere, overwrite its file in `sfx/` under the same name.
+- **Keep it.** Board changes persist in this browser. To keep them for everyone, click **Copy cue-map.json** and paste it over `src/audio/cue-map.json` (the app reads the same file). Dropped files exist only in memory: copy the file into `sfx/`, then set its `url` in the pasted JSON.
+- **In the file.** Edit `src/audio/cue-map.json` and refresh. To replace a sound everywhere, overwrite its file in `sfx/` under the same name.
 - **See what triggers it.** Every control on the page is outlined and numbered (press **D** to hide the outlines, **H** to add the hover layer). The **On this screen** tab lists the same controls by number with the sound each plays; hover a row to find its control. Under **Sounds**, each row lists every component that plays it, so a shared sound is visible rather than assumed.
 - **See all of it.** **Scan all screens** on the board presses every control on every screen in a hidden copy of the page (about three seconds) and fills each sound's list with every control it covers. **Download component list (CSV)** is the control-by-control sheet for the designer.
 
@@ -39,7 +39,7 @@ Sounds and cues live in `cue-map.json`, and are what a sound designer edits. Bin
 | File | Role |
 | --- | --- |
 | `packages/audio/src/cues/CueBank.ts` | The reusable part. Cue to sound: variants, loudness, cooldown, channel, swap, export. Plays through `AudioSystem`. Tested in `CueBank.test.ts`. |
-| `cue-map.json` | 27 sounds and 37 cues. What plays. |
+| `src/audio/cue-map.json` | 27 sounds and 37 cues. What plays. Shared with the real app since 3 Nov, so tuning here carries over. |
 | `bindings.json` | 39 rules: which component fires which cue. |
 | `conditions.ts` | The words `bindings.json` is written in (watch a value, fire on a change). Tested in `conditions.test.ts`. |
 | `director.ts` | Listens to the mockup and calls `CueBank.play`. The throwaway part. Also reports what caused each sound. |
@@ -86,7 +86,7 @@ In the console, `vsSfx` holds `bank`, `system`, `director`, `map` (the live list
 - **Spatial audio, ducking, crossfade.** Not in `AudioSystem` yet, and the mockup asks for "Only nearby" and music that changes by room. Decided by the consultation.
 - **Footsteps follow a timer** (a cooldown), not distance travelled. Door, tap-to-walk and in-room reactions are not wired in the mockup; the board plays them.
 - **`ui` channel.** Proposed here only; it is created on demand and nothing in the audio package changed to allow it.
-- **Moving `cue-map.json` and `sfx/` into the app** (and where, given that `public/audio` is also the student-facing catalogue) is a decision for after the consultation.
+- **`cue-map.json` now lives in `src/audio/`** and the real app plays it (`src/audio/uiSound.ts`). The files stay in `public/audio/SFX/`, unregistered in the student catalogue.
 - **`bindings.json` selectors** match the mockup's inline styles (the purple button is `background: #5B4BD6`). A restyle of the mockup needs a pass over them; the board's coverage outlines show what stopped matching.
 - **The probe only visits the mockup's own screen presets**, with two states patched in to reach moments the presets skip (a room not yet added, a tour with the card closed). A control that exists only in a state no preset reaches is missed by the full scan, though the live view still covers it once you get there.
 - **Controls are matched by label.** The live view applies a probe's answer only if the hidden copy listed the same labels in the same order. If two controls ever share a label and order shifts, the probe's answer is discarded and the rules' prediction is shown instead.

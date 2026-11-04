@@ -2642,9 +2642,81 @@ button:disabled {
 .inspector-popup > * {
   flex: 1 0 auto;
 }
-/* the workspace gets the second column only while the panel is showing */
-.workspace:has(> .inspector-popup) {
+/* The panel's column is always there: 0 wide while nothing is selected, 360px while something
+   is. The width animates, so the room narrows and widens smoothly instead of jumping (the
+   viewport redraws on every step, see resize() in Viewport.tsx). */
+.workspace {
+  grid-template-columns: minmax(520px, 1fr) 0px;
+  column-gap: 0px;
+  transition: grid-template-columns 280ms ease-in-out, column-gap 280ms ease-in-out;
+}
+
+.workspace:has(> .inspector-popup.open) {
   grid-template-columns: minmax(520px, 1fr) 360px;
+  column-gap: 12px;
+}
+
+/* the card keeps its full width and sits on the right, so it slides in from the edge instead of
+   squashing; once shut it is hidden (after the slide) so nothing can reach it */
+.inspector-popup {
+  overflow-x: hidden;
+  align-items: flex-end;
+  visibility: hidden;
+  transition: visibility 0s linear 280ms;
+}
+
+.inspector-popup.open {
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+.inspector-popup > * {
+  width: 360px;
+  min-width: 360px;
+}
+
+/* The catalogue's slot: full height on step 1, 0 on steps 2-3. The height animates, so the room
+   grows and shrinks smoothly instead of jumping. The clip wrapper hides the catalogue's padding
+   and border too, so the slot can close all the way. The negative margin takes back the shell's
+   12px gap while closed. */
+.catalogue-slot {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms ease-in-out, margin-top 280ms ease-in-out;
+}
+
+.catalogue-slot.closed {
+  grid-template-rows: 0fr;
+  margin-top: -12px;
+}
+
+.catalogue-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* hidden once it has slid away, so nothing can reach it */
+.catalogue-slot.closed .catalogue-clip {
+  visibility: hidden;
+  transition: visibility 0s linear 280ms;
+}
+
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: minmax(450px, 1fr) 0px;
+  }
+
+  .workspace:has(> .inspector-popup.open) {
+    grid-template-columns: minmax(450px, 1fr) 360px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace,
+  .catalogue-slot {
+    transition: none;
+  }
 }
 
 /* where a top bar step took the student ("3 things still need info. Start with Pedestal.") */
@@ -2898,6 +2970,126 @@ button:disabled {
   cursor: pointer;
 }
 /** Shared for teacher template */
+/* the "Fact card saved" pop-up in the bottom-right corner of the room (EditorPage),
+   above the zoom and walls buttons so it never covers them */
+.save-toast {
+  position: absolute;
+  right: 24px;
+  bottom: 96px;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #165E3D;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.25);
+  animation: save-toast-in 0.2s ease-out;
+}
+
+@keyframes save-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-toast { animation: none; }
+}
+
+/* step 2, per thing: a green tick once it has a fact card, an open amber ring until then */
+.info-status {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.info-status.done {
+  background: #2E9E6A;
+  color: #FFFFFF;
+}
+
+.info-status.todo {
+  border: 2px solid #E3A93B;
+}
+
+.things-info-count {
+  margin-left: 6px;
+  color: #165E3D;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* the teacher's comment on a museum sent back, over the room until it is sent again */
+.sent-back-banner {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(560px, calc(100% - 32px));
+  box-sizing: border-box;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid #F3D29C;
+  border-radius: 14px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  box-shadow: 0 8px 24px rgba(31, 27, 58, 0.18);
+}
+
+.sent-back-banner > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.sent-back-banner strong {
+  font-size: 14px;
+}
+
+.sent-back-banner p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.sent-back-banner button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(92, 58, 0, 0.1);
+  color: #5C3A00;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.sent-back-chip {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border: 1px solid #F3D29C;
+  border-radius: 999px;
+  background: #FFF5E3;
+  color: #5C3A00;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
 /* below 1600px the F / H key chips are dropped so the camera bar fits beside "Things in this room";
    the shortcuts still work, and the hint row under the room lists them */
 @media (max-width: 1600px) {

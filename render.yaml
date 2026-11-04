@@ -12,19 +12,37 @@ projects:
       branch: Working
       plan: free
       envVars:
-      - key: AUTH_DEV_BYPASS
-        sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: APP_ENV
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: AUTH0_DOMAIN
+        sync: false
+      - key: AUTH0_AUDIENCE
+        sync: false
+      - key: AUTH0_MGMT_CLIENT_ID
+        sync: false
+      - key: AUTH0_MGMT_CLIENT_SECRET
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_LIBRARY_BUCKET
+        sync: false
+      - key: S3_PUBLIC_BASE_URL
+        sync: false
       region: singapore
       healthCheckPath: /health
       dockerContext: .
       dockerfilePath: Dockerfile
-      autoDeployTrigger: commit
+      autoDeployTrigger: checksPass
       buildFilter:
         paths:
         - '**'
@@ -39,9 +57,17 @@ projects:
         sync: false
       - key: NODE_VERSION
         sync: false
+      - key: VITE_AUTH0_DOMAIN
+        sync: false
+      - key: VITE_AUTH0_CLIENT_ID
+        sync: false
+      - key: VITE_AUTH0_AUDIENCE
+        sync: false
+      - key: VITE_AUTH0_CONNECTION
+        sync: false
       buildCommand: 'npm ci && npm run build  '
       staticPublishPath: dist
-      autoDeployTrigger: commit
+      autoDeployTrigger: checksPass
       buildFilter:
         paths:
         - '**'

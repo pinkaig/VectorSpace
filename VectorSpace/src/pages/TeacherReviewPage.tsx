@@ -18,10 +18,12 @@
 /******************************************************************************/
 
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
+import { useLocation, useNavigate, useOutletContext } from "react-router";
+import type { ReviewReturn } from "./TeacherWalkPage";
 import type { TeacherOutletContext } from "./TeacherLayout";
 import { Check, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { apiUrl } from "../api/client";
+import { uiSound } from "../audio";
 import {
   approveProject,
   listStudentMuseums,
@@ -33,6 +35,7 @@ import { useLoad } from "../api/useLoad";
 import { useSession } from "../session/session";
 import { MuseumPreview } from "../ui/museumPreview";
 import { Toggle } from "../ui/toggle";
+import { LinkApprovalAlert } from "../sections/mediaLibrary/LinkApprovalAlert";
 import "./TeacherReviewPage.css";
 
 type Status =
@@ -53,7 +56,12 @@ type Submission = {
   todos?: { label: string; count?: string; done: boolean }[]; // the mission brief, ticked
   inside?: { value: number; label: string }[]; // counts: exhibits, fact cards, reactions, rooms
   showcase?: boolean; // on the public sign-in page (published museums only)
+  update?: boolean; // an update to a published museum: visitors still see the approved version
 };
+
+// the chip's text: an update to a published museum says so, so it isn't mistaken for a first hand-in
+const chipLabel = (s: Submission): string =>
+  s.update && s.status === "Waiting" ? "Update waiting" : s.status;
 
 // "today", "yesterday" or "3 days ago", from an ISO date string
 const daysAgo = (iso: string): string => {
@@ -93,9 +101,11 @@ const toSubmission = (project: Project): Submission => {
     status,
     sent:
       status === "Waiting" && project.submitted_at
-        ? `Sent ${daysAgo(project.submitted_at)}`
+        ? `${project.status === "published" ? "Update sent" : "Sent"} ${daysAgo(project.submitted_at)}`
         : status === "Sent back"
-          ? "Sent back · waiting for changes"
+          ? project.status === "published"
+            ? "Update sent back · the approved version stays live"
+            : "Sent back · waiting for changes"
           : status === "Published"
             ? `Published · updated ${daysAgo(project.updated_at)}`
             : status === "Building" && project.saved_at
@@ -103,6 +113,7 @@ const toSubmission = (project: Project): Submission => {
               : "Not opened yet",
     shareWith: project.share_with ? SHARE_LABEL[project.share_with] : undefined,
     showcase: project.showcase,
+    update: project.status === "published",
   };
 };
 
@@ -138,7 +149,10 @@ export default function TeacherReviewPage() {
     "review-museums",
   );
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // back from "Walk through it as a visitor": the same museum and tab as before
+  const returned = useLocation().state as ReviewReturn;
+  const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<string | null>(returned?.selectedId ?? null);
   useEffect(() => {
     if (!loaded.data) return;
     const rows = loaded.data.map(toSubmission);
@@ -170,7 +184,9 @@ export default function TeacherReviewPage() {
   } | null>(null);
 
   // which tab and which page are showing
-  const [tab, setTab] = useState<Tab>("All");
+  const [tab, setTab] = useState<Tab>(
+    tabs.includes(returned?.tab as Tab) ? (returned!.tab as Tab) : "All",
+  );
   const [page, setPage] = useState(1);
 
   // worked out from the state above every time the page draws
@@ -243,11 +259,14 @@ export default function TeacherReviewPage() {
                 sent:
                   status === "Published"
                     ? "Published · updated today"
-                    : "Sent back · waiting for changes",
+                    : s.update
+                      ? "Update sent back · the approved version stays live"
+                      : "Sent back · waiting for changes",
               }
             : s,
         ),
       );
+      uiSound.play(status === "Published" ? "review.approve" : "review.send-back");
       setMessage(
         status === "Published"
           ? {
@@ -274,8 +293,10 @@ export default function TeacherReviewPage() {
       <section className="review-list-panel">
         <h1 className="review-list-title">Review</h1>
         <p className="review-list-sub">
-          Every student's museum. Pick a tab to see who needs you.
+          Every student's project. Pick a tab to see who needs you.
         </p>
+        {/* YouTube and image links students added wait here for approval (Weian Ching) */}
+        <LinkApprovalAlert />
 
         <div className="review-tabs" role="tablist">
           {tabs.map((t) => (
@@ -321,7 +342,7 @@ export default function TeacherReviewPage() {
                 <strong>{s.studentName}</strong>
                 <span>{s.sent}</span>
               </span>
-              <span className={chipClass[s.status]}>{s.status}</span>
+              <span className={chipClass[s.status]}>{chipLabel(s)}</span>
             </button>
           ))}
           {shownOnPage.length === 0 && (
@@ -369,10 +390,10 @@ export default function TeacherReviewPage() {
         {!selected && (
           <p className="review-empty">
             {loaded.error
-              ? `Could not load your students' museums: ${loaded.error}`
+              ? `Could not load your students' projects: ${loaded.error}`
               : loaded.loading
-                ? "Loading your students' museums…"
-                : "No museums yet. Your students' museums show here once you assign them a project."}
+                ? "Loading your students' projects…"
+                : "No projects yet. Your students' projects show here once you assign them a project."}
           </p>
         )}
         {selected && (
@@ -390,6 +411,11 @@ export default function TeacherReviewPage() {
                   {selected.shareWith &&
                     ` · wants to share with: ${selected.shareWith}`}
                 </p>
+                {selected.update && selected.status === "Waiting" && (
+                  <p className="review-detail-note">
+                    Visitors still see the approved version until you approve this update.
+                  </p>
+                )}
               </div>
               <div className="review-detail-header-end">
                 {/* a published museum can go on the public sign-in page; the switch sits by the chip
@@ -408,7 +434,7 @@ export default function TeacherReviewPage() {
                   </span>
                 )}
                 <span className={chipClass[selected.status]}>
-                  {selected.status}
+                  {chipLabel(selected)}
                 </span>
               </div>
             </header>
@@ -421,7 +447,15 @@ export default function TeacherReviewPage() {
             <div className="review-detail-body">
               <div className="review-preview">
                 <MuseumPreview title={selected.studentName} />
-                <button type="button" className="review-walk">
+                <button
+                  type="button"
+                  className="review-walk"
+                  onClick={() =>
+                    navigate(`/teacher/review/${selected.id}/walk`, {
+                      state: { selectedId: selected.id, tab },
+                    })
+                  }
+                >
                   Walk through it as a visitor
                 </button>
               </div>

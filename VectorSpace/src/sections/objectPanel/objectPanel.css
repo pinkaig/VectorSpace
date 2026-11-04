@@ -1096,3 +1096,34 @@
   font-size: 15px;
   font-weight: 800;
 }
+
+/* the teacher's card suggested for this very thing */
+.info-pick.suggested {
+  border: 2px solid #5B4BD6;
+  background: #EEEAFB;
+}
+
+/* a link the teacher sent back: still listed, so the student knows, but not pickable */
+.info-pick:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.info-pick-status.rejected {
+  background: #FDECEA;
+  color: #A3341F;
+}
+
+/* "Show it": Pop-up when clicked | Also a sign / Screen in the room */
+.info-show-as {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.info-show-as .object-panel-seg {
+  min-height: 40px;
+  padding: 4px 6px;
+  font-size: 13px;
+  line-height: 1.2;
+}
