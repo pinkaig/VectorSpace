@@ -5,15 +5,21 @@
  * @brief       UI sound's front door: what the rest of the app may import.
  *
  * @responsibility
- * Sound for the app's own chrome (buttons, switches, dialogs, and a few moments the masterlist
- * names), as data. Three layers, the same as the prototype in prototypes/ui-audio:
- *  - sounds and cues: cue-map.json (which file a moment plays, how loud). A sound designer edits
- *    this, or tunes it on the prototype's board and pastes it back. No code change.
+ * Sound for the app's own chrome (buttons, switches, dialogs, and the moments the masterlist and
+ * the V3 manual name), as data. Four layers:
+ *  - sounds and cues: cue-map.json (which file in public/audio/SFX a moment plays, how loud),
+ *    grouped by the six kinds of sound (touch, switches and doors, movement, building, outcome,
+ *    the museum itself).
+ *  - controls to cues: ui-sound-map.json, read top to bottom, first rule wins. It ends with the
+ *    default click, so a new button sounds without anyone wiring it.
+ *  - the one door: uiSoundDirector.ts hears every click and change on the window and presses the
+ *    control's cue. No component plays its own click.
  *  - the gesture rule: UiSoundPlayer (one sound per action; an outcome replaces the click).
- *  - bindings: a `cue` prop on Button, and uiSound.play() at the line that causes an outcome.
  *
- * How to add sound to something:
- *  - A <Button>: nothing, it clicks. Give it cue="ui.click.confirm" for a commit, cue={null} for none.
+ * How to change what something sounds like:
+ *  - On the page: add ?sounddebug, Tag controls, pick it, choose a cue, Export, paste the file.
+ *  - In code, for one control: data-sfx="cue.id" (or "none") on the element; <Button cue=...>
+ *    writes it for you.
  *  - Something that happens: uiSound.play("publish.sent") where it happens. Add the cue to
  *    cue-map.json first; an unknown cue id is silent.
  *  - Something that appears: useUiSoundIn("ui.tip") in its component.

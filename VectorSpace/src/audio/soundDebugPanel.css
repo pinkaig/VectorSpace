@@ -1,0 +1,215 @@
+/* The sound debug panel: a developer tool, so plain and readable over any page, light or dark. */
+
+.sound-debug {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 10000;
+  font: 12px/1.4 ui-monospace, Consolas, monospace;
+  color: #e8e8e8;
+  background: rgba(20, 20, 24, 0.94);
+  border: 1px solid #555;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+aside.sound-debug {
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  gap: 6px;
+}
+
+.sound-debug-closed {
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.sound-debug header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sound-debug button,
+.sound-debug select {
+  font: inherit;
+  color: inherit;
+  background: #333;
+  border: 1px solid #666;
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.sound-debug dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 10px;
+  margin: 0;
+}
+
+.sound-debug dt {
+  color: #aaa;
+}
+
+.sound-debug dd {
+  margin: 0;
+}
+
+.sound-debug-test {
+  display: flex;
+  gap: 6px;
+}
+
+.sound-debug-test select {
+  flex: 1;
+  min-width: 0;
+}
+
+.sound-debug ol {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 0;
+  border-top: 1px solid #444;
+  overflow-y: auto;
+}
+
+.sound-debug li {
+  padding: 1px 0;
+}
+
+.sound-debug time {
+  color: #888;
+}
+
+.sound-debug code {
+  color: #9cd3ff;
+}
+
+.sound-debug .ok {
+  color: #7ddc8a;
+}
+
+.sound-debug .bad {
+  color: #ff9a8a;
+}
+
+/* ---- tabs and the tagging tools (SoundTagTools.tsx) ---- */
+
+aside.sound-debug.sound-debug-wide {
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(80vh, 720px);
+}
+
+.sound-debug-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.sound-debug .sound-debug-active {
+  background: #5b4bd6;
+  border-color: #8b7ff0;
+}
+
+.sound-debug-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.sound-debug-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sound-debug-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.sound-debug h4 {
+  margin: 6px 0 2px;
+  font-size: 12px;
+}
+
+.sound-debug-note {
+  margin: 0;
+  color: #bbb;
+}
+
+.sound-debug-dim {
+  color: #999;
+}
+
+.sound-debug-picked {
+  border: 1px solid #5b4bd6;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sound-debug-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sound-debug-cue {
+  padding: 3px 0;
+  border-bottom: 1px solid #333;
+}
+
+.sound-debug-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: #bbb;
+}
+
+.sound-debug-legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+/* the outline layer: over the page, under the panel, never catches a click */
+.sound-debug-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.sound-debug-box {
+  position: fixed;
+  border: 2px solid;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.sound-debug-box-on {
+  border-width: 3px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+
+.sound-debug-box span {
+  position: absolute;
+  left: -2px;
+  top: -15px;
+  font: 600 10px/13px ui-monospace, Consolas, monospace;
+  color: #111;
+  padding: 0 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
