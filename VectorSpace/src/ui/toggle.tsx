@@ -11,7 +11,6 @@
  */
 /******************************************************************************/
 
-import { uiSound } from "../audio";
 import { useMotionOnChange } from "../motion/useMotion";
 import "./toggle.css";
 
@@ -38,11 +37,9 @@ export function Toggle({ checked, onChange, label, disabled = false, text }: Tog
         aria-label={label}
         disabled={disabled}
         className={`ui-toggle ${checked ? "ui-toggle-on" : ""}`}
-        onClick={() => {
-          // only a press sounds; a value the parent changes stays silent (the pulse above still shows it)
-          uiSound.press(checked ? "ui.toggle.off" : "ui.toggle.on");
-          onChange(!checked);
-        }}
+        // the press sounds through the sound director (on or off by aria-checked); a value the parent
+        // changes stays silent (the pulse above still shows it)
+        onClick={() => onChange(!checked)}
       >
         <span className="ui-toggle-knob" />
       </button>
@@ -63,10 +60,7 @@ export function TickBox({ checked, onChange, label }: TickBoxProps) {
       className="ui-tick"
       checked={checked}
       aria-label={label}
-      onChange={(event) => {
-        uiSound.press(event.target.checked ? "ui.toggle.on" : "ui.toggle.off");
-        onChange(event.target.checked);
-      }}
+      onChange={(event) => onChange(event.target.checked)}
     />
   );
 }

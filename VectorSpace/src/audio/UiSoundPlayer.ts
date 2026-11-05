@@ -30,6 +30,8 @@ export type UiSoundPlayerOptions = {
   muted?: boolean;
   // when a waiting sound is played; the default is the end of the current task
   schedule?: (flush: () => void) => void;
+  // told what happened to each request, for the sound debug panel
+  trace?: (cueId: string, step: string, ok: boolean) => void;
 };
 
 type Pending = { cueId: string; outcome: boolean };
@@ -39,15 +41,17 @@ export class UiSoundPlayer {
   private isMuted: boolean;
   private readonly schedule: (flush: () => void) => void;
   private readonly listeners = new Set<() => void>();
+  private readonly trace: (cueId: string, step: string, ok: boolean) => void;
 
   constructor(private readonly sink: (cueId: string) => void, options: UiSoundPlayerOptions = {}) {
     this.isMuted = options.muted ?? false;
     this.schedule = options.schedule ?? ((flush) => setTimeout(flush, 0));
+    this.trace = options.trace ?? (() => {});
   }
 
   /** A control was pressed. Plays at the end of the task unless something it caused plays instead. */
-  press(cueId: UiCue): void {
-    this.request(cueId, false);
+  press(cueId: UiCue, why?: string): void {
+    this.request(cueId, false, why);
   }
 
   /** Something happened. Takes the place of any press, or earlier play, waiting in the same task. */
@@ -73,15 +77,25 @@ export class UiSoundPlayer {
     return () => this.listeners.delete(listener);
   }
 
-  private request(cueId: UiCue, outcome: boolean): void {
-    if (!cueId || this.isMuted) return;
+  private request(cueId: UiCue, outcome: boolean, why?: string): void {
+    if (!cueId) return;
+    const kind = why ? `${outcome ? "play" : "press"} (${why})` : outcome ? "play" : "press";
+    if (this.isMuted) {
+      this.trace(cueId, `${kind}: dropped, UI sound is muted`, false);
+      return;
+    }
     const waiting = this.pending;
     if (waiting) {
       // a press never displaces an outcome; everything else replaces what was waiting
-      if (waiting.outcome && !outcome) return;
+      if (waiting.outcome && !outcome) {
+        this.trace(cueId, `${kind}: dropped, ${waiting.cueId} plays instead`, true);
+        return;
+      }
+      this.trace(waiting.cueId, `replaced by ${kind} ${cueId}`, true);
       this.pending = { cueId, outcome };
       return;
     }
+    this.trace(cueId, kind, true);
     this.pending = { cueId, outcome };
     this.schedule(() => this.flush());
   }

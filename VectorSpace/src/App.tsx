@@ -30,6 +30,7 @@ import TeacherPreviewPage from './pages/TeacherPreviewPage'
 import { ApiError } from './api/client'
 import { auth0Enabled } from './session/auth0'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
+import { isSoundDebugOn } from './audio/soundDebugFlag'
 
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
 // of the app, so it is downloaded when someone opens /editor, not on the login page.
@@ -48,6 +49,10 @@ const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ d
 // this to null and never emits the board's chunk.
 const MotionBoard = import.meta.env.DEV ? lazy(() => import('./debug/MotionBoard')) : null
 const AssetInventoryBoard = import.meta.env.DEV ? lazy(() => import('./debug/AssetInventoryBoard')) : null
+// The sound debug panel: in production too, but only for a browser that opened the site with ?sounddebug.
+const SoundDebugPanel = isSoundDebugOn() ? lazy(() => import('./audio/SoundDebugPanel')) : null
+// The sound designer's page (#/sound-design), behind the same ?sounddebug switch, signed in or not.
+const SoundDesignPage = isSoundDebugOn() ? lazy(() => import('./audio/SoundDesignPage')) : null
 
 // where a signed-in visitor lands when the URL is empty or unknown, signed-out goes to login
 function Landing() {
@@ -197,8 +202,10 @@ export default function App() {
           {import.meta.env.DEV && MotionBoard && <Route path="/motion-board" element={<Suspense fallback={<p>Loading board…</p>}><MotionBoard /></Suspense>} />}
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           {import.meta.env.DEV && AssetInventoryBoard && <Route path="/asset-inventory" element={<Suspense fallback={<p>Loading inventory…</p>}><AssetInventoryBoard /></Suspense>} />}
+          {SoundDesignPage && <Route path="/sound-design" element={<Suspense fallback={<p>Loading sounds…</p>}><SoundDesignPage /></Suspense>} />}
           <Route path="*" element={<Landing />} />
         </Routes>
+        {SoundDebugPanel && <Suspense fallback={null}><SoundDebugPanel /></Suspense>}
       </HashRouter>
     </SessionProvider>
   )
