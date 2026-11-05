@@ -30,7 +30,7 @@ import { ObjectPanel, type Vec3 } from '../sections/objectPanel/objectPanel'
 import { findCard, findVideo, saveObjectCard, removeObjectCard, saveObjectVideo, removeObjectVideo, type CardInput } from '../editor/cardEditorOperations'
 import { addLocalMediaFile, addLocalMediaLink, useLocalMediaLibrary, type LocalMediaEntry } from '../content/localMediaLibrary'
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
-import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLayout'
+import { cellBeside, doorsFor, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
 import Viewport, { ViewportHandle, viewportHintText, type ViewportPick, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
@@ -523,6 +523,12 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const placeFromCatalogue = (asset: Parameters<typeof addObject>[0]) => {
     addObject(asset, pickedSpot?.position, onPickedSpot?.id)
   }
+  // the doors in this room, and going to a room (from its door or the rooms pop-up)
+  const roomDoors = useMemo(() => doorsFor(project, scene), [project, scene])
+  const openRoom = (id: string) => {
+    commit('Select scene', selectEditorScene(project, id).project)
+    setSelectedId(null)
+  }
   // a picked spot belongs to its room: changing rooms lets it go
   useEffect(() => { setPickedSpotId(null) }, [scene.id])
 
@@ -548,10 +554,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           project={project}
           roomKinds={roomKinds}
           fromTeacher={limitRooms}
-          onSelectScene={(id) => {
-            commit('Select scene', selectEditorScene(project, id).project)
-            setSelectedId(null)
-          }}
+          onSelectScene={openRoom}
           onAddRoom={addScene}
           onDeleteRoom={removeScene}
           onMoveRoom={moveSceneInOrder}
@@ -680,6 +683,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               syncToken={syncToken}
               markers={sceneMarkers}
               onPick={spots.length > 0 ? pickSpot : undefined}
+              // a door on the wall to a room beside this one: clicking it (or its label) opens that room
+              doors={roomDoors}
+              onDoor={openRoom}
               // The quad layout's main pane is always perspective - only the three reference
               // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
               orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}

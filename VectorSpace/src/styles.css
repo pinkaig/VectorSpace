@@ -1989,6 +1989,23 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .viewport-face-header { animation: none; }
 }
+/* "Walk up to the door to go to …": Play, a far door clicked while walking */
+.viewport-door-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(30, 27, 58, 0.9);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  animation: viewport-face-header-in 160ms ease-out;
+}
 .viewport-overlay {
   position: absolute;
   inset: 0;

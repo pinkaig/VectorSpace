@@ -22,6 +22,7 @@ import { apiFetch } from "../api/client";
 import { getProject, listSubmissions, type Project } from "../api/projects";
 import type { ProjectData } from "../project/model";
 import { deserializeProject } from "../project/serializer";
+import { entranceRoomId } from "../editor/roomLayout";
 import RuntimeView from "../../apps/runtime/src/RuntimeApplication";
 import { useSession } from "../session/session";
 import "./VisitPage.css";
@@ -60,7 +61,9 @@ export default function TeacherWalkPage() {
         handIns[0]?.version_id ?? (row as Project & { current_version_id?: string | null }).current_version_id;
       if (!versionId) throw new Error("Nothing is saved yet.");
       const version = await apiFetch<{ data: unknown }>(getToken, `/projects/${projectId}/versions/${versionId}`);
-      const project = deserializeProject(JSON.stringify({ ...(version.data as object), id: row.id, name: row.name }));
+      const loaded = deserializeProject(JSON.stringify({ ...(version.data as object), id: row.id, name: row.name }));
+      // the teacher comes in at the front, as a visitor does: Room 1
+      const project = { ...loaded, activeSceneId: entranceRoomId(loaded) };
       return { row, project };
     })().then(
       ({ row, project }) => current && setState({ kind: "ready", row, project }),

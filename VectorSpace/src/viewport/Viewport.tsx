@@ -159,6 +159,15 @@ interface ViewportProps {
    * For tools that place or pick without the gizmo.
    */
   onPick?: (pick: ViewportPick) => void
+  /** The doors to the rooms beside this one, on the room's walls (roomDoors.ts). */
+  doors?: readonly RoomDoor[]
+  /** A click on a door or its label: the room it leads to. */
+  onDoor?: (sceneId: string) => void
+  /**
+   * Play: the visitor came in through the door on this side, so they start a step inside it
+   * (and the tour's Entrance is there) instead of at the room's start view. Absent = start view.
+   */
+  arriveFrom?: DoorSide | null
 }
 
 export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null; spotId?: string | null }
@@ -191,6 +200,15 @@ const VIEW_PRESET_DIRECTIONS: Record<ViewPreset, THREE.Vector3> = {
 }
 
 const NO_KEYS: ReadonlySet<string> = new Set()
+
+// Each environment's doorways, by "<environmentId>|<side>", found once and kept for the
+// session (finding one casts a few hundred rays). Environment files don't change while open.
+const KNOWN_DOORWAYS = new Map<string, Doorway>()
+// In Play a door opens only from this close (metres, across the floor), and Tap to go
+// toward a far door stops this far in front of it
+const DOOR_REACH = 2.5
+const DOOR_STAND = 1.2
+const DOOR_NOTICE_MS = 2500
 
 // Fraction of the environment's height kept visible for each wall setting.
 const WALL_CUT_HEIGHT: Record<WallCut, number | null> = { full: null, half: 0.5, low: 0.12 }
@@ -296,6 +314,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     playMove,
     markers,
     onPick,
+    doors,
+    onDoor,
+    arriveFrom,
   },
   ref,
 ) {
@@ -304,8 +325,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // runtimeMode/rules/zones travel through this same ref rather than a second
   // mechanism, so flipping into play mode never re-runs the setup effect and
   // never tears down the WebGL context.
-  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick })
-  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick }
+  const dataRef = useRef({ objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick, doors, onDoor, arriveFrom })
+  dataRef.current = { objects, selectedId, onSelect, onMove, onScale, onRotate, gizmoMode, scaleSpace, rotateSpace, snap, startCamera, cameraMode, orthographic, onOrthographicChange, showOctaOrb, showAxisIndicator, compactOverlays, overlayInsetTop, showStats, syncToken, runtimeMode, rules, zones, audioAssets, audioSettings, sceneId, playMove, onPick, doors, onDoor, arriveFrom }
 
   // One TextSystem for the mounted viewport lifetime, created lazily so React
   // strict/dev re-renders don't build spare instances. TextPanelHost renders
@@ -376,6 +397,22 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   // can skip them at pick time; see requirement 2 in the Stage 6 plan section.
   const unpickableAssetIdsRef = useRef<Set<string>>(new Set())
   const markersRef = useRef<ReturnType<typeof createSceneMarkers> | null>(null)
+  // the doors: redrawn on the loaded room's outline; the entrance is where a visitor starts
+  const refreshDoorsRef = useRef<() => void>(() => {})
+  const entrancePoseRef = useRef<() => CameraPose>(() => dataRef.current.startCamera)
+  const cancelGlideRef = useRef<() => void>(() => {})
+  // the room now standing in the scene, once it has loaded (null while the next one loads):
+  // doors are only placed in it, never in the room being left
+  const loadedRoomRef = useRef<{ environmentId: string; sceneId: string | undefined } | null>(null)
+  // "Walk up to the door…", shown for a moment when a far door is clicked while walking
+  const [doorNotice, setDoorNotice] = useState<string | null>(null)
+  const doorNoticeTimer = useRef<number | undefined>(undefined)
+  const showDoorNoticeRef = useRef((text: string) => {
+    setDoorNotice(text)
+    window.clearTimeout(doorNoticeTimer.current)
+    doorNoticeTimer.current = window.setTimeout(() => setDoorNotice(null), DOOR_NOTICE_MS)
+  })
+  useEffect(() => () => window.clearTimeout(doorNoticeTimer.current), [])
   const [selectedAssetDescriptor, setSelectedAssetDescriptor] = useState<AssetDescriptor | undefined>(undefined)
 
   useImperativeHandle(ref, () => ({
@@ -589,6 +626,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     zoneVisuals.rebuild(dataRef.current.zones)
     const occupiedZoneIds = new Set<string>()
     let runtimeState: RuntimeState | null = null
+    // the room the run started in: going through a door starts the next room's run afresh
+    let runSceneId = ''
 
     /**
      * The single path from any event source into the pure dispatcher. Tier 1
@@ -644,6 +683,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     const startRun = () => {
       runtimeState = createRuntimeState(dataRef.current.sceneId)
+      runSceneId = dataRef.current.sceneId
       zoneTracker.reset()
       emitRuntimeEvent({ kind: 'sceneStart' })
     }
@@ -661,6 +701,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // ProjectData was never mutated during the run, so forcing one rebuild
       // from it is the whole visual reset.
       synced = null
+      runSceneId = dataRef.current.sceneId
       if (restart) emitRuntimeEvent({ kind: 'sceneStart' })
     }
     // Restarting a walkthrough must return the visitor to the start view — otherwise
@@ -669,7 +710,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       if (dataRef.current.runtimeMode !== 'play') return
       stopRun(true)
       playMovement.cancel()
-      applyPoseRef.current(dataRef.current.startCamera)
+      applyPoseRef.current(entrancePoseRef.current())
     }
 
     // Camera actions shared by the floating view controls and the F / H shortcuts.
@@ -720,8 +761,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const playMovement = createPlayMovement({
       scene, camera, mount, objectsGroup, environmentGroup,
       yaw: yawRef, pitch: pitchRef, eyeHeight: walkHeightRef,
-      getStartCamera: () => dataRef.current.startCamera,
+      getStartCamera: () => entrancePoseRef.current(),
     })
+    cancelGlideRef.current = playMovement.cancel
     playActionsRef.current = {
       goToSpot: (objectId) => {
         if (dataRef.current.runtimeMode !== 'play') return
@@ -795,7 +837,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         commitMove: (id, position) => dataRef.current.onMove(id, position),
         commitScale: (id, scale) => dataRef.current.onScale?.(id, scale),
         commitRotate: (id, rotation, position) => dataRef.current.onRotate?.(id, rotation, position),
-        applyStartPose: () => applyPoseRef.current(dataRef.current.startCamera),
+        applyStartPose: () => applyPoseRef.current(entrancePoseRef.current()),
         applyOrientation: (direction, up) => {
           const orientation = applyViewOrientation(camera, controls, direction, up)
           yawRef.current = orientation.yaw
@@ -843,18 +885,72 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // moves less than a few pixels before release is a click; anything more was an orbit drag.
     const markers = createSceneMarkers(scene)
     markersRef.current = markers
+    // DOORS stand in the room's doorways (roomDoors.ts, findDoorway). The room's outline is
+    // its environment's bounds, or the floor grid's for an empty room. Each side's doorway is
+    // found once per environment and remembered (KNOWN_DOORWAYS), so going back to a room
+    // costs nothing.
+    const doorLayer = createRoomDoors(scene)
+    const doorwayOn = (side: DoorSide) => {
+      const key = `${loadedRoomRef.current?.environmentId ?? ''}|${side}`
+      const known = KNOWN_DOORWAYS.get(key)
+      if (known) return known
+      const loaded = new THREE.Box3().setFromObject(environmentGroup)
+      const half = FLOOR_SIZE / 2
+      const found = loaded.isEmpty()
+        ? findDoorway(null, new THREE.Box3(new THREE.Vector3(-half, 0, -half), new THREE.Vector3(half, 3, half)), side)
+        : findDoorway(environmentGroup, loaded, side)
+      if (loadedRoomRef.current) KNOWN_DOORWAYS.set(key, found)
+      return found
+    }
+    refreshDoorsRef.current = () => {
+      // no doors until this room has loaded: the old room's walls are no guide to them
+      const ready = loadedRoomRef.current !== null && loadedRoomRef.current.sceneId === dataRef.current.sceneId
+      doorLayer.update(ready ? dataRef.current.doors ?? [] : [], doorwayOn)
+      requestRenderRef.current()
+    }
+    // where Play starts (and the tour's Entrance spot): in front of the door you came through,
+    // else the middle of the room. The editor keeps the start view.
+    entrancePoseRef.current = () => {
+      const { arriveFrom: side, doors: shown, runtimeMode: mode, startCamera: start } = dataRef.current
+      if (mode !== 'play') return start
+      if (side && shown?.some((door) => door.side === side)) return entrancePose(doorwayOn(side))
+      const loaded = new THREE.Box3().setFromObject(environmentGroup)
+      const half = FLOOR_SIZE / 2
+      const room = loaded.isEmpty() ? new THREE.Box3(new THREE.Vector3(-half, 0, -half), new THREE.Vector3(half, 3, half)) : loaded
+      return centrePose(room, start)
+    }
     const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
     let pressAt: { x: number; y: number } | null = null
     const onPickDown = (event: PointerEvent) => { pressAt = event.button === 0 ? { x: event.clientX, y: event.clientY } : null }
     const onPickUp = (event: PointerEvent) => {
-      const handler = dataRef.current.onPick
+      const { onPick: handler, onDoor } = dataRef.current
       const start = pressAt
       pressAt = null
-      if (!handler || !start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return
+      if ((!handler && !onDoor) || !start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return
       const rect = renderer.domElement.getBoundingClientRect()
       const ndc = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1)
       const picker = new THREE.Raycaster()
       picker.setFromCamera(ndc, activeCameraRef.current)
+      // a door (or its label) goes to its room. In Play the visitor has to be at the door
+      // first: from further off, Tap to go walks up to it and Walk says to come closer.
+      const doorSceneId = onDoor ? doorLayer.pickDoor(picker) : null
+      if (doorSceneId) {
+        const door = (dataRef.current.doors ?? []).find((item) => item.sceneId === doorSceneId)
+        const doorway = door && dataRef.current.runtimeMode === 'play' ? doorwayOn(door.side) : null
+        const away = doorway ? Math.hypot(camera.position.x - doorway.point.x, camera.position.z - doorway.point.z) : 0
+        if (doorway && away > DOOR_REACH) {
+          if (dataRef.current.playMove !== 'walk') {
+            playMovement.walkTo(doorway.point.clone().addScaledVector(doorway.inward, DOOR_STAND), doorway.point)
+          } else {
+            showDoorNoticeRef.current(`Walk up to the door to go to ${door!.label}`)
+          }
+          return
+        }
+        playMovement.cancel()
+        onDoor!(doorSceneId)
+        return
+      }
+      if (!handler) return
       // the nearest hit that belongs to an authored object (meshes are nested under one named by its id)
       const ids = new Set(dataRef.current.objects.map((object) => object.id))
       let objectId: string | null = null
@@ -941,6 +1037,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       grid.visible = !playing
       if (playing && !runtimeState) {
         startRun()
+      } else if (playing && runSceneId !== dataRef.current.sceneId) {
+        stopRun(true)
       } else if (!playing && runtimeState) {
         stopRun(false)
       }
@@ -1028,6 +1126,10 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       renderer.domElement.removeEventListener('pointerup', onPickUp)
       markers.dispose()
       markersRef.current = null
+      doorLayer.dispose()
+      refreshDoorsRef.current = () => {}
+      entrancePoseRef.current = () => dataRef.current.startCamera
+      cancelGlideRef.current = () => {}
       window.removeEventListener('keydown', onGestureUnlock)
       audioRef.current = null
       // The comment where the system is created says only unmount disposes it; closing the context
@@ -1063,6 +1165,12 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   useEffect(() => {
     if (playMove !== 'walk' && document.pointerLockElement && mountRef.current?.contains(document.pointerLockElement)) document.exitPointerLock()
   }, [playMove])
+
+  // the doors are redrawn when the rooms beside this one change (added, renamed, moved)
+  const doorsKey = (doors ?? []).map((door) => `${door.side}:${door.sceneId}:${door.label}`).join('|')
+  useEffect(() => {
+    refreshDoorsRef.current()
+  }, [doorsKey, interactive])
 
   // markers are redrawn only when their list changes; the setup effect above may have rebuilt
   // the layer (interactive flipped), so this also runs after it
@@ -1118,6 +1226,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   useEffect(() => {
     const holder = environmentGroupRef.current
     if (!holder) return
+    // the room being left takes its doors with it
+    loadedRoomRef.current = null
+    refreshDoorsRef.current()
     const loadHandle = loadEnvironmentIntoGroup({
       group: holder,
       environmentId,
@@ -1126,7 +1237,11 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       onReady: () => {
         styleRoomSurfaces(holder, surfacesRef.current) // before the wall cut, so the cut lands on the worn materials
         applyWallCut(holder, wallsRef.current)
-        applyPoseRef.current(dataRef.current.startCamera)
+        // the doors stand in this room's doorways, and a visitor who came through one starts there
+        loadedRoomRef.current = { environmentId, sceneId }
+        refreshDoorsRef.current()
+        cancelGlideRef.current()
+        applyPoseRef.current(entrancePoseRef.current())
         requestRenderRef.current()
       },
     })
@@ -1154,7 +1269,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   }, [faceLabel])
 
   useEffect(() => {
-    if (envStatus.state === 'ready') applyPoseRef.current(dataRef.current.startCamera)
+    if (envStatus.state === 'ready') applyPoseRef.current(entrancePoseRef.current())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken])
 
@@ -1219,6 +1334,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     <div className="viewport" ref={mountRef}>
       <ViewportOverlay status={envStatus} onRetry={() => setReloadToken((value) => value + 1)} />
       <ViewportHint text={hint} />
+      {doorNotice && <div className="viewport-door-notice" role="status">{doorNotice}</div>}
       {/* Tap to go and Tour spots point with the cursor, so only walking aims from the centre */}
       {cameraMode === 'walk' && !interactive && (playMove === undefined || playMove === 'walk') && <ViewportCrosshair ring={playMove === 'walk'} />}
       {orbShown && <div className="octaorb-backdrop" style={backdropStyle('octaOrb')} />}
