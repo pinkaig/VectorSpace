@@ -1,0 +1,4 @@
+newman-report.xml
+# written by the Postman app when it opens this folder in Local Mode
+.postman/
+postman/
