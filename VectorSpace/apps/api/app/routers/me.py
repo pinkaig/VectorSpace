@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -35,6 +35,6 @@ def me(actor: Actor = Depends(get_current_actor), db: Session = Depends(get_db))
         class_ids=class_ids(db, actor),
     )
     # the only place that knows a real person just arrived, so this is where "last active" comes from
-    actor.last_seen_at = datetime.now(timezone.utc)
+    actor.last_seen_at = datetime.now(UTC)
     db.commit()
     return answer

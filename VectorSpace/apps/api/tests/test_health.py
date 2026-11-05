@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
 from apps.api.app.main import API_PREFIX, app
+from fastapi.testclient import TestClient
 
 
 def test_health_endpoint() -> None:

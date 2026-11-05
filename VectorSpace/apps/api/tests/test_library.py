@@ -3,7 +3,6 @@
 import hashlib
 
 import pytest
-
 from apps.api.app import storage
 from apps.api.app.config import Settings
 

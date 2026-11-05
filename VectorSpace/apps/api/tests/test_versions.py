@@ -6,7 +6,6 @@ covers merging and trimming."""
 from datetime import timedelta
 
 import pytest
-
 from apps.api.app.routers import publish
 
 

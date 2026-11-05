@@ -1,11 +1,9 @@
 """The admin routes: admins only, one school each, and every number comes from the tables."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import pytest
+from apps.api.app.models import Actor, Project
 from sqlalchemy import select
-
-from apps.api.app.models import Actor, Project, ProjectVersion
 
 
 def as_user(key: str) -> dict[str, str]:
@@ -210,8 +208,8 @@ def test_the_overview_only_flags_things_it_can_prove(client, db, school) -> None
 
 
 def test_students_active_this_week_uses_the_real_timestamp(client, db, school) -> None:
-    school["s1"].last_seen_at = datetime.now(timezone.utc) - timedelta(days=1)
-    school["s2"].last_seen_at = datetime.now(timezone.utc) - timedelta(days=40)
+    school["s1"].last_seen_at = datetime.now(UTC) - timedelta(days=1)
+    school["s2"].last_seen_at = datetime.now(UTC) - timedelta(days=40)
     db.commit()
     tiles = client.get("/admin/overview", headers=as_user("admin")).json()["tiles"]
     assert tiles["students"]["sub"] == "1 active this week"

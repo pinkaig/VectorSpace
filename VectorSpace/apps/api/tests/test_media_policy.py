@@ -5,8 +5,12 @@ import re
 from pathlib import Path
 
 import pytest
-
-from apps.api.app.media_policy import LIBRARY_KIND_SPECS, MEDIA_KIND_SPECS, LinkError, parse_media_link
+from apps.api.app.media_policy import (
+    LIBRARY_KIND_SPECS,
+    MEDIA_KIND_SPECS,
+    LinkError,
+    parse_media_link,
+)
 
 CLIENT_TABLE = Path(__file__).resolve().parents[3] / "packages" / "assets" / "src" / "mediaKinds.ts"
 
@@ -14,9 +18,9 @@ CLIENT_TABLE = Path(__file__).resolve().parents[3] / "packages" / "assets" / "sr
 def client_spec(kind: str) -> tuple[set[str], int]:
     """Reads one kind's contentTypes and maxBytes out of mediaKinds.ts."""
     source = CLIENT_TABLE.read_text(encoding="utf-8")
-    block = re.search(rf"\n  {kind}: \{{(.*?)\n  \}}", source, re.S)
+    block = re.search(rf"\n  {kind}: \{{(.*?)\n  \}}", source, re.DOTALL)
     assert block, f"{kind} not found in mediaKinds.ts"
-    types = set(re.findall(r"'([^']+)'", re.search(r"contentTypes: \[(.*?)\]", block.group(1), re.S).group(1)))
+    types = set(re.findall(r"'([^']+)'", re.search(r"contentTypes: \[(.*?)\]", block.group(1), re.DOTALL).group(1)))
     max_bytes = int(re.search(r"maxBytes: ([\d_]+)", block.group(1)).group(1).replace("_", ""))
     return types, max_bytes
 
@@ -35,11 +39,11 @@ def test_svg_is_never_allowed() -> None:
 def library_model_spec(kind: str) -> tuple[set[str], int]:
     """Reads one kind out of LIBRARY_MODEL_KIND_SPECS in mediaKinds.ts."""
     source = CLIENT_TABLE.read_text(encoding="utf-8")
-    table = re.search(r"LIBRARY_MODEL_KIND_SPECS = \{(.*?)\n\} as const", source, re.S)
+    table = re.search(r"LIBRARY_MODEL_KIND_SPECS = \{(.*?)\n\} as const", source, re.DOTALL)
     assert table, "LIBRARY_MODEL_KIND_SPECS not found in mediaKinds.ts"
-    row = re.search(rf"{kind}: \{{(.*?)\}}", table.group(1), re.S)
+    row = re.search(rf"{kind}: \{{(.*?)\}}", table.group(1), re.DOTALL)
     assert row, f"{kind} not found in LIBRARY_MODEL_KIND_SPECS"
-    types = set(re.findall(r"'([^']+)'", re.search(r"contentTypes: \[(.*?)\]", row.group(1), re.S).group(1)))
+    types = set(re.findall(r"'([^']+)'", re.search(r"contentTypes: \[(.*?)\]", row.group(1), re.DOTALL).group(1)))
     return types, int(re.search(r"maxBytes: ([\d_]+)", row.group(1)).group(1).replace("_", ""))
 
 

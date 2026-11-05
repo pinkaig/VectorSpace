@@ -15,17 +15,17 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlparse
 
 # make `app` importable no matter where the script is launched from
 API_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(API_DIR))
 
-import httpx  # noqa: E402
-from dotenv import dotenv_values  # noqa: E402
+import httpx
+from dotenv import dotenv_values
 
-from app.auth import decode_token, reset_jwks_cache  # noqa: E402
-from app.config import get_settings  # noqa: E402
+from app.auth import decode_token, reset_jwks_cache
+from app.config import get_settings
 
 BROWSER_ENV = API_DIR.parents[1] / ".env.auth0"  # Vite loads this only for --mode auth0
 ROOT_ENV = API_DIR.parents[1] / ".env"           # the VITE_ values lived here before .env.auth0

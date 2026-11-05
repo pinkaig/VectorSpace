@@ -1,16 +1,15 @@
 """The dev-only login (AUTH_DEV_BYPASS) and the demo seed that goes with it."""
 
 import pytest
-from fastapi.testclient import TestClient
-from pydantic import ValidationError
-from sqlalchemy import select
-
 from apps.api.app import auth, seed
 from apps.api.app.config import Settings
 from apps.api.app.db import get_db
 from apps.api.app.main import API_PREFIX, app
 from apps.api.app.models import Actor
 from apps.api.app.provision import provision
+from fastapi.testclient import TestClient
+from pydantic import ValidationError
+from sqlalchemy import select
 
 
 @pytest.fixture

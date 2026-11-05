@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -75,7 +75,7 @@ def _checksum(data: dict[str, Any]) -> str:
 
 def _utc(moment: datetime) -> datetime:
     """Postgres hands back aware times, SQLite (the tests) naive ones in UTC."""
-    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
 
 
 def _drop_unused_snapshots(db: Session, snapshot_ids: set[uuid.UUID]) -> None:
@@ -163,7 +163,7 @@ def save_version(
         db.flush()
 
     # the same person saving again soon after: the latest revision takes the new content
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if (
         latest is not None
         and latest.created_by_id == actor.id

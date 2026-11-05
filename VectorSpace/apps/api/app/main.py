@@ -23,8 +23,20 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from .config import get_settings
-from .routers import admin, analytics, classes, library, me, media, projects, publish, rules, showcase, submissions, visit
-
+from .routers import (
+    admin,
+    analytics,
+    classes,
+    library,
+    me,
+    media,
+    projects,
+    publish,
+    rules,
+    showcase,
+    submissions,
+    visit,
+)
 
 logger = logging.getLogger("vectorspace.api")
 

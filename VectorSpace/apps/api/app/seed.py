@@ -38,7 +38,7 @@ import hashlib
 import json
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
@@ -224,8 +224,8 @@ def seed(db: Session) -> None:
     tan, rahim = people["teacher"], people["teacher2"]
     aisyah, ethan, ben = people["student1"], people["student2"], people["student4"]
 
-    now = datetime.now(timezone.utc).replace(microsecond=0)
-    days = lambda n: now - timedelta(days=n)  # noqa: E731
+    now = datetime.now(UTC).replace(microsecond=0)
+    days = lambda n: now - timedelta(days=n)
 
     # two published templates
     museum = _project(db, tan, "Museum hall", days(30), kind="template", status="published")
@@ -311,7 +311,7 @@ def add_template(db: Session, slug: str, name: str = "Museum hall") -> Project |
     teacher = db.scalar(select(Actor).where(Actor.organisation_id == org.id, Actor.role == "teacher").order_by(Actor.email))
     if teacher is None:
         raise ValueError(f"School '{slug}' has no teacher to own the template")
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    now = datetime.now(UTC).replace(microsecond=0)
     template = _project(db, teacher, name, now, kind="template", status="published")
     plinths = [("cube", -3, 0), ("cube", 0, -3), ("cube", 3, 0)]
     _save(db, template, scene_data(template.id, name, [("Museum", "env-museum")], plinths), now, label="First version")

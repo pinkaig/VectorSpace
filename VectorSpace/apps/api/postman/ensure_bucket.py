@@ -13,10 +13,10 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import boto3  # noqa: E402
-from botocore.exceptions import ClientError  # noqa: E402
+import boto3
+from botocore.exceptions import ClientError
 
-from app.config import get_settings  # noqa: E402
+from app.config import get_settings
 
 
 def main() -> int:

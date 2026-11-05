@@ -2,10 +2,9 @@
 needs reachable from the logins the sign-in picker uses."""
 
 import pytest
-from sqlalchemy import select
-
 from apps.api.app import seed
 from apps.api.app.models import Actor, Organisation, Project
+from sqlalchemy import select
 
 
 def as_user(key: str) -> dict[str, str]:

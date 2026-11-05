@@ -1,7 +1,6 @@
 """storage.public_url: the address of a public-prefix object, or a loud error when none is configured."""
 
 import pytest
-
 from apps.api.app import storage
 from apps.api.app.config import Settings
 

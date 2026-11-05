@@ -19,7 +19,7 @@ pages mark them as not saved.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -28,7 +28,13 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_actor
 from ..db import get_db
-from ..models import Actor, ClassMember, Classroom, Organisation, Project, ProjectVersion
+from ..models import (
+    Actor,
+    ClassMember,
+    Classroom,
+    Organisation,
+    Project,
+)
 from ..provision import Row, logins, provision
 from ._skeleton import not_implemented
 
@@ -300,11 +306,11 @@ def get_overview(
     schools = _describe_schools(db, [db.get(Organisation, org_id)])
     people = list(db.scalars(select(Actor).where(Actor.organisation_id == org_id)))
 
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    week_ago = datetime.now(UTC) - timedelta(days=7)
     teachers = [p for p in people if p.role == "teacher"]
     students = [p for p in people if p.role == "student"]
     # last_seen_at is stored with a timezone, but SQLite hands it back naive; compare in UTC either way
-    seen = lambda p: p.last_seen_at and (p.last_seen_at if p.last_seen_at.tzinfo else p.last_seen_at.replace(tzinfo=timezone.utc))
+    seen = lambda p: p.last_seen_at and (p.last_seen_at if p.last_seen_at.tzinfo else p.last_seen_at.replace(tzinfo=UTC))
     active_this_week = sum(1 for p in students if (when := seen(p)) and when >= week_ago)
     never = sum(1 for p in people if p.active and p.last_seen_at is None)
 
