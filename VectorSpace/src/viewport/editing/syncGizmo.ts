@@ -20,7 +20,6 @@
 import * as THREE from "three";
 import type { SceneObject } from "../../project/model";
 import type { AxisArrow } from "../../gizmo/types";
-import { extentAlong, extentAlongLocal } from "../../gizmo/moveGizmo";
 import { AxisScaleHandle } from "../../gizmo/scaleGizmo";
 import {
   AxisRotateHandle,
@@ -28,7 +27,7 @@ import {
 } from "../../gizmo/rotateGizmo";
 import { OriginHandle } from "../../gizmo/originHandle";
 import { UniformScaleHandle } from "../../gizmo/uniformScaleHandle";
-import { ARROW_LENGTH, GIZMO_GAP } from "../viewportTypes";
+import { GIZMO_GAP } from "../viewportTypes";
 import { artefactLocalCenter } from "../syncArtefacts";
 
 export type GizmoMode = "select" | "move" | "rotate" | "scale";

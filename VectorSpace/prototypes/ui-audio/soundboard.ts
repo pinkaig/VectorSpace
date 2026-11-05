@@ -79,7 +79,7 @@ interface TickerLine {
 }
 
 export function mountSoundboard(deps: BoardDeps): Board {
-  const { bank, system, director, overlay, map, probe, bindingsKey } = deps
+  const { bank, system, director, overlay, map, bindingsKey } = deps
   const filters = { tier: 0, group: '', search: '', placeholdersOnly: false }
   const previewing = new Set<string>()
   const ticker: TickerLine[] = []
@@ -224,7 +224,7 @@ export function mountSoundboard(deps: BoardDeps): Board {
     return options
   }
 
-  const useFile = async (cue: CueDef, file: File) => {
+  const applyFile = async (cue: CueDef, file: File) => {
     const soundId = `custom-${(customCount += 1)}-${file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
     const channel = bank.soundList().find((sound) => sound.id === cue.sounds[0])?.def.channel ?? 'ui'
     bank.addSound(soundId, { channel, volume: 1, note: file.name }, { bytes: await file.arrayBuffer(), name: file.name })
@@ -266,7 +266,7 @@ export function mountSoundboard(deps: BoardDeps): Board {
     const placeholder = isPlaceholder(cue)
     const fileInput = h('input', { type: 'file', accept: 'audio/*', hidden: true, onChange: (event: Event) => {
       const file = (event.target as HTMLInputElement).files?.[0]
-      if (file) void useFile(cue, file)
+      if (file) void applyFile(cue, file)
     } })
     const play = h('button', { class: 'sfx-play', title: 'Preview this cue', onClick: () => togglePreview(cue, play) }, '▶')
     const select = h('select', { class: 'sfx-sound', onChange: (event: Event) => {
@@ -298,7 +298,7 @@ export function mountSoundboard(deps: BoardDeps): Board {
         event.preventDefault()
         element.classList.remove('sfx-drop')
         const file = (event as DragEvent).dataTransfer?.files[0]
-        if (file) void useFile(cue, file)
+        if (file) void applyFile(cue, file)
       } },
     play,
     h('div', { class: 'sfx-main' },

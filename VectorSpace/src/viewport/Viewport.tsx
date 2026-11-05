@@ -25,7 +25,6 @@ import {
   TextAssetMeta,
   TextAttachment,
   ZoneDefinition,
-  defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
 } from '../project/model'
@@ -1124,7 +1123,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       },
     })
     return loadHandle.cancel
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environmentId, sceneId, reloadToken])
 
   useEffect(() => {
@@ -1184,7 +1182,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       else if (existing.status === 'loading' || existing.status === 'error') unpickableAssetIdsRef.current.add(object.id)
     })
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects])
 
   const retrySelectedAsset = () => {

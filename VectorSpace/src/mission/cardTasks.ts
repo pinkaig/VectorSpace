@@ -41,7 +41,7 @@ export const parseBlanks = (text: string): CardField[] => {
     last = (match.index ?? 0) + match[0].length
   }
   const after = text.slice(last)
-  if (after) fields.push({ key: `t${index++}`, label: after, locked: true })
+  if (after) fields.push({ key: `t${index}`, label: after, locked: true })
   return fields
 }
 

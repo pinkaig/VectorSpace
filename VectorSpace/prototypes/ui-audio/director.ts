@@ -116,6 +116,8 @@ export class UiSoundDirector {
 
     const onRender = (context: RenderContext) => this.onRender(context)
     const original = component.prototype.renderVals
+    // The patched method needs both `this`es: the director's, and the component instance it runs on.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const director = this
     component.prototype.renderVals = function (this: { state: Record<string, unknown> }) {
       director.instance = this

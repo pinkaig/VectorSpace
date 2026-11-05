@@ -16,7 +16,6 @@ import { getShowcaseMuseums, type ShowcaseMuseum } from "../api/showcase";
 import { Box, ChevronLeft, ChevronRight } from "lucide-react";
 import { MuseumPreview } from "../ui/museumPreview";
 
-// @ts-ignore CSS is loaded by the bundler; it has no TypeScript module declaration.
 import "./LoginPage.css";
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;

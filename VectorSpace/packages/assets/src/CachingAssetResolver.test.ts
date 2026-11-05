@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { AssetCache } from './AssetCache'
 import { CachingAssetResolver } from './CachingAssetResolver'
 import { readyAssetDescriptor, type AssetDescriptor } from './AssetDescriptor'

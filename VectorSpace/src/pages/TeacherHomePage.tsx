@@ -53,7 +53,6 @@ import {
 } from "../api/projects";
 import { useLoad } from "../api/useLoad";
 import { MuseumPreview } from "../ui/museumPreview";
-import { ProjectListsSection } from "../sections/home/ProjectListsSection";
 import "./TeacherHomePage.css";
 
 // Room 1 of a new project starts as Empty unless the teacher picks another room.
