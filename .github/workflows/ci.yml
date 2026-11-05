@@ -2,8 +2,7 @@ name: build-and-test
 
 on:
   push:
-    # sherman-branch: while the Postman job is being proven; drop it before merging if unwanted
-    branches: [Working, main, sherman-branch]
+    branches: [Working, main]
   pull_request:
     branches: [Working, main]
 
