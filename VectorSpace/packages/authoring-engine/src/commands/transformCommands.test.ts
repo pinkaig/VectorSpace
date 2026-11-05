@@ -203,7 +203,7 @@ describe('createRotateAboutPivotCommand', () => {
     expect(objectIn(done).transform.rotation).toEqual([0, 1, 0])
     expect(objectIn(done).transform.position).toEqual([4, 5, 6])
     expect(objectIn(done).transform.scale).toEqual([2, 2, 2])
-    expect(command.isNoop(done)).toBe(true)
+    expect(command.isNoop?.(done)).toBe(true)
 
     const undone = command.undo(done)
     expect(objectIn(undone).transform.rotation).toEqual([0.1, 0.2, 0.3])

@@ -101,6 +101,7 @@ export const serializeProject = (project: ProjectData): string => JSON.stringify
 // Control characters other than newline, tab and carriage return never belong in author text;
 // they are stripped on load rather than rejected (text-system.md section 1). Written as escape
 // codes, not the raw characters, so the file stays plain text that GitHub can show.
+// eslint-disable-next-line no-control-regex -- matching control characters is the point
 const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g
 
 const backfillScenes = (project: ProjectData): ProjectData => {
@@ -464,7 +465,7 @@ export const deserializeProject = (value: string): ProjectData => {
   try {
     return validateProject(JSON.parse(value) as unknown)
   } catch (error) {
-    if (error instanceof SyntaxError) throw new Error('Project file contains invalid JSON')
+    if (error instanceof SyntaxError) throw new Error('Project file contains invalid JSON', { cause: error })
     throw error
   }
 }

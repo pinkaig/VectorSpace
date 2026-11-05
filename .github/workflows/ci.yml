@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Lint
+        run: npm run lint
+
       - name: Run unit tests
         run: npm test
 
@@ -75,6 +78,10 @@ jobs:
 
       - name: Install API dependencies
         run: pip install -r VectorSpace/apps/api/requirements.txt
+
+      - name: Lint API (ruff, rules in apps/api/ruff.toml)
+        working-directory: VectorSpace/apps/api
+        run: ruff check --output-format=github .
 
       - name: Run API tests
         working-directory: VectorSpace

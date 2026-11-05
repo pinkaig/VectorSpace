@@ -9,7 +9,7 @@ from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from pydantic import BaseModel,Field
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
@@ -31,8 +31,6 @@ from ..models import (
     Submission,
 )
 from ..teacher_setup import push_setup
-from ._skeleton import not_implemented
-
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 

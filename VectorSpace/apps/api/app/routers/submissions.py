@@ -13,7 +13,7 @@ back or the student cancelling it leaves the approved save live.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -25,7 +25,6 @@ from ..auth import get_current_actor
 from ..db import get_db
 from ..models import Actor, Project, ProjectVersion, Submission
 from .projects import _load
-
 
 router = APIRouter(prefix="/projects", tags=["submissions"])
 
@@ -133,7 +132,7 @@ def submit_project(
         share_with=body.share_with or (live.share_with if live else None),
         submitted_by_id=actor.id,
         # set here, not by the database, so two hand-ins in the same second still sort right
-        submitted_at=datetime.now(timezone.utc),
+        submitted_at=datetime.now(UTC),
     )
     db.add(submission)
     db.commit()
@@ -168,7 +167,7 @@ def approve_project(
     latest.grade = body.grade
     latest.comment = body.comment
     latest.reviewed_by_id = actor.id
-    latest.reviewed_at = datetime.now(timezone.utc)
+    latest.reviewed_at = datetime.now(UTC)
     project.status = "published"
     db.commit()
     db.refresh(latest)
@@ -186,7 +185,7 @@ def send_back_project(
     latest.grade = body.grade
     latest.comment = body.comment
     latest.reviewed_by_id = actor.id
-    latest.reviewed_at = datetime.now(timezone.utc)
+    latest.reviewed_at = datetime.now(UTC)
     db.commit()
     db.refresh(latest)
     return SubmissionResponse.model_validate(latest)

@@ -42,7 +42,6 @@ const parseMs = (text: string): number | null => {
   return Number(match[1]) * (match[2] === "s" ? 1000 : 1);
 };
 
-const isDuration = (value: string): value is DurationToken => value in FALLBACK_DURATION;
 const isEase = (value: string): value is EaseToken => value in FALLBACK_EASE;
 
 export function resolveDuration(duration: MotionRecipe["duration"], read: ReadToken): number {

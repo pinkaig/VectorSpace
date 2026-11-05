@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -318,7 +318,7 @@ def review_media_link(
         raise HTTPException(status_code=422, detail="The comment is too long")
     link.approval = body.approval
     link.approved_by_id = actor.id
-    link.approved_at = datetime.now(timezone.utc)
+    link.approved_at = datetime.now(UTC)
     link.review_comment = body.comment
     db.commit()
     db.refresh(link)

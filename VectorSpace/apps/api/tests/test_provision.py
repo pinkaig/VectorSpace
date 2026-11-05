@@ -1,10 +1,9 @@
 """Roster provisioning: dry run writes nothing, apply creates login + row + classes, re-run is safe."""
 
 import pytest
-from sqlalchemy import func, select
-
 from apps.api.app.models import Actor, ClassMember, Classroom
 from apps.api.app.provision import Row, provision, read_rows
+from sqlalchemy import func, select
 
 
 class FakeAuth0:

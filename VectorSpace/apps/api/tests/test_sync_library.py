@@ -4,7 +4,6 @@ import hashlib
 import json
 
 import pytest
-
 from apps.api.app import storage
 from apps.api.app.config import Settings
 from apps.api.scripts import sync_library

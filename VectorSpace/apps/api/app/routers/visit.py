@@ -21,7 +21,7 @@ first name, the class and the school. Uploaded media still needs a sign-in to lo
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -32,7 +32,15 @@ from sqlalchemy.orm import Session
 from ..access import can_read, class_ids
 from ..auth import get_optional_actor
 from ..db import get_db
-from ..models import Actor, AnalyticsEvent, Classroom, Organisation, Project, ProjectVersion, Submission
+from ..models import (
+    Actor,
+    AnalyticsEvent,
+    Classroom,
+    Organisation,
+    Project,
+    ProjectVersion,
+    Submission,
+)
 
 router = APIRouter(prefix="/visit", tags=["visit"])
 
@@ -85,7 +93,7 @@ def _just_counted(db: Session, project: Project, visitor: Actor | None) -> bool:
     query = select(AnalyticsEvent.id).where(
         AnalyticsEvent.project_id == project.id,
         AnalyticsEvent.event_type == "visit",
-        AnalyticsEvent.occurred_at >= datetime.now(timezone.utc) - window,
+        AnalyticsEvent.occurred_at >= datetime.now(UTC) - window,
         AnalyticsEvent.actor_id.is_(None) if visitor is None else AnalyticsEvent.actor_id == visitor.id,
     )
     return db.scalar(query.limit(1)) is not None
@@ -120,7 +128,7 @@ def visit(slug: str, visitor: Actor | None = Depends(get_optional_actor), db: Se
             actor_id=visitor.id if visitor else None,
             session_id=str(uuid.uuid4()),
             event_type="visit",
-            occurred_at=datetime.now(timezone.utc),
+            occurred_at=datetime.now(UTC),
         ))
         db.commit()
     student = db.get(Actor, project.created_by_id)

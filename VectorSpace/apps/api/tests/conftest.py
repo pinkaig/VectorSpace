@@ -3,16 +3,15 @@
 import os
 
 import pytest
+from apps.api.app.auth import TokenPayload, get_current_token, get_optional_token
+from apps.api.app.db import Base, get_db
+from apps.api.app.main import API_PREFIX, app
+from apps.api.app.models import Actor, ClassMember, Classroom, Organisation
 from fastapi import Header
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-
-from apps.api.app.auth import TokenPayload, get_current_token, get_optional_token
-from apps.api.app.db import Base, get_db
-from apps.api.app.main import API_PREFIX, app
-from apps.api.app.models import Actor, ClassMember, Classroom, Organisation
 
 # VS_RECORD_EXAMPLES=1 copies one real exchange per endpoint into app/openapi_examples.json
 # (see record_examples.py); off by default so an ordinary run never rewrites that file

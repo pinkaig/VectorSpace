@@ -28,7 +28,14 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Actor, Assignment, ContentSnapshot, Project, ProjectVersion, Submission
+from .models import (
+    Actor,
+    Assignment,
+    ContentSnapshot,
+    Project,
+    ProjectVersion,
+    Submission,
+)
 
 
 def merge_setup(template: dict[str, Any], student: dict[str, Any]) -> dict[str, Any]:

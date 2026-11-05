@@ -4,10 +4,9 @@ revision, and only the newest revisions (plus labelled ones) are kept."""
 import uuid
 from datetime import timedelta
 
-from sqlalchemy import select
-
 from apps.api.app.models import ContentSnapshot, ProjectVersion
 from apps.api.app.routers import publish
+from sqlalchemy import select
 
 SCENE = {"schemaVersion": 1, "id": "p", "name": "Scene", "scenes": []}
 
