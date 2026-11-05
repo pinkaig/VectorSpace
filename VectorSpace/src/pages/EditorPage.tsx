@@ -19,6 +19,7 @@ import { Link } from 'react-router'
 import { AlertTriangle, Box, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Clock, Cylinder, MoreHorizontal, Pencil, Music, Palette, Plus, Play, Redo2, Search, Settings, Undo2, X, type LucideIcon } from 'lucide-react'
 import { ProjectData, SceneObject, environmentLibrary, type AssetKind, type EnvironmentDefinition, type RoomCell , type RoomSurfaces } from '../project/model'
 import { downloadProject, loadProjectWithSource, type ProjectLoadResult, type ProjectSharing } from '../project/serializer'
+import { nextStepThing } from '../editor/stepTargets'
 import { assetCatalog, assetsInCategory, catalogueCategories, countAssetUses, filterAssets, type CatalogueCategoryId } from '../content/assets'
 import { DEFAULT_ROOM_SURFACES, ROOM_STYLE_OPTIONS, type RoomStyle } from '../content/roomSurfaces'
 import { isUserAsset } from '../content/userAssets'
@@ -31,7 +32,7 @@ import { addLocalMediaFile, addLocalMediaLink, useLocalMediaLibrary, type LocalM
 import { buildSceneTree, previousSibling } from '../editor/sceneTree'
 import { cellBeside, roomAt, ROOM_SIDES, studentRoomEnv } from '../editor/roomLayout'
 import RuntimeView from '../../apps/runtime/src/RuntimeApplication'
-import Viewport, { ViewportHandle, viewportHintText, type ViewPreset, type WallCut } from '../viewport/Viewport'
+import Viewport, { ViewportHandle, viewportHintText, type ViewportPick, type ViewPreset, type WallCut } from '../viewport/Viewport'
 import ReferenceViewport from '../viewport/ReferenceViewport'
 import { uiSound } from '../audio'
 import { useEditorHistory } from '../editor/hooks/useEditorHistory'
@@ -50,7 +51,7 @@ import { getProject, listSubmissions, setProjectStatus, submitProject, withdrawS
 import { SharePopup, type ShareStatus } from '../sections/share/SharePopup'
 import { isRemoteProject } from '../project/remoteProject'
 import { getProjectSyncStatus } from '../project/projectSync'
-import { markersFor } from '../editor/teacherTools'
+import { markersFor, objectOnSpot, spotAt } from '../editor/teacherTools'
 import { useStressTestKey } from '../debug/stressTest' // STRESS TEST — comment out with the call below
 
 
@@ -155,6 +156,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   useEffect(() => {
     setGizmoMode((mode) => (hasSelection ? (mode === 'select' ? 'move' : mode) : 'select'))
   }, [hasSelection])
+  // the handles belong to Position: Info and Reactions hide them and keep the tool for coming back
+  const shownGizmo = step === 1 ? gizmoMode : 'select'
   const { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, save } = useAutosave(project, initialLoad.source, !preview)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [assetQuery, setAssetQuery] = useState('')
@@ -236,7 +239,29 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // the teacher's suggested spots, and a lock over each locked thing, for anyone editing
   // the selected thing is locked for this person: no arrows on it and no move/remove buttons
   const selectedLocked = studentView && !!selected?.locked
-  const sceneMarkers = useMemo(() => markersFor(scene, { spots: true, locks: true }), [scene])
+  // a teacher's suggested spot the student clicked: the next thing from the catalogue goes there
+  const [pickedSpotId, setPickedSpotId] = useState<string | null>(null)
+  const spots = scene.spots ?? []
+  const pickedSpot = spots.find((spot) => spot.id === pickedSpotId) ?? null
+  // a student's things standing on the teacher's spots stay there: they can be turned, resized,
+  // swapped or removed, not moved. Spot number by thing id.
+  const spotNumbers = useMemo(() => {
+    const numbers = new Map<string, number>()
+    if (!studentView) return numbers
+    ;(scene.spots ?? []).forEach((spot, index) => {
+      const on = objectOnSpot(scene, spot)
+      if (on && !numbers.has(on.id)) numbers.set(on.id, index + 1)
+    })
+    return numbers
+  }, [scene, studentView])
+  const selectedSpot = selected ? spotNumbers.get(selected.id) ?? null : null
+  // whatever is in the spot, a catalogue pick swaps it out
+  const onPickedSpot = pickedSpot ? objectOnSpot(scene, pickedSpot) : null
+  const sceneMarkers = useMemo(
+    () => markersFor(scene, { spots: true, locks: true }).map((marker) =>
+      marker.kind === 'spot' && marker.id === pickedSpotId ? { ...marker, picked: true } : marker),
+    [scene, pickedSpotId],
+  )
 
   const toggleSceneExpanded = (id: string) => {
     setExpandedSceneIds((current) => {
@@ -261,6 +286,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
     isLocked: (objectId) => studentView && !!scene.objects.find((object) => object.id === objectId)?.locked,
     // a gizmo drag has already moved the mesh, so pull it back to the saved pose
     onLocked: (object) => { bumpSync(); setStepNotice(`${object.name} is locked by your teacher. You can't move or delete it.`) },
+    isPinned: (objectId) => spotNumbers.has(objectId),
+    onPinned: (object) => { bumpSync(); setStepNotice(`${object.name} stays on spot ${spotNumbers.get(object.id)}. You can turn it, resize it, or pick the spot to swap it.`) },
   })
   useStressTestKey(project, commit) // STRESS TEST — F8 spawns 100 pedestels
   const { loadDraft, importFile, reset, isAudioDemoLoaded, loadAudioDemo } = useProjectFile({
@@ -396,45 +423,108 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const roomRules = (project.rules ?? []).filter((rule) => scene.objects.some((object) => object.id === rule.objectId))
   const needInfo = scene.objects.filter((object) => !findCard(project, object))
   const withInfo = scene.objects.length - needInfo.length
+  const hasInfo = (object: SceneObject) => !!findCard(project, object)
+  const hasReaction = (object: SceneObject) => roomRules.some((rule) => rule.objectId === object.id)
+  // Make it react is about the exhibits; a room with none (the built-in models are tagged Misc
+  // and Signs) uses all its things, so the step still goes somewhere
+  const exhibitAssetIds = new Set(assetsInCategory('exhibits', visibleAssets).map((asset) => asset.assetId))
+  const exhibits = scene.objects.filter((object) => exhibitAssetIds.has(object.assetId))
+  const reactable = exhibits.length > 0 ? exhibits : scene.objects
+  const needReaction = reactable.filter((object) => !hasReaction(object))
+  const withReaction = reactable.length - needReaction.length
+  // with a thing selected, steps 2 and 3 show that thing's status; otherwise the whole room's
   const stepDone: Record<TutorialStep, boolean> = {
     1: scene.objects.length > 0,
-    2: scene.objects.length > 0 && needInfo.length === 0,
-    3: roomRules.length > 0,
+    2: selected ? hasInfo(selected) : scene.objects.length > 0 && needInfo.length === 0,
+    3: selected ? hasReaction(selected) : reactable.length > 0 && needReaction.length === 0,
     4: published,
   }
+  // what a step's tooltip adds about its status
+  const stepStatus = (n: TutorialStep) => {
+    if (n === 2 && scene.objects.length > 0) return selected ? `${selected.name} ${hasInfo(selected) ? 'has' : 'needs'} info` : `${withInfo} of ${scene.objects.length} things have info`
+    if (n === 3 && reactable.length > 0) return selected ? `${selected.name} ${hasReaction(selected) ? 'has a reaction' : 'needs a reaction'}` : `${withReaction} of ${reactable.length} have a reaction`
+    return null
+  }
+  // bumped to frame the selected thing, after the render that selects it
+  const [focusRequest, setFocusRequest] = useState(0)
+  useEffect(() => {
+    if (focusRequest > 0) viewportRef.current?.focusSelected()
+  }, [focusRequest])
 
-  // clicking a step in the top bar. Add info and Make it react with nothing selected pick a
-  // thing for the student: the first one still missing a fact card, or one with no reaction yet.
-  const goToStep = (n: TutorialStep) => {
+  // changing the panel's tab: stays on the thing being edited
+  const openTab = (n: EditStep) => {
     setStepNotice(null)
     // moving to any step closes the Step 3 tip (the "?" menu reopens it after this)
     setReactionsTipOpen(false)
-    if (n === 4) {
-      setViewMode('runtime')
-      return
-    }
-    if (playing) setViewMode('editor')
     setStep(n)
     // Add info opens the things list, where each thing shows whether it has its fact card yet
     if (n === 2) setThingsOpen(true)
-    if (n === 1 || selected) return
-    if (scene.objects.length === 0) {
+  }
+
+  // clicking a step in the top bar. Add info and Make it react take the student to a thing still
+  // missing a fact card or a reaction; clicking again moves on, and once none are left it cycles
+  // through them all (editor/stepTargets.ts).
+  const goToStep = (n: TutorialStep) => {
+    if (n === 4) {
+      setStepNotice(null)
+      setReactionsTipOpen(false)
+      setViewMode('runtime')
+      return
+    }
+    const arriving = playing || step !== n
+    if (playing) setViewMode('editor')
+    openTab(n)
+    if (n === 1) return
+    const next = n === 2
+      ? nextStepThing(scene.objects, hasInfo, selectedId, arriving)
+      : nextStepThing(reactable, hasReaction, selectedId, arriving)
+    if (!next) {
       setStepNotice('Place something from the catalogue first.')
       return
     }
+    setSelectedId(next.id)
+    setFocusRequest((count) => count + 1)
     if (n === 2) {
-      const next = needInfo[0] ?? scene.objects[0]
-      setSelectedId(next.id)
       setStepNotice(needInfo.length > 0
-        ? `${needInfo.length} ${needInfo.length === 1 ? 'thing still needs' : 'things still need'} info. Start with ${next.name}.`
-        : `Every thing has info. Showing ${next.name}; pick another to change it.`)
+        ? `${needInfo.length} ${needInfo.length === 1 ? 'thing still needs' : 'things still need'} info. Now on ${next.name}.`
+        : `Every thing has info. Showing ${next.name}.`)
       return
     }
-    const quiet = scene.objects.filter((object) => !roomRules.some((rule) => rule.objectId === object.id))
-    const next = quiet.find((object) => findCard(project, object)) ?? quiet[0] ?? scene.objects[0]
-    setSelectedId(next.id)
-    setStepNotice(`Make ${next.name} react: pick what happens when visitors click it.`)
+    setStepNotice(needReaction.length > 0
+      ? `Make ${next.name} react: pick what happens when visitors click it.`
+      : `Everything here has a reaction. Showing ${next.name}.`)
   }
+
+  // a card the teacher assigned, clicked in the mission brief: go to its thing, on Info
+  const openCardTask = (objectId: string) => {
+    const room = project.scenes.find((item) => item.objects.some((object) => object.id === objectId))
+    if (!room) return
+    if (room.id !== scene.id) commit('Select scene', selectEditorScene(project, room.id).project)
+    openTab(2)
+    setSelectedId(objectId)
+    setFocusRequest((count) => count + 1)
+  }
+
+  // CLICK A SPOT, THEN THE CATALOGUE: a click on a spot's pin, label or floor ring picks it (again
+  // to unpick); a click anywhere else lets it go. Picking one opens Place things, where the
+  // catalogue is.
+  const pickSpot = ({ objectId, floorPoint, spotId }: ViewportPick) => {
+    const hit = spotId ?? (!objectId && floorPoint ? spotAt(scene, floorPoint)?.id : null) ?? null
+    if (!hit) {
+      setPickedSpotId(null)
+      return
+    }
+    setPickedSpotId((current) => (current === hit ? null : hit))
+    if (step !== 1) goToStep(1)
+    setSelectedId(null)
+  }
+  // a catalogue click: onto the picked spot if there is one, swapping out what stands there. The
+  // spot stays picked, so the student can try one thing after another until × or a click away.
+  const placeFromCatalogue = (asset: Parameters<typeof addObject>[0]) => {
+    addObject(asset, pickedSpot?.position, onPickedSpot?.id)
+  }
+  // a picked spot belongs to its room: changing rooms lets it go
+  useEffect(() => { setPickedSpotId(null) }, [scene.id])
 
   // the notice fades on its own after a few seconds
   useEffect(() => {
@@ -475,19 +565,22 @@ export default function EditorPage({ start, preview = false }: { start?: Project
         {tutorialSteps.map(({ step: n, label }) => {
           const viewing = n === (playing ? 4 : step)
           const colour = viewing ? 'viewing' : stepDone[n] ? 'green' : 'todo'
-          // step 2 counts per thing: green once every thing in this room has a fact card
-          const progress = n === 2 && scene.objects.length > 0 ? ` · ${withInfo}/${scene.objects.length}` : ''
-          const title = `Step ${n}: ${label}${n === 2 && scene.objects.length > 0 ? ` (${withInfo} of ${scene.objects.length} things have info)` : ''}${stepDone[n] && !viewing ? ' (done)' : ''}`
+          // steps 2 and 3 count per thing
+          const progress = n === 2 && scene.objects.length > 0 ? ` · ${withInfo}/${scene.objects.length}`
+            : n === 3 && reactable.length > 0 ? ` · ${withReaction}/${reactable.length}` : ''
+          const status = stepStatus(n)
+          const title = `Step ${n}: ${label}${status ? ` (${status})` : ''}${stepDone[n] && !viewing ? ' (done)' : ''}`
           return (
             <button
               key={n}
-              className={`button button--${colour}`}
+              className={`button button--${colour}${viewing && stepDone[n] ? ' is-done' : ''}`}
               title={title}
               aria-label={title}
               aria-current={viewing ? 'step' : undefined}
               onClick={() => goToStep(n)}
             >
-            <span className="button-num">{n}</span>
+            {/* the step being viewed is purple, so its status shows as a tick in place of the number */}
+            <span className="button-num">{viewing && stepDone[n] ? <Check size={16} strokeWidth={3.5} /> : n}</span>
               <span className="button-label">{label}{progress}</span>
             </button>
                   )})}
@@ -574,7 +667,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               onMove={moveObject}
               onScale={scaleObject}
               onRotate={rotateObject}
-              gizmoMode={selectedLocked ? 'select' : gizmoMode}
+              gizmoMode={selectedLocked || (selectedSpot !== null && gizmoMode === 'move') ? 'select' : shownGizmo}
               scaleSpace={scaleSpace}
               rotateSpace={rotateSpace}
               snap={snapOn}
@@ -586,6 +679,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               resetToken={resetToken}
               syncToken={syncToken}
               markers={sceneMarkers}
+              onPick={spots.length > 0 ? pickSpot : undefined}
               // The quad layout's main pane is always perspective - only the three reference
               // panes go orthographic - matching the "Perspective + Top + Front + Right" label.
               orthographic={layoutMode === 'quad' ? false : singleViewOrthographic}
@@ -609,13 +703,13 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           {/* Top-left: which handle is showing is picked in the object panel (Position tab); only the
               world/local choice for that handle lives here, since the panel has no equivalent. */}
           <div className="floating-controls top-left">
-            {gizmoMode === 'scale' && (
+            {shownGizmo === 'scale' && (
               <div className="float-group">
                 <button className={scaleSpace === 'world' ? 'float-button active' : 'float-button'} onClick={() => setScaleSpace('world')} title="Scale handles stay aligned to world X/Y/Z">World</button>
                 <button className={scaleSpace === 'local' ? 'float-button active' : 'float-button'} onClick={() => setScaleSpace('local')} title="Scale handles rotate with the object, so they stay on its actual faces">Local</button>
               </div>
             )}
-            {gizmoMode === 'rotate' && (
+            {shownGizmo === 'rotate' && (
               <div className="float-group">
                 <button className={rotateSpace === 'world' ? 'float-button active' : 'float-button'} onClick={() => setRotateSpace('world')} title="Rotation rings stay aligned to world X/Y/Z">World</button>
                 <button className={rotateSpace === 'local' ? 'float-button active' : 'float-button'} onClick={() => setRotateSpace('local')} title="Rotation rings rotate with the object, so they stay on its actual axes">Local</button>
@@ -624,7 +718,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
           </div>
 
           {/* Top-left, under the tools: the students' mission brief, when the teacher set one */}
-          {project.missionBrief && briefReady && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={assignedByName} />}
+          {project.missionBrief && briefReady && <MissionBriefPanel brief={project.missionBrief} project={project} teacherName={assignedByName} onOpenCard={openCardTask} />}
 
           {/* steps 2 and 3 hide the catalogue; this takes the student back to step 1 to add more */}
           {step !== 1 && (
@@ -713,7 +807,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             </div>
           </div>
           </div>
-          <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, gizmoMode)}</span></div>
+          <div className="stage-footer">{cameraMode === 'walk' ? <><span><kbd>Drag</kbd> look around</span><span><kbd>WASD</kbd> walk</span><span><kbd>Click</kbd> select</span></> : <><span><kbd>Click</kbd> select</span><span><kbd>Drag</kbd> move / gizmo handle</span><span><kbd>Esc</kbd> clear selection</span></>}<span className="stage-footer-hint">{viewportHintText(cameraMode, true, shownGizmo)}</span></div>
         </section>
         {toast && (
           <div className="save-toast" role="status" key={toast.key}>
@@ -734,7 +828,14 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <button className="sent-back-chip" onClick={() => setSentBackOpen(true)}>Teacher's comment</button>
           )
         )}
-        {stepNotice && (
+        {pickedSpot ? (
+          <div className="step-notice" role="status">
+            Spot {spots.indexOf(pickedSpot) + 1}{pickedSpot.text ? ` · ${pickedSpot.text}` : ''}: {onPickedSpot
+              ? `pick something from the catalogue to swap the ${onPickedSpot.name}.`
+              : 'pick something from the catalogue to put here.'}
+            <button onClick={() => setPickedSpotId(null)} aria-label="Let go of this spot">×</button>
+          </div>
+        ) : stepNotice && (
           <div className="step-notice" role="status">
             {stepNotice}
             <button onClick={() => setStepNotice(null)} aria-label="Dismiss">×</button>
@@ -756,9 +857,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               scale: panelObject.transform.scale,
             }}
             step={step}
-            onStepChange={(n) => goToStep(n as TutorialStep)}
+            onStepChange={(n) => openTab(n as EditStep)}
             onClose={() => { setSelectedId(null); setGizmoMode('select') }}
-            tool={gizmoMode === 'select' ? null : gizmoMode}
+            tool={gizmoMode === 'select' || (selectedSpot !== null && gizmoMode === 'move') ? null : gizmoMode}
             onToolChange={setGizmoMode}
             onRotateBy={(degrees) => {
               const [x, y, z] = panelObject.transform.rotation
@@ -772,6 +873,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             onCopy={duplicateSelected}
             onRemove={deleteSelected}
             locked={selectedLocked}
+            onSpot={selectedSpot ?? undefined}
             rules={(project.rules ?? []).filter((rule) => rule.objectId === panelObject.id)}
             onAddRule={addSelectedClickRule}
             onRemoveRule={removeRuleById}
@@ -790,8 +892,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
               return choiceFor(added)
             }}
             video={videoFor(panelObject, mediaLibrary)}
-            onSaveVideo={(assetId, screen) => {
-              const result = saveObjectVideo(project, scene.id, panelObject.id, assetId, screen)
+            onSaveVideo={(assetId) => {
+              const result = saveObjectVideo(project, scene.id, panelObject.id, assetId)
               if (!result.ok) return result.error
               commit('Save video', result.project)
               showToast('Video saved')
@@ -844,7 +946,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                   {shownAssets.map((asset, index) => {
                     const Icon = catalogueIcons[asset.kind] ?? Box
                     return (
-                    <button className="asset-card" key={asset.assetId} onClick={() => addObject(asset)}>
+                    <button className="asset-card" key={asset.assetId} onClick={() => placeFromCatalogue(asset)}>
                       <span className={`asset-tile ${catalogueTileColours[index % catalogueTileColours.length]}`}><Icon size={20} strokeWidth={1.75} /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
@@ -893,7 +995,7 @@ const choiceFor = (entry: LocalMediaEntry) => ({ assetId: entry.id, kind: entry.
 const videoFor = (object: SceneObject, library: readonly LocalMediaEntry[]) => {
   const video = findVideo(object)
   if (!video) return null
-  return { attachmentId: video.id, assetId: video.assetId, screen: video.screen === true, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
+  return { attachmentId: video.id, assetId: video.assetId, label: library.find((entry) => entry.id === video.assetId)?.label ?? 'Video' }
 }
 
 const cardInputFor = (project: ProjectData, object: SceneObject): CardInput | null => {

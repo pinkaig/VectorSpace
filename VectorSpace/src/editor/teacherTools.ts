@@ -64,6 +64,26 @@ export const spotAt = (scene: SceneData, point: [number, number, number]): Sugge
   return best
 }
 
+/**
+ * The thing standing on a spot: the nearest top-level, unlocked one whose base is inside the
+ * spot's ring, or null. A thing the student moved off the spot no longer counts, and the
+ * teacher's locked things are never swapped out.
+ */
+export const objectOnSpot = (scene: SceneData, spot: SuggestedSpot): SceneObject | null => {
+  let best: SceneObject | null = null
+  let bestDistance = SPOT_HIT_RADIUS
+  for (const object of scene.objects) {
+    if (object.parentId || object.locked) continue
+    const [x, , z] = object.transform.position
+    const distance = Math.hypot(spot.position[0] - x, spot.position[2] - z)
+    if (distance <= bestDistance) {
+      best = object
+      bestDistance = distance
+    }
+  }
+  return best
+}
+
 /** REMOVE: takes a thing out of the room, with anything parented to it and their reactions. */
 export const removeThing = (project: ProjectData, sceneId: string, objectId: string): ProjectData =>
   removeEditorObject(project, sceneId, objectId).project

@@ -153,13 +153,14 @@ interface ViewportProps {
   /** Pins and lock badges drawn over the room (suggested spots, locked objects); look-only. */
   markers?: readonly SceneMarker[]
   /**
-   * A click (not a drag) in the viewport: the object under the pointer, if any, and where the
-   * pointer meets the floor (y = 0), if it does. For tools that place or pick without the gizmo.
+   * A click (not a drag) in the viewport: the object under the pointer, if any, where the
+   * pointer meets the floor (y = 0), if it does, and the spot whose pin or label was clicked.
+   * For tools that place or pick without the gizmo.
    */
   onPick?: (pick: ViewportPick) => void
 }
 
-export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null }
+export type ViewportPick = { objectId: string | null; floorPoint: [number, number, number] | null; spotId?: string | null }
 
 // What the pointer and keys do right now, for the hint line in the viewport or editor footer.
 export const viewportHintText = (cameraMode: CameraMode, interactive: boolean, gizmoMode: GizmoMode): string | null =>
@@ -494,8 +495,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const { requestRender } = scheduler
     requestRenderRef.current = requestRender
 
-    // Info inside the room: fact cards shown as signs and videos on screens above their
-    // things (see inRoomMedia.ts). Rebuilt with the objects, placed every frame.
+    // Info inside the room: fact cards shown as signs above their things (see
+    // inRoomMedia.ts). Rebuilt with the objects, placed every frame.
     const inRoom = createInRoomMedia({
       scene,
       objectsGroup,
@@ -598,10 +599,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // video if it has no card, before and alongside any reactions the student added.
       if (event.kind === 'click' && event.objectId) {
         const panel = clickPanelFor((dataRef.current.objects as readonly SceneObject[]).find((object) => object.id === event.objectId))
-        // a video already playing on a screen in the room: the click turns its sound on or
-        // off instead of opening a second, pop-up copy of it
-        const screenHandled = panel?.id.startsWith('video:') === true && inRoom.click(event.objectId)
-        if (panel && !screenHandled) {
+        if (panel) {
           const handle = text.open(panel)
           effects.add(() => handle.close())
         }
@@ -859,7 +857,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         if (node) { objectId = node.name; break }
       }
       const point = picker.ray.intersectPlane(floorPlane, new THREE.Vector3())
-      handler({ objectId, floorPoint: point ? [point.x, 0, point.z] : null })
+      // markers draw over everything, so a pin in front of a thing still counts as a pick
+      const spotId = markers.pickSpot(picker)
+      handler({ objectId, floorPoint: point ? [point.x, 0, point.z] : null, spotId })
     }
     renderer.domElement.addEventListener('pointerdown', onPickDown)
     renderer.domElement.addEventListener('pointerup', onPickUp)
@@ -1001,8 +1001,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         statsWindowStart = now
         if (!statsOn) setStats(null)
       }
-      // signs and screens follow their things and turn to the viewer; a playing video needs frames
-      if (inRoom.update(activeCameraRef.current, playing)) requestRender()
+      // signs follow their things and turn to the viewer
+      inRoom.update(activeCameraRef.current)
       if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
       drawNow(now)

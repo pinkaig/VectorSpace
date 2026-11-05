@@ -51,6 +51,15 @@ def test_merge_unlocks_and_clears_spots() -> None:
     assert "spots" not in merged["scenes"][0]
 
 
+def test_merge_carries_the_mission_brief() -> None:
+    brief = {"due": "", "todos": [], "rules": [], "cardTasks": [{"id": "task-1", "objectId": "bench"}]}
+    merged = merge_setup({**project([thing("bench")]), "missionBrief": brief}, {**project([thing("bench")]), "missionBrief": {"due": "", "todos": [], "rules": []}})
+    assert merged["missionBrief"] == brief
+    # a template with no brief leaves the copy's as it is
+    kept = merge_setup(project([]), {**project([]), "missionBrief": brief})
+    assert kept["missionBrief"] == brief
+
+
 def save(client, project_id: str, data: dict, key: str = "t1") -> None:
     current = client.get(f"/projects/{project_id}/versions", headers=as_user(key)).json()
     base = current[0]["revision"] if current else 0

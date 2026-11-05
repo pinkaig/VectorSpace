@@ -19,7 +19,8 @@
  *
  *              Under the rules, "Info cards to write" lists the cards the teacher set
  *              (brief.cardTasks) and how far each one is: not started, in progress on a
- *              thing, or done (Weian Ching).
+ *              thing, or done. A card the teacher assigned to a thing is a button that goes
+ *              to that thing (Weian Ching).
  *
  *              The brief comes from project.missionBrief, which the teacher's template setup
  *              page writes. With no brief (or an empty one) nothing is shown.
@@ -31,7 +32,7 @@
 /******************************************************************************/
 
 import { useState } from "react";
-import { Check, ChevronDown, ClipboardList } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
 import type { ProjectData } from "../../project/model";
 import type { MissionBrief } from "../../mission/missionBrief";
 import { parseTodo } from "../../mission/parseTodo";
@@ -45,6 +46,8 @@ type MissionBriefPanelProps = {
   project: ProjectData;
   // the teacher who assigned it, for "From Ms Tan" under the title; left out = only the due date
   teacherName?: string | null;
+  // a card assigned to a thing was clicked: go to that thing
+  onOpenCard?: (objectId: string) => void;
 };
 
 // one to-do, worked out: its text, and how far along it is (null = the teacher ticks it)
@@ -58,7 +61,7 @@ const shortTeacherName = (name: string): string => {
   return TITLES.includes(title.replace(".", "")) && surname ? `${title} ${surname}` : name.trim();
 };
 
-export function MissionBriefPanel({ brief, project, teacherName }: MissionBriefPanelProps) {
+export function MissionBriefPanel({ brief, project, teacherName, onOpenCard }: MissionBriefPanelProps) {
   const [open, setOpen] = useState(true);
 
   // worked out again on every render, so the ticks follow the student's edits
@@ -79,6 +82,8 @@ export function MissionBriefPanel({ brief, project, teacherName }: MissionBriefP
   // the thing the teacher suggested a card for, by name, if it is still in the project
   const suggestedName = (objectId?: string) =>
     objectId ? project.scenes.flatMap((scene) => scene.objects).find((object) => object.id === objectId)?.name : undefined;
+  // clickable when the teacher assigned it to a thing that is still in the project
+  const canOpen = (objectId?: string) => onOpenCard !== undefined && suggestedName(objectId) !== undefined;
 
   if (todos.length === 0 && brief.rules.length === 0 && cardTasks.length === 0) return null;
 
@@ -131,21 +136,37 @@ export function MissionBriefPanel({ brief, project, teacherName }: MissionBriefP
         <>
           <h3 className="mb-heading">Info cards to write</h3>
           <ul className="mb-todos">
-            {cardTasks.map(({ task, index, status }) => (
-              <li key={task.id} className={`mb-todo ${status.state === "done" ? "mb-todo-done" : ""}`}>
-                <span className={`mb-tick ${status.state === "done" ? "mb-tick-done" : ""}`}>
-                  {status.state === "done" && <Check size={14} strokeWidth={3.5} />}
-                </span>
-                <span className="mb-todo-text">{task.title || `Card ${index + 1}`}</span>
-                <span className="mb-todo-count">
-                  {status.state === "todo"
-                    ? suggestedName(task.objectId) ? `for ${suggestedName(task.objectId)}` : task.kind === "blanks" ? "fill in the blanks" : "answer the questions"
-                    : status.state === "done" ? `on ${status.objectName}` : `started on ${status.objectName}`}
-                </span>
-              </li>
-            ))}
+            {cardTasks.map(({ task, index, status }) => {
+              const rowClass = `mb-todo ${status.state === "done" ? "mb-todo-done" : ""}`;
+              const row = (
+                <>
+                  <span className={`mb-tick ${status.state === "done" ? "mb-tick-done" : ""}`}>
+                    {status.state === "done" && <Check size={14} strokeWidth={3.5} />}
+                  </span>
+                  <span className="mb-todo-text">{task.title || `Card ${index + 1}`}</span>
+                  <span className="mb-todo-count">
+                    {status.state === "todo"
+                      ? suggestedName(task.objectId) ? `for ${suggestedName(task.objectId)}` : task.kind === "blanks" ? "fill in the blanks" : "answer the questions"
+                      : status.state === "done" ? `on ${status.objectName}` : `started on ${status.objectName}`}
+                  </span>
+                </>
+              );
+              return canOpen(task.objectId) ? (
+                <li key={task.id}>
+                  <button type="button" className={`${rowClass} mb-todo-go`} title={`Go to ${suggestedName(task.objectId)}`} onClick={() => onOpenCard?.(task.objectId as string)}>
+                    {row}
+                    <ChevronRight size={15} className="mb-todo-go-icon" />
+                  </button>
+                </li>
+              ) : (
+                <li key={task.id} className={rowClass}>{row}</li>
+              );
+            })}
           </ul>
-          <p className="mb-card-hint">Pick a thing, open Info, then Fact card, and start from your teacher's card.</p>
+          <p className="mb-card-hint">
+            {cardTasks.some(({ task }) => canOpen(task.objectId)) ? "Click a card to go to its thing, then open Fact card. " : "Pick a thing, open Info, then Fact card. "}
+            Start from your teacher's card.
+          </p>
         </>
       )}
 

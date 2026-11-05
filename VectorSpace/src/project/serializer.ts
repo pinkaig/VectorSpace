@@ -401,7 +401,7 @@ const validateCardTasks = (tasks: CardTask[]): void => {
   if (!Array.isArray(tasks) || tasks.length > MAX_CARD_TASKS) throw new Error('Project mission brief has an invalid list of info card tasks')
   const ids = new Set<string>()
   for (const task of tasks) {
-    if (!task || typeof task !== 'object' || !isShortText(task.id, MAX_LABEL_LENGTH) || !task.id || !isShortText(task.title, MAX_LABEL_LENGTH) || !['blanks', 'prompts'].includes(task.kind) || (task.objectId !== undefined && (!isShortText(task.objectId, MAX_LABEL_LENGTH) || !task.objectId))) {
+    if (!task || typeof task !== 'object' || !isShortText(task.id, MAX_LABEL_LENGTH) || !task.id || !isShortText(task.title, MAX_LABEL_LENGTH) || !['blanks', 'prompts'].includes(task.kind) || (task.objectId !== undefined && (!isShortText(task.objectId, MAX_LABEL_LENGTH) || !task.objectId)) || (task.inRoom !== undefined && typeof task.inRoom !== 'boolean')) {
       throw new Error('Project mission brief contains an invalid info card task')
     }
     validateCardFields(task.fields)
