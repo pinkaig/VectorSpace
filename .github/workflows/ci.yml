@@ -2,7 +2,8 @@ name: build-and-test
 
 on:
   push:
-    branches: [Working, main]
+    # sherman-branch: while the Postman job is being proven; drop it before merging if unwanted
+    branches: [Working, main, sherman-branch]
   pull_request:
     branches: [Working, main]
 
@@ -86,3 +87,82 @@ jobs:
           alembic upgrade head
           alembic downgrade base
           alembic upgrade head
+
+  # Postman contract run: the collection in apps/api/postman against a real uvicorn on synthetic data.
+  # No .env exists here, so the API's defaults already point at this Postgres and MinIO.
+  postman:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: vectorspace
+          POSTGRES_USER: vectorspace_app
+          POSTGRES_PASSWORD: vectorspace_local
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vectorspace_app -d vectorspace"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      APP_ENV: test
+      AUTH_DEV_BYPASS: "true"
+    defaults:
+      run:
+        working-directory: VectorSpace/apps/api
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Start MinIO
+        # a service container cannot take MinIO's "server /data" command, so run it by hand
+        working-directory: .
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=vectorspace_minio -e MINIO_ROOT_PASSWORD=vectorspace_minio_local \
+            quay.io/minio/minio:latest server /data
+          for i in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live && exit 0; sleep 1; done
+          docker logs minio; exit 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: VectorSpace/apps/api/requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install API dependencies
+        run: pip install -r requirements.txt
+
+      - name: Migrate, seed, create the bucket
+        run: |
+          alembic upgrade head
+          python -m app.seed --apply
+          python postman/ensure_bucket.py
+
+      - name: Start the API
+        run: |
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/api/v1/health && exit 0; sleep 1; done
+          cat uvicorn.log; exit 1
+
+      - name: Run the Postman collection
+        working-directory: VectorSpace/apps/api/postman
+        run: >-
+          npx --yes newman@6.2.1 run vectorspace.postman_collection.json
+          -e ci.postman_environment.json
+          --reporters cli,junit --reporter-junit-export newman-report.xml
+
+      - name: Upload the Newman report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: |
+            VectorSpace/apps/api/postman/newman-report.xml
+            VectorSpace/apps/api/uvicorn.log
+          if-no-files-found: ignore
