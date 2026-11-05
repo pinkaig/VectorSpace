@@ -8,7 +8,7 @@ describe('projects api', () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('[]', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     await listMyProjects(async () => 't', 'http://api')
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api/projects?kind=project&mine=true')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/projects?kind=project&mine=true')
   })
 
   it('creates from a template by sending its id', async () => {
@@ -16,7 +16,7 @@ describe('projects api', () => {
     vi.stubGlobal('fetch', fetchMock)
     await createProject(async () => 't', 'My museum', 'tpl-1', 'http://api')
     const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe('http://api/projects')
+    expect(url).toBe('http://api/api/v1/projects')
     expect(JSON.parse(init.body)).toEqual({ name: 'My museum', template_id: 'tpl-1' })
   })
 
@@ -25,7 +25,7 @@ describe('projects api', () => {
     vi.stubGlobal('fetch', fetchMock)
     await sendToStudent(async () => 't', 'p1', 'aisyah', {}, 'http://api')
     const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe('http://api/projects/p1/assign')
+    expect(url).toBe('http://api/api/v1/projects/p1/assign')
     expect(JSON.parse(init.body)).toEqual({ student_id: 'aisyah' })
   })
 

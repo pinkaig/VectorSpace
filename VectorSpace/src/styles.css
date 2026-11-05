@@ -384,6 +384,11 @@ button:disabled {
   background: var(--White);
   color: var(--accent);
 }
+/* the step being viewed is finished (for the selected thing, on steps 2 and 3): a green tick */
+.Tutorial-steps .button--viewing.is-done .button-num{
+  background: var(--green-500);
+  color: var(--White);
+}
 /* a finished step: filled green with a white number, as in the 3.05 prototype */
 .Tutorial-steps .button--green {
   border-color: var(--green-500);

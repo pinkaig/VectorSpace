@@ -51,6 +51,7 @@ import {
   setEditorObjectVisible,
   transformEditorObjectCommand,
   updateEditorScene,
+  updateEditorTransform,
   type EditorCommandBuilder,
 } from '../editorOperations'
 import { addEditorClickRule, removeEditorRule, type ClickRuleChoice } from '../ruleEditorOperations'
@@ -66,19 +67,29 @@ type SceneEditingInputs = {
   commit: (label: string, next: ProjectData) => void
   runCommand: (build: EditorCommandBuilder) => unknown
   viewportRef: RefObject<ViewportHandle | null>
-  // true for an object this person may not move, turn, resize, delete or re-parent (a student
-  // and an object the teacher locked); absent = nothing is locked
+  // true for an object may not move, turn, resize, delete or re-parent; absent = nothing is locked
   isLocked?: (objectId: string) => boolean
   // called instead of the edit when it hits a locked object
   onLocked?: (object: SceneObject) => void
+  // true for a object may turn and resize but not move; absent = nothing is pinned
+  isPinned?: (objectId: string) => boolean
+  // called instead of the move when it hits a pinned thing
+  onPinned?: (object: SceneObject) => void
 }
 
-export function useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef, isLocked, onLocked }: SceneEditingInputs) {
+export function useSceneEditing({ project, scene, selected, setSelectedId, commit, runCommand, viewportRef, isLocked, onLocked, isPinned, onPinned }: SceneEditingInputs) {
   // refuses an edit to a locked object, and says so; true when the edit may go ahead
   const allowed = (objectId: string) => {
     if (!isLocked?.(objectId)) return true
     const object = scene.objects.find((item) => item.id === objectId)
     if (object) onLocked?.(object)
+    return false
+  }
+  // refuses a move of a pinned thing, and says so; true when it may move
+  const movable = (objectId: string) => {
+    if (!isPinned?.(objectId)) return true
+    const object = scene.objects.find((item) => item.id === objectId)
+    if (object) onPinned?.(object)
     return false
   }
   const setEnvironment = (environmentId: string) => {
@@ -89,18 +100,30 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
     if (!pose) return
     commit('Set start view', updateEditorScene(project, project.activeSceneId, { startCamera: pose }).project)
   }
-  const addObject = (asset: AssetDefinition) => {
-    const result = createEditorObject(project, scene.id, asset.kind, asset.assetId)
-    commit('Create object', result.project)
+  const addObject = (asset: AssetDefinition, at?: [number, number, number], replaceId?: string) => {
+    const start = replaceId && allowed(replaceId) ? removeEditorObject(project, scene.id, replaceId).project : project
+    const result = createEditorObject(start, scene.id, asset.kind, asset.assetId)
+    let next = result.project
+    const made = result.objectId ? next.scenes.find((item) => item.id === scene.id)?.objects.find((item) => item.id === result.objectId) : undefined
+    if (at && made) {
+      next = updateEditorTransform(next, scene.id, made.id, { position: [at[0], made.transform.position[1], at[2]] }).project
+    }
+    commit(replaceId ? 'Swap object' : 'Create object', next)
     setSelectedId(result.objectId ?? null)
   }
   const updateSelected = (changes: Partial<SceneObject['transform']>) => {
     if (!selected || !allowed(selected.id)) return
+    // a pinned thing keeps its place: drop a position change, keep the rest
+    if (changes.position && !movable(selected.id)) {
+      const { position: _kept, ...rest } = changes
+      changes = rest
+      if (Object.keys(changes).length === 0) return
+    }
     const builder = transformEditorObjectCommand(scene.id, selected.id, changes)
     if (builder) runCommand(builder)
   }
   const moveObject = (id: string, position: [number, number, number]) => {
-    if (!allowed(id)) return
+    if (!allowed(id) || !movable(id)) return
     runCommand(moveEditorObjectCommand(scene.id, id, position))
   }
   const scaleObject = (id: string, scale: [number, number, number]) => {
@@ -109,7 +132,8 @@ export function useSceneEditing({ project, scene, selected, setSelectedId, commi
   }
   const rotateObject = (id: string, rotation: [number, number, number], position?: [number, number, number]) => {
     if (!allowed(id)) return
-    runCommand(position
+    // turning about an off-centre pivot would shift a pinned thing, so it turns in place
+    runCommand(position && !isPinned?.(id)
       ? rotateEditorObjectAboutPivotCommand(scene.id, id, rotation, position)
       : rotateEditorObjectCommand(scene.id, id, rotation))
   }
