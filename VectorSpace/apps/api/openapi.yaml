@@ -3341,6 +3341,12 @@ components:
           - type: string
           - type: 'null'
           title: Assigned By Name
+        mission_brief:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Mission Brief
         sent:
           type: boolean
           title: Sent
