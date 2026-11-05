@@ -298,6 +298,7 @@ export interface CardTask {
   kind: 'blanks' | 'prompts'
   fields: CardField[]
   objectId?: string   // the thing in the template the teacher suggests this card for
+  inRoom?: boolean    // a card started from this task begins as a sign in the room
 }
 
 /**
@@ -356,8 +357,8 @@ export interface TextAttachment extends AttachmentBase { kind: 'text'; assetId: 
  * time, so no bytes or URLs are ever stored in ProjectData.
  */
 export interface ImageAttachment extends AttachmentBase { kind: 'image'; assetId: string }
-// screen: the video also plays on a screen above its thing in the room (uploaded files;
-// a YouTube video shows a "click to watch" poster there, as a 3D surface cannot hold YouTube)
+// screen: saves from when a video could also show on a screen in the room; no longer used,
+// kept so those saves load
 export interface VideoAttachment extends AttachmentBase { kind: 'video'; assetId: string; screen?: boolean }
 export type Attachment = AudioAttachment | TextAttachment | ImageAttachment | VideoAttachment
 

@@ -495,8 +495,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     const { requestRender } = scheduler
     requestRenderRef.current = requestRender
 
-    // Info inside the room: fact cards shown as signs and videos on screens above their
-    // things (see inRoomMedia.ts). Rebuilt with the objects, placed every frame.
+    // Info inside the room: fact cards shown as signs above their things (see
+    // inRoomMedia.ts). Rebuilt with the objects, placed every frame.
     const inRoom = createInRoomMedia({
       scene,
       objectsGroup,
@@ -599,10 +599,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       // video if it has no card, before and alongside any reactions the student added.
       if (event.kind === 'click' && event.objectId) {
         const panel = clickPanelFor((dataRef.current.objects as readonly SceneObject[]).find((object) => object.id === event.objectId))
-        // a video already playing on a screen in the room: the click turns its sound on or
-        // off instead of opening a second, pop-up copy of it
-        const screenHandled = panel?.id.startsWith('video:') === true && inRoom.click(event.objectId)
-        if (panel && !screenHandled) {
+        if (panel) {
           const handle = text.open(panel)
           effects.add(() => handle.close())
         }
@@ -1004,8 +1001,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         statsWindowStart = now
         if (!statsOn) setStats(null)
       }
-      // signs and screens follow their things and turn to the viewer; a playing video needs frames
-      if (inRoom.update(activeCameraRef.current, playing)) requestRender()
+      // signs follow their things and turn to the viewer
+      inRoom.update(activeCameraRef.current)
       if (!playing && !statsOn && !scheduler.shouldRender(activeCameraRef.current, controls.target)) return
       syncGizmoFrame()
       drawNow(now)

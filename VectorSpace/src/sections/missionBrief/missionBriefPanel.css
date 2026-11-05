@@ -145,6 +145,24 @@
   min-width: 0;
 }
 
+/* a card assigned to a thing: the row is a button that goes to it */
+.mb-todo-go {
+  width: calc(100% + 16px);
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mb-todo-go:hover { background: #F0EDFB; }
+.mb-todo-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mb-todo-go-icon { flex-shrink: 0; margin-left: -4px; color: var(--text-muted); }
+
 /* a finished to-do is crossed out and greyed, so what is left stands out */
 .mb-todo-done .mb-todo-text {
   color: var(--text-muted);
