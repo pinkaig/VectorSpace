@@ -65,7 +65,7 @@ export function ProjectDetailsSection({ className, due, draft, onChange }: Proje
     setCatalogues((list) => list.map((cat) => (cat.id === id ? { ...cat, on: !cat.on } : cat)));
 
   return (
-    <section className="setup-panel">
+    <section className="ui-panel setup-panel">
       <h2 className="setup-panel-title">Project details</h2>
       <dl className="details-summary">{/*SUMMARY: label on the left, value on the right*/}
         <div>

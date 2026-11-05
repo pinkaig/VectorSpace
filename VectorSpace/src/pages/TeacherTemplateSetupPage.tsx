@@ -300,7 +300,7 @@ function SetupScreen({ start }: { start: SetupStart }) {
 
   return (
     <main className="setup-shell">
-      <header className="setup-header">{/*HEADER: which project this is (left), what the teacher can do with it (right)*/}
+      <header className="ui-panel setup-header">{/*HEADER: which project this is (left), what the teacher can do with it (right)*/}
         <div className="setup-header-project">
           <Link to="/teacher" className="setup-header-icon" title="Back to home"><Box size={22} /></Link>{/* the cube goes back to the teacher home page */}
           <div>

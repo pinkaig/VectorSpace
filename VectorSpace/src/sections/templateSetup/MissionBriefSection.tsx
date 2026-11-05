@@ -1,7 +1,7 @@
 /**
  * @file        MissionBriefSection.tsx
  * @project     VectorSpace
- * @author      <your name>
+ * @author      Daniel
  * @brief       Template setup, left panel: the mission brief students see after the tutorial.
  *              The teacher edits the due date, the to-dos and the rules in plain English.
  *
@@ -16,8 +16,8 @@
  *              info cards students are asked to complete: fill in the blanks or questions.
  *
  *              The brief itself lives in the page (it is passed in and changed through
- *              onChange) so other parts of the page can read it. NOT SAVED YET: nothing is
- *              sent to the API.
+ *              onChange) so other parts of the page can read it. The page saves it, tidied by
+ *              tidyBrief(), when the teacher assigns the template.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -46,11 +46,17 @@ type MissionBriefSectionProps = {
   things?: { id: string; name: string; room: string }[];
 };
 
+// the two lists in a brief that are edited the same way: rows of { id, text }
+type BriefListKey = "todos" | "rules";
+const ID_PREFIX = { todos: "todo", rules: "rule" } as const;
+
+type Tab = "brief" | "cards";
+
 export function MissionBriefSection({ brief, onChange, things = [] }: MissionBriefSectionProps) {
   // the row just added, so its text box can take the cursor straight away
   const [focusId, setFocusId] = useState<string | null>(null);
   // which tab of the panel shows: the brief itself, or the info cards students complete
-  const [tab, setTab] = useState<"brief" | "cards">("brief");
+  const [tab, setTab] = useState<Tab>("brief");
   const taskCount = brief.cardTasks?.length ?? 0;
 
   // to-dos that cannot both be ticked; worked out again on every keystroke
@@ -60,44 +66,48 @@ export function MissionBriefSection({ brief, onChange, things = [] }: MissionBri
     return others?.map((other) => `"${brief.todos[other].text.trim()}"`).join(", ");
   };
 
-  // ── to-dos ──
-  const addTodo = () => {
-    const id = newBriefId("todo");
-    onChange({ ...brief, todos: [...brief.todos, { id, text: "" }] });
+  // ── adding, editing and removing rows (to-dos and rules work the same way) ──
+  const addRow = (list: BriefListKey) => {
+    const id = newBriefId(ID_PREFIX[list]);
+    onChange({ ...brief, [list]: [...brief[list], { id, text: "" }] });
     setFocusId(id);
   };
-  const editTodo = (id: string, text: string) =>
-    onChange({ ...brief, todos: brief.todos.map((todo) => (todo.id === id ? { ...todo, text } : todo)) });
-  const removeTodo = (id: string) => onChange({ ...brief, todos: brief.todos.filter((todo) => todo.id !== id) });
-
-  // ── rules ──
-  const addRule = () => {
-    const id = newBriefId("rule");
-    onChange({ ...brief, rules: [...brief.rules, { id, text: "" }] });
-    setFocusId(id);
-  };
-  const editRule = (id: string, text: string) =>
-    onChange({ ...brief, rules: brief.rules.map((rule) => (rule.id === id ? { ...rule, text } : rule)) });
-  const removeRule = (id: string) => onChange({ ...brief, rules: brief.rules.filter((rule) => rule.id !== id) });
+  const editRow = (list: BriefListKey, id: string, text: string) =>
+    onChange({ ...brief, [list]: brief[list].map((row) => (row.id === id ? { ...row, text } : row)) });
+  const removeRow = (list: BriefListKey, id: string) =>
+    onChange({ ...brief, [list]: brief[list].filter((row) => row.id !== id) });
 
   // Enter in a to-do or rule box starts the next one, like a list in a document
-  const enterAdds = (add: () => void) => (event: KeyboardEvent<HTMLInputElement>) => {
+  const enterAdds = (list: BriefListKey) => (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      add();
+      addRow(list);
     }
   };
 
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "brief", label: "Brief" },
+    { id: "cards", label: `Info card tasks${taskCount > 0 ? ` · ${taskCount}` : ""}` },
+  ];
+
   return (
-    <section className="setup-panel">
-      <h2 className="setup-panel-title">Mission brief</h2>{/*TITLE*/}
-      <div className="brief-tabs" role="tablist">{/*TABS: the brief, or the info cards students complete*/}
-        <button type="button" role="tab" aria-selected={tab === "brief"} className={tab === "brief" ? "brief-tab active" : "brief-tab"} onClick={() => setTab("brief")}>
-          Brief
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "cards"} className={tab === "cards" ? "brief-tab active" : "brief-tab"} onClick={() => setTab("cards")}>
-          Info card tasks{taskCount > 0 ? ` · ${taskCount}` : ""}
-        </button>
+    <section className="ui-panel setup-panel">
+      <h2 className="setup-panel-title">Mission brief</h2>
+
+      {/* TABS: the brief, or the info cards students complete */}
+      <div className="brief-tabs" role="tablist">
+        {tabs.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? "brief-tab active" : "brief-tab"}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
       {tab === "cards" ? <CardTasksSection brief={brief} onChange={onChange} things={things} /> : <>
       <p className="setup-panel-note">Students see this after the tutorial. It folds up while they work.</p>
@@ -119,38 +129,41 @@ export function MissionBriefSection({ brief, onChange, things = [] }: MissionBri
               maxLength={MAX_TEXT}
               value={todo.text}
               autoFocus={todo.id === focusId}
-              onChange={(event) => editTodo(todo.id, event.target.value)}
-              onKeyDown={enterAdds(addTodo)}
+              onChange={(event) => editRow("todos", todo.id, event.target.value)}
+              onKeyDown={enterAdds("todos")}
             />
-            <TodoChip text={todo.text} clashesWith={clashText(index)} />
-            <button type="button" className="brief-remove" onClick={() => removeTodo(todo.id)}>
-              <X size={16} />
-            </button>
-          </li>
-        ))}
-      </ul>
-      <Button variant="add" size="small" className="brief-add" onClick={addTodo}>+ Add a to-do</Button>
-      <h3 className="setup-heading">Rules</h3>{/*RULES: free text; students read these, nothing checks them*/}
-      <ul className="brief-list">
-        {brief.rules.map((rule, index) => (
-          <li key={rule.id} className="brief-item">
-            <input
-              className="ui-input brief-input"
-              placeholder="e.g. Keep everything school-appropriate"
-              maxLength={MAX_TEXT}
-              value={rule.text}
-              autoFocus={rule.id === focusId}
-              onChange={(event) => editRule(rule.id, event.target.value)}
-              onKeyDown={enterAdds(addRule)}
-            />
-            <button type="button" className="brief-remove" onClick={() => removeRule(rule.id)}>
-              <X size={16} />
-            </button>
-          </li>
-        ))}
-      </ul>
-      <Button variant="add" size="small" className="brief-add" onClick={addRule}>+ Add a rule</Button>
-      </>}
+                <TodoChip text={todo.text} clashesWith={clashText(index)} />
+                <button type="button" className="ui-icon-btn brief-remove" onClick={() => removeRow("todos", todo.id)}>
+                  <X size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Button variant="add" size="small" className="brief-add" onClick={() => addRow("todos")}>+ Add a to-do</Button>
+
+          {/* RULES: free text; students read these, nothing checks them */}
+          <h3 className="setup-heading">Rules</h3>
+          <ul className="brief-list">
+            {brief.rules.map((rule) => (
+              <li key={rule.id} className="brief-item">
+                <input
+                  className="ui-input brief-input"
+                  placeholder="e.g. Keep everything school-appropriate"
+                  maxLength={MAX_TEXT}
+                  value={rule.text}
+                  autoFocus={rule.id === focusId}
+                  onChange={(event) => editRow("rules", rule.id, event.target.value)}
+                  onKeyDown={enterAdds("rules")}
+                />
+                <button type="button" className="ui-icon-btn brief-remove" onClick={() => removeRow("rules", rule.id)}>
+                  <X size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Button variant="add" size="small" className="brief-add" onClick={() => addRow("rules")}>+ Add a rule</Button>
+        </>
+      }
     </section>
   );
 }

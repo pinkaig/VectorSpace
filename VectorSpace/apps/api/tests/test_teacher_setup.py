@@ -100,3 +100,19 @@ def test_push_setup_leaves_work_under_review_alone(client, school) -> None:
     save(client, template["id"], project([], spots=[SPOT]))
     assert client.post(f"/projects/{template['id']}/push-setup", headers=as_user("t1")).json() == {"updated": 0, "skipped": 1}
     assert "spots" not in latest(client, copy["id"])["scenes"][0]
+
+
+def test_edited_brief_reaches_copies_already_sent(client, school) -> None:
+    template = client.post("/projects", json={"name": "Lesson"}, headers=as_user("t1")).json()
+    first = {"due": "Friday", "todos": [{"id": "t1", "text": "Add 3 exhibits"}], "rules": []}
+    save(client, template["id"], {**project([]), "missionBrief": first})
+    copy = client.post(f"/projects/{template['id']}/assign", json={"student_id": str(school["s1"].id)}, headers=as_user("t1")).json()
+    assert client.get(f"/projects/{copy['id']}", headers=as_user("s1")).json()["mission_brief"] == first
+
+    # the teacher edits the brief after sending, saves, and Assign pushes the setup
+    edited = {"due": "Monday", "todos": [{"id": "t1", "text": "Add 5 exhibits"}], "rules": []}
+    save(client, template["id"], {**project([]), "missionBrief": edited})
+    client.post(f"/projects/{template['id']}/push-setup", headers=as_user("t1"))
+    assert client.get(f"/projects/{copy['id']}", headers=as_user("s1")).json()["mission_brief"] == edited
+    # the teacher's own project carries its brief in its content, not on the row
+    assert client.get(f"/projects/{template['id']}", headers=as_user("t1")).json()["mission_brief"] is None

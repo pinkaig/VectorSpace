@@ -80,6 +80,9 @@ class ProjectResponse(BaseModel):
     task: str | None = None
     due_at: date | None = None
     assigned_by_name: str | None = None
+    # the teacher's current mission brief, read from the assignment (student copies only), so a
+    # brief edited after sending reaches copies already sent: the editor puts it over the copy's own
+    mission_brief: dict[str, Any] | None = None
     # a copy of this project has been sent to at least one student (it has an assignment)
     sent: bool = False
     # how many students' copies of this project are published (0 for a student's own copy)
@@ -162,6 +165,8 @@ def _describe(db: Session, projects: list[Project]) -> list[ProjectResponse]:
                     "task": assignment.task if assignment else None,
                     "due_at": assignment.due_at if assignment else None,
                     "assigned_by_name": people.get(assignment.created_by_id) if assignment else None,
+                    # only a student's copy: the teacher's own project keeps the brief in its content
+                    "mission_brief": assignment.mission_brief if p.assignment_id and assignment else None,
                     "sent": p.id in sent,
                     "published_copies": published_copies.get(p.id, 0),
                     "assignment_ids": [a for a, source in assignment_source.items() if source == p.id],
@@ -316,6 +321,10 @@ def assign_project(
         assignment.task = body.task
     if body.due_at is not None:
         assignment.due_at = body.due_at
+    # the brief the teacher just saved in the source is the one every copy in this assignment shows
+    brief = _saved_brief(db, source)
+    if brief is not None:
+        assignment.mission_brief = brief
     db.flush()
     copy = _send_copy(db, source, student, shared[0], actor)
     copy.assignment_id = assignment.id
@@ -343,6 +352,14 @@ def push_project_setup(
         raise HTTPException(status_code=403, detail="You cannot change this project")
     updated, skipped = push_setup(db, source, actor)
     return PushSetupResponse(updated=updated, skipped=skipped)
+
+
+def _saved_brief(db: Session, source: Project) -> dict[str, Any] | None:
+    """The mission brief in source's latest save, or None if it has none."""
+    latest = db.get(ProjectVersion, source.current_version_id) if source.current_version_id else None
+    data = latest.content_snapshot.data if latest and latest.content_snapshot else None
+    brief = data.get("missionBrief") if isinstance(data, dict) else None
+    return brief if isinstance(brief, dict) else None
 
 
 def _send_copy(db: Session, source: Project, student: Actor, class_id: uuid.UUID, sender: Actor) -> Project:
