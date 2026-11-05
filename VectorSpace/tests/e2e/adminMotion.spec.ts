@@ -54,7 +54,7 @@ test('a disabled button cannot be clicked and looks disabled', async ({ page }) 
 })
 
 test.describe('with reduced motion asked for', () => {
-  test.use({ reducedMotion: 'reduce' })
+  test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
   test('the four admin pages still render and no element is left mid-animation', async ({ page }) => {
     await signInAsAdmin(page)
