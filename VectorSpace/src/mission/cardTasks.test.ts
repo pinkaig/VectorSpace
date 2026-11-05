@@ -92,13 +92,16 @@ describe('tidying and saving', () => {
       { id: 'att-video', kind: 'video', assetId: 'clip', screen: true },
     ]
     project.scenes[0].objects.push(thing)
-    project.missionBrief = { due: '', todos: [], rules: [], cardTasks: [{ ...blanksTask, objectId: 'obj-1' }] }
+    project.missionBrief = { due: '', todos: [], rules: [], cardTasks: [{ ...blanksTask, objectId: 'obj-1', inRoom: true }] }
     const loaded = deserializeProject(serializeProject(project))
-    expect(loaded.missionBrief?.cardTasks?.[0].objectId).toBe('obj-1')
+    expect(loaded.missionBrief?.cardTasks?.[0]).toMatchObject({ objectId: 'obj-1', inRoom: true })
     expect(loaded.scenes[0].objects[0].attachments).toEqual(thing.attachments)
     const bad = JSON.parse(serializeProject(project))
     bad.scenes[0].objects[0].attachments[1].screen = 'yes'
     expect(() => deserializeProject(JSON.stringify(bad))).toThrow(/screen setting/)
+    const badTask = JSON.parse(serializeProject(project))
+    badTask.missionBrief.cardTasks[0].inRoom = 'yes'
+    expect(() => deserializeProject(JSON.stringify(badTask))).toThrow(/invalid info card task/)
   })
 
   it('refuses a task of an unknown kind or with a bad field', () => {

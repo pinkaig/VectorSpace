@@ -1,31 +1,22 @@
 /**
  * @file        inRoomMedia.ts
  * @author      Weian Ching
- * @brief       Info inside the 3D room: an info card shown as a sign above its
- *              thing, and a video playing on a screen above its thing.
+ * @brief       Info inside the 3D room: an info card shown as a sign above its thing.
  *
  * @responsibility
- * The built-in, in-room way to show a fact card or a video (as well as the
- * pop-up a click opens). For each thing whose card has `inRoom`, a sign with
- * the title, a picture and the text floats above it; for each thing whose
- * video has `screen`, a screen does. Both always turn to face the viewer.
- * - An uploaded video plays on the screen (three.js VideoTexture), muted and
- *   looping while in Play; clicking the thing turns its sound on and off. In
- *   the editor the screen shows a still frame.
- * - A YouTube video cannot be drawn onto a 3D surface (the browser will not
- *   hand its pixels to WebGL), so its screen is a "click to watch" poster and a
- *   click opens the usual pop-up player.
- * Signs and screens are never picked by clicks; the thing under them is.
+ * The built-in, in-room way to show a fact card (as well as the pop-up a click
+ * opens). For each thing whose card has `inRoom`, a sign with the title, a
+ * picture and the text floats above it, always turned to face the viewer.
+ * Signs are never picked by clicks; the thing under them is.
  *
  * @documentation
  * src/runtime/builtInInteractions.ts (the pop-up side of the same behaviour).
  */
 import * as THREE from 'three'
 import type { AssetDescriptor, AssetRef } from '../../packages/assets/src/index'
-import type { SceneObject, TextAssetMeta, TextAttachment, VideoAttachment } from '../project/model'
+import type { SceneObject, TextAssetMeta, TextAttachment } from '../project/model'
 
 const SIGN_WIDTH = 1.4                    // world units
-const SCREEN_WIDTH = 1.6
 const GAP_ABOVE = 0.25                    // between the thing's top and the sign's bottom
 const CANVAS_WIDTH = 1024
 const FONT = "'Nunito', system-ui, sans-serif"
@@ -36,7 +27,6 @@ type Resolve = (ref: AssetRef) => Promise<AssetDescriptor>
 interface Item {
   signature: string
   mesh: THREE.Mesh
-  video?: HTMLVideoElement
   dispose: () => void
 }
 
@@ -132,37 +122,10 @@ const drawSign = (title: string, text: string, picture: HTMLImageElement | null)
   return canvas
 }
 
-/** The poster a YouTube screen shows: a play button and "click to watch". */
-const drawPoster = (): HTMLCanvasElement => {
-  const canvas = document.createElement('canvas')
-  canvas.width = CANVAS_WIDTH
-  canvas.height = CANVAS_WIDTH * 9 / 16
-  const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = '#1F1B3A'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  const cx = canvas.width / 2
-  const cy = canvas.height / 2 - 30
-  ctx.fillStyle = '#E62117'
-  roundRect(ctx, cx - 90, cy - 62, 180, 124, 34)
-  ctx.fill()
-  ctx.fillStyle = '#FFFFFF'
-  ctx.beginPath()
-  ctx.moveTo(cx - 26, cy - 36)
-  ctx.lineTo(cx + 40, cy)
-  ctx.lineTo(cx - 26, cy + 36)
-  ctx.closePath()
-  ctx.fill()
-  ctx.font = `700 44px ${FONT}`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  ctx.fillText('YouTube video · click to watch', cx, cy + 96)
-  return canvas
-}
-
 const makePlane = (width: number, height: number, texture: THREE.Texture | null): THREE.Mesh => {
   const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, toneMapped: false, color: texture ? 0xffffff : 0x1f1b3a })
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)
-  // signs and screens are labels: the thing below them takes the clicks
+  // signs are labels: the thing below them takes the clicks
   mesh.raycast = () => {}
   mesh.renderOrder = 5
   return mesh
@@ -170,16 +133,12 @@ const makePlane = (width: number, height: number, texture: THREE.Texture | null)
 
 const findCardOn = (object: SceneObject) =>
   object.attachments?.find((item): item is TextAttachment => item.kind === 'text' && item.presentation.mode === 'card' && item.presentation.inRoom === true)
-const findScreenOn = (object: SceneObject) =>
-  object.attachments?.find((item): item is VideoAttachment => item.kind === 'video' && item.screen === true)
 
 export interface InRoomMedia {
-  /** Rebuilds signs and screens for these things; cheap when nothing they show changed. */
+  /** Rebuilds the signs for these things; cheap when nothing they show changed. */
   sync(objects: readonly SceneObject[]): void
-  /** Places each above its thing, facing the camera. Returns true while a video needs frames. */
-  update(camera: THREE.Camera, playing: boolean): boolean
-  /** A click on a thing in Play: toggles its screen's sound. True when it had a playing screen. */
-  click(objectId: string): boolean
+  /** Places each above its thing, facing the camera. */
+  update(camera: THREE.Camera): void
   dispose(): void
 }
 
@@ -236,69 +195,12 @@ export const createInRoomMedia = (opts: {
     }
   }
 
-  const buildScreen = (video: VideoAttachment, signature: string): Item => {
-    const mesh = makePlane(SCREEN_WIDTH, SCREEN_WIDTH * 9 / 16, null)
-    let alive = true
-    let texture: THREE.Texture | null = null
-    const item: Item = {
-      signature,
-      mesh,
-      dispose: () => {
-        alive = false
-        if (item.video) {
-          item.video.pause()
-          item.video.removeAttribute('src')
-          item.video.load()
-        }
-        texture?.dispose()
-        mesh.geometry.dispose()
-        ;(mesh.material as THREE.Material).dispose()
-      },
-    }
-    const setTexture = (next: THREE.Texture, aspect: number) => {
-      texture = next
-      const material = mesh.material as THREE.MeshBasicMaterial
-      material.map = next
-      material.color.set(0xffffff)
-      material.needsUpdate = true
-      mesh.geometry.dispose()
-      mesh.geometry = new THREE.PlaneGeometry(SCREEN_WIDTH, SCREEN_WIDTH / aspect)
-      opts.requestRender()
-    }
-    void opts.resolveMedia({ kind: 'video', assetId: video.assetId }).then((descriptor) => {
-      if (!alive) return
-      if (descriptor.status === 'ready' && descriptor.embed) {
-        const poster = new THREE.CanvasTexture(drawPoster())
-        poster.colorSpace = THREE.SRGBColorSpace
-        setTexture(poster, 16 / 9)
-        return
-      }
-      if (descriptor.status !== 'ready' || !descriptor.url) return
-      const element = document.createElement('video')
-      element.crossOrigin = 'anonymous'
-      element.muted = true
-      element.loop = true
-      element.playsInline = true
-      element.preload = 'auto'
-      element.src = descriptor.url
-      element.addEventListener('loadeddata', () => {
-        if (!alive) return
-        const videoTexture = new THREE.VideoTexture(element)
-        videoTexture.colorSpace = THREE.SRGBColorSpace
-        setTexture(videoTexture, element.videoWidth && element.videoHeight ? element.videoWidth / element.videoHeight : 16 / 9)
-      }, { once: true })
-      item.video = element
-    })
-    return item
-  }
-
   return {
     sync(objects) {
       const wanted = new Set<string>()
       for (const object of objects) {
         if (object.visible === false) continue
         const card = findCardOn(object)
-        const screen = findScreenOn(object)
         if (card) {
           const key = `sign:${object.id}`
           const meta = opts.getText(card.assetId)
@@ -310,26 +212,9 @@ export const createInRoomMedia = (opts: {
             if (current) group.remove(current.mesh)
             const item = buildSign(object, card, signature)
             item.mesh.userData.objectId = object.id
-            item.mesh.userData.stack = 0
             items.set(key, item)
             group.add(item.mesh)
           }
-        }
-        if (screen) {
-          const key = `screen:${object.id}`
-          const signature = screen.assetId
-          wanted.add(key)
-          const current = items.get(key)
-          if (!current || current.signature !== signature) {
-            current?.dispose()
-            if (current) group.remove(current.mesh)
-            const item = buildScreen(screen, signature)
-            item.mesh.userData.objectId = object.id
-            items.set(key, item)
-            group.add(item.mesh)
-          }
-          // a thing with both: the screen sits above the sign
-          items.get(key)!.mesh.userData.stack = card ? 1 : 0
         }
       }
       for (const [key, item] of items) {
@@ -341,12 +226,8 @@ export const createInRoomMedia = (opts: {
       opts.requestRender()
     },
 
-    update(camera, playing) {
-      let needsFrames = false
-      const signTops = new Map<string, number>()
-      // signs first, so a screen on the same thing can stack above its sign
-      const ordered = [...items.values()].sort((a, b) => (a.mesh.userData.stack as number) - (b.mesh.userData.stack as number))
-      for (const item of ordered) {
+    update(camera) {
+      for (const item of items.values()) {
         const objectId = item.mesh.userData.objectId as string
         const thing = opts.objectsGroup.getObjectByName(objectId)
         if (!thing) {
@@ -356,28 +237,12 @@ export const createInRoomMedia = (opts: {
         box.setFromObject(thing)
         if (box.isEmpty()) continue
         const height = (item.mesh.geometry as THREE.PlaneGeometry).parameters.height
-        const base = signTops.get(objectId) ?? box.max.y + GAP_ABOVE
-        item.mesh.position.set((box.min.x + box.max.x) / 2, base + height / 2, (box.min.z + box.max.z) / 2)
-        signTops.set(objectId, base + height + 0.1)
+        item.mesh.position.set((box.min.x + box.max.x) / 2, box.max.y + GAP_ABOVE + height / 2, (box.min.z + box.max.z) / 2)
         // turn to face the viewer, staying upright
         camera.getWorldPosition(target)
         target.y = item.mesh.position.y
         item.mesh.lookAt(target)
-        if (item.video) {
-          if (playing && item.video.paused) void item.video.play().catch(() => undefined)
-          if (!playing && !item.video.paused) item.video.pause()
-          if (!item.video.paused) needsFrames = true
-        }
       }
-      return needsFrames
-    },
-
-    click(objectId) {
-      const item = items.get(`screen:${objectId}`)
-      if (!item?.video) return false
-      item.video.muted = !item.video.muted
-      if (item.video.paused) void item.video.play().catch(() => undefined)
-      return true
     },
 
     dispose() {

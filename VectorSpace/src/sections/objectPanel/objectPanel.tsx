@@ -79,8 +79,8 @@ export type ObjectPanelProps = {
   onAddMediaLink?: (url: string) => MediaChoice | { error: string }
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
-  video?: { attachmentId?: string; assetId: string; label: string; screen?: boolean } | null
-  onSaveVideo?: (assetId: string, screen: boolean) => string | null
+  video?: { attachmentId?: string; assetId: string; label: string } | null
+  onSaveVideo?: (assetId: string) => string | null
   onRemoveVideo?: () => void
 }
 

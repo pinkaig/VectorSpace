@@ -51,6 +51,15 @@ def test_merge_unlocks_and_clears_spots() -> None:
     assert "spots" not in merged["scenes"][0]
 
 
+def test_merge_carries_the_mission_brief() -> None:
+    brief = {"due": "", "todos": [], "rules": [], "cardTasks": [{"id": "task-1", "objectId": "bench"}]}
+    merged = merge_setup({**project([thing("bench")]), "missionBrief": brief}, {**project([thing("bench")]), "missionBrief": {"due": "", "todos": [], "rules": []}})
+    assert merged["missionBrief"] == brief
+    # a template with no brief leaves the copy's as it is
+    kept = merge_setup(project([]), {**project([]), "missionBrief": brief})
+    assert kept["missionBrief"] == brief
+
+
 def save(client, project_id: str, data: dict, key: str = "t1") -> None:
     current = client.get(f"/projects/{project_id}/versions", headers=as_user(key)).json()
     base = current[0]["revision"] if current else 0
@@ -91,3 +100,19 @@ def test_push_setup_leaves_work_under_review_alone(client, school) -> None:
     save(client, template["id"], project([], spots=[SPOT]))
     assert client.post(f"/projects/{template['id']}/push-setup", headers=as_user("t1")).json() == {"updated": 0, "skipped": 1}
     assert "spots" not in latest(client, copy["id"])["scenes"][0]
+
+
+def test_edited_brief_reaches_copies_already_sent(client, school) -> None:
+    template = client.post("/projects", json={"name": "Lesson"}, headers=as_user("t1")).json()
+    first = {"due": "Friday", "todos": [{"id": "t1", "text": "Add 3 exhibits"}], "rules": []}
+    save(client, template["id"], {**project([]), "missionBrief": first})
+    copy = client.post(f"/projects/{template['id']}/assign", json={"student_id": str(school["s1"].id)}, headers=as_user("t1")).json()
+    assert client.get(f"/projects/{copy['id']}", headers=as_user("s1")).json()["mission_brief"] == first
+
+    # the teacher edits the brief after sending, saves, and Assign pushes the setup
+    edited = {"due": "Monday", "todos": [{"id": "t1", "text": "Add 5 exhibits"}], "rules": []}
+    save(client, template["id"], {**project([]), "missionBrief": edited})
+    client.post(f"/projects/{template['id']}/push-setup", headers=as_user("t1"))
+    assert client.get(f"/projects/{copy['id']}", headers=as_user("s1")).json()["mission_brief"] == edited
+    # the teacher's own project carries its brief in its content, not on the row
+    assert client.get(f"/projects/{template['id']}", headers=as_user("t1")).json()["mission_brief"] is None
