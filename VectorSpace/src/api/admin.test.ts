@@ -112,7 +112,7 @@ describe('admin api', () => {
     await expect(api().addSchool('New School')).rejects.toThrow(/operator role/)
   })
 
-  it('still answers permissions and rooms from memory, because no table holds them', async () => {
+  it('still answers permissions from memory, because no table holds them', async () => {
     // no fetch stub on purpose: these must not reach the network
     const admin = api()
     const rows = await admin.getPermissions('org-1')
@@ -120,8 +120,26 @@ describe('admin api', () => {
 
     await admin.savePermissions('org-1', rows.map((row) => ({ ...row, students: true })))
     expect((await admin.getPermissions('org-1')).every((row) => row.students)).toBe(true)
+  })
 
-    const rooms = await admin.getRooms('org-1')
-    expect(rooms.packs.find((pack) => pack.id === 'museum-basics')?.locked).toBe(true)
+  it('reads asset packs from the API and keeps room shells in memory', async () => {
+    const fetchMock = reply([{ id: 'p1', slug: 'fossils', title: 'Fossils', description: null, kind: 'objects', item_count: 6, revision: 1, enabled: true }])
+    vi.stubGlobal('fetch', fetchMock)
+    const rooms = await api().getRooms('org-1')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/admin/schools/org-1/packs')
+    expect(rooms.packs).toEqual([{ id: 'p1', name: 'Fossils', description: '', enabled: true, itemCount: 6 }])
+    expect(rooms.environments.length).toBeGreaterThan(0)
+  })
+
+  it('saves a pack switch to the API, but an environment switch only in memory', async () => {
+    const fetchMock = reply({})
+    vi.stubGlobal('fetch', fetchMock)
+    await api().setRoomEnabled('org-1', 'pack', 'p1', false)
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/admin/schools/org-1/packs/p1')
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('PATCH')
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ enabled: false })
+
+    await api().setRoomEnabled('org-1', 'environment', 'classroom', false)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

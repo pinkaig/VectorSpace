@@ -141,6 +141,18 @@ const rejectionMessage = (error: unknown, who: string): string =>
     ? `${who || 'That login'} is signed in, but it has no account on this platform. Use the account your school gave you.`
     : `Could not finish signing in: ${error instanceof Error ? error.message : String(error)}`
 
+// The Auth0 error codes that mean "this browser can no longer get a token without the person
+// signing in again": the refresh token is missing, expired or revoked, or Auth0 wants a login.
+// Anything else (a network blip, a timeout) is not a lost session and must not sign anyone out.
+const LOST_SESSION_CODES = new Set(['login_required', 'missing_refresh_token', 'invalid_grant', 'consent_required', 'interaction_required'])
+
+/** True when an error from getAccessTokenSilently means the sign-in is gone, not just a failed request. */
+export const isLostSession = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && LOST_SESSION_CODES.has(String((error as { error?: unknown }).error))
+
+/** What the login page says after a session ran out under an open page. */
+const sessionExpiredNotice = 'Your sign-in expired. Sign in again to carry on.'
+
 type Session = {
   role: Role | null
   admin: boolean
@@ -149,6 +161,10 @@ type Session = {
   // one lands here. The message is for the login page, which must then offer a way out:
   // the provider still holds that session, so "Sign in" alone would only fail again.
   rejected: string | null
+  // Set when a sign-in that was working stopped being able to get a token (Auth0 mode only).
+  // The cached role is dropped at the same moment, so no page keeps looking signed in while
+  // every API call is refused; the login page shows this text.
+  notice: string | null
   // the name shown in the top bar: the server's display_name, or a fixed one while offline
   displayName: string
   // resolves with where the person landed (role and admin flag as the server decided them);
@@ -210,6 +226,8 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<boolean>(readStoredAdmin)
   const [displayName, setDisplayName] = useState<string>(() => readStored(NAME_STORAGE_KEY) ?? '')
   const [rejected, setRejected] = useState<string | null>(null)
+  // the session ran out under an open page: getAccessTokenSilently can no longer renew it
+  const [expired, setExpired] = useState(false)
 
   // how to name the Auth0 identity back to the person, so a refusal says which account
   // they used rather than only that something failed
@@ -219,9 +237,11 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated) return null
     try {
       return await getAccessTokenSilently()
-    } catch {
-      // the refresh token expired or was revoked: treat it as signed out rather than
-      // sending the API a token we know it will reject
+    } catch (error) {
+      // The refresh token expired or was revoked. Returning null alone left the page showing
+      // the cached name and role while every request came back 401, so also mark the session
+      // as lost: the effect below drops the cache and the guards send the person to /login.
+      if (isLostSession(error)) setExpired(true)
       return null
     }
   }, [isAuthenticated, getAccessTokenSilently])
@@ -276,8 +296,14 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
     }
     // asked once per Auth0 session: a refusal is remembered, so this effect does not keep
     // re-asking /me on every render for an identity the server has already turned away
+    // A lost session keeps Auth0's cached user (isAuthenticated stays true) but cannot get a
+    // token, so asking /me again would only fail: drop the cached role and wait for a sign-in.
+    if (expired) {
+      if (role !== null || displayName !== '') forget()
+      return
+    }
     if (role === null && rejected === null) askWhoIAm().catch(() => forget())
-  }, [isLoading, isAuthenticated, role, displayName, rejected, askWhoIAm, forget])
+  }, [isLoading, isAuthenticated, role, displayName, rejected, expired, askWhoIAm, forget])
 
   const session = useMemo<Session>(
     () => ({
@@ -285,6 +311,7 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
       admin,
       displayName,
       rejected,
+      notice: expired ? sessionExpiredNotice : null,
       // the role and admin arguments are ignored here: nobody chooses what they are in
       // Auth0 mode. They stay in the signature so the login page and every caller are
       // the same in both modes.
@@ -292,7 +319,8 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
         // a refused identity is still signed in at Auth0, so asking it again would only be
         // refused again: hand the browser back to the hosted page, where another account can
         // be given. prompt=login stops Auth0 from silently reusing the same session.
-        if (isAuthenticated && rejected === null) return askWhoIAm()
+        // A lost session goes back to the hosted page too: there is no token to ask /me with.
+        if (isAuthenticated && rejected === null && !expired) return askWhoIAm()
         await loginWithRedirect({
           appState: { returnTo: window.location.hash },
           authorizationParams: rejected === null ? undefined : { prompt: 'login' },
@@ -310,10 +338,11 @@ function Auth0SessionProvider({ children }: { children: ReactNode }) {
       signOut: () => {
         forget()
         setRejected(null)
+        setExpired(false)
         logout({ logoutParams: { returnTo: auth0RedirectUri() } })
       },
     }),
-    [role, admin, displayName, rejected, isAuthenticated, loginWithRedirect, logout, getToken, askWhoIAm, forget],
+    [role, admin, displayName, rejected, expired, isAuthenticated, loginWithRedirect, logout, getToken, askWhoIAm, forget],
   )
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>
 }
@@ -334,6 +363,8 @@ function PickerSessionProvider({ children }: { children: ReactNode }) {
       // nothing to be stranded by: the picker's buttons stand for seeded people, and a
       // server that refuses one is reported by signIn's rejection like any other failure
       rejected: null,
+      // a picker token is a fixed "dev|" name that never expires
+      notice: null,
       signIn: async (next, options) => {
         let landedAs = next
         let asAdmin = adminOverrideEnabled && options?.admin === true

@@ -8,6 +8,15 @@
     "status": 204,
     "response": null
   },
+  "DELETE /api/v1/packs/{slug}": {
+    "path_params": {
+      "slug": "scratch"
+    },
+    "query": {},
+    "request": null,
+    "status": 204,
+    "response": null
+  },
   "DELETE /api/v1/projects/{project_id}": {
     "path_params": {
       "project_id": "51a4c185-d5dd-4b19-bcfe-2ed14926bbb2"
@@ -137,6 +146,26 @@
       }
     ]
   },
+  "GET /api/v1/admin/schools/{school}/packs": {
+    "path_params": {
+      "school": "371a1623-8b65-437a-b12f-ea108f0f78de"
+    },
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": [
+      {
+        "id": "6bc715f7-8dc5-43a2-afe6-d8c71e0185b3",
+        "slug": "fossils",
+        "title": "Fossils",
+        "description": null,
+        "kind": "objects",
+        "item_count": 1,
+        "revision": 1,
+        "enabled": false
+      }
+    ]
+  },
   "GET /api/v1/analytics/visits": {
     "path_params": {},
     "query": {
@@ -235,6 +264,75 @@
       "class_ids": [
         "e4a3e53e-fc2d-4f5c-9713-c9068ad1e24a"
       ]
+    }
+  },
+  "GET /api/v1/packs": {
+    "path_params": {},
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": [
+      {
+        "id": "82187d24-4135-4e8c-af14-3367520fe840",
+        "slug": "dinosaurs",
+        "title": "Dinosaurs",
+        "description": null,
+        "kind": "objects",
+        "asset_ids": [],
+        "published_revision": null,
+        "published_at": null,
+        "manifest_url": null,
+        "unpublished_changes": true,
+        "created_at": "2026-11-06T08:43:03",
+        "updated_at": "2026-11-06T08:43:03"
+      },
+      {
+        "id": "e221f7c1-6484-4e0d-a8bd-d63f19c5768b",
+        "slug": "fossils",
+        "title": "Fossils",
+        "description": null,
+        "kind": "objects",
+        "asset_ids": [
+          "5868e0be-5bae-4824-b81a-5bbad9901759"
+        ],
+        "published_revision": 1,
+        "published_at": "2026-11-06T08:43:03.742789",
+        "manifest_url": "https://assets.test/library/packs/fossils/1.json",
+        "unpublished_changes": false,
+        "created_at": "2026-11-06T08:43:03",
+        "updated_at": "2026-11-06T08:43:03.742789"
+      }
+    ]
+  },
+  "GET /api/v1/packs/mine": {
+    "path_params": {},
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": []
+  },
+  "GET /api/v1/packs/{slug}": {
+    "path_params": {
+      "slug": "fossils"
+    },
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": {
+      "id": "e221f7c1-6484-4e0d-a8bd-d63f19c5768b",
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": null,
+      "kind": "objects",
+      "asset_ids": [
+        "5868e0be-5bae-4824-b81a-5bbad9901759"
+      ],
+      "published_revision": 1,
+      "published_at": "2026-11-06T08:43:03.742789",
+      "manifest_url": "https://assets.test/library/packs/fossils/1.json",
+      "unpublished_changes": false,
+      "created_at": "2026-11-06T08:43:03",
+      "updated_at": "2026-11-06T08:43:03.742789"
     }
   },
   "GET /api/v1/projects": {
@@ -576,6 +674,27 @@
       "status": "turned_off"
     }
   },
+  "PATCH /api/v1/admin/schools/{school}/packs/{pack_id}": {
+    "path_params": {
+      "school": "371a1623-8b65-437a-b12f-ea108f0f78de",
+      "pack_id": "6bc715f7-8dc5-43a2-afe6-d8c71e0185b3"
+    },
+    "query": {},
+    "request": {
+      "enabled": true
+    },
+    "status": 200,
+    "response": {
+      "id": "6bc715f7-8dc5-43a2-afe6-d8c71e0185b3",
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": null,
+      "kind": "objects",
+      "item_count": 1,
+      "revision": 1,
+      "enabled": true
+    }
+  },
   "PATCH /api/v1/library/{asset_id}": {
     "path_params": {
       "asset_id": "83955f2c-57b1-41c7-8342-051511512ddc"
@@ -600,6 +719,32 @@
       "url": "https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
       "created_at": "2026-11-04T04:37:22",
       "updated_at": "2026-11-04T04:37:22"
+    }
+  },
+  "PATCH /api/v1/packs/{slug}": {
+    "path_params": {
+      "slug": "fossils"
+    },
+    "query": {},
+    "request": {
+      "title": "Fossil hall"
+    },
+    "status": 200,
+    "response": {
+      "id": "69a74131-18d1-414b-a11a-83c5421b12e7",
+      "slug": "fossils",
+      "title": "Fossil hall",
+      "description": null,
+      "kind": "objects",
+      "asset_ids": [
+        "4eb21bea-b21b-4855-a6b8-97e627c28dd1"
+      ],
+      "published_revision": 1,
+      "published_at": "2026-11-06T08:42:10.378012",
+      "manifest_url": "https://assets.test/library/packs/fossils/1.json",
+      "unpublished_changes": true,
+      "created_at": "2026-11-06T08:42:10",
+      "updated_at": "2026-11-06T08:42:10.389593"
     }
   },
   "PATCH /api/v1/projects/{project_id}": {
@@ -802,6 +947,55 @@
       "url": "https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
       "created_at": "2026-11-04T04:37:21",
       "updated_at": "2026-11-04T04:37:21"
+    }
+  },
+  "POST /api/v1/packs": {
+    "path_params": {},
+    "query": {},
+    "request": {
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": "Six CC0 scans"
+    },
+    "status": 201,
+    "response": {
+      "id": "24fe8fa9-3b96-4d9b-a2f1-208541bb8297",
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": "Six CC0 scans",
+      "kind": "objects",
+      "asset_ids": [],
+      "published_revision": null,
+      "published_at": null,
+      "manifest_url": null,
+      "unpublished_changes": true,
+      "created_at": "2026-11-06T08:42:10",
+      "updated_at": "2026-11-06T08:42:10"
+    }
+  },
+  "POST /api/v1/packs/{slug}/publish": {
+    "path_params": {
+      "slug": "fossils"
+    },
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": {
+      "id": "24fe8fa9-3b96-4d9b-a2f1-208541bb8297",
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": "Six CC0 scans",
+      "kind": "objects",
+      "asset_ids": [
+        "df29f236-4e45-4b84-bcac-e7411def1162",
+        "334c4c19-35e4-4db0-b85b-793d548fa738"
+      ],
+      "published_revision": 1,
+      "published_at": "2026-11-06T08:42:10.307887",
+      "manifest_url": "https://assets.test/library/packs/fossils/1.json",
+      "unpublished_changes": false,
+      "created_at": "2026-11-06T08:42:10",
+      "updated_at": "2026-11-06T08:42:10.307887"
     }
   },
   "POST /api/v1/projects": {
@@ -1160,6 +1354,36 @@
     "status": 501,
     "response": {
       "detail": "activate_version is not implemented"
+    }
+  },
+  "PUT /api/v1/packs/{slug}/assets": {
+    "path_params": {
+      "slug": "fossils"
+    },
+    "query": {},
+    "request": {
+      "asset_ids": [
+        "df29f236-4e45-4b84-bcac-e7411def1162",
+        "334c4c19-35e4-4db0-b85b-793d548fa738"
+      ]
+    },
+    "status": 200,
+    "response": {
+      "id": "24fe8fa9-3b96-4d9b-a2f1-208541bb8297",
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": "Six CC0 scans",
+      "kind": "objects",
+      "asset_ids": [
+        "df29f236-4e45-4b84-bcac-e7411def1162",
+        "334c4c19-35e4-4db0-b85b-793d548fa738"
+      ],
+      "published_revision": null,
+      "published_at": null,
+      "manifest_url": null,
+      "unpublished_changes": true,
+      "created_at": "2026-11-06T08:42:10",
+      "updated_at": "2026-11-06T08:42:10.298336"
     }
   }
 }

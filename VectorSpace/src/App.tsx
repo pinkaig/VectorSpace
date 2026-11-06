@@ -19,6 +19,7 @@ import AdminLayout from './pages/AdminLayout'
 import AdminOverviewPage from './pages/AdminOverviewPage'
 import AdminPermissionsPage from './pages/AdminPermissionsPage'
 import AdminRoomsPage from './pages/AdminRoomsPage'
+import AdminLibraryPage from './pages/AdminLibraryPage'
 import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
@@ -62,7 +63,7 @@ function Landing() {
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
-  const { signIn, rejected, signOut, role, admin } = useSession()
+  const { signIn, rejected, notice, signOut, role, admin } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
   // a shared project's "Sign in" sends ?next=/visit/<slug> so the visitor goes back to it;
@@ -91,7 +92,7 @@ function SignIn() {
         stranded={rejected !== null}
         onUseAnotherAccount={signOut}
       />
-      {(rejected ?? problem) && <p role="alert" className="sign-in-problem">{rejected ?? problem}</p>}
+      {(rejected ?? problem ?? notice) && <p role="alert" className="sign-in-problem">{rejected ?? problem ?? notice}</p>}
     </>
   )
 }
@@ -186,6 +187,7 @@ export default function App() {
             <Route path="permissions" element={<AdminPermissionsPage />} />
             <Route path="accounts" element={<AdminAccountsPage />} />
             <Route path="rooms" element={<AdminRoomsPage />} />
+            <Route path="library" element={<AdminLibraryPage />} />
           </Route>
           <Route path="/teacher" element={<RequireRole role="teacher"><AdminNav><TeacherLayout /></AdminNav></RequireRole>}>
             <Route index element={<TeacherHomePage />} />
