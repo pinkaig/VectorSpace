@@ -25,6 +25,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { listMyStudents } from '../../api/classes'
+import { getMyPermissions, may } from '../../api/permissions'
 import { createProject, listMyProjects, listRevisions, sendToStudent } from '../../api/projects'
 import { listTemplates } from '../../api/templates'
 import { useLoad } from '../../api/useLoad'
@@ -107,12 +108,14 @@ function SendToStudent({ items, onSent }: { items: { id: string; name: string }[
 export function ProjectListsSection() {
   const { role, getToken } = useSession()
   const { data, error, reload } = useLoad(
-    () => Promise.all([listTemplates(getToken), listMyProjects(getToken)]),
+    () => Promise.all([listTemplates(getToken), listMyProjects(getToken), getMyPermissions(getToken)]),
     role ?? '',
   )
   if (error) return <p role="alert">Could not load: {error}</p>
   if (!data) return <p>Loading…</p>
-  const [templates, projects] = data
+  const [templates, projects, mine] = data
+  // the school's "Set up projects from templates"; the API refuses a copy (403) when it is off
+  const canStartFromTemplates = may(mine, 'from-templates')
 
   const start = async (templateId?: string, name = 'My project') => {
     await createProject(getToken, name, templateId)
@@ -127,11 +130,13 @@ export function ProjectListsSection() {
 
       <h2>Templates</h2>
       {templates.length === 0 && <p>No templates yet.</p>}
+      {/* a hidden button says why it is hidden, so nobody hunts for it */}
+      {templates.length > 0 && !canStartFromTemplates && <p>Your school does not let you start projects from templates. Your teacher sends you yours.</p>}
       <ul>
         {templates.map((t) => (
           <li key={t.id}>
             {canOpenTemplates ? <Link to={`/editor/${t.id}`}>{t.name}</Link> : t.name} ({t.status}), {saveSummary(t.current_revision, t.saved_at, t.saved_by_name, false)}{' '}
-            <Button size="small" onClick={() => start(t.id, t.name)}>Start from this</Button>
+            {canStartFromTemplates && <Button size="small" onClick={() => start(t.id, t.name)}>Start from this</Button>}
           </li>
         ))}
       </ul>

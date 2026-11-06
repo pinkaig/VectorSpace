@@ -55,3 +55,12 @@
 .admin-permissions-cell {
   width: 150px;
 }
+
+/* "Not enforced yet" after a setting the product does not check: quiet, but read with the label */
+.admin-permissions-later {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}

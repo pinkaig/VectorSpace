@@ -112,14 +112,30 @@ describe('admin api', () => {
     await expect(api().addSchool('New School')).rejects.toThrow(/operator role/)
   })
 
-  it('still answers permissions from memory, because no table holds them', async () => {
-    // no fetch stub on purpose: these must not reach the network
-    const admin = api()
-    const rows = await admin.getPermissions('org-1')
-    expect(rows.length).toBeGreaterThan(0)
+  it('reads one school permission settings from the API', async () => {
+    const fetchMock = reply([
+      { key: 'from-templates', group: 'Projects and data', label: 'Set up projects from templates', students: false, educators: true, can_adjust: false, enforced: true },
+    ])
+    vi.stubGlobal('fetch', fetchMock)
+    const rows = await api().getPermissions('org-1')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/admin/schools/org-1/permissions')
+    expect(rows).toEqual([
+      { key: 'from-templates', group: 'Projects and data', label: 'Set up projects from templates', students: false, educators: true, canAdjust: false, enforced: true },
+    ])
+  })
 
-    await admin.savePermissions('org-1', rows.map((row) => ({ ...row, students: true })))
-    expect((await admin.getPermissions('org-1')).every((row) => row.students)).toBe(true)
+  it('saves only the switches and answers what the API kept', async () => {
+    const kept = { key: 'public-links', group: 'Sharing', label: 'Public links', students: true, educators: true, can_adjust: true, enforced: false }
+    const fetchMock = reply([kept])
+    vi.stubGlobal('fetch', fetchMock)
+    const rows = await api().savePermissions('org-1', [
+      { key: 'public-links', group: 'Sharing', label: 'Public links', students: true, educators: true, canAdjust: true, enforced: false },
+    ])
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://api/api/v1/admin/schools/org-1/permissions')
+    expect(init.method).toBe('PUT')
+    expect(JSON.parse(init.body)).toEqual([{ key: 'public-links', students: true, educators: true, can_adjust: true }])
+    expect(rows[0].canAdjust).toBe(true)
   })
 
   it('reads asset packs from the API and keeps room shells in memory', async () => {

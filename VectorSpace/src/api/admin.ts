@@ -8,10 +8,10 @@
  *
  * @responsibility
  * Names every field an admin page shows, and routes each call to whichever half can answer it.
- * Schools, accounts and the overview come from the API's /admin routes, built from the real
- * tables. Permission settings and the room/asset-pack switches have no tables behind them at
- * all, so they still come from adminFake.ts and their pages say on screen that nothing is
- * saved. NOT_STORED_YET is that sentence; use it rather than writing your own.
+ * Schools, accounts, the overview, asset packs and permission settings come from the API's
+ * /admin routes, built from the real tables. Only the room-shell (environment) switches have no
+ * table behind them, so they still come from adminFake.ts and the Rooms page says on screen
+ * that they are not saved.
  *
  * @boundary
  * These types follow the database, not the mock-up. Three places where they differ, so nobody
@@ -28,7 +28,7 @@
  * "All schools" implies does not exist yet. See apps/api/app/routers/admin.py.
  *
  * @status
- * Current. Schools, accounts and overview are live; permissions and rooms are not.
+ * Current. Everything is live except the environment switches on the Rooms page.
  */
 
 import { apiFetch, type GetToken } from "./client";
@@ -37,10 +37,6 @@ import { fakeAdminApi } from "./adminFake";
 /** "all" is the top bar's All schools; any other value is a school id. */
 export type SchoolFilter = string;
 export const ALL_SCHOOLS: SchoolFilter = "all";
-
-/** Shown on the pages whose settings have nowhere to be saved. */
-export const NOT_STORED_YET =
-  "Nothing on this page is saved yet: there is no table behind these settings, so changes are lost on reload.";
 
 export type School = {
   id: string;
@@ -108,8 +104,10 @@ export type PermissionRow = {
   label: string;
   students: boolean;
   educators: boolean;
-  /** When true, educators may change this setting for their own classes. */
+  /** When true, educators may change this setting for their own classes. Saved; nothing per class reads it yet. */
   canAdjust: boolean;
+  /** False = saved and shown, but the product does not check it yet. Set by the API, never sent back. */
+  enforced: boolean;
 };
 
 export type RoomItem = {
@@ -134,7 +132,8 @@ export type AdminApi = {
   addAccount: (account: NewAccount) => Promise<CreatedAccount>;
   setAccountOff: (accountId: string, off: boolean) => Promise<Account>;
   getPermissions: (schoolId: string) => Promise<PermissionRow[]>;
-  savePermissions: (schoolId: string, rows: PermissionRow[]) => Promise<void>;
+  /** Answers every setting as saved, so the page shows what the API kept rather than what it sent. */
+  savePermissions: (schoolId: string, rows: PermissionRow[]) => Promise<PermissionRow[]>;
   getRooms: (schoolId: string) => Promise<Rooms>;
   setRoomEnabled: (schoolId: string, kind: "environment" | "pack", itemId: string, enabled: boolean) => Promise<void>;
 };
@@ -156,6 +155,16 @@ type AttentionRow = { id: string; text: string; action_label: string; go_to: Att
 type PublishedRow = { id: string; title: string; where: string; published_at: string | null };
 // GET /admin/schools/{school}/packs: every published pack and whether this school has it on
 type SchoolPackRow = { id: string; slug: string; title: string; description: string | null; item_count: number; enabled: boolean };
+// GET and PUT /admin/schools/{school}/permissions
+type PermissionApiRow = {
+  key: string;
+  group: PermissionRow["group"];
+  label: string;
+  students: boolean;
+  educators: boolean;
+  can_adjust: boolean;
+  enforced: boolean;
+};
 
 type OverviewRow = {
   tiles: Overview["tiles"];
@@ -187,11 +196,22 @@ const toOverview = (row: OverviewRow): Overview => ({
   recent: row.recent.map((p) => ({ id: p.id, title: p.title, where: p.where, publishedAt: p.published_at })),
 });
 
+const toPermission = (row: PermissionApiRow): PermissionRow => ({
+  key: row.key,
+  group: row.group,
+  label: row.label,
+  students: row.students,
+  educators: row.educators,
+  canAdjust: row.can_adjust,
+  enforced: row.enforced,
+});
+
 const query = (school: SchoolFilter) => `?school=${encodeURIComponent(school)}`;
+const permissionsPath = (schoolId: string) => `/admin/schools/${encodeURIComponent(schoolId)}/permissions`;
 
 /**
- * The calls the pages use. Schools, accounts, the overview and asset packs go to the API;
- * permissions and room shells fall through to the in-memory fake, because no table holds them yet.
+ * The calls the pages use. Everything goes to the API except the room shells, which fall
+ * through to the in-memory fake because no table holds them yet.
  */
 export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
   return {
@@ -220,6 +240,16 @@ export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
           },
         }, base),
       ),
+
+    getPermissions: async (schoolId) =>
+      (await apiFetch<PermissionApiRow[]>(getToken, permissionsPath(schoolId), {}, base)).map(toPermission),
+
+    // only the switches go back; the label, group and enforced are the API's to say
+    savePermissions: async (schoolId, rows) =>
+      (await apiFetch<PermissionApiRow[]>(getToken, permissionsPath(schoolId), {
+        method: "PUT",
+        body: rows.map((row) => ({ key: row.key, students: row.students, educators: row.educators, can_adjust: row.canAdjust })),
+      }, base)).map(toPermission),
 
     // environments (room shells) are still the fake's; packs are pack_grants rows
     getRooms: async (schoolId) => {
