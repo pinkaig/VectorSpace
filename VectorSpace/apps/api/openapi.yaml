@@ -403,6 +403,117 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/schools/{school}/permissions:
+    get:
+      tags:
+      - admin
+      summary: List School Permissions
+      description: Every setting for one school, saved or default, in the order the page shows them.
+      operationId: list_school_permissions_api_v1_admin_schools__school__permissions_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: path
+        required: true
+        schema:
+          type: string
+          title: School
+        example: 9b14d934-bb9b-473a-98e2-ac2428492b49
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionResponse'
+                title: Response List School Permissions Api V1 Admin Schools  School  Permissions Get
+              example:
+              - key: more-rooms
+                group: Building
+                label: Add more rooms (up to 5 per project)
+                students: true
+                educators: true
+                can_adjust: false
+                enforced: false
+              - key: publish-no-approval
+                group: Sharing
+                label: Publish without approval
+                students: false
+                educators: true
+                can_adjust: false
+                enforced: false
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - admin
+      summary: Save School Permissions
+      description: 'Save the settings sent; a key left out keeps what it had. All or nothing: one unknown
+        key
+
+        and nothing is saved, so a page built against an older list cannot half-save.'
+      operationId: save_school_permissions_api_v1_admin_schools__school__permissions_put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: path
+        required: true
+        schema:
+          type: string
+          title: School
+        example: f481598b-cde8-480c-9ee7-59d213dc30c4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PermissionSetting'
+              title: Body
+            example:
+            - key: from-templates
+              students: true
+              educators: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionResponse'
+                title: Response Save School Permissions Api V1 Admin Schools  School  Permissions Put
+              example:
+              - key: more-rooms
+                group: Building
+                label: Add more rooms (up to 5 per project)
+                students: true
+                educators: true
+                can_adjust: false
+                enforced: false
+              - key: publish-no-approval
+                group: Sharing
+                label: Publish without approval
+                students: false
+                educators: true
+                can_adjust: false
+                enforced: false
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/classes:
     get:
       tags:
@@ -1933,6 +2044,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/permissions/mine:
+    get:
+      tags:
+      - permissions
+      summary: My Permissions
+      description: Every setting key, true when the caller may do it. An admin gets true for all of them.
+      operationId: my_permissions_api_v1_permissions_mine_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: boolean
+                type: object
+                title: Response My Permissions Api V1 Permissions Mine Get
+              example:
+                more-rooms: true
+                publish-no-approval: true
+                public-links: true
+                unlisted-links: true
+                signin-links: true
+                from-templates: true
+                edit-after-assign: true
+                see-results: false
+                delete-published: false
+      security:
+      - HTTPBearer: []
   /api/v1/projects/{project_id}/versions:
     get:
       tags:
@@ -3789,6 +3929,62 @@ components:
       - created_at
       - updated_at
       title: PackResponse
+    PermissionResponse:
+      properties:
+        key:
+          type: string
+          title: Key
+        group:
+          type: string
+          title: Group
+        label:
+          type: string
+          title: Label
+        students:
+          type: boolean
+          title: Students
+        educators:
+          type: boolean
+          title: Educators
+        can_adjust:
+          type: boolean
+          title: Can Adjust
+        enforced:
+          type: boolean
+          title: Enforced
+      type: object
+      required:
+      - key
+      - group
+      - label
+      - students
+      - educators
+      - can_adjust
+      - enforced
+      title: PermissionResponse
+    PermissionSetting:
+      properties:
+        key:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Key
+        students:
+          type: boolean
+          title: Students
+        educators:
+          type: boolean
+          title: Educators
+        can_adjust:
+          type: boolean
+          title: Can Adjust
+          default: false
+      type: object
+      required:
+      - key
+      - students
+      - educators
+      title: PermissionSetting
     ProjectCreateRequest:
       properties:
         name:

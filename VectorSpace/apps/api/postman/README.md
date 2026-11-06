@@ -1,9 +1,12 @@
 # Postman collection for /api/v1
 
-A second client of the API the web app uses, with nothing changed for it. 92 requests in 11 folders:
-Health, Auth, Me, Classes, Projects, Media, Submissions, Public, Analytics, Library, Admin. Every
-request checks its status code, a time budget and the JSON shape. 37 of them carry the recorded
-example from `app/openapi_examples.json`, which is what a Postman mock server answers with.
+A second client of the API the web app uses, with nothing changed for it. 120 requests in 13 folders:
+Health, Auth, Me, Classes, Projects, Media, Submissions, Public, Analytics, Library, Packs, Admin,
+Permissions. Every request checks its status code, a time budget and the JSON shape. 48 of them carry
+the recorded example from `app/openapi_examples.json`, which is what a Postman mock server answers with.
+
+**A new or changed route gets a request here in the same change** (the rule is also in
+`API_CHANGELOG.md`). Add it to `build_collection.py`, regenerate, and run Newman before committing.
 
 The JSON files are generated. Edit `build_collection.py`, then, from `VectorSpace/`:
 
@@ -17,8 +20,9 @@ The JSON files are generated. Edit `build_collection.py`, then, from `VectorSpac
 | `ci.postman_environment.json` | the CI job's uvicorn | same dev logins | true |
 | `deployed.postman_environment.json` | the Render API | **empty**: never commit real ones | false |
 
-`allow_writes=false` skips the 21 requests that leave rows behind: a new account, a student's copy and
-its hand-ins, a library ticket. The rest create a draft and delete it again.
+`allow_writes=false` skips the 26 requests that leave rows behind or change a setting: a new account, a
+student's copy and its hand-ins, a library ticket, the templates permission (switched off and put back).
+The rest create a draft (a project, a pack) and delete it again.
 
 ## Run it locally
 
@@ -70,7 +74,7 @@ first request gets a 90 s budget.
 ## Mock server
 
 The current Postman app has no "Mock collection" on the free plan. Its local mocks are a JavaScript
-file, and a shareable URL needs a paid plan. So `build_mock.py` turns the 37 recorded examples into
+file, and a shareable URL needs a paid plan. So `build_mock.py` turns the 48 recorded examples into
 `vectorspace_mock.cjs`, a mock of `/api/v1` with the same answers. A UUID in a path matches any id,
 query strings are ignored, a list gets `X-Total-Count`, and an unknown route answers 404 with the
 routes it knows.

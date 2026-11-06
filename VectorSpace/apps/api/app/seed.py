@@ -47,14 +47,17 @@ from .config import get_settings
 from .models import (
     Actor,
     AnalyticsEvent,
+    AssetPack,
     Assignment,
     ClassMember,
     Classroom,
     ContentSnapshot,
     InteractionRule,
+    LibraryAsset,
     MediaAsset,
     MediaLink,
     Organisation,
+    PackAsset,
     Project,
     ProjectVersion,
 )
@@ -249,6 +252,14 @@ def clear_school(db: Session, slug: str = SLUG) -> None:
     db.execute(delete(Project).where(Project.organisation_id == org.id))
     db.execute(delete(ClassMember).where(ClassMember.class_id.in_(classes)))
     db.execute(delete(Classroom).where(Classroom.organisation_id == org.id))
+    # the library and packs are platform-wide, but each row names the person who made it (RESTRICT),
+    # so files and packs made by this school's synthetic logins go with them. Their bytes stay in the
+    # bucket; the seed only ever runs against local and CI data.
+    people = select(Actor.id).where(Actor.organisation_id == org.id)
+    files = select(LibraryAsset.id).where(LibraryAsset.uploaded_by_id.in_(people))
+    db.execute(delete(PackAsset).where(PackAsset.library_asset_id.in_(files)))
+    db.execute(delete(AssetPack).where(AssetPack.created_by_id.in_(people)))
+    db.execute(delete(LibraryAsset).where(LibraryAsset.uploaded_by_id.in_(people)))
     db.execute(delete(Actor).where(Actor.organisation_id == org.id))
     db.execute(delete(Organisation).where(Organisation.id == org.id))
     db.flush()

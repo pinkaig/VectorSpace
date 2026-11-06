@@ -80,6 +80,14 @@ VISITS = obj(project_id=UUID, visits=INT, last_7_days=array(INT))
 SCHOOL = obj(id=UUID, name=STR, students=INT, educators=INT, status=STR)
 ACCOUNT = obj(id=UUID, school_id=UUID, name=STR, email=STR, role=STR, class_names=array(STR),
               last_active=nullable(STR), status=STR)
+PACK = obj(id=UUID, slug=STR, title=STR, description=nullable(STR), kind={"enum": ["objects", "environments"]},
+            asset_ids=array(UUID), published_revision=nullable(INT), published_at=nullable(STR),
+            manifest_url=nullable(STR), unpublished_changes=BOOL, created_at=STR, updated_at=STR)
+MY_PACK = obj(slug=STR, title=STR, description=nullable(STR), kind=STR, revision=INT, manifest_url=STR, item_count=INT)
+SCHOOL_PACK = obj(id=UUID, slug=STR, title=STR, description=nullable(STR), kind=STR, item_count=INT, revision=INT,
+                  enabled=BOOL)
+PERMISSION = obj(key=STR, group=STR, label=STR, students=BOOL, educators=BOOL, can_adjust=BOOL, enforced=BOOL)
+MY_PERMISSIONS = {"type": "object", "additionalProperties": BOOL, "required": ["from-templates"]}
 OVERVIEW = obj(tiles={"type": "object", "required": ["schools", "educators", "students", "published"]},
                schools=array(SCHOOL), attention={"type": "array"}, recent={"type": "array"})
 
@@ -474,6 +482,43 @@ library = folder("Library", "The admin-curated asset library.", [
     req("Unknown asset is 404", "DELETE", f"/library/{NO_SUCH_ID}", as_="admin", status=404, schema=ERROR),
 ])
 
+packs = folder("Packs", "Asset packs: an admin drafts one, and a school switches published ones on. Publishing is not run "
+               "here: a published pack cannot be deleted, and the local and CI runs have no public bucket address.", [
+    req("Admin lists packs", "GET", "/packs", as_="admin", status=200, schema=array(PACK), spec="GET /api/v1/packs"),
+    req("Teacher may not (403)", "GET", "/packs", as_="teacher", status=403, schema=ERROR),
+    req("Student reads the school's packs", "GET", "/packs/mine", as_="student", status=200, schema=array(MY_PACK),
+        spec="GET /api/v1/packs/mine", description="Anyone signed in: the published packs their own school has switched on."),
+    req("Bad short name is 422", "POST", "/packs", as_="admin", status=422, schema=ERROR,
+        body={"slug": "Not OK", "title": "Bad name"}),
+    req("Admin drafts a pack", "POST", "/packs", as_="admin", status=201, schema=PACK, spec="POST /api/v1/packs",
+        body='{\n  "slug": "postman-{{run_id}}",\n  "title": "Postman pack {{run_id}}",\n  "kind": "objects"\n}',
+        tests="\n".join([
+            "const pack = pm.response.json();",
+            "pm.test('is an unpublished draft', () => { pm.expect(pack.published_revision).to.eql(null); pm.expect(pack.unpublished_changes).to.eql(true); });",
+            save("pack_slug", "pack.slug"),
+        ])),
+    req("Same short name twice is 409", "POST", "/packs", as_="admin", status=409, schema=ERROR,
+        body='{\n  "slug": "{{pack_slug}}",\n  "title": "Again"\n}'),
+    req("Read the draft", "GET", "/packs/{{pack_slug}}", as_="admin", status=200, schema=PACK, spec="GET /api/v1/packs/{slug}"),
+    req("Rename the pack", "PATCH", "/packs/{{pack_slug}}", as_="admin", status=200, schema=PACK, spec="PATCH /api/v1/packs/{slug}",
+        body={"title": "Renamed by Postman"},
+        tests="pm.test('has the new title', () => pm.expect(pm.response.json().title).to.eql('Renamed by Postman'));"),
+    req("Set its files (none)", "PUT", "/packs/{{pack_slug}}/assets", as_="admin", status=200, schema=PACK,
+        spec="PUT /api/v1/packs/{slug}/assets", body={"asset_ids": []},
+        tests="pm.test('holds nothing', () => pm.expect(pm.response.json().asset_ids).to.be.empty);"),
+    req("A file not in the library is 422", "PUT", "/packs/{{pack_slug}}/assets", as_="admin", status=422, schema=ERROR,
+        body={"asset_ids": [NO_SUCH_ID]}),
+    req("Publishing an empty pack is 422", "POST", "/packs/{{pack_slug}}/publish", as_="admin", status=422, schema=ERROR),
+    req("Delete the draft pack", "DELETE", "/packs/{{pack_slug}}", as_="admin", status=204, spec="DELETE /api/v1/packs/{slug}"),
+    req("Pack gone after delete (404)", "GET", "/packs/{{pack_slug}}", as_="admin", status=404, schema=ERROR),
+    req("School's pack switches", "GET", "/admin/schools/{{school_id}}/packs", as_="admin", status=200,
+        schema=array(SCHOOL_PACK), spec="GET /api/v1/admin/schools/{school}/packs",
+        description="Published packs only, each with whether this school has it on."),
+    req("Another school's switches are 404", "GET", f"/admin/schools/{NO_SUCH_ID}/packs", as_="admin", status=404, schema=ERROR),
+    req("Switching an unknown pack is 404", "PATCH", f"/admin/schools/{{{{school_id}}}}/packs/{NO_SUCH_ID}", as_="admin",
+        status=404, schema=ERROR, body={"enabled": True}),
+])
+
 admin = folder("Admin", "School overview and accounts, admins only.", [
     req("Overview", "GET", "/admin/overview", as_="admin", status=200, schema=OVERVIEW, spec="GET /api/v1/admin/overview"),
     req("Schools", "GET", "/admin/schools", as_="admin", status=200, schema=array(SCHOOL), spec="GET /api/v1/admin/schools"),
@@ -505,6 +550,54 @@ admin = folder("Admin", "School overview and accounts, admins only.", [
         spec="POST /api/v1/admin/schools", body={"name": "Another school"}),
 ])
 
+FT = "from-templates"
+FT_BODY = ('[\n  {\n    "key": "' + FT + '",\n    "students": %s,\n    "educators": {{ft_educators}},\n'
+           '    "can_adjust": {{ft_can_adjust}}\n  }\n]')
+permissions = folder("Permissions", "What each role may do in one school. Only \"Set up projects from templates\" is "
+                     "enforced so far: a student starting a copy of a template. The last five turn that switch off for "
+                     "students and put it back, so they run only where allow_writes is true.", [
+    req("Admin reads the settings", "GET", "/admin/schools/{{school_id}}/permissions", as_="admin", status=200,
+        schema=array(PERMISSION), spec="GET /api/v1/admin/schools/{school}/permissions", tests="\n".join([
+            "const rows = pm.response.json();",
+            f"const ft = rows.find((r) => r.key === '{FT}');",
+            "pm.test('has all 9 settings', () => pm.expect(rows).to.have.lengthOf(9));",
+            "pm.test('templates is the enforced one', () => pm.expect(rows.filter((r) => r.enforced).map((r) => r.key)).to.eql([ft.key]));",
+            # kept so the last request can put the school back exactly as it was
+            save("ft_students", "String(ft.students)"), save("ft_educators", "String(ft.educators)"),
+            save("ft_can_adjust", "String(ft.can_adjust)"),
+        ])),
+    req("Teacher may not read them (403)", "GET", "/admin/schools/{{school_id}}/permissions", as_="teacher", status=403, schema=ERROR),
+    req("Another school's settings are 404", "GET", f"/admin/schools/{NO_SUCH_ID}/permissions", as_="admin", status=404, schema=ERROR),
+    req("All schools is 404", "GET", "/admin/schools/all/permissions", as_="admin", status=404, schema=ERROR,
+        description="Settings belong to one school, so the All schools filter is not accepted here."),
+    req("Unknown setting is 422, nothing saved", "PUT", "/admin/schools/{{school_id}}/permissions", as_="admin", status=422,
+        schema=ERROR, body=[{"key": "fly-to-the-moon", "students": True, "educators": True}]),
+    req("Admin may do everything", "GET", "/permissions/mine", as_="admin", status=200, schema=MY_PERMISSIONS,
+        spec="GET /api/v1/permissions/mine",
+        tests="pm.test('all true', () => pm.expect(Object.values(pm.response.json())).to.not.include(false));"),
+    req("Teacher's own answer matches the school", "GET", "/permissions/mine", as_="teacher", status=200, schema=MY_PERMISSIONS,
+        tests=f"pm.test('templates follows the educators switch', () => pm.expect(String(pm.response.json()['{FT}'])).to.eql(pm.collectionVariables.get('ft_educators')));"),
+    req("Student finds a template", "GET", "/projects", as_="student", status=200, schema=array(PROJECT), writes=True,
+        query={"kind": "template", "status": "published", "limit": "1"},
+        tests="\n".join([
+            "const found = pm.response.json();",
+            "pm.test('the school has a published template', () => pm.expect(found).to.have.lengthOf(1));",
+            save("template_id", "found[0] && found[0].id"),
+        ])),
+    req("Turn templates off for students", "PUT", "/admin/schools/{{school_id}}/permissions", as_="admin", status=200,
+        schema=array(PERMISSION), writes=True, spec="PUT /api/v1/admin/schools/{school}/permissions",
+        body=FT_BODY % "false",
+        tests=f"pm.test('saved', () => pm.expect(pm.response.json().find((r) => r.key === '{FT}').students).to.eql(false));"),
+    req("Student's own answer says no", "GET", "/permissions/mine", as_="student", status=200, schema=MY_PERMISSIONS, writes=True,
+        tests=f"pm.test('templates is false', () => pm.expect(pm.response.json()['{FT}']).to.eql(false));"),
+    req("Student may not copy the template (403)", "POST", "/projects", as_="student", status=403, schema=ERROR, writes=True,
+        body='{\n  "name": "Postman copy {{run_id}}",\n  "template_id": "{{template_id}}"\n}',
+        tests="pm.test('says why', () => pm.expect(pm.response.json().detail).to.include('templates'));"),
+    req("Put the setting back", "PUT", "/admin/schools/{{school_id}}/permissions", as_="admin", status=200,
+        schema=array(PERMISSION), writes=True, body=FT_BODY % "{{ft_students}}",
+        tests=f"pm.test('as it was', () => pm.expect(String(pm.response.json().find((r) => r.key === '{FT}').students)).to.eql(pm.collectionVariables.get('ft_students')));"),
+])
+
 COLLECTION = {
     "info": {
         "name": "VectorSpace API v1",
@@ -523,9 +616,11 @@ COLLECTION = {
     "variable": [{"key": k, "value": ""} for k in (
         "run_id", "admin_id", "school_id", "teacher_id", "teacher_class_ids", "student_id", "student2_id", "class_id",
         "project_id", "version_id", "my_total", "media_project_id", "media_id", "link_id", "source_id", "copy_id",
-        "copy_slug", "library_asset_id", "account_id",
+        "copy_slug", "library_asset_id", "account_id", "pack_slug",
+        "ft_students", "ft_educators", "ft_can_adjust", "template_id",
     )],
-    "item": [health, auth, me, classes, projects, media, submissions, public, analytics, library, admin],
+    "item": [health, auth, me, classes, projects, media, submissions, public, analytics, library, packs, admin,
+             permissions],
 }
 
 

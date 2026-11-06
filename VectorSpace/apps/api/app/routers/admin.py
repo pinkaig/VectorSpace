@@ -11,9 +11,10 @@ of inventing a cross-school operator. Giving VThere staff a real seat above the 
 schema decision (an operator role or an organisation group), not something a route can paper over.
 
 Every number on these pages is a query against the tables we already have. Which asset packs a
-school may use is pack_grants (GET and PATCH /admin/schools/{school}/packs). The two things no
-table answers yet -- per-school permission settings, and which room shells a school may use -- are
-not here; they stay in the browser's adminFake.ts and the pages mark them as not saved.
+school may use is pack_grants (GET and PATCH /admin/schools/{school}/packs); its permission
+settings are school_permissions (GET and PUT /admin/schools/{school}/permissions, with the list and
+defaults in app/permissions.py). The one thing no table answers yet -- which room shells a school
+may use -- is not here; it stays in the browser's adminFake.ts and the page marks it as not saved.
 """
 
 from __future__ import annotations
@@ -22,10 +23,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import permissions
 from ..auth import get_current_actor
 from ..db import get_db
 from ..models import (
@@ -36,6 +38,7 @@ from ..models import (
     Organisation,
     PackGrant,
     Project,
+    SchoolPermission,
 )
 from ..provision import Row, logins, provision
 from ._skeleton import not_implemented
@@ -413,3 +416,61 @@ def set_school_pack(
     db.commit()
     db.refresh(grant)
     return _school_pack(pack, grant)
+
+
+class PermissionResponse(BaseModel):
+    key: str
+    group: str
+    label: str
+    students: bool
+    educators: bool
+    can_adjust: bool
+    # false = saved and shown, but no route checks it yet (app/permissions.py ENFORCED)
+    enforced: bool
+
+
+class PermissionSetting(BaseModel):
+    key: str = Field(min_length=1, max_length=50)
+    students: bool
+    educators: bool
+    can_adjust: bool = False
+
+
+def _describe_permissions(db: Session, org_id: uuid.UUID) -> list[PermissionResponse]:
+    return [
+        PermissionResponse(
+            key=e.setting.key, group=e.setting.group, label=e.setting.label, students=e.students,
+            educators=e.educators, can_adjust=e.can_adjust, enforced=e.setting.key in permissions.ENFORCED,
+        )
+        for e in permissions.for_school(db, org_id)
+    ]
+
+
+@router.get("/schools/{school}/permissions", response_model=list[PermissionResponse])
+def list_school_permissions(
+    school: str, actor: Actor = Depends(require_admin), db: Session = Depends(get_db)
+) -> list[PermissionResponse]:
+    """Every setting for one school, saved or default, in the order the page shows them."""
+    return _describe_permissions(db, _own_school(actor, school))
+
+
+@router.put("/schools/{school}/permissions", response_model=list[PermissionResponse])
+def save_school_permissions(
+    school: str, body: list[PermissionSetting],
+    actor: Actor = Depends(require_admin), db: Session = Depends(get_db),
+) -> list[PermissionResponse]:
+    """Save the settings sent; a key left out keeps what it had. All or nothing: one unknown key
+    and nothing is saved, so a page built against an older list cannot half-save."""
+    org_id = _own_school(actor, school)
+    unknown = sorted({row.key for row in body} - permissions.BY_KEY.keys())
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown permission setting: {', '.join(unknown)}")
+    for row in body:
+        saved = db.get(SchoolPermission, (org_id, row.key))
+        if saved is None:
+            saved = SchoolPermission(organisation_id=org_id, key=row.key)
+            db.add(saved)
+        saved.students, saved.educators, saved.can_adjust = row.students, row.educators, row.can_adjust
+        saved.updated_by_id = actor.id
+    db.commit()
+    return _describe_permissions(db, org_id)
