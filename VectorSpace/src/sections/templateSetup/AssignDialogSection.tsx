@@ -98,7 +98,7 @@ export function AssignDialogSection({ getToken, projectId, projectName, classId,
             <h2 id="setup-assign-title" className="setup-assign-title">Assign "{projectName}"</h2>
             <p className="setup-assign-text">Each student gets their own copy to build in. Copies they already have are kept.</p>
           </div>
-          <button type="button" className="setup-assign-close" aria-label="Close" onClick={onCancel} disabled={saving}>
+          <button type="button" className="ui-box setup-assign-close" aria-label="Close" onClick={onCancel} disabled={saving}>
             <X size={18} />
           </button>
         </div>
@@ -114,7 +114,7 @@ export function AssignDialogSection({ getToken, projectId, projectName, classId,
               type="button"
               role="radio"
               aria-checked={picked === c.id}
-              className={picked === c.id ? "setup-assign-pick setup-assign-pick-on" : "setup-assign-pick"}
+              className={picked === c.id ? "ui-box setup-assign-pick setup-assign-pick-on" : "ui-box setup-assign-pick"}
               onClick={() => setPicked(c.id)}
             >
               {c.name}

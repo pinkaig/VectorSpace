@@ -384,6 +384,11 @@ button:disabled {
   background: var(--White);
   color: var(--accent);
 }
+/* the step being viewed is finished (for the selected thing, on steps 2 and 3): a green tick */
+.Tutorial-steps .button--viewing.is-done .button-num{
+  background: var(--green-500);
+  color: var(--White);
+}
 /* a finished step: filled green with a white number, as in the 3.05 prototype */
 .Tutorial-steps .button--green {
   border-color: var(--green-500);
@@ -1984,6 +1989,23 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .viewport-face-header { animation: none; }
 }
+/* "Walk up to the door to go to …": Play, a far door clicked while walking */
+.viewport-door-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(30, 27, 58, 0.9);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  animation: viewport-face-header-in 160ms ease-out;
+}
 .viewport-overlay {
   position: absolute;
   inset: 0;
@@ -2945,6 +2967,31 @@ button:disabled {
 }
 .play-tour-spot strong { font-size: 18px; }
 
+/** Shared for teacher template */
+/* SHARED LOOKS: write a look once here, then add the class next to a component's own class,
+   e.g. className="ui-panel setup-panel", and keep only what is unique in the component's CSS.
+   :where() gives these zero priority, so the component's own class always wins on anything it
+   also sets (e.g. a different border-radius), whatever order the CSS files load in. */
+
+/* a white box with a thin border: big corners for page panels, button-size corners for small boxes */
+:where(.ui-panel, .ui-box) {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+:where(.ui-panel) { border-radius: var(--radius-panel); }
+:where(.ui-box) { border-radius: var(--radius-btn); }
+
+/* a bare icon button: no border or fill, icon centred; set width/height/colour on the component */
+:where(.ui-icon-btn) {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-btn-sm);
+  background: transparent;
+  cursor: pointer;
+}
+/** Shared for teacher template */
 /* the "Fact card saved" pop-up in the bottom-right corner of the room (EditorPage),
    above the zoom and walls buttons so it never covers them */
 .save-toast {

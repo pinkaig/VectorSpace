@@ -459,10 +459,9 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
     }
     const hit = pick(event)
     if (!hit) {
-      // Select mode deselects at once; with a tool on, wait for the release (onPointerUp), so a
-      // camera drag that starts on empty space does not drop the selection
-      if (data.gizmoMode === 'select') callbacks.select(null)
-      else pressedEmpty = true
+      // wait for the release (onPointerUp), so a camera drag that starts on empty space does not
+      // drop the selection
+      pressedEmpty = true
       return
     }
     callbacks.select(hit.name)

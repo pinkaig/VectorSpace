@@ -25,8 +25,12 @@ class Settings(BaseSettings):
     s3_secret_access_key: str = "vectorspace_minio_local"
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "vectorspace-media"
-    # Where the bucket's public-read prefix (library/) is served from, e.g. an R2 custom domain.
-    # Empty until that prefix is set up; storage.public_url() refuses to guess an address.
+    # Optional second, public-read bucket for library/ keys. R2 can only make a whole bucket
+    # public (r2.dev), so with no custom domain the library lives apart from private media.
+    # Empty keeps library/ in s3_bucket (local MinIO, or one bucket behind a WAF rule).
+    s3_library_bucket: str = ""
+    # Where library/ objects are served from: the library bucket's r2.dev URL or a custom domain.
+    # Empty until that is set up; storage.public_url() refuses to guess an address.
     s3_public_base_url: str = ""
 
     auth0_domain: str = ""

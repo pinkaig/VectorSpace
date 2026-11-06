@@ -1,0 +1,3829 @@
+openapi: 3.1.0
+info:
+  title: VectorSpace API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Health Get
+              example:
+                status: ok
+                service: vectorspace-api
+  /api/v1/me:
+    get:
+      tags:
+      - me
+      summary: Me
+      operationId: me_api_v1_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+              example:
+                id: b0305b70-de0d-41bd-9faa-1f3d5ebfb83b
+                organisation_id: ead04526-5ac4-4872-8c6f-86e290a64b64
+                display_name: s1
+                role: student
+                class_ids:
+                - e4a3e53e-fc2d-4f5c-9713-c9068ad1e24a
+      security:
+      - HTTPBearer: []
+  /api/v1/admin/schools:
+    get:
+      tags:
+      - admin
+      summary: List Schools
+      description: 'One school: the caller''s own. See this module''s note on why there is no list above
+        it.'
+      operationId: list_schools_api_v1_admin_schools_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SchoolResponse'
+                type: array
+                title: Response List Schools Api V1 Admin Schools Get
+              example:
+              - id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+                name: A
+                students: 3
+                educators: 2
+                status: active
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - admin
+      summary: Add School
+      operationId: add_school_api_v1_admin_schools_post
+      responses:
+        '501':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: 'null'
+                title: Response Add School Api V1 Admin Schools Post
+              example:
+                detail: 'Adding a school needs a VThere operator role above the schools, which the data
+                  model does not have yet: an admin belongs to one school. Create schools with python
+                  -m app.provision --school-slug <slug> --school-name <name> for now.'
+      security:
+      - HTTPBearer: []
+  /api/v1/admin/accounts:
+    get:
+      tags:
+      - admin
+      summary: List Accounts
+      operationId: list_accounts_api_v1_admin_accounts_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: query
+        required: false
+        schema:
+          type: string
+          default: all
+          title: School
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponse'
+                title: Response List Accounts Api V1 Admin Accounts Get
+              example:
+              - id: c6959ff5-9ca1-40a2-a765-2002874a0941
+                school_id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+                name: admin
+                email: admin@x.test
+                role: admin
+                class_names: []
+                last_active: null
+                status: invited
+              - id: 677eab91-9212-4a95-a849-4a3c1414ee4c
+                school_id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+                name: s1
+                email: s1@x.test
+                role: student
+                class_names:
+                - 1A
+                last_active: null
+                status: invited
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - admin
+      summary: Add Account
+      description: 'The same provisioning path as the CSV tool and the seed: a login, an actor row, its
+        classes.
+
+
+        Nobody signs themselves up, so creating an account means creating a login first. With
+
+        AUTH_DEV_BYPASS the login is a local "dev|..." stand-in; otherwise it is a real Auth0 user.
+
+
+        The reply carries that login''s one-time password-set link, which is the only way in: nothing
+
+        emails it, because create_user marks the address verified on purpose so that roster addresses
+
+        need not be real ones. Hand it over and do not keep it -- it is a credential, so it is never
+
+        logged, never stored and never put in a URL.'
+      operationId: add_account_api_v1_admin_accounts_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAccountRequest'
+            example:
+              school_id: faa4cfff-8991-40e1-9ac1-11d291e69d8e
+              name: New Person
+              email: New.Person@x.test
+              role: student
+              class_names:
+              - 1A
+              - 3C
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedAccountResponse'
+              example:
+                id: 186ff664-a01b-454f-a742-00c507bfed97
+                school_id: faa4cfff-8991-40e1-9ac1-11d291e69d8e
+                name: New Person
+                email: new.person@x.test
+                role: student
+                class_names:
+                - 1A
+                - 3C
+                last_active: null
+                status: invited
+                invite_link: https://tenant.test/invite/new.person@x.test
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/accounts/{account_id}:
+    patch:
+      tags:
+      - admin
+      summary: Set Account Active
+      description: Turn an account off or back on. Accounts are never deleted; their work would go with
+        them.
+      operationId: set_account_active_api_v1_admin_accounts__account_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Account Id
+        example: bf703953-ffec-4323-a38b-dcd286626f59
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPatchRequest'
+            example:
+              active: false
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+              example:
+                id: bf703953-ffec-4323-a38b-dcd286626f59
+                school_id: 3de6a59c-69c5-4924-9a01-afad6cf4537c
+                name: s1
+                email: s1@x.test
+                role: student
+                class_names:
+                - 1A
+                last_active: null
+                status: turned_off
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/overview:
+    get:
+      tags:
+      - admin
+      summary: Get Overview
+      description: The four numbers, the schools table, what needs an admin, and what was published recently.
+      operationId: get_overview_api_v1_admin_overview_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: query
+        required: false
+        schema:
+          type: string
+          default: all
+          title: School
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverviewResponse'
+              example:
+                tiles:
+                  schools:
+                    value: 1
+                    sub: 1 active
+                  educators:
+                    value: 2
+                    sub: 2 not signed in yet
+                  students:
+                    value: 3
+                    sub: 0 active this week
+                  published:
+                    value: 0
+                    sub: 0 still drafts
+                schools:
+                - id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+                  name: A
+                  students: 3
+                  educators: 2
+                  status: active
+                attention:
+                - id: never-signed-in
+                  text: 6 people have never signed in
+                  action_label: See who
+                  go_to: accounts
+                recent: []
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/classes:
+    get:
+      tags:
+      - classes
+      summary: List Classes
+      operationId: list_classes_api_v1_classes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ClassResponse'
+                type: array
+                title: Response List Classes Api V1 Classes Get
+              example:
+              - id: 725d4db6-865b-4109-a939-fdd05f3a6695
+                name: 1A
+                member_count: 3
+      security:
+      - HTTPBearer: []
+  /api/v1/classes/{class_id}/members:
+    get:
+      tags:
+      - classes
+      summary: List Members
+      description: The roster, for teachers and admins. 404 for a class the caller is not in; students
+        may not list a roster.
+      operationId: list_members_api_v1_classes__class_id__members_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: class_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Class Id
+        example: 725d4db6-865b-4109-a939-fdd05f3a6695
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MemberResponse'
+                title: Response List Members Api V1 Classes  Class Id  Members Get
+              example:
+              - id: a3c791bf-d156-45a3-86af-6bee4ebfbd7c
+                display_name: s1
+                role: student
+              - id: c443884e-fe7b-43eb-9e60-6c0604864e8e
+                display_name: s2
+                role: student
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects:
+    get:
+      tags:
+      - projects
+      summary: List Projects
+      description: What the caller may see, newest edit first. Filters combine; X-Total-Count is the size
+        before limit/offset.
+      operationId: list_projects_api_v1_projects_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^(project|template)$
+          - type: 'null'
+          title: Kind
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^(draft|published|archived)$
+          - type: 'null'
+          title: Status
+      - name: class_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Class Id
+      - name: created_by
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Created By
+      - name: mine
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Mine
+        example: 'true'
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          description: part of the project name
+          title: Q
+        description: part of the project name
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectResponse'
+                title: Response List Projects Api V1 Projects Get
+              example:
+              - id: c86e6845-62b2-4235-97fc-784e6f2a72a7
+                organisation_id: 41c65edb-e12f-4468-a933-f75e9963b192
+                created_by_id: 578cc5af-7e37-40ca-9027-b81326b57a1e
+                class_id: e152d8fc-ab26-4afb-bfef-da24b3eda781
+                template_id: dbb70cb6-9475-4cbe-8634-d6bac1dfc158
+                template_revision: null
+                kind: project
+                name: Museum hall
+                slug: museum-hall-9b7c5190
+                status: draft
+                current_version_id: null
+                created_at: '2026-11-04T04:37:20'
+                updated_at: '2026-11-04T04:37:20'
+                created_by_name: s1
+                class_name: 1A
+                current_revision: 0
+                saved_at: null
+                saved_by_name: ''
+                template_name: Museum hall
+                assignment_id: 2ae52419-83af-4893-96bc-637bb9ffbe1a
+                task: Changed
+                due_at: '2026-11-20'
+                assigned_by_name: t1
+                sent: false
+                published_copies: 0
+                assignment_ids: []
+                showcase: false
+                review_status: null
+                review_grade: null
+                review_comment: null
+                share_with: null
+                submitted_at: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - projects
+      summary: Create Project
+      operationId: create_project_api_v1_projects_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+            example:
+              name: Museum hall
+              kind: template
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+              example:
+                id: dbb70cb6-9475-4cbe-8634-d6bac1dfc158
+                organisation_id: 41c65edb-e12f-4468-a933-f75e9963b192
+                created_by_id: 91345625-96cf-492e-891c-dc7512c08564
+                class_id: null
+                template_id: null
+                template_revision: null
+                kind: template
+                name: Museum hall
+                slug: museum-hall-546b1174
+                status: draft
+                current_version_id: null
+                created_at: '2026-11-04T04:37:20'
+                updated_at: '2026-11-04T04:37:20'
+                created_by_name: t1
+                class_name: null
+                current_revision: 0
+                saved_at: null
+                saved_by_name: ''
+                template_name: null
+                assignment_id: null
+                task: null
+                due_at: null
+                assigned_by_name: null
+                sent: false
+                published_copies: 0
+                assignment_ids: []
+                showcase: false
+                review_status: null
+                review_grade: null
+                review_comment: null
+                share_with: null
+                submitted_at: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/assign:
+    post:
+      tags:
+      - projects
+      summary: Assign Project
+      description: 'Send a student their own copy of a project or template: the teacher''s "send to student".
+
+
+        The copy belongs to the student (they can open and save it; the teacher can read it through the
+
+        class). Its first revision is labelled with who sent it, so the history shows where it came from.
+
+        The copy joins the source''s assignment for that class (made on the first send), which is what
+
+        marks the source as sent: it can no longer be deleted, only archived.'
+      operationId: assign_project_api_v1_projects__project_id__assign_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 730a262b-61b8-4c6c-98e1-2e427615f97f
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRequest'
+            example:
+              student_id: 8e874a30-a627-4124-abf5-48313a77e0e4
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+              example:
+                id: 800c818c-e2fd-4c02-a3cd-a4b3479ca548
+                organisation_id: a3f51301-4319-4c77-af9c-19a824db928e
+                created_by_id: 8e874a30-a627-4124-abf5-48313a77e0e4
+                class_id: 588e3d42-81e8-4993-aaea-5885db9c1ac4
+                template_id: 730a262b-61b8-4c6c-98e1-2e427615f97f
+                template_revision: 1
+                kind: project
+                name: Gallery walk
+                slug: gallery-walk-edb5e84a
+                status: draft
+                current_version_id: d0e73af4-bb7d-44c2-9490-372173988bd3
+                created_at: '2026-11-04T04:37:21'
+                updated_at: '2026-11-04T04:37:21'
+                created_by_name: s1
+                class_name: 1A
+                current_revision: 1
+                saved_at: '2026-11-04T04:37:21'
+                saved_by_name: t1
+                template_name: Gallery walk
+                assignment_id: 03a005f5-0fe0-4ad5-a21f-49166ea1686d
+                task: ''
+                due_at: null
+                assigned_by_name: t1
+                sent: false
+                published_copies: 0
+                assignment_ids: []
+                showcase: false
+                review_status: null
+                review_grade: null
+                review_comment: null
+                share_with: null
+                submitted_at: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/push-setup:
+    post:
+      tags:
+      - projects
+      summary: Push Project Setup
+      description: 'Carries the teacher''s spots, locks and starter objects into copies students already
+        have
+
+        (see teacher_setup.py). The template''s saved content is what is carried, so save first.'
+      operationId: push_project_setup_api_v1_projects__project_id__push_setup_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: ea287097-6a65-4111-b222-f42047c28d19
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushSetupResponse'
+              example:
+                updated: 1
+                skipped: 0
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/assign-class:
+    post:
+      tags:
+      - projects
+      summary: Assign Class
+      description: 'Template setup''s "Assign to <class>": the class''s assignment of this project, with
+        its
+
+        mission brief, and a copy for every student in the class who has none yet.
+
+
+        One assignment per (class, project): assigning again updates its brief, task and due date,
+
+        and because the brief is read from the assignment (not from each copy), students who
+
+        already have a copy see the new brief the next time they open it.'
+      operationId: assign_class_api_v1_projects__project_id__assign_class_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: dbb70cb6-9475-4cbe-8634-d6bac1dfc158
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignClassRequest'
+            example:
+              class_id: e152d8fc-ab26-4afb-bfef-da24b3eda781
+              mission_brief:
+                due: '2026-11-20'
+                todos:
+                - id: t1
+                  text: Place three exhibits
+                rules:
+                - id: r1
+                  text: Label every exhibit
+              task: Build a museum of your hobby
+              due_at: '2026-11-20'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignClassResponse'
+              example:
+                assignment_id: 2ae52419-83af-4893-96bc-637bb9ffbe1a
+                students: 2
+                sent: 2
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}:
+    get:
+      tags:
+      - projects
+      summary: Get Project
+      operationId: get_project_api_v1_projects__project_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: f790e350-54be-4dbe-b498-86dff8c16cd2
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+              example:
+                id: f790e350-54be-4dbe-b498-86dff8c16cd2
+                organisation_id: cfb8f1ef-b99e-4305-ba6a-ba297a472d63
+                created_by_id: c4f2ba13-42ef-4dbc-913d-fed21ddf979f
+                class_id: 289a0b5d-d261-4f32-a0b1-4ef4e85c4d57
+                template_id: null
+                template_revision: null
+                kind: project
+                name: p
+                slug: p-e3399327
+                status: draft
+                current_version_id: null
+                created_at: '2026-11-04T04:37:20'
+                updated_at: '2026-11-04T04:37:20'
+                created_by_name: s1
+                class_name: 1A
+                current_revision: 0
+                saved_at: null
+                saved_by_name: ''
+                template_name: null
+                assignment_id: null
+                task: null
+                due_at: null
+                assigned_by_name: null
+                sent: false
+                published_copies: 0
+                assignment_ids: []
+                showcase: false
+                review_status: null
+                review_grade: null
+                review_comment: null
+                share_with: null
+                submitted_at: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - projects
+      summary: Update Project
+      operationId: update_project_api_v1_projects__project_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 22d31f69-7837-484d-a070-c071b896480d
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+            example:
+              class_id: 885e519c-5337-499d-b5d9-3c609de67f17
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+              example:
+                id: 22d31f69-7837-484d-a070-c071b896480d
+                organisation_id: b1f0c40c-8f28-4a3c-8e57-1e43de5d7a17
+                created_by_id: 0fa4f0e7-794b-4eef-9838-28ac60f74a22
+                class_id: 885e519c-5337-499d-b5d9-3c609de67f17
+                template_id: null
+                template_revision: null
+                kind: project
+                name: p
+                slug: p-9626bb45
+                status: draft
+                current_version_id: null
+                created_at: '2026-11-04T04:37:21'
+                updated_at: '2026-11-04T04:37:21'
+                created_by_name: t1
+                class_name: 1A
+                current_revision: 0
+                saved_at: null
+                saved_by_name: ''
+                template_name: null
+                assignment_id: null
+                task: null
+                due_at: null
+                assigned_by_name: null
+                sent: false
+                published_copies: 0
+                assignment_ids: []
+                showcase: false
+                review_status: null
+                review_grade: null
+                review_comment: null
+                share_with: null
+                submitted_at: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - projects
+      summary: Delete Project
+      description: 'Deletes a draft nobody was sent: the project and everything saved on it.
+
+
+        Refused (409) for anything published or archived, for a project already sent to students (it
+
+        has an assignment), and for a student''s copy of assigned work; those can only be archived.
+
+        Copies sent earlier are never touched: they belong to the students.'
+      operationId: delete_project_api_v1_projects__project_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 51a4c185-d5dd-4b19-bcfe-2ed14926bbb2
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/media:
+    get:
+      tags:
+      - media
+      summary: List Media
+      operationId: list_media_api_v1_projects__project_id__media_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 713f87c7-b4b8-4ea5-80f1-8aa046dcb496
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MediaEntryResponse'
+                title: Response List Media Api V1 Projects  Project Id  Media Get
+              example:
+              - id: 1740562a-c84b-422e-b31e-f93abfbc6749
+                project_id: 713f87c7-b4b8-4ea5-80f1-8aa046dcb496
+                kind: image
+                source: file
+                label: stone.png
+                status: failed
+                content_type: image/png
+                size_bytes: 1000
+                provider: null
+                provider_id: null
+                url: null
+                approval: null
+                approved_by_id: null
+                approved_at: null
+                review_comment: null
+                download_url: null
+                download_expires_in: null
+                created_at: '2026-11-04T04:37:22'
+                updated_at: '2026-11-04T04:37:22'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - media
+      summary: Request Media Upload
+      operationId: request_media_upload_api_v1_projects__project_id__media_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: c8ad103f-8533-470c-bba1-f4a81013ef2c
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUploadRequest'
+            example:
+              kind: image
+              content_type: image/png
+              size_bytes: 1000
+              filename: stone.png
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaUploadResponse'
+              example:
+                media_asset_id: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+                upload_url: https://store.test/put/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png
+                storage_key: projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/media/{media_id}/confirm:
+    post:
+      tags:
+      - media
+      summary: Confirm Media Upload
+      description: Check what actually landed in storage, then mark the file uploaded or failed.
+      operationId: confirm_media_upload_api_v1_projects__project_id__media__media_id__confirm_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: c8ad103f-8533-470c-bba1-f4a81013ef2c
+      - name: media_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Media Id
+        example: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaEntryResponse'
+              example:
+                id: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+                project_id: c8ad103f-8533-470c-bba1-f4a81013ef2c
+                kind: image
+                source: file
+                label: stone.png
+                status: uploaded
+                content_type: image/png
+                size_bytes: 1000
+                provider: null
+                provider_id: null
+                url: null
+                approval: null
+                approved_by_id: null
+                approved_at: null
+                review_comment: null
+                download_url: null
+                download_expires_in: null
+                created_at: '2026-11-04T04:37:22'
+                updated_at: '2026-11-04T04:37:22'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/media/{media_id}:
+    get:
+      tags:
+      - media
+      summary: Get Media
+      operationId: get_media_api_v1_projects__project_id__media__media_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: c8ad103f-8533-470c-bba1-f4a81013ef2c
+      - name: media_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Media Id
+        example: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaEntryResponse'
+              example:
+                id: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+                project_id: c8ad103f-8533-470c-bba1-f4a81013ef2c
+                kind: image
+                source: file
+                label: stone.png
+                status: uploaded
+                content_type: image/png
+                size_bytes: 1000
+                provider: null
+                provider_id: null
+                url: null
+                approval: null
+                approved_by_id: null
+                approved_at: null
+                review_comment: null
+                download_url: https://store.test/get/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png?expires=900
+                download_expires_in: 900
+                created_at: '2026-11-04T04:37:22'
+                updated_at: '2026-11-04T04:37:22'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - media
+      summary: Delete Media
+      operationId: delete_media_api_v1_projects__project_id__media__media_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: f1ee34b8-8df2-4a13-855e-226135df5c19
+      - name: media_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Media Id
+        example: 97bb77ba-0b18-43f6-ae49-91d60c38656d
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/media/links:
+    post:
+      tags:
+      - media
+      summary: Add Media Link
+      description: Add an external link. It starts 'pending' and plays for students only once approved.
+      operationId: add_media_link_api_v1_projects__project_id__media_links_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 975173af-578f-4938-99e5-5d4326ccdd72
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaLinkRequest'
+            example:
+              url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaEntryResponse'
+              example:
+                id: 4ddc7c0c-10ea-46d9-9225-f5ce97930d68
+                project_id: 975173af-578f-4938-99e5-5d4326ccdd72
+                kind: video
+                source: external
+                label: YouTube video dQw4w9WgXcQ
+                status: null
+                content_type: null
+                size_bytes: null
+                provider: youtube
+                provider_id: dQw4w9WgXcQ
+                url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+                approval: pending
+                approved_by_id: null
+                approved_at: null
+                review_comment: null
+                download_url: null
+                download_expires_in: null
+                created_at: '2026-11-04T04:37:22'
+                updated_at: '2026-11-04T04:37:22'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/media/links/{link_id}:
+    patch:
+      tags:
+      - media
+      summary: Review Media Link
+      description: Approve a link, or send it back with a comment. Any teacher or admin who can see the
+        project may review.
+      operationId: review_media_link_api_v1_projects__project_id__media_links__link_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 975173af-578f-4938-99e5-5d4326ccdd72
+      - name: link_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Link Id
+        example: 4ddc7c0c-10ea-46d9-9225-f5ce97930d68
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaApprovalRequest'
+            example:
+              approval: approved
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaEntryResponse'
+              example:
+                id: 4ddc7c0c-10ea-46d9-9225-f5ce97930d68
+                project_id: 975173af-578f-4938-99e5-5d4326ccdd72
+                kind: video
+                source: external
+                label: YouTube video dQw4w9WgXcQ
+                status: null
+                content_type: null
+                size_bytes: null
+                provider: youtube
+                provider_id: dQw4w9WgXcQ
+                url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+                approval: approved
+                approved_by_id: 5b3b53a7-9129-4014-9ef0-98fe58066cf8
+                approved_at: '2026-11-04T04:37:22.934546'
+                review_comment: null
+                download_url: null
+                download_expires_in: null
+                created_at: '2026-11-04T04:37:22'
+                updated_at: '2026-11-04T04:37:22'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/library/tickets:
+    post:
+      tags:
+      - library
+      summary: Request Library Ticket
+      operationId: request_library_ticket_api_v1_library_tickets_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryTicketRequest'
+            example:
+              content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
+              filename: Pedestal.glb
+              kind: model
+              content_type: model/gltf-binary
+              size_bytes: 15
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryTicketResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '201':
+          description: Created
+          content:
+            application/json:
+              example:
+                asset:
+                  id: 06314f4b-d08d-4fc1-81ff-766ffb895671
+                  content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
+                  storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                  kind: model
+                  content_type: model/gltf-binary
+                  size_bytes: 15
+                  filename: Pedestal.glb
+                  title: Pedestal
+                  attribution: null
+                  visibility: public
+                  status: pending
+                  url: null
+                  created_at: '2026-11-04T04:37:21'
+                  updated_at: '2026-11-04T04:37:21'
+                upload_url: https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                upload_headers:
+                  Content-Type: model/gltf-binary
+                  Cache-Control: public, max-age=31536000, immutable
+      security:
+      - HTTPBearer: []
+  /api/v1/library/{asset_id}/confirm:
+    post:
+      tags:
+      - library
+      summary: Confirm Library Upload
+      description: Check what actually landed in storage, then mark the file uploaded or failed.
+      operationId: confirm_library_upload_api_v1_library__asset_id__confirm_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Asset Id
+        example: 06314f4b-d08d-4fc1-81ff-766ffb895671
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAssetResponse'
+              example:
+                id: 06314f4b-d08d-4fc1-81ff-766ffb895671
+                content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
+                storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                kind: model
+                content_type: model/gltf-binary
+                size_bytes: 15
+                filename: Pedestal.glb
+                title: Pedestal
+                attribution: null
+                visibility: public
+                status: uploaded
+                url: https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                created_at: '2026-11-04T04:37:21'
+                updated_at: '2026-11-04T04:37:21'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/library:
+    get:
+      tags:
+      - library
+      summary: List Library
+      operationId: list_library_api_v1_library_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LibraryAssetResponse'
+                title: Response List Library Api V1 Library Get
+              example:
+              - id: 650b80be-1bb7-43b9-ae90-24e7edf2a633
+                content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
+                storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                kind: model
+                content_type: model/gltf-binary
+                size_bytes: 15
+                filename: Pedestal.glb
+                title: Pedestal
+                attribution: null
+                visibility: public
+                status: uploaded
+                url: https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                created_at: '2026-11-04T04:37:21'
+                updated_at: '2026-11-04T04:37:21'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/library/{asset_id}:
+    patch:
+      tags:
+      - library
+      summary: Update Library Asset
+      operationId: update_library_asset_api_v1_library__asset_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Asset Id
+        example: 83955f2c-57b1-41c7-8342-051511512ddc
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryPatch'
+            example:
+              title: Renamed
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAssetResponse'
+              example:
+                id: 83955f2c-57b1-41c7-8342-051511512ddc
+                content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
+                storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                kind: model
+                content_type: model/gltf-binary
+                size_bytes: 15
+                filename: Pedestal.glb
+                title: Renamed
+                attribution: null
+                visibility: public
+                status: uploaded
+                url: https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
+                created_at: '2026-11-04T04:37:22'
+                updated_at: '2026-11-04T04:37:22'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - library
+      summary: Delete Library Asset
+      operationId: delete_library_asset_api_v1_library__asset_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Asset Id
+        example: af83f1af-7538-41ab-9a79-6b273280beba
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/versions:
+    get:
+      tags:
+      - publish
+      summary: List Versions
+      operationId: list_versions_api_v1_projects__project_id__versions_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 570c3a29-3a67-4313-b066-d67b13fd6607
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectVersionResponse'
+                title: Response List Versions Api V1 Projects  Project Id  Versions Get
+              example:
+              - id: 7f48291d-d6a5-419b-a1a0-cdaff8365804
+                project_id: 570c3a29-3a67-4313-b066-d67b13fd6607
+                revision: 1
+                label: null
+                content_snapshot_id: bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34
+                created_at: '2026-11-04T04:37:24.055769'
+                created_by_name: s1
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - publish
+      summary: Save Version
+      operationId: save_version_api_v1_projects__project_id__versions_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 730a262b-61b8-4c6c-98e1-2e427615f97f
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveRequest'
+            example:
+              base_revision: 0
+              data:
+                schemaVersion: 1
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectVersionResponse'
+              example:
+                id: 0018a3e8-3e52-4eb4-88e6-859b10a99bd5
+                project_id: 730a262b-61b8-4c6c-98e1-2e427615f97f
+                revision: 1
+                label: null
+                content_snapshot_id: 5a473063-6087-45c5-a28d-a3261b62d9d7
+                created_at: '2026-11-04T04:37:21'
+                created_by_name: ''
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/versions/{version_id}:
+    get:
+      tags:
+      - publish
+      summary: Get Version
+      operationId: get_version_api_v1_projects__project_id__versions__version_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 570c3a29-3a67-4313-b066-d67b13fd6607
+      - name: version_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Version Id
+        example: 7f48291d-d6a5-419b-a1a0-cdaff8365804
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectVersionDetail'
+              example:
+                id: 7f48291d-d6a5-419b-a1a0-cdaff8365804
+                project_id: 570c3a29-3a67-4313-b066-d67b13fd6607
+                revision: 1
+                label: null
+                content_snapshot_id: bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34
+                created_at: '2026-11-04T04:37:24.055769'
+                created_by_name: ''
+                data:
+                  schemaVersion: 1
+                  id: p
+                  name: Scene 4
+                  scenes: []
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/versions/{version_id}/activate:
+    post:
+      tags:
+      - publish
+      summary: Activate Version
+      operationId: activate_version_api_v1_projects__project_id__versions__version_id__activate_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      - name: version_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Version Id
+        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectVersionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: activate_version is not implemented
+  /api/v1/projects/{project_id}/analytics/events:
+    post:
+      tags:
+      - analytics
+      summary: Record Event
+      operationId: record_event_api_v1_projects__project_id__analytics_events_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsEventRequest'
+            example:
+              session_id: visit-7f3a
+              event_type: room-entered
+              payload:
+                roomId: room-2
+              occurred_at: '2026-11-04T09:30:00Z'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsEventResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: record_event is not implemented
+    get:
+      tags:
+      - analytics
+      summary: List Events
+      operationId: list_events_api_v1_projects__project_id__analytics_events_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnalyticsEventResponse'
+                title: Response List Events Api V1 Projects  Project Id  Analytics Events Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: list_events is not implemented
+  /api/v1/projects/{project_id}/analytics/summary:
+    get:
+      tags:
+      - analytics
+      summary: Get Summary
+      operationId: get_summary_api_v1_projects__project_id__analytics_summary_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Summary Api V1 Projects  Project Id  Analytics Summary Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: get_summary is not implemented
+  /api/v1/analytics/visits:
+    get:
+      tags:
+      - analytics
+      summary: Museum Visits
+      operationId: museum_visits_api_v1_analytics_visits_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: days
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 366
+            minimum: 1
+          - type: 'null'
+          title: Days
+        example: '7'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MuseumVisits'
+                title: Response Museum Visits Api V1 Analytics Visits Get
+              example:
+              - project_id: 8978e0a7-a146-4974-a687-d6dbaac2cab9
+                visits: 2
+                last_7_days:
+                - 0
+                - 0
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/rules:
+    get:
+      tags:
+      - rules
+      summary: List Rules
+      operationId: list_rules_api_v1_projects__project_id__rules_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InteractionRuleResponse'
+                title: Response List Rules Api V1 Projects  Project Id  Rules Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: list_rules is not implemented
+    post:
+      tags:
+      - rules
+      summary: Create Rule
+      operationId: create_rule_api_v1_projects__project_id__rules_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InteractionRuleRequest'
+            example:
+              object_id: door-1
+              zone_id: null
+              triggers:
+              - type: click
+              actions:
+              - type: show-card
+                cardId: card-1
+              priority: 0
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionRuleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: create_rule is not implemented
+  /api/v1/projects/{project_id}/rules/{rule_id}:
+    get:
+      tags:
+      - rules
+      summary: Get Rule
+      operationId: get_rule_api_v1_projects__project_id__rules__rule_id__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      - name: rule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Rule Id
+        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionRuleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: get_rule is not implemented
+    patch:
+      tags:
+      - rules
+      summary: Update Rule
+      operationId: update_rule_api_v1_projects__project_id__rules__rule_id__patch
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      - name: rule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Rule Id
+        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InteractionRuleRequest'
+            example:
+              object_id: door-1
+              zone_id: null
+              triggers:
+              - type: click
+              actions:
+              - type: show-card
+                cardId: card-1
+              priority: 0
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionRuleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: update_rule is not implemented
+    delete:
+      tags:
+      - rules
+      summary: Delete Rule
+      operationId: delete_rule_api_v1_projects__project_id__rules__rule_id__delete
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+      - name: rule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Rule Id
+        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              example:
+                detail: delete_rule is not implemented
+  /api/v1/showcase:
+    get:
+      tags:
+      - showcase
+      summary: List Showcase
+      operationId: list_showcase_api_v1_showcase_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ShowcaseMuseum'
+                type: array
+                title: Response List Showcase Api V1 Showcase Get
+              example: []
+  /api/v1/projects/{project_id}/submit:
+    post:
+      tags:
+      - submissions
+      summary: Submit Project
+      description: 'The student sends their assigned museum to the teacher: it waits for approval.'
+      operationId: submit_project_api_v1_projects__project_id__submit_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: c46fffe5-004e-4490-86c2-7dc924908a19
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+            example:
+              share_with: public
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+              example:
+                id: c250f30e-1776-4caf-8c6c-1840646f19da
+                project_id: c46fffe5-004e-4490-86c2-7dc924908a19
+                version_id: a453ec4a-eec0-4459-b4d7-01b7c7fe503b
+                status: waiting
+                share_with: public
+                grade: null
+                comment: null
+                submitted_by_id: 662e38f0-87d1-4c14-945f-45f5ffe9602f
+                submitted_at: '2026-11-04T04:37:25.333427'
+                reviewed_by_id: null
+                reviewed_at: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - submissions
+      summary: Withdraw Submission
+      description: 'The student takes back a hand-in the teacher hasn''t looked at yet. The waiting row
+        is
+
+        removed, so the project''s review state goes back to what it was before (none, or sent_back).'
+      operationId: withdraw_submission_api_v1_projects__project_id__submit_delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: 6d986fab-9187-4799-bcf1-78a3d624012f
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/approve:
+    post:
+      tags:
+      - submissions
+      summary: Approve Project
+      description: 'The teacher approves a waiting museum (a first hand-in or an update): it is published,
+
+        and visitors see the save that was handed in.'
+      operationId: approve_project_api_v1_projects__project_id__approve_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: c46fffe5-004e-4490-86c2-7dc924908a19
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+            example:
+              grade: A
+              comment: Lovely
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+              example:
+                id: c250f30e-1776-4caf-8c6c-1840646f19da
+                project_id: c46fffe5-004e-4490-86c2-7dc924908a19
+                version_id: a453ec4a-eec0-4459-b4d7-01b7c7fe503b
+                status: approved
+                share_with: public
+                grade: A
+                comment: Lovely
+                submitted_by_id: 662e38f0-87d1-4c14-945f-45f5ffe9602f
+                submitted_at: '2026-11-04T04:37:25.333427'
+                reviewed_by_id: 8388c913-7075-474a-ae5e-b3012d4911e3
+                reviewed_at: '2026-11-04T04:37:25.343557'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/send-back:
+    post:
+      tags:
+      - submissions
+      summary: Send Back Project
+      description: 'The teacher returns a waiting museum with a comment: the student keeps building and
+        sends it
+
+        again. For an update to a published museum, the approved save stays live.'
+      operationId: send_back_project_api_v1_projects__project_id__send_back_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendBackRequest'
+            example:
+              comment: Add a second room
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+              example:
+                id: 00d115e8-0824-4543-b4f1-0d3074827021
+                project_id: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+                version_id: cd92b8b4-d2ff-4668-8c98-ffd79838f646
+                status: sent_back
+                share_with: null
+                grade: null
+                comment: Add a second room
+                submitted_by_id: e176b223-801e-45d0-ba88-f6f9db0f9c58
+                submitted_at: '2026-11-04T04:37:25.527939'
+                reviewed_by_id: f243e391-ac97-4f07-9a0c-78be95cae7bb
+                reviewed_at: '2026-11-04T04:37:25.540354'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/submissions:
+    get:
+      tags:
+      - submissions
+      summary: List Submissions
+      description: 'Every hand-in of a museum, newest first: for the student and anyone who can see it.'
+      operationId: list_submissions_api_v1_projects__project_id__submissions_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+        example: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubmissionResponse'
+                title: Response List Submissions Api V1 Projects  Project Id  Submissions Get
+              example:
+              - id: 90082195-ca1c-4123-bd9c-2502d4b92b6b
+                project_id: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+                version_id: cd92b8b4-d2ff-4668-8c98-ffd79838f646
+                status: waiting
+                share_with: null
+                grade: null
+                comment: null
+                submitted_by_id: e176b223-801e-45d0-ba88-f6f9db0f9c58
+                submitted_at: '2026-11-04T04:37:25.551304'
+                reviewed_by_id: null
+                reviewed_at: null
+              - id: 00d115e8-0824-4543-b4f1-0d3074827021
+                project_id: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+                version_id: cd92b8b4-d2ff-4668-8c98-ffd79838f646
+                status: sent_back
+                share_with: null
+                grade: null
+                comment: Add a second room
+                submitted_by_id: e176b223-801e-45d0-ba88-f6f9db0f9c58
+                submitted_at: '2026-11-04T04:37:25.527939'
+                reviewed_by_id: f243e391-ac97-4f07-9a0c-78be95cae7bb
+                reviewed_at: '2026-11-04T04:37:25.540354'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/visit/{slug}:
+    get:
+      tags:
+      - visit
+      summary: Visit
+      operationId: visit_api_v1_visit__slug__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+        example: lesson-1d5599b7
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitResponse'
+              example:
+                title: Lesson
+                student_name: s1
+                class_name: 1A
+                school_name: A
+                share_with: public
+                data:
+                  schemaVersion: 1
+                  scenes:
+                  - id: a
+                    objects:
+                    - id: o1
+                own_project_id: null
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/health:
+    get:
+      summary: Health
+      operationId: health_api_v1_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Api V1 Health Get
+              example:
+                status: ok
+                service: vectorspace-api
+components:
+  schemas:
+    AccountPatchRequest:
+      properties:
+        active:
+          type: boolean
+          title: Active
+      type: object
+      required:
+      - active
+      title: AccountPatchRequest
+    AccountResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        school_id:
+          type: string
+          format: uuid
+          title: School Id
+        name:
+          type: string
+          title: Name
+        email:
+          type: string
+          title: Email
+        role:
+          type: string
+          title: Role
+        class_names:
+          items:
+            type: string
+          type: array
+          title: Class Names
+        last_active:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Active
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - id
+      - school_id
+      - name
+      - email
+      - role
+      - class_names
+      - last_active
+      - status
+      title: AccountResponse
+    AnalyticsEventRequest:
+      properties:
+        session_id:
+          type: string
+          title: Session Id
+        event_type:
+          type: string
+          title: Event Type
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+      type: object
+      required:
+      - session_id
+      - event_type
+      - occurred_at
+      title: AnalyticsEventRequest
+    AnalyticsEventResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        actor_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Actor Id
+        session_id:
+          type: string
+          title: Session Id
+        event_type:
+          type: string
+          title: Event Type
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - project_id
+      - actor_id
+      - session_id
+      - event_type
+      - payload
+      - occurred_at
+      - created_at
+      title: AnalyticsEventResponse
+    AssignClassRequest:
+      properties:
+        class_id:
+          type: string
+          format: uuid
+          title: Class Id
+        mission_brief:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Mission Brief
+        task:
+          type: string
+          maxLength: 2000
+          title: Task
+          default: ''
+        due_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due At
+      type: object
+      required:
+      - class_id
+      title: AssignClassRequest
+    AssignClassResponse:
+      properties:
+        assignment_id:
+          type: string
+          format: uuid
+          title: Assignment Id
+        students:
+          type: integer
+          title: Students
+        sent:
+          type: integer
+          title: Sent
+      type: object
+      required:
+      - assignment_id
+      - students
+      - sent
+      title: AssignClassResponse
+    AssignRequest:
+      properties:
+        student_id:
+          type: string
+          format: uuid
+          title: Student Id
+        task:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task
+        due_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due At
+      type: object
+      required:
+      - student_id
+      title: AssignRequest
+    AttentionItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        text:
+          type: string
+          title: Text
+        action_label:
+          type: string
+          title: Action Label
+        go_to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Go To
+      type: object
+      required:
+      - id
+      - text
+      - action_label
+      - go_to
+      title: AttentionItem
+    ClassResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        member_count:
+          type: integer
+          title: Member Count
+      type: object
+      required:
+      - id
+      - name
+      - member_count
+      title: ClassResponse
+    CreatedAccountResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        school_id:
+          type: string
+          format: uuid
+          title: School Id
+        name:
+          type: string
+          title: Name
+        email:
+          type: string
+          title: Email
+        role:
+          type: string
+          title: Role
+        class_names:
+          items:
+            type: string
+          type: array
+          title: Class Names
+        last_active:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Active
+        status:
+          type: string
+          title: Status
+        invite_link:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invite Link
+      type: object
+      required:
+      - id
+      - school_id
+      - name
+      - email
+      - role
+      - class_names
+      - last_active
+      - status
+      title: CreatedAccountResponse
+      description: 'The create reply only. Auth0 mints a single-use password-set link and nothing emails
+        it,
+
+        so the one request that mints it is the only place it can be handed over. A ticket cannot be
+
+        re-minted on demand, so GET /accounts keeps AccountResponse and has no such field: a column
+
+        that is always null on a list and sometimes set on a create is the wrong shape.'
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    InteractionRuleRequest:
+      properties:
+        object_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Object Id
+        zone_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Zone Id
+        triggers:
+          items: {}
+          type: array
+          title: Triggers
+        actions:
+          items: {}
+          type: array
+          title: Actions
+        priority:
+          type: integer
+          title: Priority
+          default: 0
+      type: object
+      required:
+      - triggers
+      - actions
+      title: InteractionRuleRequest
+    InteractionRuleResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        object_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Object Id
+        zone_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Zone Id
+        triggers:
+          items: {}
+          type: array
+          title: Triggers
+        actions:
+          items: {}
+          type: array
+          title: Actions
+        priority:
+          type: integer
+          title: Priority
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - project_id
+      - object_id
+      - zone_id
+      - triggers
+      - actions
+      - priority
+      - created_at
+      - updated_at
+      title: InteractionRuleResponse
+    LibraryAssetResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        content_sha256:
+          type: string
+          title: Content Sha256
+        storage_key:
+          type: string
+          title: Storage Key
+        kind:
+          type: string
+          title: Kind
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        filename:
+          type: string
+          title: Filename
+        title:
+          type: string
+          title: Title
+        attribution:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Attribution
+        visibility:
+          type: string
+          title: Visibility
+        status:
+          type: string
+          title: Status
+        url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Url
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - content_sha256
+      - storage_key
+      - kind
+      - content_type
+      - size_bytes
+      - filename
+      - title
+      - attribution
+      - visibility
+      - status
+      - created_at
+      - updated_at
+      title: LibraryAssetResponse
+    LibraryPatch:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Title
+        attribution:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Attribution
+        visibility:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Visibility
+      type: object
+      title: LibraryPatch
+    LibraryTicketRequest:
+      properties:
+        content_sha256:
+          type: string
+          title: Content Sha256
+        filename:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Filename
+        kind:
+          type: string
+          title: Kind
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        title:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Title
+        attribution:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Attribution
+      type: object
+      required:
+      - content_sha256
+      - filename
+      - kind
+      - content_type
+      - size_bytes
+      title: LibraryTicketRequest
+    LibraryTicketResponse:
+      properties:
+        asset:
+          $ref: '#/components/schemas/LibraryAssetResponse'
+        upload_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Upload Url
+        upload_headers:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: Upload Headers
+      type: object
+      required:
+      - asset
+      title: LibraryTicketResponse
+    MeResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        organisation_id:
+          type: string
+          format: uuid
+          title: Organisation Id
+        display_name:
+          type: string
+          title: Display Name
+        role:
+          type: string
+          title: Role
+        class_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Class Ids
+      type: object
+      required:
+      - id
+      - organisation_id
+      - display_name
+      - role
+      - class_ids
+      title: MeResponse
+    MediaApprovalRequest:
+      properties:
+        approval:
+          type: string
+          title: Approval
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+      type: object
+      required:
+      - approval
+      title: MediaApprovalRequest
+    MediaEntryResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        kind:
+          type: string
+          title: Kind
+        source:
+          type: string
+          title: Source
+        label:
+          type: string
+          title: Label
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        content_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content Type
+        size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size Bytes
+        provider:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider
+        provider_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider Id
+        url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Url
+        approval:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approval
+        approved_by_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Approved By Id
+        approved_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Approved At
+        review_comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Comment
+        download_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Download Url
+        download_expires_in:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Download Expires In
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - project_id
+      - kind
+      - source
+      - label
+      - created_at
+      - updated_at
+      title: MediaEntryResponse
+      description: One library entry, file or link, in one shape (overview section 6, MediaEntry).
+    MediaLinkRequest:
+      properties:
+        url:
+          type: string
+          title: Url
+      type: object
+      required:
+      - url
+      title: MediaLinkRequest
+    MediaUploadRequest:
+      properties:
+        kind:
+          type: string
+          title: Kind
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        filename:
+          type: string
+          title: Filename
+      type: object
+      required:
+      - kind
+      - content_type
+      - size_bytes
+      - filename
+      title: MediaUploadRequest
+    MediaUploadResponse:
+      properties:
+        media_asset_id:
+          type: string
+          format: uuid
+          title: Media Asset Id
+        upload_url:
+          type: string
+          title: Upload Url
+        storage_key:
+          type: string
+          title: Storage Key
+      type: object
+      required:
+      - media_asset_id
+      - upload_url
+      - storage_key
+      title: MediaUploadResponse
+    MemberResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        display_name:
+          type: string
+          title: Display Name
+        role:
+          type: string
+          title: Role
+      type: object
+      required:
+      - id
+      - display_name
+      - role
+      title: MemberResponse
+    MuseumVisits:
+      properties:
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        visits:
+          type: integer
+          title: Visits
+        last_7_days:
+          items:
+            type: integer
+          type: array
+          title: Last 7 Days
+      type: object
+      required:
+      - project_id
+      - visits
+      - last_7_days
+      title: MuseumVisits
+    NewAccountRequest:
+      properties:
+        school_id:
+          type: string
+          format: uuid
+          title: School Id
+        name:
+          type: string
+          title: Name
+        email:
+          type: string
+          title: Email
+        role:
+          type: string
+          title: Role
+        class_names:
+          items:
+            type: string
+          type: array
+          title: Class Names
+          default: []
+      type: object
+      required:
+      - school_id
+      - name
+      - email
+      - role
+      title: NewAccountRequest
+    OverviewResponse:
+      properties:
+        tiles:
+          additionalProperties:
+            $ref: '#/components/schemas/Tile'
+          type: object
+          title: Tiles
+        schools:
+          items:
+            $ref: '#/components/schemas/SchoolResponse'
+          type: array
+          title: Schools
+        attention:
+          items:
+            $ref: '#/components/schemas/AttentionItem'
+          type: array
+          title: Attention
+        recent:
+          items:
+            $ref: '#/components/schemas/PublishedItem'
+          type: array
+          title: Recent
+      type: object
+      required:
+      - tiles
+      - schools
+      - attention
+      - recent
+      title: OverviewResponse
+    ProjectCreateRequest:
+      properties:
+        name:
+          type: string
+          title: Name
+        kind:
+          type: string
+          title: Kind
+          default: project
+        class_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Class Id
+        template_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Template Id
+      type: object
+      required:
+      - name
+      title: ProjectCreateRequest
+    ProjectResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        organisation_id:
+          type: string
+          format: uuid
+          title: Organisation Id
+        created_by_id:
+          type: string
+          format: uuid
+          title: Created By Id
+        class_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Class Id
+        template_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Template Id
+        template_revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Template Revision
+        kind:
+          type: string
+          title: Kind
+        name:
+          type: string
+          title: Name
+        slug:
+          type: string
+          title: Slug
+        status:
+          type: string
+          title: Status
+        current_version_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Current Version Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        created_by_name:
+          type: string
+          title: Created By Name
+          default: ''
+        class_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Class Name
+        current_revision:
+          type: integer
+          title: Current Revision
+          default: 0
+        saved_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Saved At
+        saved_by_name:
+          type: string
+          title: Saved By Name
+          default: ''
+        template_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Name
+        assignment_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assignment Id
+        task:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task
+        due_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due At
+        assigned_by_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Assigned By Name
+        mission_brief:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Mission Brief
+        sent:
+          type: boolean
+          title: Sent
+          default: false
+        published_copies:
+          type: integer
+          title: Published Copies
+          default: 0
+        assignment_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Assignment Ids
+          default: []
+        showcase:
+          type: boolean
+          title: Showcase
+          default: false
+        review_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Status
+        review_grade:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Grade
+        review_comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Comment
+        share_with:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Share With
+        submitted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Submitted At
+      type: object
+      required:
+      - id
+      - organisation_id
+      - created_by_id
+      - class_id
+      - template_id
+      - template_revision
+      - kind
+      - name
+      - slug
+      - status
+      - current_version_id
+      - created_at
+      - updated_at
+      title: ProjectResponse
+    ProjectUpdateRequest:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        class_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Class Id
+        showcase:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Showcase
+      type: object
+      title: ProjectUpdateRequest
+    ProjectVersionDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        revision:
+          type: integer
+          title: Revision
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+        content_snapshot_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Content Snapshot Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by_name:
+          type: string
+          title: Created By Name
+          default: ''
+        data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Data
+      type: object
+      required:
+      - id
+      - project_id
+      - revision
+      - label
+      - content_snapshot_id
+      - created_at
+      title: ProjectVersionDetail
+    ProjectVersionResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        revision:
+          type: integer
+          title: Revision
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+        content_snapshot_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Content Snapshot Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        created_by_name:
+          type: string
+          title: Created By Name
+          default: ''
+      type: object
+      required:
+      - id
+      - project_id
+      - revision
+      - label
+      - content_snapshot_id
+      - created_at
+      title: ProjectVersionResponse
+    PublishedItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        where:
+          type: string
+          title: Where
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+      type: object
+      required:
+      - id
+      - title
+      - where
+      - published_at
+      title: PublishedItem
+    PushSetupResponse:
+      properties:
+        updated:
+          type: integer
+          title: Updated
+        skipped:
+          type: integer
+          title: Skipped
+      type: object
+      required:
+      - updated
+      - skipped
+      title: PushSetupResponse
+    ReviewRequest:
+      properties:
+        grade:
+          anyOf:
+          - type: string
+            maxLength: 20
+          - type: 'null'
+          title: Grade
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+      type: object
+      title: ReviewRequest
+    SaveRequest:
+      properties:
+        base_revision:
+          type: integer
+          title: Base Revision
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+      type: object
+      required:
+      - base_revision
+      - data
+      title: SaveRequest
+    SchoolResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        students:
+          type: integer
+          title: Students
+        educators:
+          type: integer
+          title: Educators
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - id
+      - name
+      - students
+      - educators
+      - status
+      title: SchoolResponse
+    SendBackRequest:
+      properties:
+        grade:
+          anyOf:
+          - type: string
+            maxLength: 20
+          - type: 'null'
+          title: Grade
+        comment:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Comment
+      type: object
+      required:
+      - comment
+      title: SendBackRequest
+    ShowcaseMuseum:
+      properties:
+        title:
+          type: string
+          title: Title
+        student_name:
+          type: string
+          title: Student Name
+        class_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Class Name
+        school_name:
+          type: string
+          title: School Name
+        exhibit_count:
+          type: integer
+          title: Exhibit Count
+        room_count:
+          type: integer
+          title: Room Count
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - title
+      - student_name
+      - class_name
+      - school_name
+      - exhibit_count
+      - room_count
+      - updated_at
+      title: ShowcaseMuseum
+    SubmissionResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        version_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Version Id
+        status:
+          type: string
+          title: Status
+        share_with:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Share With
+        grade:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Grade
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        submitted_by_id:
+          type: string
+          format: uuid
+          title: Submitted By Id
+        submitted_at:
+          type: string
+          format: date-time
+          title: Submitted At
+        reviewed_by_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Reviewed By Id
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+      type: object
+      required:
+      - id
+      - project_id
+      - version_id
+      - status
+      - share_with
+      - grade
+      - comment
+      - submitted_by_id
+      - submitted_at
+      - reviewed_by_id
+      - reviewed_at
+      title: SubmissionResponse
+    SubmitRequest:
+      properties:
+        share_with:
+          anyOf:
+          - type: string
+            pattern: ^(public|unlisted|sign_in_only)$
+          - type: 'null'
+          title: Share With
+      type: object
+      title: SubmitRequest
+    Tile:
+      properties:
+        value:
+          type: integer
+          title: Value
+        sub:
+          type: string
+          title: Sub
+      type: object
+      required:
+      - value
+      - sub
+      title: Tile
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VisitResponse:
+      properties:
+        title:
+          type: string
+          title: Title
+        student_name:
+          type: string
+          title: Student Name
+        class_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Class Name
+        school_name:
+          type: string
+          title: School Name
+        share_with:
+          type: string
+          title: Share With
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        own_project_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Own Project Id
+      type: object
+      required:
+      - title
+      - student_name
+      - class_name
+      - school_name
+      - share_with
+      - data
+      title: VisitResponse
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

@@ -65,3 +65,22 @@ export const freeCell = (project: ProjectData): RoomCell => {
     if (!roomAt(project, { x, z: 0 })) return { x, z: 0 }
   }
 }
+
+export const OPPOSITE_SIDE: Record<RoomSide, RoomSide> = { north: 'south', east: 'west', south: 'north', west: 'east' }
+
+/**
+ * The doors in a room: one on each side with a room beside it on the map, labelled with that
+ * room's name. A room with no cell (made before the map) has none.
+ */
+export const doorsFor = (project: ProjectData, scene: SceneData): { side: RoomSide; sceneId: string; label: string }[] => {
+  const cell = roomCell(project, scene)
+  if (!cell) return []
+  return ROOM_SIDES.flatMap((side) => {
+    const next = roomAt(project, cellBeside(cell, side))
+    return next && next.id !== scene.id ? [{ side, sceneId: next.id, label: next.name }] : []
+  })
+}
+
+/** The room a visit starts in: the one at the middle of the map (Room 1), else the first. */
+export const entranceRoomId = (project: ProjectData): string =>
+  roomAt(project, { x: 0, z: 0 })?.id ?? project.scenes[0]?.id ?? project.activeSceneId

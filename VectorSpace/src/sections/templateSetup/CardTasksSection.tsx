@@ -101,6 +101,22 @@ export function CardTasksSection({ brief, onChange, things }: CardTasksSectionPr
               onPick={(objectId) => { update(task.id, { objectId }); setAskingFor(null); }}
               onSkip={() => setAskingFor(null)}
             />
+            {things.some((thing) => thing.id === task.objectId) && (
+              <div className="task-kind" role="radiogroup" aria-label={`Task ${index + 1}: how visitors see it`}>
+                {[false, true].map((inRoom) => (
+                  <button
+                    key={String(inRoom)}
+                    type="button"
+                    role="radio"
+                    aria-checked={(task.inRoom === true) === inRoom}
+                    className={(task.inRoom === true) === inRoom ? "task-kind-option on" : "task-kind-option"}
+                    onClick={() => update(task.id, { inRoom: inRoom || undefined })}
+                  >
+                    {inRoom ? "Also a sign in the room" : "Pop-up when clicked"}
+                  </button>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ol>

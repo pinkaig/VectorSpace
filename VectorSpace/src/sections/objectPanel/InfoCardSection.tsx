@@ -212,14 +212,14 @@ function TaskFields({ kind, fields, onChange }: { kind: CardTask['kind']; fields
 
 export function InfoCardSection({ objectId, card, video, mediaChoices, addMedia, cardTasks, onSaveCard, onRemoveCard, onSaveVideo, onRemoveVideo, onGoToReactions, onCardCreated }: {
   card: CardInput | null
-  video: { assetId: string; label: string; screen?: boolean } | null
+  video: { assetId: string; label: string } | null
   mediaChoices: MediaChoice[]
   addMedia: AddMedia
   cardTasks: CardTask[]           // the info cards the teacher's mission brief asks for
   objectId: string                // the thing this panel is for: its suggested cards come first
   onSaveCard?: (input: CardInput) => string | null
   onRemoveCard?: () => void
-  onSaveVideo?: (assetId: string, screen: boolean) => string | null
+  onSaveVideo?: (assetId: string) => string | null
   onRemoveVideo?: () => void
   onGoToReactions: () => void
   // a brand-new fact card was saved: the panel moves on to Reactions
@@ -242,13 +242,14 @@ export function InfoCardSection({ objectId, card, video, mediaChoices, addMedia,
     setTaskId(next.id)
     setFields(startFields(next))
     if (!title.trim()) setTitle(next.title)
+    // the teacher can place the card in the room; the student can still change it
+    if (next.inRoom) setInRoom(true)
     setProblem(null)
   }
   // video draft
   const [videoId, setVideoId] = useState(video?.assetId ?? '')
-  // where visitors see it: as a pop-up only, or also inside the room (a sign, a screen)
+  // where visitors see the card: as a pop-up only, or also as a sign inside the room
   const [inRoom, setInRoom] = useState(card?.inRoom === true)
-  const [screen, setScreen] = useState(video?.screen === true)
 
   const choiceFor = (assetId: string) => mediaChoices.find((choice) => choice.assetId === assetId)
 
@@ -263,10 +264,7 @@ export function InfoCardSection({ objectId, card, video, mediaChoices, addMedia,
       setFields(card?.fields ?? [])
       setInRoom(card?.inRoom === true)
     }
-    if (next === 'video') {
-      setVideoId(video?.assetId ?? '')
-      setScreen(video?.screen === true)
-    }
+    if (next === 'video') setVideoId(video?.assetId ?? '')
     setView(next)
   }
 
@@ -290,7 +288,7 @@ export function InfoCardSection({ objectId, card, video, mediaChoices, addMedia,
 
   const doneVideo = () => {
     if (!videoId) return setProblem('Pick a video')
-    const error = onSaveVideo ? onSaveVideo(videoId, screen) : 'Saving videos is not connected in this editor yet'
+    const error = onSaveVideo ? onSaveVideo(videoId) : 'Saving videos is not connected in this editor yet'
     if (error) return setProblem(error)
     open('list')
   }
@@ -381,13 +379,6 @@ export function InfoCardSection({ objectId, card, video, mediaChoices, addMedia,
             <div className="info-heading">Pick a video</div>
             <MediaPicker kind="video" choices={mediaChoices} selectedId={videoId} addMedia={addMedia} onPick={(choice) => { setVideoId(choice.assetId); setProblem(null) }} />
             <div className="info-note">From your school's video library. Visitors open it in a pop-up and can play, pause and close it.</div>
-            <ShowAs
-              value={screen}
-              onChange={setScreen}
-              off="Pop-up when clicked"
-              on="Screen in the room"
-              note={screen ? 'It also plays on a screen above the exhibit. Visitors click the exhibit to turn the sound on. A YouTube video shows a "click to watch" screen.' : undefined}
-            />
           </>
         )}
 

@@ -24,7 +24,9 @@ from .config import get_settings
 from .db import get_db
 from .models import Actor
 
-security = HTTPBearer(auto_error=True)
+# auto_error=False because FastAPI's own refusal for a missing header is 403; no token means
+# "not signed in", which is 401, so get_current_token raises that itself
+security = HTTPBearer(auto_error=False)
 # for a route a visitor may open signed out: no Authorization header is not an error there
 optional_security = HTTPBearer(auto_error=False)
 
@@ -130,8 +132,14 @@ def decode_token(token: str) -> TokenPayload:
 
 
 def get_current_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> TokenPayload:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not signed in: send an Authorization: Bearer <token> header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     if get_settings().auth_dev_bypass and token.startswith(DEV_PREFIX):
         return TokenPayload({"sub": token})

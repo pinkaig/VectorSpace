@@ -29,6 +29,7 @@ import AudioControls from "./AudioControls";
 import Viewport, { type PlayMove, type ViewportHandle } from "../viewport/Viewport";
 import { ProjectData } from "../project/model";
 import { isTypingTarget } from "../viewport/viewportTypes";
+import { doorsFor, OPPOSITE_SIDE, type RoomSide } from "../editor/roomLayout";
 
 interface RuntimeViewProps {
   project: ProjectData;
@@ -114,9 +115,19 @@ function Joystick({ onChange }: { onChange: (x: number, z: number) => void }) {
 }
 
 export default function RuntimeView({ project, onExit, title, exitLabel = "Back to building", escapeExits = true }: RuntimeViewProps) {
+  // the room the visitor is in: it starts as the project's open room, and a door leads to the
+  // next. arrivedFrom is the side of this room they came in through (null: they started here).
+  const [room, setRoom] = useState<{ id: string; arrivedFrom: RoomSide | null }>({ id: project.activeSceneId, arrivedFrom: null });
+  useEffect(() => setRoom({ id: project.activeSceneId, arrivedFrom: null }), [project.activeSceneId]);
   const scene =
-    project.scenes.find((item) => item.id === project.activeSceneId) ??
+    project.scenes.find((item) => item.id === room.id) ??
     project.scenes[0];
+  const doors = useMemo(() => doorsFor(project, scene), [project, scene]);
+  // through a door: into the room beside, arriving at its door back to this one
+  const goThrough = (sceneId: string) => {
+    const door = doors.find((item) => item.sceneId === sceneId);
+    if (door) setRoom({ id: sceneId, arrivedFrom: OPPOSITE_SIDE[door.side] });
+  };
   const roomNumber = project.scenes.indexOf(scene) + 1;
   const viewportRef = useRef<ViewportHandle>(null);
   const [volume, setVolume] = useState(() => {
@@ -236,6 +247,9 @@ export default function RuntimeView({ project, onExit, title, exitLabel = "Back 
         audioMasterVolume={volume}
         audioMasterMuted={muted}
         textAssets={project.textAssets ?? []}
+        doors={doors}
+        onDoor={goThrough}
+        arriveFrom={room.arrivedFrom}
       />
 
       <div className="play-banner">

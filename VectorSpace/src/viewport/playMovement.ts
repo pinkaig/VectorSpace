@@ -156,6 +156,11 @@ export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environ
       if (!spot) return
       startGlide(spot.stand.x, spot.stand.z, { showMarker: false, facing: facingFrom(spot.stand, spot.look), onArrive })
     },
+    /** Walk to `stand` on the floor, turning to face `look` (Tap to go toward a far door). */
+    walkTo: (stand: THREE.Vector3, look: THREE.Vector3) => {
+      const at = new THREE.Vector3(stand.x, eyeHeight.current, stand.z)
+      startGlide(at.x, at.z, { showMarker: true, facing: facingFrom(at, new THREE.Vector3(look.x, eyeHeight.current, look.z)) })
+    },
     /** A spot's floor marker in viewport pixels, or null when it's behind the visitor. */
     spotScreenPoint: (objectId: string | null) => {
       const spot = spotFor(objectId)

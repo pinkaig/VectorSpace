@@ -24,3 +24,14 @@ def test_public_url_without_a_base_is_a_configuration_error(monkeypatch) -> None
     use_base(monkeypatch, "")
     with pytest.raises(RuntimeError, match="S3_PUBLIC_BASE_URL"):
         storage.public_url("library/abc/a.png")
+
+
+def test_library_keys_go_to_the_library_bucket_when_one_is_set(monkeypatch) -> None:
+    monkeypatch.setattr(storage, "get_settings", lambda: Settings(s3_bucket="media", s3_library_bucket="library-pub"))
+    assert storage.bucket_for("library/abc/a.png") == "library-pub"
+    assert storage.bucket_for("projects/1/a.png") == "media"
+
+
+def test_without_a_library_bucket_everything_stays_in_one_bucket(monkeypatch) -> None:
+    monkeypatch.setattr(storage, "get_settings", lambda: Settings(s3_bucket="media", s3_library_bucket=""))
+    assert storage.bucket_for("library/abc/a.png") == "media"

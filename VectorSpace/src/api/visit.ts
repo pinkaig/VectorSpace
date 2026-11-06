@@ -15,6 +15,7 @@ import { apiFetch, type GetToken } from "./client";
 import type { ShareWith } from "./projects";
 import type { ProjectData } from "../project/model";
 import { deserializeProject } from "../project/serializer";
+import { entranceRoomId } from "../editor/roomLayout";
 
 /** What the visitor's page shows: the project and who made it (first name only). */
 export type VisitProject = {
@@ -38,6 +39,9 @@ type VisitRow = {
   own_project_id?: string | null;
 };
 
+// a visitor comes in at the front: Room 1, whichever room the student last had open
+const atEntrance = (project: ProjectData): ProjectData => ({ ...project, activeSceneId: entranceRoomId(project) });
+
 /** Throws ApiError 401 (sign in first) or 404 (not published, or not for this visitor). */
 export async function getVisitProject(getToken: GetToken, slug: string): Promise<VisitProject> {
   const row = await apiFetch<VisitRow>(getToken, `/visit/${encodeURIComponent(slug)}`);
@@ -48,6 +52,6 @@ export async function getVisitProject(getToken: GetToken, slug: string): Promise
     schoolName: row.school_name,
     shareWith: row.share_with,
     ownProjectId: row.own_project_id ?? null,
-    project: deserializeProject(JSON.stringify({ ...(row.data as object), name: row.title })),
+    project: atEntrance(deserializeProject(JSON.stringify({ ...(row.data as object), name: row.title }))),
   };
 }
