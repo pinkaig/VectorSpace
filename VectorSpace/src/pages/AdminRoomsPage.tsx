@@ -4,7 +4,8 @@
  * @author      Sherman Goh Wee Hao
  * @brief       Admin Rooms & assets: which room shells and asset packs one school can use.
  *              Whatever is on here is what its teachers can add to a project. Needs a
- *              school picked in the top bar. The two lists are in
+ *              school picked in the top bar. The pack switches are stored (pack_grants);
+ *              the environment switches are not yet. Packs are built on the Library page. The two lists are in
  *              src/sections/admin/rooms/. Below them, YouTube and image links
  *              for info cards (MediaLinksSection), which need no school picked:
  *              they are kept in this browser for now.
@@ -15,9 +16,10 @@
  */
 /******************************************************************************/
 
+import { useState } from "react";
+import { Link } from "react-router";
 import { useLoad } from "../api/useLoad";
 import { Motion } from "../motion/useMotion";
-import { NOT_STORED_YET } from "../api/admin";
 import { LoadingRows } from "../ui/loadingRows";
 import { useAdmin } from "../sections/admin/adminContext";
 import { RoomListSection } from "../sections/admin/rooms/RoomListSection";
@@ -35,8 +37,8 @@ export default function AdminRoomsPage() {
         <p>{school ? school.name : "All schools"}</p>
       </div>
 
-      {/*NOT SAVED: which rooms a school may use has no table behind it (see api/adminFake.ts)*/}
-      <p className="admin-notstored" role="note">{NOT_STORED_YET}</p>
+      {/*NOT SAVED: which room shells a school may use has no table behind it (see api/adminFake.ts)*/}
+      <p className="admin-notstored" role="note">Asset pack switches are saved. Environment switches are not: there is no table behind them yet, so they reset on reload.</p>
 
       {school ? <RoomsForSchool key={school.id} schoolId={school.id} /> : <PickSchoolNotice what="Rooms and asset packs" />}
 
@@ -50,17 +52,27 @@ export default function AdminRoomsPage() {
 function RoomsForSchool({ schoolId }: { schoolId: string }) {
   const { api } = useAdmin();
   const { data, setData, error, loading } = useLoad(() => api.getRooms(schoolId), schoolId);
+  const [problem, setProblem] = useState<string | null>(null);
 
   // switches take effect at once: update the screen, then tell the API
   const setEnabled = async (kind: "environment" | "pack", itemId: string, enabled: boolean) => {
     const list = kind === "environment" ? "environments" : "packs";
-    setData((rooms) => rooms && { ...rooms, [list]: rooms[list].map((item) => (item.id === itemId ? { ...item, enabled } : item)) });
-    await api.setRoomEnabled(schoolId, kind, itemId, enabled);
+    const flip = (on: boolean) =>
+      setData((rooms) => rooms && { ...rooms, [list]: rooms[list].map((item) => (item.id === itemId ? { ...item, enabled: on } : item)) });
+    flip(enabled);
+    try {
+      await api.setRoomEnabled(schoolId, kind, itemId, enabled);
+      setProblem(null);
+    } catch (failure) {
+      flip(!enabled); // the switch goes back, so the screen never shows a setting that was not saved
+      setProblem(`Could not save that switch: ${failure instanceof Error ? failure.message : String(failure)}`);
+    }
   };
 
   return (
     <>
       {error && <Motion as="p" cue="feedback.error" role="alert">Could not load rooms: {error}</Motion>}
+      {problem && <Motion as="p" cue="feedback.error" role="alert">{problem}</Motion>}
       <LoadingRows loading={loading} />
       {data && (
         <Motion cue="panel.content.enter" className="admin-rooms">
@@ -76,10 +88,14 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
           {/*ASSET PACKS: themed sets of objects, sounds and videos*/}
           <RoomListSection
             title="Asset packs"
-            note="Themed sets of objects, sounds and videos. Museum basics is on for every school."
+            note={data.packs.length
+              ? "Published packs from the library. Switch one on and this school's teachers see it in their catalogue."
+              : "No pack is published yet."}
             items={data.packs}
             onToggle={(id, enabled) => setEnabled("pack", id, enabled)}
-          />
+          >
+            <Link to="/admin/library">Build or publish a pack on the Library page</Link>
+          </RoomListSection>
         </Motion>
       )}
     </>

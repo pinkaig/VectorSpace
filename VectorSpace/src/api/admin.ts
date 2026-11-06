@@ -154,6 +154,9 @@ type AccountRow = {
 type CreatedAccountRow = AccountRow & { invite_link: string | null };
 type AttentionRow = { id: string; text: string; action_label: string; go_to: AttentionItem["goTo"] };
 type PublishedRow = { id: string; title: string; where: string; published_at: string | null };
+// GET /admin/schools/{school}/packs: every published pack and whether this school has it on
+type SchoolPackRow = { id: string; slug: string; title: string; description: string | null; item_count: number; enabled: boolean };
+
 type OverviewRow = {
   tiles: Overview["tiles"];
   schools: SchoolRow[];
@@ -187,8 +190,8 @@ const toOverview = (row: OverviewRow): Overview => ({
 const query = (school: SchoolFilter) => `?school=${encodeURIComponent(school)}`;
 
 /**
- * The calls the pages use. Schools, accounts and the overview go to the API; permissions and
- * rooms fall through to the in-memory fake, because no table can answer them yet.
+ * The calls the pages use. Schools, accounts, the overview and asset packs go to the API;
+ * permissions and room shells fall through to the in-memory fake, because no table holds them yet.
  */
 export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
   return {
@@ -217,6 +220,23 @@ export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
           },
         }, base),
       ),
+
+    // environments (room shells) are still the fake's; packs are pack_grants rows
+    getRooms: async (schoolId) => {
+      const [fake, packs] = await Promise.all([
+        fakeAdminApi.getRooms(schoolId),
+        apiFetch<SchoolPackRow[]>(getToken, `/admin/schools/${encodeURIComponent(schoolId)}/packs`, {}, base),
+      ]);
+      return {
+        environments: fake.environments,
+        packs: packs.map((p) => ({ id: p.id, name: p.title, description: p.description ?? "", enabled: p.enabled, itemCount: p.item_count })),
+      };
+    },
+
+    setRoomEnabled: async (schoolId, kind, itemId, enabled) => {
+      if (kind === "environment") return fakeAdminApi.setRoomEnabled(schoolId, kind, itemId, enabled);
+      await apiFetch(getToken, `/admin/schools/${encodeURIComponent(schoolId)}/packs/${itemId}`, { method: "PATCH", body: { enabled } }, base);
+    },
 
     setAccountOff: async (accountId, off) =>
       toAccount(

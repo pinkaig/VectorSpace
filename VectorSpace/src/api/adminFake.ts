@@ -3,9 +3,10 @@
  * @project     VectorSpace
  * @author      Sherman Goh Wee Hao
  * @date        2026-10-19
- * @brief       The two admin pages that have no database behind them: the per-role permission
- *              settings, and which room shells and asset packs a school may use. Held in
- *              memory, so a switch moves and a Save works until the page is reloaded.
+ * @brief       What the admin pages show that has no database behind it yet: the per-role
+ *              permission settings, and which room shells a school may use. Held in memory, so
+ *              a switch moves and a Save works until the page is reloaded. Asset packs are real
+ *              now (pack_grants, through admin.ts), so this only answers for environments.
  *
  * @responsibility
  * Gives AdminPermissionsPage and AdminRoomsPage something to render and something to change.
@@ -16,8 +17,8 @@
  * Nothing here is stored anywhere. Both pages show admin.ts's NOT_STORED_YET above the
  * settings so no one mistakes a switch that moved for a setting that was saved. Making these
  * real needs tables first -- roughly school_settings(school_id, key, students, educators,
- * can_adjust) and school_assets(school_id, asset_id, enabled) -- and then /admin routes like
- * the ones beside them. Delete this file on that day.
+ * can_adjust), and room shells as an "environments" pack -- and then /admin routes like the
+ * ones beside them. Delete this file on that day.
  *
  * @status
  * Placeholder. The only part of the admin area that is not wired to the database.
@@ -45,16 +46,7 @@ const ENVIRONMENTS: [string, string, string][] = [
   ["ancient-temple", "Ancient temple", "Stone columns and torchlight"],
 ];
 
-// [id, name, description, item count]; museum-basics is on for every school and cannot be switched off
-const PACKS: [string, string, string, number][] = [
-  ["museum-basics", "Museum basics", "Plinths, frames, signs and lights", 24],
-  ["dinosaurs", "Dinosaurs", "Skeletons, models and roars", 18],
-  ["ancient-egypt", "Ancient Egypt", "Statues, hieroglyph walls, a sarcophagus", 22],
-  ["outer-space", "Outer space", "Planets, rockets and a starfield", 20],
-  ["ancient-rome", "Ancient Rome", "Columns, busts and a mosaic floor", 16],
-];
-
-const DEFAULT_ON = ["museum-hall", "classroom", "museum-basics", "dinosaurs", "ancient-rome"];
+const DEFAULT_ON = ["museum-hall", "classroom"];
 
 // what has been changed this page load, per school id; a school not in here gets the defaults
 const permissions = new Map<string, PermissionRow[]>();
@@ -80,11 +72,7 @@ export const fakeAdminApi: Pick<AdminApi, "getPermissions" | "savePermissions" |
     const on = onFor(schoolId);
     return {
       environments: ENVIRONMENTS.map(([id, name, description]) => ({ id, name, description, enabled: on.has(id) })),
-      packs: PACKS.map(([id, name, description, itemCount]) => ({
-        id, name, description, itemCount,
-        enabled: id === "museum-basics" || on.has(id),
-        locked: id === "museum-basics",
-      })),
+      packs: [], // real now: admin.ts asks /admin/schools/{school}/packs
     };
   },
 
