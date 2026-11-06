@@ -384,6 +384,82 @@ class LibraryAsset(Base):
     )
 
 
+class AssetPack(Base):
+    """A named group of library files that an admin can turn on for a school.
+
+    A draft until published: publish writes library/packs/<slug>/<revision>.json (an immutable
+    manifest) and then bumps published_revision, so a revision never points at a missing file.
+    Platform-wide like the library itself (decision D2): no organisation_id here; pack_grants
+    says which schools may use it.
+    """
+
+    __tablename__ = "asset_packs"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    slug: Mapped[str] = mapped_column(String(100), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="objects")
+    published_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    # the draft's contents in order; publishing copies them into the manifest
+    items: Mapped[list[PackAsset]] = relationship(
+        back_populates="pack", cascade="all, delete-orphan", order_by="PackAsset.position"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("slug", name="uq_asset_packs_slug"),
+        CheckConstraint("kind in ('objects', 'environments')", name="ck_asset_packs_kind"),
+        CheckConstraint("published_revision is null or published_revision >= 1", name="ck_asset_packs_revision"),
+    )
+
+
+class PackAsset(Base):
+    """One library file in one pack, at a position. RESTRICT on the file: a shipped file cannot vanish."""
+
+    __tablename__ = "pack_assets"
+
+    pack_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("asset_packs.id", ondelete="CASCADE"), primary_key=True
+    )
+    library_asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("library_assets.id", ondelete="RESTRICT"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    pack: Mapped[AssetPack] = relationship(back_populates="items")
+    asset: Mapped[LibraryAsset] = relationship()
+
+    # the delete guard asks "does any pack use this file?", which is a lookup by library_asset_id
+    __table_args__ = (Index("ix_pack_assets_library_asset", "library_asset_id"),)
+
+
+class PackGrant(Base):
+    """A school may use a pack. A row with enabled=False remembers a switch turned off."""
+
+    __tablename__ = "pack_grants"
+
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), primary_key=True
+    )
+    pack_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("asset_packs.id", ondelete="CASCADE"), primary_key=True
+    )
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    granted_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="SET NULL"), nullable=True
+    )
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class ContentSnapshot(Base):
     __tablename__ = "content_snapshots"
 

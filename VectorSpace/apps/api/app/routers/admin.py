@@ -10,10 +10,10 @@ schools" means the one school the caller administers, and POST /admin/schools an
 of inventing a cross-school operator. Giving VThere staff a real seat above the schools is a
 schema decision (an operator role or an organisation group), not something a route can paper over.
 
-Every number on these pages is a query against the tables we already have. The two things the
-pages ask for that no table can answer -- per-school permission settings, and which rooms and
-asset packs a school may use -- are not here; they stay in the browser's adminFake.ts and the
-pages mark them as not saved.
+Every number on these pages is a query against the tables we already have. Which asset packs a
+school may use is pack_grants (GET and PATCH /admin/schools/{school}/packs). The two things no
+table answers yet -- per-school permission settings, and which room shells a school may use -- are
+not here; they stay in the browser's adminFake.ts and the pages mark them as not saved.
 """
 
 from __future__ import annotations
@@ -30,9 +30,11 @@ from ..auth import get_current_actor
 from ..db import get_db
 from ..models import (
     Actor,
+    AssetPack,
     ClassMember,
     Classroom,
     Organisation,
+    PackGrant,
     Project,
 )
 from ..provision import Row, logins, provision
@@ -348,3 +350,66 @@ def get_overview(
         attention=_attention(db, schools, never),
         recent=recent,
     )
+
+
+class SchoolPackResponse(BaseModel):
+    id: uuid.UUID
+    slug: str
+    title: str
+    description: str | None
+    kind: str
+    item_count: int
+    revision: int
+    enabled: bool
+
+
+class SchoolPackPatch(BaseModel):
+    enabled: bool
+
+
+def _own_school(actor: Actor, school: str) -> uuid.UUID:
+    """A pack switch belongs to one school, so "all" is not accepted here, only this admin's own."""
+    if school != str(actor.organisation_id):
+        raise HTTPException(status_code=404, detail="School not found")
+    return actor.organisation_id
+
+
+def _school_pack(pack: AssetPack, grant: PackGrant | None) -> SchoolPackResponse:
+    return SchoolPackResponse(
+        id=pack.id, slug=pack.slug, title=pack.title, description=pack.description, kind=pack.kind,
+        item_count=len(pack.items), revision=pack.published_revision or 0,
+        enabled=grant is not None and grant.enabled,
+    )
+
+
+@router.get("/schools/{school}/packs", response_model=list[SchoolPackResponse])
+def list_school_packs(
+    school: str, actor: Actor = Depends(require_admin), db: Session = Depends(get_db)
+) -> list[SchoolPackResponse]:
+    """Every published pack, and whether this school has it switched on. A draft is not listed:
+    a school must never be offered a pack whose manifest is not in the bucket yet."""
+    org_id = _own_school(actor, school)
+    grants = {g.pack_id: g for g in db.scalars(select(PackGrant).where(PackGrant.organisation_id == org_id))}
+    packs = db.scalars(select(AssetPack).where(AssetPack.published_revision.is_not(None)).order_by(AssetPack.title))
+    return [_school_pack(pack, grants.get(pack.id)) for pack in packs]
+
+
+@router.patch("/schools/{school}/packs/{pack_id}", response_model=SchoolPackResponse)
+def set_school_pack(
+    school: str, pack_id: uuid.UUID, body: SchoolPackPatch,
+    actor: Actor = Depends(require_admin), db: Session = Depends(get_db),
+) -> SchoolPackResponse:
+    org_id = _own_school(actor, school)
+    pack = db.get(AssetPack, pack_id)
+    if pack is None or pack.published_revision is None:
+        raise HTTPException(status_code=404, detail="Pack not found")
+    grant = db.get(PackGrant, (org_id, pack_id))
+    if grant is None:
+        grant = PackGrant(organisation_id=org_id, pack_id=pack_id, enabled=body.enabled, granted_by_id=actor.id)
+        db.add(grant)
+    else:
+        grant.enabled = body.enabled
+        grant.granted_by_id = actor.id
+    db.commit()
+    db.refresh(grant)
+    return _school_pack(pack, grant)

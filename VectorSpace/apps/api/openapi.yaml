@@ -305,6 +305,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/schools/{school}/packs:
+    get:
+      tags:
+      - admin
+      summary: List School Packs
+      description: 'Every published pack, and whether this school has it switched on. A draft is not listed:
+
+        a school must never be offered a pack whose manifest is not in the bucket yet.'
+      operationId: list_school_packs_api_v1_admin_schools__school__packs_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: path
+        required: true
+        schema:
+          type: string
+          title: School
+        example: 371a1623-8b65-437a-b12f-ea108f0f78de
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchoolPackResponse'
+                title: Response List School Packs Api V1 Admin Schools  School  Packs Get
+              example:
+              - id: 6bc715f7-8dc5-43a2-afe6-d8c71e0185b3
+                slug: fossils
+                title: Fossils
+                description: null
+                kind: objects
+                item_count: 1
+                revision: 1
+                enabled: false
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/schools/{school}/packs/{pack_id}:
+    patch:
+      tags:
+      - admin
+      summary: Set School Pack
+      operationId: set_school_pack_api_v1_admin_schools__school__packs__pack_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: path
+        required: true
+        schema:
+          type: string
+          title: School
+        example: 371a1623-8b65-437a-b12f-ea108f0f78de
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Pack Id
+        example: 6bc715f7-8dc5-43a2-afe6-d8c71e0185b3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolPackPatch'
+            example:
+              enabled: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolPackResponse'
+              example:
+                id: 6bc715f7-8dc5-43a2-afe6-d8c71e0185b3
+                slug: fossils
+                title: Fossils
+                description: null
+                kind: objects
+                item_count: 1
+                revision: 1
+                enabled: true
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/classes:
     get:
       tags:
@@ -1507,6 +1605,328 @@ paths:
       responses:
         '204':
           description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/packs/mine:
+    get:
+      tags:
+      - packs
+      summary: My Packs
+      description: The published packs the caller's own school has switched on.
+      operationId: my_packs_api_v1_packs_mine_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MyPackResponse'
+                type: array
+                title: Response My Packs Api V1 Packs Mine Get
+              example: []
+      security:
+      - HTTPBearer: []
+  /api/v1/packs:
+    get:
+      tags:
+      - packs
+      summary: List Packs
+      operationId: list_packs_api_v1_packs_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PackResponse'
+                type: array
+                title: Response List Packs Api V1 Packs Get
+              example:
+              - id: 82187d24-4135-4e8c-af14-3367520fe840
+                slug: dinosaurs
+                title: Dinosaurs
+                description: null
+                kind: objects
+                asset_ids: []
+                published_revision: null
+                published_at: null
+                manifest_url: null
+                unpublished_changes: true
+                created_at: '2026-11-06T08:43:03'
+                updated_at: '2026-11-06T08:43:03'
+              - id: e221f7c1-6484-4e0d-a8bd-d63f19c5768b
+                slug: fossils
+                title: Fossils
+                description: null
+                kind: objects
+                asset_ids:
+                - 5868e0be-5bae-4824-b81a-5bbad9901759
+                published_revision: 1
+                published_at: '2026-11-06T08:43:03.742789'
+                manifest_url: https://assets.test/library/packs/fossils/1.json
+                unpublished_changes: false
+                created_at: '2026-11-06T08:43:03'
+                updated_at: '2026-11-06T08:43:03.742789'
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - packs
+      summary: Create Pack
+      operationId: create_pack_api_v1_packs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackCreate'
+            example:
+              slug: fossils
+              title: Fossils
+              description: Six CC0 scans
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackResponse'
+              example:
+                id: 24fe8fa9-3b96-4d9b-a2f1-208541bb8297
+                slug: fossils
+                title: Fossils
+                description: Six CC0 scans
+                kind: objects
+                asset_ids: []
+                published_revision: null
+                published_at: null
+                manifest_url: null
+                unpublished_changes: true
+                created_at: '2026-11-06T08:42:10'
+                updated_at: '2026-11-06T08:42:10'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/packs/{slug}:
+    get:
+      tags:
+      - packs
+      summary: Get Pack
+      operationId: get_pack_api_v1_packs__slug__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+        example: fossils
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackResponse'
+              example:
+                id: e221f7c1-6484-4e0d-a8bd-d63f19c5768b
+                slug: fossils
+                title: Fossils
+                description: null
+                kind: objects
+                asset_ids:
+                - 5868e0be-5bae-4824-b81a-5bbad9901759
+                published_revision: 1
+                published_at: '2026-11-06T08:43:03.742789'
+                manifest_url: https://assets.test/library/packs/fossils/1.json
+                unpublished_changes: false
+                created_at: '2026-11-06T08:43:03'
+                updated_at: '2026-11-06T08:43:03.742789'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - packs
+      summary: Update Pack
+      operationId: update_pack_api_v1_packs__slug__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+        example: fossils
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackPatch'
+            example:
+              title: Fossil hall
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackResponse'
+              example:
+                id: 69a74131-18d1-414b-a11a-83c5421b12e7
+                slug: fossils
+                title: Fossil hall
+                description: null
+                kind: objects
+                asset_ids:
+                - 4eb21bea-b21b-4855-a6b8-97e627c28dd1
+                published_revision: 1
+                published_at: '2026-11-06T08:42:10.378012'
+                manifest_url: https://assets.test/library/packs/fossils/1.json
+                unpublished_changes: true
+                created_at: '2026-11-06T08:42:10'
+                updated_at: '2026-11-06T08:42:10.389593'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - packs
+      summary: Delete Pack
+      operationId: delete_pack_api_v1_packs__slug__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+        example: scratch
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/packs/{slug}/assets:
+    put:
+      tags:
+      - packs
+      summary: Set Pack Assets
+      operationId: set_pack_assets_api_v1_packs__slug__assets_put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+        example: fossils
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackAssetsUpdate'
+            example:
+              asset_ids:
+              - df29f236-4e45-4b84-bcac-e7411def1162
+              - 334c4c19-35e4-4db0-b85b-793d548fa738
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackResponse'
+              example:
+                id: 24fe8fa9-3b96-4d9b-a2f1-208541bb8297
+                slug: fossils
+                title: Fossils
+                description: Six CC0 scans
+                kind: objects
+                asset_ids:
+                - df29f236-4e45-4b84-bcac-e7411def1162
+                - 334c4c19-35e4-4db0-b85b-793d548fa738
+                published_revision: null
+                published_at: null
+                manifest_url: null
+                unpublished_changes: true
+                created_at: '2026-11-06T08:42:10'
+                updated_at: '2026-11-06T08:42:10.298336'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/packs/{slug}/publish:
+    post:
+      tags:
+      - packs
+      summary: Publish Pack
+      operationId: publish_pack_api_v1_packs__slug__publish_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+        example: fossils
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackResponse'
+              example:
+                id: 24fe8fa9-3b96-4d9b-a2f1-208541bb8297
+                slug: fossils
+                title: Fossils
+                description: Six CC0 scans
+                kind: objects
+                asset_ids:
+                - df29f236-4e45-4b84-bcac-e7411def1162
+                - 334c4c19-35e4-4db0-b85b-793d548fa738
+                published_revision: 1
+                published_at: '2026-11-06T08:42:10.307887'
+                manifest_url: https://assets.test/library/packs/fossils/1.json
+                unpublished_changes: false
+                created_at: '2026-11-06T08:42:10'
+                updated_at: '2026-11-06T08:42:10.307887'
         '422':
           description: Validation Error
           content:
@@ -3152,6 +3572,41 @@ components:
       - visits
       - last_7_days
       title: MuseumVisits
+    MyPackResponse:
+      properties:
+        slug:
+          type: string
+          title: Slug
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        kind:
+          type: string
+          title: Kind
+        revision:
+          type: integer
+          title: Revision
+        manifest_url:
+          type: string
+          title: Manifest Url
+        item_count:
+          type: integer
+          title: Item Count
+      type: object
+      required:
+      - slug
+      - title
+      - description
+      - kind
+      - revision
+      - manifest_url
+      - item_count
+      title: MyPackResponse
     NewAccountRequest:
       properties:
         school_id:
@@ -3209,6 +3664,131 @@ components:
       - attention
       - recent
       title: OverviewResponse
+    PackAssetsUpdate:
+      properties:
+        asset_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          maxItems: 500
+          title: Asset Ids
+      type: object
+      required:
+      - asset_ids
+      title: PackAssetsUpdate
+    PackCreate:
+      properties:
+        slug:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Slug
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Title
+        description:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Description
+        kind:
+          type: string
+          title: Kind
+          default: objects
+      type: object
+      required:
+      - slug
+      - title
+      title: PackCreate
+    PackPatch:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Title
+        description:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Description
+      type: object
+      title: PackPatch
+    PackResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        slug:
+          type: string
+          title: Slug
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        kind:
+          type: string
+          title: Kind
+        asset_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Asset Ids
+        published_revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Published Revision
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+        manifest_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Manifest Url
+        unpublished_changes:
+          type: boolean
+          title: Unpublished Changes
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - slug
+      - title
+      - description
+      - kind
+      - asset_ids
+      - published_revision
+      - published_at
+      - manifest_url
+      - unpublished_changes
+      - created_at
+      - updated_at
+      title: PackResponse
     ProjectCreateRequest:
       properties:
         name:
@@ -3594,6 +4174,55 @@ components:
       - base_revision
       - data
       title: SaveRequest
+    SchoolPackPatch:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+      type: object
+      required:
+      - enabled
+      title: SchoolPackPatch
+    SchoolPackResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        slug:
+          type: string
+          title: Slug
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        kind:
+          type: string
+          title: Kind
+        item_count:
+          type: integer
+          title: Item Count
+        revision:
+          type: integer
+          title: Revision
+        enabled:
+          type: boolean
+          title: Enabled
+      type: object
+      required:
+      - id
+      - slug
+      - title
+      - description
+      - kind
+      - item_count
+      - revision
+      - enabled
+      title: SchoolPackResponse
     SchoolResponse:
       properties:
         id:

@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 from .. import storage
 from ..db import get_db
 from ..media_policy import GLB_ONLY_KINDS, LIBRARY_KIND_SPECS
-from ..models import Actor, LibraryAsset
+from ..models import Actor, AssetPack, LibraryAsset, PackAsset
 from .admin import require_admin
 from .media import _safe_filename
 
@@ -232,8 +232,14 @@ def delete_library_asset(
     asset = db.get(LibraryAsset, asset_id)
     if asset is None:
         raise HTTPException(status_code=404, detail="Library asset not found")
-    # PR 3 adds the 409 here once packs exist: a published manifest outlives a deleted asset, so
-    # an asset any pack references must be refused with a readable message.
+    # A published manifest outlives a deleted file, so a file any pack holds is refused with a
+    # readable message. pack_assets is RESTRICT too, but that would surface as a bare 500.
+    packs = list(db.scalars(
+        select(AssetPack.title).join(PackAsset, PackAsset.pack_id == AssetPack.id)
+        .where(PackAsset.library_asset_id == asset.id)
+    ))
+    if packs:
+        raise HTTPException(status_code=409, detail=f"Used by {', '.join(sorted(packs))}: take it out of those packs first")
     storage_key = asset.storage_key
     db.delete(asset)
     db.commit()
