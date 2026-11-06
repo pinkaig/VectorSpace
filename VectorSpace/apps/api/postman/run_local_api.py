@@ -8,7 +8,8 @@ Steps: docker compose up postgres + minio, wait for Postgres, create the media b
 reseed the synthetic Demo School, then run uvicorn in the foreground (Ctrl+C stops it).
 
 Run from VectorSpace/:  apps/api/.venv/Scripts/python apps/api/postman/run_local_api.py
-Add --no-seed to keep the data from the last run.
+Add --no-seed to keep the data from the last run, and --port 8001 when 8000 is taken (then point the
+web app at it with VITE_API_URL=http://127.0.0.1:8001, and newman with --env-var baseUrl=...:8001).
 """
 
 import os
@@ -56,17 +57,19 @@ def wait_for_port(port: int, seconds: int = 60) -> None:
 
 
 def main() -> None:
+    args = sys.argv[1:]
+    port = args[args.index("--port") + 1] if "--port" in args else "8000"
     env = {**os.environ, **LOCAL_ENV}
     run(["docker", "compose", "up", "-d", "--wait", "postgres", "minio"], REPO_DIR, env)
     wait_for_port(5432)
     wait_for_port(9000)
     run([PY, "postman/ensure_bucket.py"], API_DIR, env)
     run([PY, "-m", "alembic", "upgrade", "head"], API_DIR, env)
-    if "--no-seed" not in sys.argv[1:]:
+    if "--no-seed" not in args:
         run([PY, "-m", "app.seed", "--apply"], API_DIR, env)
-    print("\nAPI on http://127.0.0.1:8000  (docs: http://127.0.0.1:8000/docs). Ctrl+C to stop.\n", flush=True)
+    print(f"\nAPI on http://127.0.0.1:{port}  (docs: http://127.0.0.1:{port}/docs). Ctrl+C to stop.\n", flush=True)
     try:
-        run([PY, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"], API_DIR, env)
+        run([PY, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", port], API_DIR, env)
     except KeyboardInterrupt:
         pass
 

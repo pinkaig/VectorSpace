@@ -110,6 +110,26 @@
     {
       "key": "account_id",
       "value": ""
+    },
+    {
+      "key": "pack_slug",
+      "value": ""
+    },
+    {
+      "key": "ft_students",
+      "value": ""
+    },
+    {
+      "key": "ft_educators",
+      "value": ""
+    },
+    {
+      "key": "ft_can_adjust",
+      "value": ""
+    },
+    {
+      "key": "template_id",
+      "value": ""
     }
   ],
   "item": [
@@ -5261,6 +5281,1052 @@
       ]
     },
     {
+      "name": "Packs",
+      "description": "Asset packs: an admin drafts one, and a school switches published ones on. Publishing is not run here: a published pack cannot be deleted, and the local and CI runs have no public bucket address.",
+      "item": [
+        {
+          "name": "Admin lists packs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"slug\", \"title\", \"description\", \"kind\", \"asset_ids\", \"published_revision\", \"published_at\", \"manifest_url\", \"unpublished_changes\", \"created_at\", \"updated_at\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"enum\": [\"objects\", \"environments\"]}, \"asset_ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}}, \"published_revision\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}]}, \"published_at\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"manifest_url\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"unpublished_changes\": {\"type\": \"boolean\"}, \"created_at\": {\"type\": \"string\"}, \"updated_at\": {\"type\": \"string\"}}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs"
+              ],
+              "query": []
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"82187d24-4135-4e8c-af14-3367520fe840\",\n    \"slug\": \"dinosaurs\",\n    \"title\": \"Dinosaurs\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [],\n    \"published_revision\": null,\n    \"published_at\": null,\n    \"manifest_url\": null,\n    \"unpublished_changes\": true,\n    \"created_at\": \"2026-11-06T08:43:03\",\n    \"updated_at\": \"2026-11-06T08:43:03\"\n  },\n  {\n    \"id\": \"e221f7c1-6484-4e0d-a8bd-d63f19c5768b\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [\n      \"5868e0be-5bae-4824-b81a-5bbad9901759\"\n    ],\n    \"published_revision\": 1,\n    \"published_at\": \"2026-11-06T08:43:03.742789\",\n    \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n    \"unpublished_changes\": false,\n    \"created_at\": \"2026-11-06T08:43:03\",\n    \"updated_at\": \"2026-11-06T08:43:03.742789\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Teacher may not (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Student reads the school's packs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"slug\", \"title\", \"description\", \"kind\", \"revision\", \"manifest_url\", \"item_count\"], \"properties\": {\"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"type\": \"string\"}, \"revision\": {\"type\": \"integer\"}, \"manifest_url\": {\"type\": \"string\"}, \"item_count\": {\"type\": \"integer\"}}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "mine"
+              ],
+              "query": []
+            },
+            "description": "Anyone signed in: the published packs their own school has switched on."
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_student}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs/mine",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs",
+                    "mine"
+                  ],
+                  "query": []
+                },
+                "description": "Anyone signed in: the published packs their own school has switched on."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[]"
+            }
+          ]
+        },
+        {
+          "name": "Bad short name is 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slug\": \"Not OK\",\n  \"title\": \"Bad name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin drafts a pack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"slug\", \"title\", \"description\", \"kind\", \"asset_ids\", \"published_revision\", \"published_at\", \"manifest_url\", \"unpublished_changes\", \"created_at\", \"updated_at\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"enum\": [\"objects\", \"environments\"]}, \"asset_ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}}, \"published_revision\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}]}, \"published_at\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"manifest_url\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"unpublished_changes\": {\"type\": \"boolean\"}, \"created_at\": {\"type\": \"string\"}, \"updated_at\": {\"type\": \"string\"}}}));",
+                  "const pack = pm.response.json();",
+                  "pm.test('is an unpublished draft', () => { pm.expect(pack.published_revision).to.eql(null); pm.expect(pack.unpublished_changes).to.eql(true); });",
+                  "pm.collectionVariables.set('pack_slug', pack.slug);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slug\": \"postman-{{run_id}}\",\n  \"title\": \"Postman pack {{run_id}}\",\n  \"kind\": \"objects\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 201",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"24fe8fa9-3b96-4d9b-a2f1-208541bb8297\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-06T08:42:10\",\n  \"updated_at\": \"2026-11-06T08:42:10\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Same short name twice is 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slug\": \"{{pack_slug}}\",\n  \"title\": \"Again\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Read the draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"slug\", \"title\", \"description\", \"kind\", \"asset_ids\", \"published_revision\", \"published_at\", \"manifest_url\", \"unpublished_changes\", \"created_at\", \"updated_at\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"enum\": [\"objects\", \"environments\"]}, \"asset_ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}}, \"published_revision\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}]}, \"published_at\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"manifest_url\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"unpublished_changes\": {\"type\": \"boolean\"}, \"created_at\": {\"type\": \"string\"}, \"updated_at\": {\"type\": \"string\"}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}"
+              ],
+              "query": []
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs/fossils",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs",
+                    "fossils"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"e221f7c1-6484-4e0d-a8bd-d63f19c5768b\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"5868e0be-5bae-4824-b81a-5bbad9901759\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-06T08:43:03.742789\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": false,\n  \"created_at\": \"2026-11-06T08:43:03\",\n  \"updated_at\": \"2026-11-06T08:43:03.742789\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Rename the pack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"slug\", \"title\", \"description\", \"kind\", \"asset_ids\", \"published_revision\", \"published_at\", \"manifest_url\", \"unpublished_changes\", \"created_at\", \"updated_at\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"enum\": [\"objects\", \"environments\"]}, \"asset_ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}}, \"published_revision\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}]}, \"published_at\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"manifest_url\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"unpublished_changes\": {\"type\": \"boolean\"}, \"created_at\": {\"type\": \"string\"}, \"updated_at\": {\"type\": \"string\"}}}));",
+                  "pm.test('has the new title', () => pm.expect(pm.response.json().title).to.eql('Renamed by Postman'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Renamed by Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs/fossils",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs",
+                    "fossils"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Fossil hall\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"69a74131-18d1-414b-a11a-83c5421b12e7\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossil hall\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"4eb21bea-b21b-4855-a6b8-97e627c28dd1\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-06T08:42:10.378012\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-06T08:42:10\",\n  \"updated_at\": \"2026-11-06T08:42:10.389593\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Set its files (none)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"slug\", \"title\", \"description\", \"kind\", \"asset_ids\", \"published_revision\", \"published_at\", \"manifest_url\", \"unpublished_changes\", \"created_at\", \"updated_at\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"enum\": [\"objects\", \"environments\"]}, \"asset_ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}}, \"published_revision\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}]}, \"published_at\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"manifest_url\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"unpublished_changes\": {\"type\": \"boolean\"}, \"created_at\": {\"type\": \"string\"}, \"updated_at\": {\"type\": \"string\"}}}));",
+                  "pm.test('holds nothing', () => pm.expect(pm.response.json().asset_ids).to.be.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}/assets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}",
+                "assets"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asset_ids\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs/fossils/assets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs",
+                    "fossils",
+                    "assets"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"asset_ids\": [\n    \"df29f236-4e45-4b84-bcac-e7411def1162\",\n    \"334c4c19-35e4-4db0-b85b-793d548fa738\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"24fe8fa9-3b96-4d9b-a2f1-208541bb8297\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"df29f236-4e45-4b84-bcac-e7411def1162\",\n    \"334c4c19-35e4-4db0-b85b-793d548fa738\"\n  ],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-06T08:42:10\",\n  \"updated_at\": \"2026-11-06T08:42:10.298336\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "A file not in the library is 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}/assets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}",
+                "assets"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asset_ids\": [\n    \"00000000-0000-4000-8000-000000000000\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Publishing an empty pack is 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}",
+                "publish"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete the draft pack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}"
+              ],
+              "query": []
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 204",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs/scratch",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs",
+                    "scratch"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Pack gone after delete (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/{{pack_slug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "{{pack_slug}}"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "School's pack switches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"slug\", \"title\", \"description\", \"kind\", \"item_count\", \"revision\", \"enabled\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"slug\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"description\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"kind\": {\"type\": \"string\"}, \"item_count\": {\"type\": \"integer\"}, \"revision\": {\"type\": \"integer\"}, \"enabled\": {\"type\": \"boolean\"}}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "packs"
+              ],
+              "query": []
+            },
+            "description": "Published packs only, each with whether this school has it on."
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/371a1623-8b65-437a-b12f-ea108f0f78de/packs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "schools",
+                    "371a1623-8b65-437a-b12f-ea108f0f78de",
+                    "packs"
+                  ],
+                  "query": []
+                },
+                "description": "Published packs only, each with whether this school has it on."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"6bc715f7-8dc5-43a2-afe6-d8c71e0185b3\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"item_count\": 1,\n    \"revision\": 1,\n    \"enabled\": false\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Another school's switches are 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/00000000-0000-4000-8000-000000000000/packs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "00000000-0000-4000-8000-000000000000",
+                "packs"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Switching an unknown pack is 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/packs/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "packs",
+                "00000000-0000-4000-8000-000000000000"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Admin",
       "description": "School overview and accounts, admins only.",
       "item": [
@@ -6120,6 +7186,757 @@
               "body": "{\n  \"detail\": \"Adding a school needs a VThere operator role above the schools, which the data model does not have yet: an admin belongs to one school. Create schools with python -m app.provision --school-slug <slug> --school-name <name> for now.\"\n}"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "description": "What each role may do in one school. Only \"Set up projects from templates\" is enforced so far: a student starting a copy of a template. The last five turn that switch off for students and put it back, so they run only where allow_writes is true.",
+      "item": [
+        {
+          "name": "Admin reads the settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"key\", \"group\", \"label\", \"students\", \"educators\", \"can_adjust\", \"enforced\"], \"properties\": {\"key\": {\"type\": \"string\"}, \"group\": {\"type\": \"string\"}, \"label\": {\"type\": \"string\"}, \"students\": {\"type\": \"boolean\"}, \"educators\": {\"type\": \"boolean\"}, \"can_adjust\": {\"type\": \"boolean\"}, \"enforced\": {\"type\": \"boolean\"}}}}));",
+                  "const rows = pm.response.json();",
+                  "const ft = rows.find((r) => r.key === 'from-templates');",
+                  "pm.test('has all 9 settings', () => pm.expect(rows).to.have.lengthOf(9));",
+                  "pm.test('templates is the enforced one', () => pm.expect(rows.filter((r) => r.enforced).map((r) => r.key)).to.eql([ft.key]));",
+                  "pm.collectionVariables.set('ft_students', String(ft.students));",
+                  "pm.collectionVariables.set('ft_educators', String(ft.educators));",
+                  "pm.collectionVariables.set('ft_can_adjust', String(ft.can_adjust));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "permissions"
+              ],
+              "query": []
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/9b14d934-bb9b-473a-98e2-ac2428492b49/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "schools",
+                    "9b14d934-bb9b-473a-98e2-ac2428492b49",
+                    "permissions"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"key\": \"more-rooms\",\n    \"group\": \"Building\",\n    \"label\": \"Add more rooms (up to 5 per project)\",\n    \"students\": true,\n    \"educators\": true,\n    \"can_adjust\": false,\n    \"enforced\": false\n  },\n  {\n    \"key\": \"publish-no-approval\",\n    \"group\": \"Sharing\",\n    \"label\": \"Publish without approval\",\n    \"students\": false,\n    \"educators\": true,\n    \"can_adjust\": false,\n    \"enforced\": false\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Teacher may not read them (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "permissions"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Another school's settings are 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/00000000-0000-4000-8000-000000000000/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "00000000-0000-4000-8000-000000000000",
+                "permissions"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All schools is 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/all/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "all",
+                "permissions"
+              ],
+              "query": []
+            },
+            "description": "Settings belong to one school, so the All schools filter is not accepted here."
+          },
+          "response": []
+        },
+        {
+          "name": "Unknown setting is 422, nothing saved",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "permissions"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"key\": \"fly-to-the-moon\",\n    \"students\": true,\n    \"educators\": true\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin may do everything",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"additionalProperties\": {\"type\": \"boolean\"}, \"required\": [\"from-templates\"]}));",
+                  "pm.test('all true', () => pm.expect(Object.values(pm.response.json())).to.not.include(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/permissions/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                "mine"
+              ],
+              "query": []
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/permissions/mine",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "permissions",
+                    "mine"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"more-rooms\": true,\n  \"publish-no-approval\": true,\n  \"public-links\": true,\n  \"unlisted-links\": true,\n  \"signin-links\": true,\n  \"from-templates\": true,\n  \"edit-after-assign\": true,\n  \"see-results\": false,\n  \"delete-published\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Teacher's own answer matches the school",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"additionalProperties\": {\"type\": \"boolean\"}, \"required\": [\"from-templates\"]}));",
+                  "pm.test('templates follows the educators switch', () => pm.expect(String(pm.response.json()['from-templates'])).to.eql(pm.collectionVariables.get('ft_educators')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/permissions/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                "mine"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Student finds a template",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"organisation_id\", \"created_by_id\", \"class_id\", \"kind\", \"name\", \"slug\", \"status\", \"current_version_id\", \"current_revision\", \"created_at\", \"updated_at\", \"created_by_name\", \"assignment_id\", \"showcase\", \"review_status\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"organisation_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"created_by_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"class_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"kind\": {\"enum\": [\"project\", \"template\"]}, \"name\": {\"type\": \"string\"}, \"slug\": {\"type\": \"string\"}, \"status\": {\"enum\": [\"draft\", \"published\", \"archived\"]}, \"current_version_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"current_revision\": {\"type\": \"integer\"}, \"created_at\": {\"type\": \"string\"}, \"updated_at\": {\"type\": \"string\"}, \"created_by_name\": {\"type\": \"string\"}, \"assignment_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"showcase\": {\"type\": \"boolean\"}, \"review_status\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}}));",
+                  "const found = pm.response.json();",
+                  "pm.test('the school has a published template', () => pm.expect(found).to.have.lengthOf(1));",
+                  "pm.collectionVariables.set('template_id', found[0] && found[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects?kind=template&status=published&limit=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "template"
+                },
+                {
+                  "key": "status",
+                  "value": "published"
+                },
+                {
+                  "key": "limit",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Turn templates off for students",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"key\", \"group\", \"label\", \"students\", \"educators\", \"can_adjust\", \"enforced\"], \"properties\": {\"key\": {\"type\": \"string\"}, \"group\": {\"type\": \"string\"}, \"label\": {\"type\": \"string\"}, \"students\": {\"type\": \"boolean\"}, \"educators\": {\"type\": \"boolean\"}, \"can_adjust\": {\"type\": \"boolean\"}, \"enforced\": {\"type\": \"boolean\"}}}}));",
+                  "pm.test('saved', () => pm.expect(pm.response.json().find((r) => r.key === 'from-templates').students).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "permissions"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"key\": \"from-templates\",\n    \"students\": false,\n    \"educators\": {{ft_educators}},\n    \"can_adjust\": {{ft_can_adjust}}\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/f481598b-cde8-480c-9ee7-59d213dc30c4/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "schools",
+                    "f481598b-cde8-480c-9ee7-59d213dc30c4",
+                    "permissions"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "[\n  {\n    \"key\": \"from-templates\",\n    \"students\": true,\n    \"educators\": true\n  }\n]",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"key\": \"more-rooms\",\n    \"group\": \"Building\",\n    \"label\": \"Add more rooms (up to 5 per project)\",\n    \"students\": true,\n    \"educators\": true,\n    \"can_adjust\": false,\n    \"enforced\": false\n  },\n  {\n    \"key\": \"publish-no-approval\",\n    \"group\": \"Sharing\",\n    \"label\": \"Publish without approval\",\n    \"students\": false,\n    \"educators\": true,\n    \"can_adjust\": false,\n    \"enforced\": false\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Student's own answer says no",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"additionalProperties\": {\"type\": \"boolean\"}, \"required\": [\"from-templates\"]}));",
+                  "pm.test('templates is false', () => pm.expect(pm.response.json()['from-templates']).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/permissions/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                "mine"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Student may not copy the template (403)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));",
+                  "pm.test('says why', () => pm.expect(pm.response.json().detail).to.include('templates'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman copy {{run_id}}\",\n  \"template_id\": \"{{template_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Put the setting back",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"key\", \"group\", \"label\", \"students\", \"educators\", \"can_adjust\", \"enforced\"], \"properties\": {\"key\": {\"type\": \"string\"}, \"group\": {\"type\": \"string\"}, \"label\": {\"type\": \"string\"}, \"students\": {\"type\": \"boolean\"}, \"educators\": {\"type\": \"boolean\"}, \"can_adjust\": {\"type\": \"boolean\"}, \"enforced\": {\"type\": \"boolean\"}}}}));",
+                  "pm.test('as it was', () => pm.expect(String(pm.response.json().find((r) => r.key === 'from-templates').students)).to.eql(pm.collectionVariables.get('ft_students')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools/{{school_id}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools",
+                "{{school_id}}",
+                "permissions"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"key\": \"from-templates\",\n    \"students\": {{ft_students}},\n    \"educators\": {{ft_educators}},\n    \"can_adjust\": {{ft_can_adjust}}\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     }
