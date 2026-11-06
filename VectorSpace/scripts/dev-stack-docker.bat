@@ -23,11 +23,35 @@ set APP_ENV=local
 set AUTH_DEV_BYPASS=true
 set CORS_ORIGINS=http://localhost:5173
 
+rem Point the API at the Docker Postgres above, whatever apps\api\.env says. That .env may hold a
+rem Neon DATABASE_URL (for provisioning), and a process variable beats .env, so without this the
+rem migrate + seed below would write to Neon. "set DATABASE_URL=" would not do: in cmd that
+rem deletes the variable and .env wins again. The values are the ones docker-compose.yml uses:
+rem the POSTGRES_* lines of .env, else compose's defaults.
+set PGDB=vectorspace
+set PGUSER=vectorspace_app
+set PGPASS=vectorspace_local
+if exist .env for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (
+  if /i "%%A"=="POSTGRES_DB" set PGDB=%%B
+  if /i "%%A"=="POSTGRES_USER" set PGUSER=%%B
+  if /i "%%A"=="POSTGRES_PASSWORD" set PGPASS=%%B
+)
+set DATABASE_URL=postgresql://%PGUSER%:%PGPASS%@localhost:5432/%PGDB%
+
 cd apps\api
 if not exist .venv\Scripts\python.exe (
   python -m venv .venv || (echo Python 3 is needed to build the API environment. & exit /b 1)
   .venv\Scripts\python -m pip install -r requirements.txt || exit /b 1
 )
+
+rem Belt and braces: ask Settings which host the API would really use, and stop unless it is local.
+set DBHOST=
+for /f "usebackq delims=" %%H in (`.venv\Scripts\python -c "from app.config import get_settings as g; from urllib.parse import urlparse as u; import sys; sys.stdout.write(u(g().sqlalchemy_database_url).hostname or '')"`) do set DBHOST=%%H
+echo %DBHOST%| findstr /i /x "localhost 127.0.0.1" >nul || (
+  echo Database host is "%DBHOST%", not the local Docker Postgres. Refusing to migrate or seed it.
+  exit /b 1
+)
+echo Database: %DBHOST% ^(Docker^)
 .venv\Scripts\alembic upgrade head || exit /b 1
 .venv\Scripts\python -m app.seed --apply || exit /b 1
 
