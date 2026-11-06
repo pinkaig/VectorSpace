@@ -6,7 +6,7 @@
  *              and which sound every cue plays. Exports cue-map.json.
  *
  * @responsibility
- * Opened at /?sounddebug#/sound-design, in production too, signed in or not. Every change plays
+ * Opened at /?sounddebug#/sound-design, signed in or not, in dev or a VITE_SOUND_DEBUG=true build. Every change plays
  * in the app at once (the live CueBank) and is kept in this browser by uiSoundTags.ts, which
  * survives signing in and out of Auth0 accounts. Nothing reaches the repo until the designer
  * downloads cue-map.json and someone commits it over src/audio/cue-map.json; until then the page

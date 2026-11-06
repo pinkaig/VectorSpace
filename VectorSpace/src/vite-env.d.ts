@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_API_URL?: string
   /** Offers the admin override button in a production build (picker mode only). */
   readonly VITE_ADMIN_OVERRIDE?: string
+  /** "true" lets a deployed build show the ?sounddebug panel and #/sound-design page; dev always can. */
+  readonly VITE_SOUND_DEBUG?: string
   /** Auth0 tenant domain, e.g. vectorspace.eu.auth0.com. All three or none; see session/auth0.ts. */
   readonly VITE_AUTH0_DOMAIN?: string
   /** Client ID of the Auth0 Single Page Application. */

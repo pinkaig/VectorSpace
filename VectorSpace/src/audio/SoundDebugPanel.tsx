@@ -12,7 +12,7 @@
  *  - Tag: outline every control with its cue, pick one, give it another cue (SoundTagTools.tsx).
  *  - Cues: every cue by kind of sound and the file(s) it plays; choose others; export both maps.
  *
- * Turned on per browser, in the deployed site too, by adding ?sounddebug to the address:
+ * Turned on per browser, in dev or a build made with VITE_SOUND_DEBUG=true, by adding ?sounddebug to the address:
  *   https://<site>/?sounddebug#/login     on, remembered in this browser
  *   https://<site>/?sounddebug=off        off again
  * App.tsx imports this file only when soundDebugFlag.ts says it is on, so nobody else downloads it.

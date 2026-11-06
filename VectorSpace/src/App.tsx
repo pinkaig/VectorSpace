@@ -49,7 +49,7 @@ const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ d
 // this to null and never emits the board's chunk.
 const MotionBoard = import.meta.env.DEV ? lazy(() => import('./debug/MotionBoard')) : null
 const AssetInventoryBoard = import.meta.env.DEV ? lazy(() => import('./debug/AssetInventoryBoard')) : null
-// The sound debug panel: in production too, but only for a browser that opened the site with ?sounddebug.
+// The sound debug panel: dev (or VITE_SOUND_DEBUG=true builds) only, for a browser that opened the site with ?sounddebug.
 const SoundDebugPanel = isSoundDebugOn() ? lazy(() => import('./audio/SoundDebugPanel')) : null
 // The sound designer's page (#/sound-design), behind the same ?sounddebug switch, signed in or not.
 const SoundDesignPage = isSoundDebugOn() ? lazy(() => import('./audio/SoundDesignPage')) : null
