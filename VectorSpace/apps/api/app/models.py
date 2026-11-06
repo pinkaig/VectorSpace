@@ -460,6 +460,27 @@ class PackGrant(Base):
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class SchoolPermission(Base):
+    """One permission setting as a school's admin saved it. No row = the default in app/permissions.py."""
+
+    __tablename__ = "school_permissions"
+
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), primary_key=True
+    )
+    # a key from app/permissions.py SETTINGS; the route refuses any other
+    key: Mapped[str] = mapped_column(String(50), primary_key=True)
+    students: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    educators: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    can_adjust: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
 class ContentSnapshot(Base):
     __tablename__ = "content_snapshots"
 

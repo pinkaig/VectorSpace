@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from .. import permissions
 from ..access import can_read, can_write, class_ids, visible_projects
 from ..auth import get_current_actor
 from ..db import get_db
@@ -257,6 +258,12 @@ def create_project(
 
     template = None
     if body.template_id:
+        # the admin Permissions page's "Set up projects from templates" (app/permissions.py)
+        if not permissions.allowed(db, actor, "from-templates"):
+            raise HTTPException(
+                status_code=403,
+                detail="Your school does not let you set up projects from templates. Ask your teacher or admin.",
+            )
         template = _load(db, actor, body.template_id)
         if template.kind != "template":
             raise HTTPException(status_code=422, detail="template_id does not point at a template")
