@@ -89,10 +89,15 @@ RAINFOREST_TASK = "Make a rainforest tour with one room per layer of the forest.
 
 _HEIGHT = {"cube": 0.55, "sphere": 0.65, "cylinder": 0.6}
 
+# Top of Pedestal.glb, in metres: a small exhibit stands on a pedestal at this height.
+PEDESTAL_TOP = 0.75
+QUARTER_TURN = 1.5708  # rotations are radians (syncArtefacts.ts sets node.rotation from them)
+
 
 # ── Scenes: tiny, but the same shape the editor saves, so every project opens ──
 
 def _scene_object(kind: str, index: int, x: float, z: float) -> dict:
+    """A primitive shape (cube, sphere, cylinder)."""
     return {
         "id": f"{kind}-{index}",
         "name": f"{kind.capitalize()} {index}",
@@ -104,14 +109,51 @@ def _scene_object(kind: str, index: int, x: float, z: float) -> dict:
     }
 
 
+def _model(label: str, object_id: str, x: float, z: float, y: float = 0.0, turn: float = 0.0,
+           locked: bool = False) -> dict:
+    """A bundled model from src/content/assets/. label is the catalogue name ("TRex Skull"), which
+    gives the asset id the same way assets.ts does. Models are in metres with their origin at the
+    centre of the base (normalise-glb.mjs), so y = 0 stands one on the floor."""
+    obj = {
+        "id": object_id,
+        "name": label,
+        "assetId": f"bundled-model-{label.lower().replace(' ', '-')}",
+        "assetKind": "model",
+        "visible": True,
+        "enabled": True,
+        "transform": {"position": [x, y, z], "rotation": [0, turn, 0], "scale": [1, 1, 1]},
+    }
+    if locked:
+        obj["locked"] = True
+    return obj
+
+
+def _on_pedestal(label: str, object_id: str, x: float, z: float) -> dict:
+    return _model(label, object_id, x, z, y=PEDESTAL_TOP)
+
+
+# The Museum room (env-museum) is 10 x 8 m (x -5..5, z -4..4) with a 3 m ceiling and four
+# pillars near x = +-3.4, z = +-2.1. The 5.9 m triceratops runs along the back between the back
+# pillars, turned to lie along x; three pedestals wait at the front, inside the front pillars,
+# for the student's exhibits. The template locks the triceratops and the pedestals.
+PEDESTAL_X, PEDESTAL_Z = (-2.0, 0.0, 2.0), 2.2
+
+
+def _museum_hall(locked: bool = False) -> list[dict]:
+    return [
+        _model("Triceratops", "triceratops-1", 0, -2.0, turn=QUARTER_TURN, locked=locked),
+        *(_model("Pedestal", f"pedestal-{i + 1}", x, PEDESTAL_Z, locked=locked) for i, x in enumerate(PEDESTAL_X)),
+    ]
+
+
 def scene_data(
     project_id: uuid.UUID,
     name: str,
     rooms: list[tuple[str, str]],
-    shapes: list[tuple[str, float, float]],
+    objects: list[dict],
     brief: dict | None = None,
 ) -> dict:
-    """rooms: (name, environment id) in visit order; shapes go in the first room."""
+    """rooms: (name, environment id) in visit order; objects (from _model/_scene_object) go in the first room."""
     data = {
         "schemaVersion": 1,
         "id": str(project_id),
@@ -121,7 +163,7 @@ def scene_data(
             {
                 "id": f"scene-{i + 1}",
                 "name": room,
-                "objects": [_scene_object(kind, n + 1, x, z) for n, (kind, x, z) in enumerate(shapes)] if i == 0 else [],
+                "objects": list(objects) if i == 0 else [],
                 "environmentId": environment,
                 "startCamera": {"position": [7, 5.5, 8], "target": [0, 0.7, 0]},
                 "layout": {"x": i, "z": 0},
@@ -229,8 +271,8 @@ def seed(db: Session) -> None:
 
     # two published templates
     museum = _project(db, tan, "Museum hall", days(30), kind="template", status="published")
-    plinths = [("cube", -3, 0), ("cube", 0, -3), ("cube", 3, 0)]
-    _save(db, museum, scene_data(museum.id, museum.name, [("Museum", "env-museum")], plinths), days(30), label="First version")
+    hall = _museum_hall(locked=True)
+    _save(db, museum, scene_data(museum.id, museum.name, [("Museum", "env-museum")], hall), days(30), label="First version")
     blank = _project(db, rahim, "Blank room", days(28), kind="template", status="published")
     _save(db, blank, scene_data(blank.id, blank.name, [("Empty", "env-empty")], []), days(28), label="First version")
 
@@ -241,8 +283,10 @@ def seed(db: Session) -> None:
                         ["Place 3 exhibits", "Give each exhibit a fact card", "Add one reaction"],
                         ["Use facts from your research, in your own words", "Keep everything school-appropriate"])
     rooms = [("Museum", "env-museum"), ("Classroom", "env-classroom")]
-    _save(db, dino, scene_data(dino.id, dino.name, rooms[:1], plinths, dino_brief), days(10))
-    _save(db, dino, scene_data(dino.id, dino.name, rooms, plinths + [("sphere", 0, 3)], dino_brief), days(8))
+    _save(db, dino, scene_data(dino.id, dino.name, rooms[:1], hall, dino_brief), days(10))
+    # Ms Tan's example exhibit, the T. rex skull on the middle pedestal, then a Classroom room
+    example = hall + [_on_pedestal("TRex Skull", "trex-skull-1", 0, PEDESTAL_Z)]
+    _save(db, dino, scene_data(dino.id, dino.name, rooms, example, dino_brief), days(8))
 
     dino_assignment = Assignment(class_id=classes[SCIENCE].id, project_id=dino.id, task=DINOSAUR_TASK,
                                  due_at=(now + timedelta(days=4)).date(), created_by_id=tan.id)
@@ -250,13 +294,15 @@ def seed(db: Session) -> None:
     db.flush()
     _copy_for(db, dino, aisyah, dino_assignment, days(7), tan)  # sent, not opened yet
     ethans = _copy_for(db, dino, ethan, dino_assignment, days(7), tan)
-    _save(db, ethans, scene_data(ethans.id, ethans.name, rooms, plinths + [("sphere", 0, 3), ("cylinder", 2, 2)], dino_brief),
-          days(2))  # and Ethan has been building since
+    ethan_work = example + [_on_pedestal("Ammonite", "ammonite-1", -2, PEDESTAL_Z), _on_pedestal("Trilobite", "trilobite-1", 2, PEDESTAL_Z)]
+    _save(db, ethans, scene_data(ethans.id, ethans.name, rooms, ethan_work, dino_brief),
+          days(2))  # and Ethan has been building since: an exhibit on each empty pedestal
 
     # Mr Rahim's Rainforest tour for 2B Humanities; Ben's copy is archived
     rainforest = _project(db, rahim, "Rainforest tour", days(20), class_id=classes[HUMANITIES].id,
                           template_id=blank.id, template_revision=1)
-    _save(db, rainforest, scene_data(rainforest.id, rainforest.name, [("Canopy", "env-exhibition")], [("cylinder", 0, 0)]), days(20))
+    _save(db, rainforest, scene_data(rainforest.id, rainforest.name, [("Canopy", "env-exhibition")],
+                                     [_scene_object("cylinder", 1, 0, 0)]), days(20))
     rainforest_assignment = Assignment(class_id=classes[HUMANITIES].id, project_id=rainforest.id, task=RAINFOREST_TASK,
                                        due_at=days(5).date(), created_by_id=rahim.id)
     db.add(rainforest_assignment)
@@ -268,12 +314,19 @@ def seed(db: Session) -> None:
     # filed under her class, so Ms Tan sees it on Review (a project with no class is the student's alone)
     own = _project(db, aisyah, "My first exhibition", days(25), status="published", showcase=True,
                    class_id=classes[SCIENCE].id, template_id=blank.id, template_revision=1)
-    _save(db, own, scene_data(own.id, own.name, [("Gallery", "env-highlight-exhibit")], [("cube", 0, 0), ("sphere", 2, 1)]), days(24))
+    # the Gallery room (env-highlight-exhibit) is 32 x 24 m with a 3.05 m ceiling: the one room
+    # tall enough for the 3 m mammoth
+    gallery = [
+        _model("Mammoth", "mammoth-1", 0, 0, turn=QUARTER_TURN),
+        _model("Pedestal", "pedestal-1", 4, 1),
+        _on_pedestal("Dinosaur Footprint", "dinosaur-footprint-1", 4, 1),
+    ]
+    _save(db, own, scene_data(own.id, own.name, [("Gallery", "env-highlight-exhibit")], gallery), days(24))
     for session, event, payload, ago in [
         ("visit-1", "visit_start", None, 3),
-        ("visit-1", "object_click", {"objectId": "cube-1"}, 3),
+        ("visit-1", "object_click", {"objectId": "mammoth-1"}, 3),
         ("visit-2", "visit_start", None, 2),
-        ("visit-2", "object_click", {"objectId": "sphere-2"}, 2),
+        ("visit-2", "object_click", {"objectId": "dinosaur-footprint-1"}, 2),
         ("visit-3", "visit_start", None, 1),
     ]:
         db.add(AnalyticsEvent(project_id=own.id, session_id=session, event_type=event, payload=payload,
@@ -289,10 +342,12 @@ def seed(db: Session) -> None:
     db.add(MediaLink(project_id=dino.id, created_by_id=tan.id, kind="video", provider="youtube", provider_id="dQw4w9WgXcQ",
                      url="https://www.youtube.com/watch?v=dQw4w9WgXcQ", approval="pending"))
 
-    # two click rules on the Dinosaur museum's first plinth and the new sphere
-    db.add(InteractionRule(project_id=dino.id, object_id="cube-1", triggers=["click"],
-                           actions=[{"kind": "showPanel", "params": {"title": "T. rex", "body": "The king of the dinosaurs."}}]))
-    db.add(InteractionRule(project_id=dino.id, object_id="sphere-4", triggers=["click"],
+    # two click rules on the Dinosaur museum: the triceratops and Ms Tan's T. rex skull
+    db.add(InteractionRule(project_id=dino.id, object_id="triceratops-1", triggers=["click"],
+                           actions=[{"kind": "showPanel", "params": {
+                               "title": "Triceratops",
+                               "body": "A plant-eater with three horns and a bony frill. It lived about 68 to 66 million years ago."}}]))
+    db.add(InteractionRule(project_id=dino.id, object_id="trex-skull-1", triggers=["click"],
                            actions=[{"kind": "playAudio", "params": {"assetId": "roar"}}], priority=1))
     db.commit()
 
@@ -313,8 +368,8 @@ def add_template(db: Session, slug: str, name: str = "Museum hall") -> Project |
         raise ValueError(f"School '{slug}' has no teacher to own the template")
     now = datetime.now(UTC).replace(microsecond=0)
     template = _project(db, teacher, name, now, kind="template", status="published")
-    plinths = [("cube", -3, 0), ("cube", 0, -3), ("cube", 3, 0)]
-    _save(db, template, scene_data(template.id, name, [("Museum", "env-museum")], plinths), now, label="First version")
+    _save(db, template, scene_data(template.id, name, [("Museum", "env-museum")], _museum_hall(locked=True)), now,
+          label="First version")
     db.commit()
     return template
 
