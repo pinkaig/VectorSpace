@@ -86,6 +86,13 @@ const BUNDLED_CATEGORIES: Record<string, CatalogueCategoryId[]> = {
   arrow: ['signs'],
   pedestal: ['misc'],
   stanchion: ['misc'],
+  // fossil scans (CC0, Smithsonian, Digital Atlas of Ancient Life and Virtual Museums of Malopolska, via Sketchfab); credits in assets/CREDITS.md
+  triceratops: ['exhibits'],
+  mammoth: ['exhibits'],
+  'trex skull': ['exhibits'],
+  ammonite: ['exhibits'],
+  trilobite: ['exhibits'],
+  'dinosaur footprint': ['exhibits'],
 }
 const UNTAGGED_CATEGORIES: CatalogueCategoryId[] = ['misc']
 
