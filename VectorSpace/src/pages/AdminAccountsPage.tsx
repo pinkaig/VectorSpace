@@ -23,6 +23,7 @@ import { useAdmin } from "../sections/admin/adminContext";
 import { AccountFilters, matchesFilter, type AccountTab } from "../sections/admin/accounts/AccountFilters";
 import { AccountsTableSection } from "../sections/admin/accounts/AccountsTableSection";
 import { AddAccountPopup } from "../sections/admin/accounts/AddAccountPopup";
+import { SignInLinkPopup } from "../sections/admin/accounts/SignInLinkPopup";
 import "./AdminAccountsPage.css";
 
 export default function AdminAccountsPage() {
@@ -32,6 +33,7 @@ export default function AdminAccountsPage() {
   const [tab, setTab] = useState<AccountTab>("everyone");
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState(false);
+  const [linkFor, setLinkFor] = useState<Account | null>(null);
   // buttons that are not connected yet (Auth0 sends the emails) open a "no logic" popup
   const [noLogic, noLogicPopup] = useNoLogic();
 
@@ -62,11 +64,12 @@ export default function AdminAccountsPage() {
         {error && <Motion as="p" cue="feedback.error" role="alert">Could not load accounts: {error}</Motion>}
         <LoadingRows loading={loading} />
         {accounts && (
-          <AccountsTableSection rows={shown} onTurnOff={turnOff} onNotice={noLogic} />
+          <AccountsTableSection rows={shown} onTurnOff={turnOff} onSignInLink={setLinkFor} />
         )}
       </section>
 
       {noLogicPopup}
+      {linkFor && <SignInLinkPopup account={linkFor} onClose={() => setLinkFor(null)} />}
       {adding && (
         <AddAccountPopup
           onClose={() => setAdding(false)}

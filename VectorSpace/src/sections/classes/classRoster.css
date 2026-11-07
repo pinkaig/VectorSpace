@@ -1,0 +1,90 @@
+/* Organise classes: the class list on the left, the picked class's people on the right. */
+.roster {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .roster {
+    grid-template-columns: 1fr;
+  }
+}
+
+.roster-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.roster-class {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.roster-class:hover {
+  background: var(--purple-50);
+}
+
+.roster-class-picked {
+  border-color: var(--border);
+  background: var(--purple-50);
+  font-weight: 600;
+}
+
+.roster-new,
+.roster-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.roster-new input,
+.roster-add select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.roster select {
+  max-width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.roster-muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.roster-note {
+  margin: 12px 0 0;
+}
+
+.roster-done {
+  margin: 0 0 8px;
+  color: var(--green-700, #1b7a3d);
+}
+
+.roster-problem {
+  margin: 0 0 8px;
+  color: var(--red-600, #c0392b);
+}

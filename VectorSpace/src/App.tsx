@@ -15,6 +15,7 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router'
 import AdminAccountsPage from './pages/AdminAccountsPage'
+import AdminClassesPage from './pages/AdminClassesPage'
 import AdminLayout from './pages/AdminLayout'
 import AdminOverviewPage from './pages/AdminOverviewPage'
 import AdminPermissionsPage from './pages/AdminPermissionsPage'
@@ -27,6 +28,7 @@ import TeacherLayout from './pages/TeacherLayout'
 import { LoadingRoom } from './ui/LoadingRoom'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
+import TeacherStudentsPage from './pages/TeacherStudentsPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
 import { ApiError } from './api/client'
 import { auth0Enabled } from './session/auth0'
@@ -186,6 +188,7 @@ export default function App() {
             <Route index element={<AdminOverviewPage />} />
             <Route path="permissions" element={<AdminPermissionsPage />} />
             <Route path="accounts" element={<AdminAccountsPage />} />
+            <Route path="classes" element={<AdminClassesPage />} />
             <Route path="rooms" element={<AdminRoomsPage />} />
             <Route path="library" element={<AdminLibraryPage />} />
           </Route>
@@ -193,6 +196,7 @@ export default function App() {
             <Route index element={<TeacherHomePage />} />
             <Route path="review" element={<TeacherReviewPage />} />
             <Route path="results" element={<TeacherResultsPage />} />
+            <Route path="students" element={<TeacherStudentsPage />} />
           </Route>
           <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><Suspense fallback={<p>Loading template setup…</p>}><TeacherTemplateSetupPage /></Suspense></AdminNav></RequireRole>} />
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}

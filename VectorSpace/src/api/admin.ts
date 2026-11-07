@@ -24,8 +24,8 @@
  *   - addAccount answers a CreatedAccount, not an Account: the create reply alone carries the
  *     new person's one-time password link, because Auth0 mints the ticket once and nothing
  *     stores it. listAccounts therefore cannot show it again, by design and not omission.
- * addSchool answers 501: an admin belongs to one school, and the operator role the mock-up's
- * "All schools" implies does not exist yet. See apps/api/app/routers/admin.py.
+ * An admin is VThere staff and works on every school (D-A, 6 Nov): All schools is every school, and
+ * addSchool creates a real, empty one. See apps/api/app/routers/admin.py.
  *
  * @status
  * Current. Everything is live except the environment switches on the Rooms page.
@@ -131,6 +131,8 @@ export type AdminApi = {
   listAccounts: (school: SchoolFilter) => Promise<Account[]>;
   addAccount: (account: NewAccount) => Promise<CreatedAccount>;
   setAccountOff: (accountId: string, off: boolean) => Promise<Account>;
+  /** A fresh one-time sign-in link (also a password reset); null where the build has no Auth0 tenant. */
+  newSignInLink: (accountId: string) => Promise<string | null>;
   getPermissions: (schoolId: string) => Promise<PermissionRow[]>;
   /** Answers every setting as saved, so the page shows what the API kept rather than what it sent. */
   savePermissions: (schoolId: string, rows: PermissionRow[]) => Promise<PermissionRow[]>;
@@ -219,7 +221,7 @@ export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
 
     listSchools: () => apiFetch<SchoolRow[]>(getToken, "/admin/schools", {}, base),
 
-    addSchool: () => apiFetch<School>(getToken, "/admin/schools", { method: "POST", body: {} }, base),
+    addSchool: (name) => apiFetch<SchoolRow>(getToken, "/admin/schools", { method: "POST", body: { name } }, base),
 
     getOverview: async (school) =>
       toOverview(await apiFetch<OverviewRow>(getToken, `/admin/overview${query(school)}`, {}, base)),
@@ -267,6 +269,11 @@ export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
       if (kind === "environment") return fakeAdminApi.setRoomEnabled(schoolId, kind, itemId, enabled);
       await apiFetch(getToken, `/admin/schools/${encodeURIComponent(schoolId)}/packs/${itemId}`, { method: "PATCH", body: { enabled } }, base);
     },
+
+    newSignInLink: async (accountId) =>
+      (await apiFetch<{ account_id: string; invite_link: string | null }>(
+        getToken, `/admin/accounts/${encodeURIComponent(accountId)}/invite`, { method: "POST" }, base,
+      )).invite_link,
 
     setAccountOff: async (accountId, off) =>
       toAccount(
