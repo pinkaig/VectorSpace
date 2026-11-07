@@ -25,6 +25,7 @@ import { AddAccountPopup } from "../sections/admin/accounts/AddAccountPopup";
 import { ImportCsvPopup } from "../sections/admin/accounts/ImportCsvPopup";
 import { SignInLinkPopup } from "../sections/admin/accounts/SignInLinkPopup";
 import "./AdminAccountsPage.css";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminAccountsPage() {
   const { api, school, schoolId } = useAdmin();
@@ -44,10 +45,7 @@ export default function AdminAccountsPage() {
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Accounts</h1>
-        <p>{school ? school.name : "All schools"}</p>
-      </div>
+      <AdminPageTitle title="Accounts" subtitle="There is no public sign-up. Every account is made here, one at a time or from the school's class list." scope={school ? school.name : "All schools"} />
 
       <section className="admin-panel admin-accounts">
         {/*TOOLBAR: filter tabs with counts, search, and the two ways to add people*/}

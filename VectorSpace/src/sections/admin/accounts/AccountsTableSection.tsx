@@ -15,6 +15,7 @@ import type { Account } from "../../../api/admin";
 import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { StatusChip, type ChipTone } from "../../../ui/statusChip";
+import { initials } from "../../../ui/initials";
 
 const STATUS: Record<Account["status"], { label: string; tone: ChipTone }> = {
   active: { label: "Active", tone: "green" },
@@ -47,9 +48,12 @@ export function AccountsTableSection({ rows, onTurnOff, onSignInLink }: Accounts
           {rows.map((account, index) => (
             <Motion as="tr" cue="table.rows.enter" staggerIndex={index} key={account.id}>
               <td>
-                <div className="admin-accounts-person">
-                  <strong>{account.name}</strong>
-                  <span className="admin-muted">{account.email}</span>
+                <div className="admin-person">
+                  <span className="admin-avatar" aria-hidden="true">{initials(account.name)}</span>
+                  <span>
+                    <strong>{account.name}</strong>
+                    <span className="admin-muted">{account.email}</span>
+                  </span>
                 </div>
               </td>
               <td><StatusChip tone={account.role === "student" ? "purple" : "amber"}>{account.role === "student" ? "Student" : "Educator"}</StatusChip></td>

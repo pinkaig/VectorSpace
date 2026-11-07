@@ -22,9 +22,10 @@ import { TickBox, Toggle } from "../../../ui/toggle";
 import { useLoad } from "../../../api/useLoad";
 import { useAdmin } from "../adminContext";
 
-export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
+// one set of settings for every school: shown from the first school, saved to all of them
+export function PermissionsGridSection({ schoolIds }: { schoolIds: string[] }) {
   const { api } = useAdmin();
-  const { data: saved, setData: setSaved, error, loading } = useLoad(() => api.getPermissions(schoolId), schoolId);
+  const { data: saved, setData: setSaved, error, loading } = useLoad(() => api.getPermissions(schoolIds[0]), schoolIds.join());
 
   // the admin's changes so far, or null before the first click; what is shown is the changed
   // copy if there is one, otherwise what was saved
@@ -42,7 +43,8 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
   const save = async () => {
     setSaveError(null);
     try {
-      setSaved(await api.savePermissions(schoolId, draft));
+      const kept = await Promise.all(schoolIds.map((id) => api.savePermissions(id, draft)));
+      setSaved(kept[0]);
       setEdited(null);
       setJustSaved(true);
     } catch (problem) {

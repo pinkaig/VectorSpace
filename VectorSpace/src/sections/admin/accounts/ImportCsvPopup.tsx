@@ -15,7 +15,7 @@
  */
 /******************************************************************************/
 
-import { useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { ALL_SCHOOLS, type ImportRow } from "../../../api/admin";
 import { ApiError } from "../../../api/client";
 import { Motion } from "../../../motion/useMotion";
@@ -40,6 +40,25 @@ const OUTCOME_LABEL: Record<ImportRow["outcome"], string> = {
 function reason(error: unknown): string {
   if (error instanceof ApiError && typeof error.detail === "string") return error.detail;
   return `Could not read the file: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+// a blank file in the right shape, with one example line, so nobody has to type the header
+const TEMPLATE = "email,display_name,role,classes\r\naisyah@school.example,Aisyah Rahman,student,1A Science;Art Club\r\n";
+
+const STEPS = ["Choose the file", "Check what happens", "Hand out sign-in links"];
+
+/** Where the popup is: 0 before a file is checked, 1 with a preview, 2 once accounts are made. */
+function StepBar({ at }: { at: number }) {
+  return (
+    <ol className="admin-steps">
+      {STEPS.map((label, index) => (
+        <li key={label} className={index < at ? "admin-step-done" : index === at ? "admin-step-now" : undefined}>
+          <span className="admin-step-dot">{index < at ? "✓" : index + 1}</span>
+          {label}
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 function ImportTable({ rows }: { rows: ImportRow[] }) {
@@ -78,6 +97,8 @@ export function ImportCsvPopup({ onClose, onImported }: ImportCsvPopupProps) {
   const [done, setDone] = useState<ImportRow[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
   const schoolName = schools.find((school) => school.id === chosenSchool)?.name ?? "this school";
 
   const check = async (picked: { name: string; text: string }, school: string) => {
@@ -118,6 +139,12 @@ export function ImportCsvPopup({ onClose, onImported }: ImportCsvPopupProps) {
     }
   };
 
+  const onDrop = (event: DragEvent) => {
+    event.preventDefault();
+    setDragging(false);
+    if (!busy) void pick(event.dataTransfer.files[0]);
+  };
+
   const toCreate = preview?.filter((row) => row.outcome === "would_create").length ?? 0;
   const created = done?.filter((row) => row.outcome === "created") ?? [];
   const links = created.filter((row) => row.inviteLink).length;
@@ -134,7 +161,7 @@ export function ImportCsvPopup({ onClose, onImported }: ImportCsvPopupProps) {
       subtitle={
         done
           ? `${schoolName}: ${created.length} created${failed ? `, ${failed} not added` : ""}.`
-          : "Checked first: nothing is created until you press Create."
+          : "Nothing is created until you press Create."
       }
       onClose={onClose}
       actions={
@@ -153,6 +180,7 @@ export function ImportCsvPopup({ onClose, onImported }: ImportCsvPopupProps) {
         )
       }
     >
+      <StepBar at={done ? 2 : preview ? 1 : 0} />
       {done ? (
         <div className="admin-accounts-invite">
           {links > 0 ? (
@@ -174,32 +202,47 @@ export function ImportCsvPopup({ onClose, onImported }: ImportCsvPopupProps) {
         </div>
       ) : (
         <>
-          <div className="admin-accounts-form">
-            <div className="admin-accounts-wide">
-              <Field label="School">
-                <select
-                  value={chosenSchool}
-                  disabled={busy}
-                  onChange={(event) => {
-                    setChosenSchool(event.target.value);
-                    if (file) void check(file, event.target.value); // "already here" depends on the school
-                  }}
-                >
-                  {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
-                </select>
-              </Field>
-            </div>
-            <div className="admin-accounts-wide">
-              <Field label="CSV file">
-                <input type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => void pick(event.target.files?.[0])} />
-              </Field>
-            </div>
+          <Field label="School">
+            <select
+              value={chosenSchool}
+              disabled={busy}
+              onChange={(event) => {
+                setChosenSchool(event.target.value);
+                if (file) void check(file, event.target.value); // "already here" depends on the school
+              }}
+            >
+              {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+            </select>
+          </Field>
+
+          {/*DROP ZONE: drag the class list here, or click to choose it*/}
+          <div
+            className={`admin-library-drop admin-import-drop ${dragging ? "admin-library-drop-over" : ""}`}
+            onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+          >
+            <p>
+              {file ? <><strong>{file.name}</strong>. Drop another file to replace it, or </> : <><strong>Drop the class list here</strong> or </>}
+              <button type="button" className="admin-library-link" disabled={busy} onClick={() => picker.current?.click()}>
+                {file ? "choose again" : "choose a file"}
+              </button>
+            </p>
+            <p className="admin-muted">
+              A .csv with the columns <code>email, display_name, role, classes</code>. Role is student, teacher or admin;
+              classes are split by <code>;</code> and made if missing. Up to 200 people.{" "}
+              <button type="button" className="admin-library-link" onClick={() => downloadCsv("class-list-template.csv", TEMPLATE)}>
+                Download a template
+              </button>
+            </p>
+            <input
+              ref={picker}
+              type="file"
+              hidden
+              accept=".csv,text/csv"
+              onChange={(event) => { void pick(event.target.files?.[0]); event.target.value = ""; }}
+            />
           </div>
-          <p className="admin-muted admin-import-help">
-            First line: <code>email,display_name,role,classes</code>. Role is student, teacher or admin.
-            Classes are separated by <code>;</code> and are made if the school does not have them yet.
-            People already in the school are skipped, not changed. Up to 200 people per file.
-          </p>
           {busy && !preview && <p className="admin-muted">Checking {file?.name}…</p>}
           {preview && (
             <>

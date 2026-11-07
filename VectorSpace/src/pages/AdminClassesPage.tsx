@@ -13,9 +13,10 @@
 /******************************************************************************/
 
 import { useAdmin } from "../sections/admin/adminContext";
-import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
+import { ChooseSchoolSection } from "../sections/admin/ChooseSchoolSection";
 import { ClassRosterSection } from "../sections/classes/ClassRosterSection";
 import { useSession } from "../session/session";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminClassesPage() {
   const { api, school } = useAdmin();
@@ -23,10 +24,7 @@ export default function AdminClassesPage() {
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Classes</h1>
-        <p>{school ? school.name : "All schools"}</p>
-      </div>
+      <AdminPageTitle title="Classes" subtitle="Make a school's classes, then put its students and educators in them. Educators see only the classes they teach." scope={school ? school.name : "All schools"} />
 
       {/*ROSTER: one school's classes, or a note asking for a school to be picked*/}
       {school ? (
@@ -37,11 +35,11 @@ export default function AdminClassesPage() {
           loadCandidates={async () =>
             (await api.listAccounts(school.id))
               .filter((a) => a.role !== "admin" && a.status !== "turned_off")
-              .map((a) => ({ id: a.id, display_name: a.name, role: a.role }))
+              .map((a) => ({ id: a.id, display_name: a.name, role: a.role, email: a.email }))
           }
         />
       ) : (
-        <PickSchoolNotice what="Classes" />
+        <ChooseSchoolSection what="Classes" />
       )}
     </>
   );

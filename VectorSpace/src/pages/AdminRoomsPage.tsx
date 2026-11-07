@@ -23,24 +23,25 @@ import { Motion } from "../motion/useMotion";
 import { LoadingRows } from "../ui/loadingRows";
 import { useAdmin } from "../sections/admin/adminContext";
 import { RoomListSection } from "../sections/admin/rooms/RoomListSection";
-import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
 import { MediaLinksSection } from "../sections/admin/rooms/MediaLinksSection";
 import "./AdminRoomsPage.css";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminRoomsPage() {
-  const { school } = useAdmin();
+  const { schools } = useAdmin();
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Rooms &amp; assets</h1>
-        <p>{school ? school.name : "All schools"}</p>
-      </div>
+      <AdminPageTitle title="Rooms & assets" subtitle="The room shells and asset packs teachers can use in a project. Every school gets the same set." scope="All schools" />
 
       {/*NOT SAVED: which room shells a school may use has no table behind it (see api/adminFake.ts)*/}
-      <p className="admin-notstored" role="note">Asset pack switches are saved. Environment switches are not: there is no table behind them yet, so they reset on reload.</p>
+      {schools.length > 0 && (
+        <p className="admin-notstored" role="note">Asset pack switches are saved. Environment switches are not: there is no table behind them yet, so they reset on reload.</p>
+      )}
 
-      {school ? <RoomsForSchool key={school.id} schoolId={school.id} /> : <PickSchoolNotice what="Rooms and asset packs" />}
+      {schools.length > 0
+        ? <RoomsForAllSchools schoolIds={schools.map((s) => s.id)} />
+        : <p className="admin-muted">Add a school on the Overview page first.</p>}
 
       {/*LINKS: YouTube videos and image links for info cards, with approval*/}
       <MediaLinksSection />
@@ -48,10 +49,10 @@ export default function AdminRoomsPage() {
   );
 }
 
-// split out so the data is only fetched once a school is picked
-function RoomsForSchool({ schoolId }: { schoolId: string }) {
+// every school gets the same rooms and packs: shown from the first school, each switch saved to all of them
+function RoomsForAllSchools({ schoolIds }: { schoolIds: string[] }) {
   const { api } = useAdmin();
-  const { data, setData, error, loading } = useLoad(() => api.getRooms(schoolId), schoolId);
+  const { data, setData, error, loading } = useLoad(() => api.getRooms(schoolIds[0]), schoolIds.join());
   const [problem, setProblem] = useState<string | null>(null);
 
   // switches take effect at once: update the screen, then tell the API
@@ -61,7 +62,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
       setData((rooms) => rooms && { ...rooms, [list]: rooms[list].map((item) => (item.id === itemId ? { ...item, enabled: on } : item)) });
     flip(enabled);
     try {
-      await api.setRoomEnabled(schoolId, kind, itemId, enabled);
+      await Promise.all(schoolIds.map((id) => api.setRoomEnabled(id, kind, itemId, enabled)));
       setProblem(null);
     } catch (failure) {
       flip(!enabled); // the switch goes back, so the screen never shows a setting that was not saved
@@ -89,7 +90,7 @@ function RoomsForSchool({ schoolId }: { schoolId: string }) {
           <RoomListSection
             title="Asset packs"
             note={data.packs.length
-              ? "Published packs from the library. Switch one on and this school's teachers see it in their catalogue."
+              ? "Published packs from the library. Switch one on and teachers in every school see it in their catalogue."
               : "No pack is published yet."}
             items={data.packs}
             onToggle={(id, enabled) => setEnabled("pack", id, enabled)}
