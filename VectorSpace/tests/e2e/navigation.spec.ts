@@ -96,7 +96,7 @@ test('the admin area opens on Overview and has its four pages', async ({ page })
   await page.getByRole('link', { name: 'Accounts' }).click()
   await expect(page).toHaveURL(/#\/admin\/accounts$/)
   await page.getByRole('link', { name: 'Permissions' }).click()
-  await expect(page.getByRole('heading', { name: 'Choose a school' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Permissions' })).toBeVisible()
   await page.getByRole('link', { name: 'Rooms & assets' }).click()
   await expect(page).toHaveURL(/#\/admin\/rooms$/)
 
