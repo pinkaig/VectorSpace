@@ -34,12 +34,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/MeResponse'
               example:
-                id: b0305b70-de0d-41bd-9faa-1f3d5ebfb83b
-                organisation_id: ead04526-5ac4-4872-8c6f-86e290a64b64
+                id: f1651845-5996-4c64-8635-8899296de023
+                organisation_id: f1e887de-c2d2-4672-84ee-b5b45b1ed2ea
                 display_name: s1
                 role: student
                 class_ids:
-                - e4a3e53e-fc2d-4f5c-9713-c9068ad1e24a
+                - 23bdffb6-9eff-4a9e-96bd-ef8cb96792ec
       security:
       - HTTPBearer: []
   /api/v1/admin/schools:
@@ -47,8 +47,7 @@ paths:
       tags:
       - admin
       summary: List Schools
-      description: 'One school: the caller''s own. See this module''s note on why there is no list above
-        it.'
+      description: Every school, by name. An admin is VThere staff and sees them all (D-A).
       operationId: list_schools_api_v1_admin_schools_get
       responses:
         '200':
@@ -61,30 +60,56 @@ paths:
                 type: array
                 title: Response List Schools Api V1 Admin Schools Get
               example:
-              - id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+              - id: 75419eea-100f-4cdf-aea9-7e8504137a7c
                 name: A
                 students: 3
                 educators: 2
                 status: active
+              - id: e4ed1c4f-4a97-4313-9b52-27bbbd5b897a
+                name: B
+                students: 0
+                educators: 1
+                status: setting_up
       security:
       - HTTPBearer: []
     post:
       tags:
       - admin
       summary: Add School
+      description: 'A new, empty school: no people and no classes, so it starts as setting_up. The slug
+        is made
+
+        from the name, the same identifier `python -m app.provision --school-slug` uses, so a roster
+
+        CSV can be run against a school made here. Two schools may not share a slug.'
       operationId: add_school_api_v1_admin_schools_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSchoolRequest'
+            example:
+              name: '  Riverside Primary '
+        required: true
       responses:
-        '501':
+        '201':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: 'null'
-                title: Response Add School Api V1 Admin Schools Post
+                $ref: '#/components/schemas/SchoolResponse'
               example:
-                detail: 'Adding a school needs a VThere operator role above the schools, which the data
-                  model does not have yet: an admin belongs to one school. Create schools with python
-                  -m app.provision --school-slug <slug> --school-name <name> for now.'
+                id: 37114d5d-4c3a-4b4d-bb76-52d88d2c80c3
+                name: Riverside Primary
+                students: 0
+                educators: 0
+                status: setting_up
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
       security:
       - HTTPBearer: []
   /api/v1/admin/accounts:
@@ -114,21 +139,20 @@ paths:
                   $ref: '#/components/schemas/AccountResponse'
                 title: Response List Accounts Api V1 Admin Accounts Get
               example:
-              - id: c6959ff5-9ca1-40a2-a765-2002874a0941
-                school_id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+              - id: 9dd875ba-7fb2-4ec0-8965-88afc80e22ce
+                school_id: 75419eea-100f-4cdf-aea9-7e8504137a7c
                 name: admin
                 email: admin@x.test
                 role: admin
                 class_names: []
                 last_active: null
                 status: invited
-              - id: 677eab91-9212-4a95-a849-4a3c1414ee4c
-                school_id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
-                name: s1
-                email: s1@x.test
-                role: student
-                class_names:
-                - 1A
+              - id: a60a1e0f-557c-42d7-acdb-973344e664b4
+                school_id: e4ed1c4f-4a97-4313-9b52-27bbbd5b897a
+                name: other
+                email: other@x.test
+                role: teacher
+                class_names: []
                 last_active: null
                 status: invited
         '422':
@@ -167,7 +191,7 @@ paths:
             schema:
               $ref: '#/components/schemas/NewAccountRequest'
             example:
-              school_id: faa4cfff-8991-40e1-9ac1-11d291e69d8e
+              school_id: f0491300-4c28-4a31-805f-cc93e0aa0e11
               name: New Person
               email: New.Person@x.test
               role: student
@@ -182,8 +206,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreatedAccountResponse'
               example:
-                id: 186ff664-a01b-454f-a742-00c507bfed97
-                school_id: faa4cfff-8991-40e1-9ac1-11d291e69d8e
+                id: 972d8a4a-fd9e-4063-9ee3-cb44c7a517d0
+                school_id: f0491300-4c28-4a31-805f-cc93e0aa0e11
                 name: New Person
                 email: new.person@x.test
                 role: student
@@ -217,7 +241,7 @@ paths:
           type: string
           format: uuid
           title: Account Id
-        example: bf703953-ffec-4323-a38b-dcd286626f59
+        example: 0ed943cc-492c-4660-8493-e817a8eae8b2
       requestBody:
         required: true
         content:
@@ -234,8 +258,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AccountResponse'
               example:
-                id: bf703953-ffec-4323-a38b-dcd286626f59
-                school_id: 3de6a59c-69c5-4924-9a01-afad6cf4537c
+                id: 0ed943cc-492c-4660-8493-e817a8eae8b2
+                school_id: d9e92c61-ab2f-4646-ba77-781607b40b37
                 name: s1
                 email: s1@x.test
                 role: student
@@ -243,6 +267,47 @@ paths:
                 - 1A
                 last_active: null
                 status: turned_off
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/accounts/{account_id}/invite:
+    post:
+      tags:
+      - admin
+      summary: New Sign In Link
+      description: 'A fresh one-time sign-in link for somebody who lost theirs, or forgot their password.
+
+
+        Admin only (Sherman, 7 Nov): what a teacher may do for their students is not decided yet, so
+
+        credentials come from one place. Same handling as the create reply: hand it over, never keep
+
+        it. A turned-off account gets 409 rather than a link that would sign in to nothing.'
+      operationId: new_sign_in_link_api_v1_admin_accounts__account_id__invite_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Account Id
+        example: 0e937dd4-2551-410e-9b06-b92a358404b8
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInLinkResponse'
+              example:
+                account_id: 0e937dd4-2551-410e-9b06-b92a358404b8
+                invite_link: https://tenant.test/again/s1
         '422':
           description: Validation Error
           content:
@@ -276,11 +341,11 @@ paths:
               example:
                 tiles:
                   schools:
-                    value: 1
+                    value: 2
                     sub: 1 active
                   educators:
-                    value: 2
-                    sub: 2 not signed in yet
+                    value: 3
+                    sub: 3 not signed in yet
                   students:
                     value: 3
                     sub: 0 active this week
@@ -288,15 +353,24 @@ paths:
                     value: 0
                     sub: 0 still drafts
                 schools:
-                - id: de46ed8c-ff51-4a6b-adb3-4d9227282a90
+                - id: 75419eea-100f-4cdf-aea9-7e8504137a7c
                   name: A
                   students: 3
                   educators: 2
                   status: active
+                - id: e4ed1c4f-4a97-4313-9b52-27bbbd5b897a
+                  name: B
+                  students: 0
+                  educators: 1
+                  status: setting_up
                 attention:
-                - id: never-signed-in
-                  text: 6 people have never signed in
-                  action_label: See who
+                - id: setting-up-e4ed1c4f-4a97-4313-9b52-27bbbd5b897a
+                  text: B has no students yet
+                  action_label: Add accounts
+                  go_to: accounts
+                - id: no-classes-e4ed1c4f-4a97-4313-9b52-27bbbd5b897a
+                  text: B has no classes yet
+                  action_label: Add accounts
                   go_to: accounts
                 recent: []
         '422':
@@ -323,7 +397,7 @@ paths:
         schema:
           type: string
           title: School
-        example: 371a1623-8b65-437a-b12f-ea108f0f78de
+        example: c470ec5f-6b18-4df4-866a-5fef5f7cbbd3
       responses:
         '200':
           description: Successful Response
@@ -335,7 +409,7 @@ paths:
                   $ref: '#/components/schemas/SchoolPackResponse'
                 title: Response List School Packs Api V1 Admin Schools  School  Packs Get
               example:
-              - id: 6bc715f7-8dc5-43a2-afe6-d8c71e0185b3
+              - id: eeb6ebca-2c93-4db8-a4bd-f2cfe0d2ff8f
                 slug: fossils
                 title: Fossils
                 description: null
@@ -364,7 +438,7 @@ paths:
         schema:
           type: string
           title: School
-        example: 371a1623-8b65-437a-b12f-ea108f0f78de
+        example: c470ec5f-6b18-4df4-866a-5fef5f7cbbd3
       - name: pack_id
         in: path
         required: true
@@ -372,7 +446,7 @@ paths:
           type: string
           format: uuid
           title: Pack Id
-        example: 6bc715f7-8dc5-43a2-afe6-d8c71e0185b3
+        example: eeb6ebca-2c93-4db8-a4bd-f2cfe0d2ff8f
       requestBody:
         required: true
         content:
@@ -389,7 +463,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SchoolPackResponse'
               example:
-                id: 6bc715f7-8dc5-43a2-afe6-d8c71e0185b3
+                id: eeb6ebca-2c93-4db8-a4bd-f2cfe0d2ff8f
                 slug: fossils
                 title: Fossils
                 description: null
@@ -419,7 +493,7 @@ paths:
         schema:
           type: string
           title: School
-        example: 9b14d934-bb9b-473a-98e2-ac2428492b49
+        example: 6cd31a3e-24a5-46f3-b3bd-cbaeb09990b2
       responses:
         '200':
           description: Successful Response
@@ -469,7 +543,7 @@ paths:
         schema:
           type: string
           title: School
-        example: f481598b-cde8-480c-9ee7-59d213dc30c4
+        example: 27907e3b-fab8-4b34-83c4-6a1cd6c1c65a
       requestBody:
         required: true
         content:
@@ -520,22 +594,82 @@ paths:
       - classes
       summary: List Classes
       operationId: list_classes_api_v1_classes_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: school
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          description: 'admins only: just this school''s classes'
+          title: School
+        description: 'admins only: just this school''s classes'
+        example: 728a4793-710c-42a6-97d5-4a67e4d98a23
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
+                type: array
                 items:
                   $ref: '#/components/schemas/ClassResponse'
-                type: array
                 title: Response List Classes Api V1 Classes Get
               example:
-              - id: 725d4db6-865b-4109-a939-fdd05f3a6695
+              - id: fe3b1883-e364-4ecd-a842-15c006d97cf5
+                school_id: 728a4793-710c-42a6-97d5-4a67e4d98a23
                 name: 1A
                 member_count: 3
+              - id: 023d785f-125b-493d-820a-f94055e143d9
+                school_id: 728a4793-710c-42a6-97d5-4a67e4d98a23
+                name: 2B
+                member_count: 2
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - classes
+      summary: Create Class
+      description: An empty class. A teacher who makes one teaches it, so they are put in it straight
+        away.
+      operationId: create_class_api_v1_classes_post
       security:
       - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewClassRequest'
+            example:
+              name: B1
+              school_id: c3d3ff32-1a11-49bf-a53e-9f49794a4d62
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassResponse'
+              example:
+                id: b3e609ca-f2ba-4c81-9c13-39aa7a4365fc
+                school_id: c3d3ff32-1a11-49bf-a53e-9f49794a4d62
+                name: B1
+                member_count: 0
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/classes/{class_id}/members:
     get:
       tags:
@@ -554,7 +688,7 @@ paths:
           type: string
           format: uuid
           title: Class Id
-        example: 725d4db6-865b-4109-a939-fdd05f3a6695
+        example: 08e45862-7d69-453f-94cd-70b649d42dcc
       responses:
         '200':
           description: Successful Response
@@ -566,12 +700,152 @@ paths:
                   $ref: '#/components/schemas/MemberResponse'
                 title: Response List Members Api V1 Classes  Class Id  Members Get
               example:
-              - id: a3c791bf-d156-45a3-86af-6bee4ebfbd7c
-                display_name: s1
+              - id: 1077f156-88db-4490-a90c-d8fb180267dc
+                display_name: t1
+                role: teacher
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - classes
+      summary: Add Member
+      description: 'Put someone in a class. Already in it is fine: the answer is the same, nothing changes.'
+      operationId: add_member_api_v1_classes__class_id__members_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: class_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Class Id
+        example: 5592d7d8-d238-408f-92f5-5d04e1dc8a57
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+            example:
+              actor_id: 4c8b2061-3133-4443-b818-c0caff88a5f4
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+              example:
+                id: 4c8b2061-3133-4443-b818-c0caff88a5f4
+                display_name: s3
                 role: student
-              - id: c443884e-fe7b-43eb-9e60-6c0604864e8e
-                display_name: s2
-                role: student
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/classes/{class_id}/members/{actor_id}:
+    delete:
+      tags:
+      - classes
+      summary: Remove Member
+      description: Take someone out of a class. Their account and their work stay; only the membership
+        goes.
+      operationId: remove_member_api_v1_classes__class_id__members__actor_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: class_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Class Id
+        example: 5592d7d8-d238-408f-92f5-5d04e1dc8a57
+      - name: actor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Actor Id
+        example: 4c8b2061-3133-4443-b818-c0caff88a5f4
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/classes/{class_id}/members/{actor_id}/move:
+    post:
+      tags:
+      - classes
+      summary: Move Member
+      description: 'Out of this class and into another, in one commit. Both classes must be the caller''s
+        to change
+
+        and in the same school; the student keeps their work (see the module note).'
+      operationId: move_member_api_v1_classes__class_id__members__actor_id__move_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: class_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Class Id
+        example: b1ad1cad-ed91-4c8f-90d7-e7119f8996b7
+      - name: actor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Actor Id
+        example: 1b4e1f4e-fa92-4c03-b777-1d674baef7f3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+            example:
+              to_class_id: bd6e622e-3820-4eac-b3c6-dc0e55350410
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveResponse'
+              example:
+                student:
+                  id: 1b4e1f4e-fa92-4c03-b777-1d674baef7f3
+                  display_name: s1
+                  role: student
+                from_class:
+                  id: b1ad1cad-ed91-4c8f-90d7-e7119f8996b7
+                  school_id: 9662c265-c171-42db-8ec5-4df196223595
+                  name: 1A
+                  member_count: 2
+                to_class:
+                  id: bd6e622e-3820-4eac-b3c6-dc0e55350410
+                  school_id: 9662c265-c171-42db-8ec5-4df196223595
+                  name: 2B
+                  member_count: 3
         '422':
           description: Validation Error
           content:
@@ -672,29 +946,37 @@ paths:
                   $ref: '#/components/schemas/ProjectResponse'
                 title: Response List Projects Api V1 Projects Get
               example:
-              - id: c86e6845-62b2-4235-97fc-784e6f2a72a7
-                organisation_id: 41c65edb-e12f-4468-a933-f75e9963b192
-                created_by_id: 578cc5af-7e37-40ca-9027-b81326b57a1e
-                class_id: e152d8fc-ab26-4afb-bfef-da24b3eda781
-                template_id: dbb70cb6-9475-4cbe-8634-d6bac1dfc158
+              - id: 0767c1ae-d407-4f7a-9ca5-8bab0fa856fa
+                organisation_id: af54059c-e72b-47c6-9637-45c432ded2ec
+                created_by_id: 5c8525c7-f3d3-4f5f-a4a2-488c194bcd0b
+                class_id: efba6fe4-fe9a-4ed7-860e-a5ae9d3eb3da
+                template_id: 34bba549-8e65-4903-af40-0e4f69425659
                 template_revision: null
                 kind: project
                 name: Museum hall
-                slug: museum-hall-9b7c5190
+                slug: museum-hall-5e89996d
                 status: draft
                 current_version_id: null
-                created_at: '2026-11-04T04:37:20'
-                updated_at: '2026-11-04T04:37:20'
+                created_at: '2026-11-07T11:51:53'
+                updated_at: '2026-11-07T11:51:53'
                 created_by_name: s1
                 class_name: 1A
                 current_revision: 0
                 saved_at: null
                 saved_by_name: ''
                 template_name: Museum hall
-                assignment_id: 2ae52419-83af-4893-96bc-637bb9ffbe1a
+                assignment_id: 1870b44e-26ca-495d-9df3-8a3a435e8546
                 task: Changed
                 due_at: '2026-11-20'
                 assigned_by_name: t1
+                mission_brief:
+                  due: '2026-11-20'
+                  todos:
+                  - id: t1
+                    text: Place three exhibits
+                  rules:
+                  - id: r1
+                    text: Label every exhibit
                 sent: false
                 published_copies: 0
                 assignment_ids: []
@@ -734,19 +1016,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
               example:
-                id: dbb70cb6-9475-4cbe-8634-d6bac1dfc158
-                organisation_id: 41c65edb-e12f-4468-a933-f75e9963b192
-                created_by_id: 91345625-96cf-492e-891c-dc7512c08564
+                id: 34bba549-8e65-4903-af40-0e4f69425659
+                organisation_id: af54059c-e72b-47c6-9637-45c432ded2ec
+                created_by_id: cceccc31-be03-40b8-9b92-4a10154c0bea
                 class_id: null
                 template_id: null
                 template_revision: null
                 kind: template
                 name: Museum hall
-                slug: museum-hall-546b1174
+                slug: museum-hall-5d7ebfd1
                 status: draft
                 current_version_id: null
-                created_at: '2026-11-04T04:37:20'
-                updated_at: '2026-11-04T04:37:20'
+                created_at: '2026-11-07T11:51:53'
+                updated_at: '2026-11-07T11:51:53'
                 created_by_name: t1
                 class_name: null
                 current_revision: 0
@@ -757,6 +1039,7 @@ paths:
                 task: null
                 due_at: null
                 assigned_by_name: null
+                mission_brief: null
                 sent: false
                 published_copies: 0
                 assignment_ids: []
@@ -798,7 +1081,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 730a262b-61b8-4c6c-98e1-2e427615f97f
+        example: 6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1
       requestBody:
         required: true
         content:
@@ -806,7 +1089,7 @@ paths:
             schema:
               $ref: '#/components/schemas/AssignRequest'
             example:
-              student_id: 8e874a30-a627-4124-abf5-48313a77e0e4
+              student_id: 13fe966f-1795-4796-b194-db2d940e599c
       responses:
         '201':
           description: Successful Response
@@ -815,29 +1098,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
               example:
-                id: 800c818c-e2fd-4c02-a3cd-a4b3479ca548
-                organisation_id: a3f51301-4319-4c77-af9c-19a824db928e
-                created_by_id: 8e874a30-a627-4124-abf5-48313a77e0e4
-                class_id: 588e3d42-81e8-4993-aaea-5885db9c1ac4
-                template_id: 730a262b-61b8-4c6c-98e1-2e427615f97f
+                id: e57ee12e-7f83-4a5b-a50a-ac327f18a4b1
+                organisation_id: 01af681c-d9ac-4a15-99da-101fc027a7df
+                created_by_id: 13fe966f-1795-4796-b194-db2d940e599c
+                class_id: a8274b65-8a7f-4667-92c4-623fe6f66566
+                template_id: 6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1
                 template_revision: 1
                 kind: project
                 name: Gallery walk
-                slug: gallery-walk-edb5e84a
+                slug: gallery-walk-f50b740c
                 status: draft
-                current_version_id: d0e73af4-bb7d-44c2-9490-372173988bd3
-                created_at: '2026-11-04T04:37:21'
-                updated_at: '2026-11-04T04:37:21'
+                current_version_id: 5999a9ef-6c3a-4327-bcb2-121f8dfe7d63
+                created_at: '2026-11-07T11:51:54'
+                updated_at: '2026-11-07T11:51:54'
                 created_by_name: s1
                 class_name: 1A
                 current_revision: 1
-                saved_at: '2026-11-04T04:37:21'
+                saved_at: '2026-11-07T11:51:54'
                 saved_by_name: t1
                 template_name: Gallery walk
-                assignment_id: 03a005f5-0fe0-4ad5-a21f-49166ea1686d
+                assignment_id: 763a6a3d-9e71-458d-aa4c-6af2009c3001
                 task: ''
                 due_at: null
                 assigned_by_name: t1
+                mission_brief: null
                 sent: false
                 published_copies: 0
                 assignment_ids: []
@@ -873,7 +1157,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: ea287097-6a65-4111-b222-f42047c28d19
+        example: fd286294-cf34-49ab-a247-577da7b3fdad
       responses:
         '200':
           description: Successful Response
@@ -917,7 +1201,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: dbb70cb6-9475-4cbe-8634-d6bac1dfc158
+        example: 34bba549-8e65-4903-af40-0e4f69425659
       requestBody:
         required: true
         content:
@@ -925,7 +1209,7 @@ paths:
             schema:
               $ref: '#/components/schemas/AssignClassRequest'
             example:
-              class_id: e152d8fc-ab26-4afb-bfef-da24b3eda781
+              class_id: efba6fe4-fe9a-4ed7-860e-a5ae9d3eb3da
               mission_brief:
                 due: '2026-11-20'
                 todos:
@@ -944,7 +1228,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssignClassResponse'
               example:
-                assignment_id: 2ae52419-83af-4893-96bc-637bb9ffbe1a
+                assignment_id: 1870b44e-26ca-495d-9df3-8a3a435e8546
                 students: 2
                 sent: 2
         '422':
@@ -969,7 +1253,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: f790e350-54be-4dbe-b498-86dff8c16cd2
+        example: 1d72c3e5-c16b-402c-b599-56fd88fe5f04
       responses:
         '200':
           description: Successful Response
@@ -978,19 +1262,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
               example:
-                id: f790e350-54be-4dbe-b498-86dff8c16cd2
-                organisation_id: cfb8f1ef-b99e-4305-ba6a-ba297a472d63
-                created_by_id: c4f2ba13-42ef-4dbc-913d-fed21ddf979f
-                class_id: 289a0b5d-d261-4f32-a0b1-4ef4e85c4d57
+                id: 1d72c3e5-c16b-402c-b599-56fd88fe5f04
+                organisation_id: 9662c265-c171-42db-8ec5-4df196223595
+                created_by_id: 1b4e1f4e-fa92-4c03-b777-1d674baef7f3
+                class_id: b1ad1cad-ed91-4c8f-90d7-e7119f8996b7
                 template_id: null
                 template_revision: null
                 kind: project
-                name: p
-                slug: p-e3399327
+                name: My museum
+                slug: my-museum
                 status: draft
                 current_version_id: null
-                created_at: '2026-11-04T04:37:20'
-                updated_at: '2026-11-04T04:37:20'
+                created_at: '2026-11-07T11:51:53'
+                updated_at: '2026-11-07T11:51:53'
                 created_by_name: s1
                 class_name: 1A
                 current_revision: 0
@@ -1001,6 +1285,7 @@ paths:
                 task: null
                 due_at: null
                 assigned_by_name: null
+                mission_brief: null
                 sent: false
                 published_copies: 0
                 assignment_ids: []
@@ -1031,7 +1316,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 22d31f69-7837-484d-a070-c071b896480d
+        example: e8effb41-080f-408e-b54a-2c10a5884315
       requestBody:
         required: true
         content:
@@ -1039,7 +1324,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProjectUpdateRequest'
             example:
-              class_id: 885e519c-5337-499d-b5d9-3c609de67f17
+              class_id: 38e3a42c-d60b-42ee-b3ea-dfe82ee9c567
       responses:
         '200':
           description: Successful Response
@@ -1048,19 +1333,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
               example:
-                id: 22d31f69-7837-484d-a070-c071b896480d
-                organisation_id: b1f0c40c-8f28-4a3c-8e57-1e43de5d7a17
-                created_by_id: 0fa4f0e7-794b-4eef-9838-28ac60f74a22
-                class_id: 885e519c-5337-499d-b5d9-3c609de67f17
+                id: e8effb41-080f-408e-b54a-2c10a5884315
+                organisation_id: b7d0aa46-c23a-4db1-877d-c63980518ec7
+                created_by_id: e08f6f31-7a42-4ca0-b6cf-f35d846acae5
+                class_id: 38e3a42c-d60b-42ee-b3ea-dfe82ee9c567
                 template_id: null
                 template_revision: null
                 kind: project
                 name: p
-                slug: p-9626bb45
+                slug: p-41fd0889
                 status: draft
                 current_version_id: null
-                created_at: '2026-11-04T04:37:21'
-                updated_at: '2026-11-04T04:37:21'
+                created_at: '2026-11-07T11:51:54'
+                updated_at: '2026-11-07T11:51:54'
                 created_by_name: t1
                 class_name: 1A
                 current_revision: 0
@@ -1071,6 +1356,7 @@ paths:
                 task: null
                 due_at: null
                 assigned_by_name: null
+                mission_brief: null
                 sent: false
                 published_copies: 0
                 assignment_ids: []
@@ -1109,7 +1395,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 51a4c185-d5dd-4b19-bcfe-2ed14926bbb2
+        example: d09ee18e-3fb4-4c51-848e-6aa9bd9a3153
       responses:
         '204':
           description: Successful Response
@@ -1135,7 +1421,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 713f87c7-b4b8-4ea5-80f1-8aa046dcb496
+        example: ab1f72c8-2782-43e1-9328-ee2b02def99d
       responses:
         '200':
           description: Successful Response
@@ -1147,8 +1433,8 @@ paths:
                   $ref: '#/components/schemas/MediaEntryResponse'
                 title: Response List Media Api V1 Projects  Project Id  Media Get
               example:
-              - id: 1740562a-c84b-422e-b31e-f93abfbc6749
-                project_id: 713f87c7-b4b8-4ea5-80f1-8aa046dcb496
+              - id: 54cfab64-84c3-486a-95a8-c91727fed05d
+                project_id: ab1f72c8-2782-43e1-9328-ee2b02def99d
                 kind: image
                 source: file
                 label: stone.png
@@ -1164,8 +1450,8 @@ paths:
                 review_comment: null
                 download_url: null
                 download_expires_in: null
-                created_at: '2026-11-04T04:37:22'
-                updated_at: '2026-11-04T04:37:22'
+                created_at: '2026-11-07T11:51:56'
+                updated_at: '2026-11-07T11:51:56'
         '422':
           description: Validation Error
           content:
@@ -1187,7 +1473,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: c8ad103f-8533-470c-bba1-f4a81013ef2c
+        example: 970f4b6a-6037-4cd5-8cc5-d227e90c5974
       requestBody:
         required: true
         content:
@@ -1207,9 +1493,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaUploadResponse'
               example:
-                media_asset_id: e6b440ef-3834-49c2-bd7d-debdd3a630c5
-                upload_url: https://store.test/put/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png
-                storage_key: projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png
+                media_asset_id: 83808d2b-a645-4aa1-8043-098d0ac3cc52
+                upload_url: https://store.test/put/projects/970f4b6a-6037-4cd5-8cc5-d227e90c5974/media/83808d2b-a645-4aa1-8043-098d0ac3cc52/stone.png
+                storage_key: projects/970f4b6a-6037-4cd5-8cc5-d227e90c5974/media/83808d2b-a645-4aa1-8043-098d0ac3cc52/stone.png
         '422':
           description: Validation Error
           content:
@@ -1233,7 +1519,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: c8ad103f-8533-470c-bba1-f4a81013ef2c
+        example: 970f4b6a-6037-4cd5-8cc5-d227e90c5974
       - name: media_id
         in: path
         required: true
@@ -1241,7 +1527,7 @@ paths:
           type: string
           format: uuid
           title: Media Id
-        example: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+        example: 83808d2b-a645-4aa1-8043-098d0ac3cc52
       responses:
         '200':
           description: Successful Response
@@ -1250,8 +1536,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaEntryResponse'
               example:
-                id: e6b440ef-3834-49c2-bd7d-debdd3a630c5
-                project_id: c8ad103f-8533-470c-bba1-f4a81013ef2c
+                id: 83808d2b-a645-4aa1-8043-098d0ac3cc52
+                project_id: 970f4b6a-6037-4cd5-8cc5-d227e90c5974
                 kind: image
                 source: file
                 label: stone.png
@@ -1267,8 +1553,8 @@ paths:
                 review_comment: null
                 download_url: null
                 download_expires_in: null
-                created_at: '2026-11-04T04:37:22'
-                updated_at: '2026-11-04T04:37:22'
+                created_at: '2026-11-07T11:51:55'
+                updated_at: '2026-11-07T11:51:56'
         '422':
           description: Validation Error
           content:
@@ -1291,7 +1577,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: c8ad103f-8533-470c-bba1-f4a81013ef2c
+        example: 970f4b6a-6037-4cd5-8cc5-d227e90c5974
       - name: media_id
         in: path
         required: true
@@ -1299,7 +1585,7 @@ paths:
           type: string
           format: uuid
           title: Media Id
-        example: e6b440ef-3834-49c2-bd7d-debdd3a630c5
+        example: 83808d2b-a645-4aa1-8043-098d0ac3cc52
       responses:
         '200':
           description: Successful Response
@@ -1308,8 +1594,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaEntryResponse'
               example:
-                id: e6b440ef-3834-49c2-bd7d-debdd3a630c5
-                project_id: c8ad103f-8533-470c-bba1-f4a81013ef2c
+                id: 83808d2b-a645-4aa1-8043-098d0ac3cc52
+                project_id: 970f4b6a-6037-4cd5-8cc5-d227e90c5974
                 kind: image
                 source: file
                 label: stone.png
@@ -1323,10 +1609,10 @@ paths:
                 approved_by_id: null
                 approved_at: null
                 review_comment: null
-                download_url: https://store.test/get/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png?expires=900
+                download_url: https://store.test/get/projects/970f4b6a-6037-4cd5-8cc5-d227e90c5974/media/83808d2b-a645-4aa1-8043-098d0ac3cc52/stone.png?expires=900
                 download_expires_in: 900
-                created_at: '2026-11-04T04:37:22'
-                updated_at: '2026-11-04T04:37:22'
+                created_at: '2026-11-07T11:51:55'
+                updated_at: '2026-11-07T11:51:56'
         '422':
           description: Validation Error
           content:
@@ -1348,7 +1634,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: f1ee34b8-8df2-4a13-855e-226135df5c19
+        example: eb62f8a9-3f47-485d-8526-5d7877bbe626
       - name: media_id
         in: path
         required: true
@@ -1356,7 +1642,7 @@ paths:
           type: string
           format: uuid
           title: Media Id
-        example: 97bb77ba-0b18-43f6-ae49-91d60c38656d
+        example: 47990288-dc48-4041-92b8-bbda97401e23
       responses:
         '204':
           description: Successful Response
@@ -1383,7 +1669,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 975173af-578f-4938-99e5-5d4326ccdd72
+        example: 69c32259-5ddb-4669-a521-a2b5792ef9a0
       requestBody:
         required: true
         content:
@@ -1400,8 +1686,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaEntryResponse'
               example:
-                id: 4ddc7c0c-10ea-46d9-9225-f5ce97930d68
-                project_id: 975173af-578f-4938-99e5-5d4326ccdd72
+                id: cda4e055-56d5-44de-89ac-80d088a32e32
+                project_id: 69c32259-5ddb-4669-a521-a2b5792ef9a0
                 kind: video
                 source: external
                 label: YouTube video dQw4w9WgXcQ
@@ -1417,8 +1703,8 @@ paths:
                 review_comment: null
                 download_url: null
                 download_expires_in: null
-                created_at: '2026-11-04T04:37:22'
-                updated_at: '2026-11-04T04:37:22'
+                created_at: '2026-11-07T11:51:56'
+                updated_at: '2026-11-07T11:51:56'
         '422':
           description: Validation Error
           content:
@@ -1443,7 +1729,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 975173af-578f-4938-99e5-5d4326ccdd72
+        example: 69c32259-5ddb-4669-a521-a2b5792ef9a0
       - name: link_id
         in: path
         required: true
@@ -1451,7 +1737,7 @@ paths:
           type: string
           format: uuid
           title: Link Id
-        example: 4ddc7c0c-10ea-46d9-9225-f5ce97930d68
+        example: cda4e055-56d5-44de-89ac-80d088a32e32
       requestBody:
         required: true
         content:
@@ -1468,8 +1754,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaEntryResponse'
               example:
-                id: 4ddc7c0c-10ea-46d9-9225-f5ce97930d68
-                project_id: 975173af-578f-4938-99e5-5d4326ccdd72
+                id: cda4e055-56d5-44de-89ac-80d088a32e32
+                project_id: 69c32259-5ddb-4669-a521-a2b5792ef9a0
                 kind: video
                 source: external
                 label: YouTube video dQw4w9WgXcQ
@@ -1480,13 +1766,13 @@ paths:
                 provider_id: dQw4w9WgXcQ
                 url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
                 approval: approved
-                approved_by_id: 5b3b53a7-9129-4014-9ef0-98fe58066cf8
-                approved_at: '2026-11-04T04:37:22.934546'
+                approved_by_id: bb7a21b9-201c-4e6d-bd3c-c7618892e021
+                approved_at: '2026-11-07T11:51:56.489293'
                 review_comment: null
                 download_url: null
                 download_expires_in: null
-                created_at: '2026-11-04T04:37:22'
-                updated_at: '2026-11-04T04:37:22'
+                created_at: '2026-11-07T11:51:56'
+                updated_at: '2026-11-07T11:51:56'
         '422':
           description: Validation Error
           content:
@@ -1530,7 +1816,7 @@ paths:
             application/json:
               example:
                 asset:
-                  id: 06314f4b-d08d-4fc1-81ff-766ffb895671
+                  id: 97f4730a-7637-4489-9e96-e4eb6c90a708
                   content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
                   storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
                   kind: model
@@ -1542,8 +1828,8 @@ paths:
                   visibility: public
                   status: pending
                   url: null
-                  created_at: '2026-11-04T04:37:21'
-                  updated_at: '2026-11-04T04:37:21'
+                  created_at: '2026-11-07T11:51:55'
+                  updated_at: '2026-11-07T11:51:55'
                 upload_url: https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
                 upload_headers:
                   Content-Type: model/gltf-binary
@@ -1567,7 +1853,7 @@ paths:
           type: string
           format: uuid
           title: Asset Id
-        example: 06314f4b-d08d-4fc1-81ff-766ffb895671
+        example: 97f4730a-7637-4489-9e96-e4eb6c90a708
       responses:
         '200':
           description: Successful Response
@@ -1576,7 +1862,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LibraryAssetResponse'
               example:
-                id: 06314f4b-d08d-4fc1-81ff-766ffb895671
+                id: 97f4730a-7637-4489-9e96-e4eb6c90a708
                 content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
                 storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
                 kind: model
@@ -1588,8 +1874,8 @@ paths:
                 visibility: public
                 status: uploaded
                 url: https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
-                created_at: '2026-11-04T04:37:21'
-                updated_at: '2026-11-04T04:37:21'
+                created_at: '2026-11-07T11:51:55'
+                updated_at: '2026-11-07T11:51:55'
         '422':
           description: Validation Error
           content:
@@ -1624,7 +1910,7 @@ paths:
                   $ref: '#/components/schemas/LibraryAssetResponse'
                 title: Response List Library Api V1 Library Get
               example:
-              - id: 650b80be-1bb7-43b9-ae90-24e7edf2a633
+              - id: 124305e6-8af5-4be6-83b3-9402a0448d28
                 content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
                 storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
                 kind: model
@@ -1636,8 +1922,8 @@ paths:
                 visibility: public
                 status: uploaded
                 url: https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
-                created_at: '2026-11-04T04:37:21'
-                updated_at: '2026-11-04T04:37:21'
+                created_at: '2026-11-07T11:51:55'
+                updated_at: '2026-11-07T11:51:55'
         '422':
           description: Validation Error
           content:
@@ -1660,7 +1946,7 @@ paths:
           type: string
           format: uuid
           title: Asset Id
-        example: 83955f2c-57b1-41c7-8342-051511512ddc
+        example: cd174589-fc53-4fa4-8286-66235e9dbf49
       requestBody:
         required: true
         content:
@@ -1677,7 +1963,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LibraryAssetResponse'
               example:
-                id: 83955f2c-57b1-41c7-8342-051511512ddc
+                id: cd174589-fc53-4fa4-8286-66235e9dbf49
                 content_sha256: 5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da
                 storage_key: library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
                 kind: model
@@ -1689,8 +1975,8 @@ paths:
                 visibility: public
                 status: uploaded
                 url: https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb
-                created_at: '2026-11-04T04:37:22'
-                updated_at: '2026-11-04T04:37:22'
+                created_at: '2026-11-07T11:51:55'
+                updated_at: '2026-11-07T11:51:55'
         '422':
           description: Validation Error
           content:
@@ -1712,7 +1998,7 @@ paths:
           type: string
           format: uuid
           title: Asset Id
-        example: af83f1af-7538-41ab-9a79-6b273280beba
+        example: 47bc3c5f-c2b4-478b-9a82-108804972bfc
       responses:
         '204':
           description: Successful Response
@@ -1759,7 +2045,7 @@ paths:
                 type: array
                 title: Response List Packs Api V1 Packs Get
               example:
-              - id: 82187d24-4135-4e8c-af14-3367520fe840
+              - id: f2f2ad19-1016-49bb-9406-16f5b2569e86
                 slug: dinosaurs
                 title: Dinosaurs
                 description: null
@@ -1769,21 +2055,21 @@ paths:
                 published_at: null
                 manifest_url: null
                 unpublished_changes: true
-                created_at: '2026-11-06T08:43:03'
-                updated_at: '2026-11-06T08:43:03'
-              - id: e221f7c1-6484-4e0d-a8bd-d63f19c5768b
+                created_at: '2026-11-07T11:51:58'
+                updated_at: '2026-11-07T11:51:58'
+              - id: 614c4d7e-092a-4228-b604-47cfd078e6db
                 slug: fossils
                 title: Fossils
                 description: null
                 kind: objects
                 asset_ids:
-                - 5868e0be-5bae-4824-b81a-5bbad9901759
+                - 329ce8df-4d46-4a96-9bd8-9a2eb4724664
                 published_revision: 1
-                published_at: '2026-11-06T08:43:03.742789'
+                published_at: '2026-11-07T11:51:58.430108'
                 manifest_url: https://assets.test/library/packs/fossils/1.json
                 unpublished_changes: false
-                created_at: '2026-11-06T08:43:03'
-                updated_at: '2026-11-06T08:43:03.742789'
+                created_at: '2026-11-07T11:51:58'
+                updated_at: '2026-11-07T11:51:58.430108'
       security:
       - HTTPBearer: []
     post:
@@ -1809,7 +2095,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PackResponse'
               example:
-                id: 24fe8fa9-3b96-4d9b-a2f1-208541bb8297
+                id: 551f54ec-7153-4af8-9f46-0c94ffcb8f59
                 slug: fossils
                 title: Fossils
                 description: Six CC0 scans
@@ -1819,8 +2105,8 @@ paths:
                 published_at: null
                 manifest_url: null
                 unpublished_changes: true
-                created_at: '2026-11-06T08:42:10'
-                updated_at: '2026-11-06T08:42:10'
+                created_at: '2026-11-07T11:51:57'
+                updated_at: '2026-11-07T11:51:57'
         '422':
           description: Validation Error
           content:
@@ -1853,19 +2139,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/PackResponse'
               example:
-                id: e221f7c1-6484-4e0d-a8bd-d63f19c5768b
+                id: 614c4d7e-092a-4228-b604-47cfd078e6db
                 slug: fossils
                 title: Fossils
                 description: null
                 kind: objects
                 asset_ids:
-                - 5868e0be-5bae-4824-b81a-5bbad9901759
+                - 329ce8df-4d46-4a96-9bd8-9a2eb4724664
                 published_revision: 1
-                published_at: '2026-11-06T08:43:03.742789'
+                published_at: '2026-11-07T11:51:58.430108'
                 manifest_url: https://assets.test/library/packs/fossils/1.json
                 unpublished_changes: false
-                created_at: '2026-11-06T08:43:03'
-                updated_at: '2026-11-06T08:43:03.742789'
+                created_at: '2026-11-07T11:51:58'
+                updated_at: '2026-11-07T11:51:58.430108'
         '422':
           description: Validation Error
           content:
@@ -1903,19 +2189,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/PackResponse'
               example:
-                id: 69a74131-18d1-414b-a11a-83c5421b12e7
+                id: 95e59146-393f-41c0-9f07-d83413051277
                 slug: fossils
                 title: Fossil hall
                 description: null
                 kind: objects
                 asset_ids:
-                - 4eb21bea-b21b-4855-a6b8-97e627c28dd1
+                - ce1131b3-8679-43b2-9529-ae8cc18ba4b8
                 published_revision: 1
-                published_at: '2026-11-06T08:42:10.378012'
+                published_at: '2026-11-07T11:51:57.519089'
                 manifest_url: https://assets.test/library/packs/fossils/1.json
                 unpublished_changes: true
-                created_at: '2026-11-06T08:42:10'
-                updated_at: '2026-11-06T08:42:10.389593'
+                created_at: '2026-11-07T11:51:57'
+                updated_at: '2026-11-07T11:51:57.534001'
         '422':
           description: Validation Error
           content:
@@ -1970,8 +2256,8 @@ paths:
               $ref: '#/components/schemas/PackAssetsUpdate'
             example:
               asset_ids:
-              - df29f236-4e45-4b84-bcac-e7411def1162
-              - 334c4c19-35e4-4db0-b85b-793d548fa738
+              - 49c4321c-b1ec-42cc-b70b-d70112f9028f
+              - 988f830d-6050-4b15-aeea-a4365f43cd50
       responses:
         '200':
           description: Successful Response
@@ -1980,20 +2266,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/PackResponse'
               example:
-                id: 24fe8fa9-3b96-4d9b-a2f1-208541bb8297
+                id: 551f54ec-7153-4af8-9f46-0c94ffcb8f59
                 slug: fossils
                 title: Fossils
                 description: Six CC0 scans
                 kind: objects
                 asset_ids:
-                - df29f236-4e45-4b84-bcac-e7411def1162
-                - 334c4c19-35e4-4db0-b85b-793d548fa738
+                - 49c4321c-b1ec-42cc-b70b-d70112f9028f
+                - 988f830d-6050-4b15-aeea-a4365f43cd50
                 published_revision: null
                 published_at: null
                 manifest_url: null
                 unpublished_changes: true
-                created_at: '2026-11-06T08:42:10'
-                updated_at: '2026-11-06T08:42:10.298336'
+                created_at: '2026-11-07T11:51:57'
+                updated_at: '2026-11-07T11:51:57.438400'
         '422':
           description: Validation Error
           content:
@@ -2024,20 +2310,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/PackResponse'
               example:
-                id: 24fe8fa9-3b96-4d9b-a2f1-208541bb8297
+                id: 551f54ec-7153-4af8-9f46-0c94ffcb8f59
                 slug: fossils
                 title: Fossils
                 description: Six CC0 scans
                 kind: objects
                 asset_ids:
-                - df29f236-4e45-4b84-bcac-e7411def1162
-                - 334c4c19-35e4-4db0-b85b-793d548fa738
+                - 49c4321c-b1ec-42cc-b70b-d70112f9028f
+                - 988f830d-6050-4b15-aeea-a4365f43cd50
                 published_revision: 1
-                published_at: '2026-11-06T08:42:10.307887'
+                published_at: '2026-11-07T11:51:57.448264'
                 manifest_url: https://assets.test/library/packs/fossils/1.json
                 unpublished_changes: false
-                created_at: '2026-11-06T08:42:10'
-                updated_at: '2026-11-06T08:42:10.307887'
+                created_at: '2026-11-07T11:51:57'
+                updated_at: '2026-11-07T11:51:57.448264'
         '422':
           description: Validation Error
           content:
@@ -2089,7 +2375,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 570c3a29-3a67-4313-b066-d67b13fd6607
+        example: 82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3
       responses:
         '200':
           description: Successful Response
@@ -2101,12 +2387,12 @@ paths:
                   $ref: '#/components/schemas/ProjectVersionResponse'
                 title: Response List Versions Api V1 Projects  Project Id  Versions Get
               example:
-              - id: 7f48291d-d6a5-419b-a1a0-cdaff8365804
-                project_id: 570c3a29-3a67-4313-b066-d67b13fd6607
+              - id: fb97e395-61cf-408c-b6b6-736556686c6b
+                project_id: 82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3
                 revision: 1
                 label: null
-                content_snapshot_id: bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34
-                created_at: '2026-11-04T04:37:24.055769'
+                content_snapshot_id: 0d1fddfc-2a95-4fac-a2e3-65b3668eac17
+                created_at: '2026-11-07T11:51:59.400137'
                 created_by_name: s1
         '422':
           description: Validation Error
@@ -2129,7 +2415,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 730a262b-61b8-4c6c-98e1-2e427615f97f
+        example: 6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1
       requestBody:
         required: true
         content:
@@ -2148,12 +2434,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectVersionResponse'
               example:
-                id: 0018a3e8-3e52-4eb4-88e6-859b10a99bd5
-                project_id: 730a262b-61b8-4c6c-98e1-2e427615f97f
+                id: 85949d1d-cb0b-4e1a-bbc9-9a9a2f85169c
+                project_id: 6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1
                 revision: 1
                 label: null
-                content_snapshot_id: 5a473063-6087-45c5-a28d-a3261b62d9d7
-                created_at: '2026-11-04T04:37:21'
+                content_snapshot_id: 30a92875-fc64-409c-8270-9ea710412625
+                created_at: '2026-11-07T11:51:54'
                 created_by_name: ''
         '422':
           description: Validation Error
@@ -2177,7 +2463,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 570c3a29-3a67-4313-b066-d67b13fd6607
+        example: 82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3
       - name: version_id
         in: path
         required: true
@@ -2185,7 +2471,7 @@ paths:
           type: string
           format: uuid
           title: Version Id
-        example: 7f48291d-d6a5-419b-a1a0-cdaff8365804
+        example: fb97e395-61cf-408c-b6b6-736556686c6b
       responses:
         '200':
           description: Successful Response
@@ -2194,12 +2480,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectVersionDetail'
               example:
-                id: 7f48291d-d6a5-419b-a1a0-cdaff8365804
-                project_id: 570c3a29-3a67-4313-b066-d67b13fd6607
+                id: fb97e395-61cf-408c-b6b6-736556686c6b
+                project_id: 82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3
                 revision: 1
                 label: null
-                content_snapshot_id: bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34
-                created_at: '2026-11-04T04:37:24.055769'
+                content_snapshot_id: 0d1fddfc-2a95-4fac-a2e3-65b3668eac17
+                created_at: '2026-11-07T11:51:59.400137'
                 created_by_name: ''
                 data:
                   schemaVersion: 1
@@ -2226,7 +2512,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       - name: version_id
         in: path
         required: true
@@ -2234,7 +2520,7 @@ paths:
           type: string
           format: uuid
           title: Version Id
-        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+        example: dc577c56-c752-46ae-9bb5-485c13ffac63
       responses:
         '200':
           description: Successful Response
@@ -2268,7 +2554,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       requestBody:
         required: true
         content:
@@ -2313,7 +2599,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       responses:
         '200':
           description: Successful Response
@@ -2350,7 +2636,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       responses:
         '200':
           description: Successful Response
@@ -2403,7 +2689,7 @@ paths:
                   $ref: '#/components/schemas/MuseumVisits'
                 title: Response Museum Visits Api V1 Analytics Visits Get
               example:
-              - project_id: 8978e0a7-a146-4974-a687-d6dbaac2cab9
+              - project_id: d8ee36c9-5985-48da-81d4-f508c8aafbb6
                 visits: 2
                 last_7_days:
                 - 0
@@ -2428,7 +2714,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       responses:
         '200':
           description: Successful Response
@@ -2464,7 +2750,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       requestBody:
         required: true
         content:
@@ -2513,7 +2799,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       - name: rule_id
         in: path
         required: true
@@ -2521,7 +2807,7 @@ paths:
           type: string
           format: uuid
           title: Rule Id
-        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+        example: dc577c56-c752-46ae-9bb5-485c13ffac63
       responses:
         '200':
           description: Successful Response
@@ -2554,7 +2840,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       - name: rule_id
         in: path
         required: true
@@ -2562,7 +2848,7 @@ paths:
           type: string
           format: uuid
           title: Rule Id
-        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+        example: dc577c56-c752-46ae-9bb5-485c13ffac63
       requestBody:
         required: true
         content:
@@ -2610,7 +2896,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 5380a8d5-6736-4e86-bc00-96b678d7ce7e
+        example: 3507ad07-3ceb-47ac-b6b5-97e2c23436c9
       - name: rule_id
         in: path
         required: true
@@ -2618,7 +2904,7 @@ paths:
           type: string
           format: uuid
           title: Rule Id
-        example: 6c1cc803-8264-4971-a8ce-b8525b7c952e
+        example: dc577c56-c752-46ae-9bb5-485c13ffac63
       responses:
         '204':
           description: Successful Response
@@ -2668,7 +2954,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: c46fffe5-004e-4490-86c2-7dc924908a19
+        example: 4cd0a2f8-61cf-4523-952d-94606cbc4bd3
       requestBody:
         required: true
         content:
@@ -2685,15 +2971,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionResponse'
               example:
-                id: c250f30e-1776-4caf-8c6c-1840646f19da
-                project_id: c46fffe5-004e-4490-86c2-7dc924908a19
-                version_id: a453ec4a-eec0-4459-b4d7-01b7c7fe503b
+                id: f2d25986-9e22-4423-b6a5-c4098bca13f8
+                project_id: 4cd0a2f8-61cf-4523-952d-94606cbc4bd3
+                version_id: 8257f546-a3a6-4924-b5f1-e7a0110cb923
                 status: waiting
                 share_with: public
                 grade: null
                 comment: null
-                submitted_by_id: 662e38f0-87d1-4c14-945f-45f5ffe9602f
-                submitted_at: '2026-11-04T04:37:25.333427'
+                submitted_by_id: c2c62a1c-1393-4f49-bb8b-c3b54ebedebe
+                submitted_at: '2026-11-07T11:52:00.953589'
                 reviewed_by_id: null
                 reviewed_at: null
         '422':
@@ -2721,7 +3007,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: 6d986fab-9187-4799-bcf1-78a3d624012f
+        example: 3ae3d02f-5b77-4409-af8a-8d130747b57d
       responses:
         '204':
           description: Successful Response
@@ -2750,7 +3036,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: c46fffe5-004e-4490-86c2-7dc924908a19
+        example: 4cd0a2f8-61cf-4523-952d-94606cbc4bd3
       requestBody:
         required: true
         content:
@@ -2768,17 +3054,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionResponse'
               example:
-                id: c250f30e-1776-4caf-8c6c-1840646f19da
-                project_id: c46fffe5-004e-4490-86c2-7dc924908a19
-                version_id: a453ec4a-eec0-4459-b4d7-01b7c7fe503b
+                id: f2d25986-9e22-4423-b6a5-c4098bca13f8
+                project_id: 4cd0a2f8-61cf-4523-952d-94606cbc4bd3
+                version_id: 8257f546-a3a6-4924-b5f1-e7a0110cb923
                 status: approved
                 share_with: public
                 grade: A
                 comment: Lovely
-                submitted_by_id: 662e38f0-87d1-4c14-945f-45f5ffe9602f
-                submitted_at: '2026-11-04T04:37:25.333427'
-                reviewed_by_id: 8388c913-7075-474a-ae5e-b3012d4911e3
-                reviewed_at: '2026-11-04T04:37:25.343557'
+                submitted_by_id: c2c62a1c-1393-4f49-bb8b-c3b54ebedebe
+                submitted_at: '2026-11-07T11:52:00.953589'
+                reviewed_by_id: 16abbd73-eb32-48dc-b4a1-e73ee1f79d7b
+                reviewed_at: '2026-11-07T11:52:00.966728'
         '422':
           description: Validation Error
           content:
@@ -2805,7 +3091,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+        example: dc9955ba-af30-43d4-87e8-49336ad81b35
       requestBody:
         required: true
         content:
@@ -2822,17 +3108,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionResponse'
               example:
-                id: 00d115e8-0824-4543-b4f1-0d3074827021
-                project_id: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
-                version_id: cd92b8b4-d2ff-4668-8c98-ffd79838f646
+                id: 62798d20-2000-4410-8233-2e94da4b1c92
+                project_id: dc9955ba-af30-43d4-87e8-49336ad81b35
+                version_id: 9e144484-6acf-483c-8851-9672499d06e2
                 status: sent_back
                 share_with: null
                 grade: null
                 comment: Add a second room
-                submitted_by_id: e176b223-801e-45d0-ba88-f6f9db0f9c58
-                submitted_at: '2026-11-04T04:37:25.527939'
-                reviewed_by_id: f243e391-ac97-4f07-9a0c-78be95cae7bb
-                reviewed_at: '2026-11-04T04:37:25.540354'
+                submitted_by_id: f9cf1d85-227b-48d5-b409-6c78354c9744
+                submitted_at: '2026-11-07T11:52:01.057776'
+                reviewed_by_id: 7a851d01-61b7-481c-a75e-b8c1de0a75dc
+                reviewed_at: '2026-11-07T11:52:01.074675'
         '422':
           description: Validation Error
           content:
@@ -2856,7 +3142,7 @@ paths:
           type: string
           format: uuid
           title: Project Id
-        example: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
+        example: dc9955ba-af30-43d4-87e8-49336ad81b35
       responses:
         '200':
           description: Successful Response
@@ -2868,28 +3154,28 @@ paths:
                   $ref: '#/components/schemas/SubmissionResponse'
                 title: Response List Submissions Api V1 Projects  Project Id  Submissions Get
               example:
-              - id: 90082195-ca1c-4123-bd9c-2502d4b92b6b
-                project_id: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
-                version_id: cd92b8b4-d2ff-4668-8c98-ffd79838f646
+              - id: 566f05b9-da11-48c6-99d1-0d6bf097c074
+                project_id: dc9955ba-af30-43d4-87e8-49336ad81b35
+                version_id: 9e144484-6acf-483c-8851-9672499d06e2
                 status: waiting
                 share_with: null
                 grade: null
                 comment: null
-                submitted_by_id: e176b223-801e-45d0-ba88-f6f9db0f9c58
-                submitted_at: '2026-11-04T04:37:25.551304'
+                submitted_by_id: f9cf1d85-227b-48d5-b409-6c78354c9744
+                submitted_at: '2026-11-07T11:52:01.096053'
                 reviewed_by_id: null
                 reviewed_at: null
-              - id: 00d115e8-0824-4543-b4f1-0d3074827021
-                project_id: f3ebf5c3-9020-4615-99a4-eae387d0dc5e
-                version_id: cd92b8b4-d2ff-4668-8c98-ffd79838f646
+              - id: 62798d20-2000-4410-8233-2e94da4b1c92
+                project_id: dc9955ba-af30-43d4-87e8-49336ad81b35
+                version_id: 9e144484-6acf-483c-8851-9672499d06e2
                 status: sent_back
                 share_with: null
                 grade: null
                 comment: Add a second room
-                submitted_by_id: e176b223-801e-45d0-ba88-f6f9db0f9c58
-                submitted_at: '2026-11-04T04:37:25.527939'
-                reviewed_by_id: f243e391-ac97-4f07-9a0c-78be95cae7bb
-                reviewed_at: '2026-11-04T04:37:25.540354'
+                submitted_by_id: f9cf1d85-227b-48d5-b409-6c78354c9744
+                submitted_at: '2026-11-07T11:52:01.057776'
+                reviewed_by_id: 7a851d01-61b7-481c-a75e-b8c1de0a75dc
+                reviewed_at: '2026-11-07T11:52:01.074675'
         '422':
           description: Validation Error
           content:
@@ -2911,7 +3197,7 @@ paths:
         schema:
           type: string
           title: Slug
-        example: lesson-1d5599b7
+        example: lesson-841d9d5a
       responses:
         '200':
           description: Successful Response
@@ -3010,6 +3296,16 @@ components:
       - last_active
       - status
       title: AccountResponse
+    AddMemberRequest:
+      properties:
+        actor_id:
+          type: string
+          format: uuid
+          title: Actor Id
+      type: object
+      required:
+      - actor_id
+      title: AddMemberRequest
     AnalyticsEventRequest:
       properties:
         session_id:
@@ -3176,6 +3472,10 @@ components:
           type: string
           format: uuid
           title: Id
+        school_id:
+          type: string
+          format: uuid
+          title: School Id
         name:
           type: string
           title: Name
@@ -3185,6 +3485,7 @@ components:
       type: object
       required:
       - id
+      - school_id
       - name
       - member_count
       title: ClassResponse
@@ -3240,11 +3541,14 @@ components:
       description: 'The create reply only. Auth0 mints a single-use password-set link and nothing emails
         it,
 
-        so the one request that mints it is the only place it can be handed over. A ticket cannot be
+        so the reply that mints it is the only place it can be handed over. The link is never stored,
 
-        re-minted on demand, so GET /accounts keeps AccountResponse and has no such field: a column
+        so GET /accounts keeps AccountResponse and has no such field: a column that is always null on
+        a
 
-        that is always null on a list and sometimes set on a create is the wrong shape.'
+        list and sometimes set on a create is the wrong shape. A lost link is replaced, not looked up:
+
+        POST /accounts/{id}/invite mints a fresh one.'
     HTTPValidationError:
       properties:
         detail:
@@ -3692,6 +3996,30 @@ components:
       - display_name
       - role
       title: MemberResponse
+    MoveRequest:
+      properties:
+        to_class_id:
+          type: string
+          format: uuid
+          title: To Class Id
+      type: object
+      required:
+      - to_class_id
+      title: MoveRequest
+    MoveResponse:
+      properties:
+        student:
+          $ref: '#/components/schemas/MemberResponse'
+        from_class:
+          $ref: '#/components/schemas/ClassResponse'
+        to_class:
+          $ref: '#/components/schemas/ClassResponse'
+      type: object
+      required:
+      - student
+      - from_class
+      - to_class
+      title: MoveResponse
     MuseumVisits:
       properties:
         project_id:
@@ -3775,6 +4103,34 @@ components:
       - email
       - role
       title: NewAccountRequest
+    NewClassRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        school_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: School Id
+      type: object
+      required:
+      - name
+      title: NewClassRequest
+    NewSchoolRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+      type: object
+      required:
+      - name
+      title: NewSchoolRequest
     OverviewResponse:
       properties:
         tiles:
@@ -4498,6 +4854,21 @@ components:
       - room_count
       - updated_at
       title: ShowcaseMuseum
+    SignInLinkResponse:
+      properties:
+        account_id:
+          type: string
+          format: uuid
+          title: Account Id
+        invite_link:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invite Link
+      type: object
+      required:
+      - account_id
+      title: SignInLinkResponse
     SubmissionResponse:
       properties:
         id:

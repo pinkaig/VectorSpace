@@ -1,7 +1,9 @@
-"""The admin routes: admins only, one school each, and every number comes from the tables."""
+"""The admin routes: admins only, across every school (D-A), and every number comes from the tables."""
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from apps.api.app.models import Actor, Project
 from sqlalchemy import select
 
@@ -17,31 +19,36 @@ def test_only_an_admin_may_ask(client, school) -> None:
         assert client.get(path, headers=as_user("admin")).status_code == 200
 
 
-def test_a_school_lists_its_people_and_says_whether_it_is_running(client, school) -> None:
-    rows = client.get("/admin/schools", headers=as_user("admin")).json()
-    assert len(rows) == 1  # an admin administers one school; see the module note
-    assert (rows[0]["name"], rows[0]["educators"], rows[0]["students"]) == ("A", 2, 3)
-    assert rows[0]["status"] == "active"
+def test_every_school_is_listed_with_its_people_and_whether_it_is_running(client, school) -> None:
+    """Admins are VThere staff and see every school (D-A, 6 Nov)."""
+    rows = {r["name"]: r for r in client.get("/admin/schools", headers=as_user("admin")).json()}
+    assert set(rows) == {"A", "B"}
+    assert (rows["A"]["educators"], rows["A"]["students"], rows["A"]["status"]) == (2, 3, "active")
+    assert (rows["B"]["educators"], rows["B"]["students"], rows["B"]["status"]) == (1, 0, "setting_up")
 
 
 def test_a_school_with_no_students_is_still_setting_up(client, db, school) -> None:
     for student in ("s1", "s2", "s3"):
         db.delete(school[student])
     db.commit()
-    assert client.get("/admin/schools", headers=as_user("admin")).json()[0]["status"] == "setting_up"
+    rows = {r["name"]: r for r in client.get("/admin/schools", headers=as_user("admin")).json()}
+    assert rows["A"]["status"] == "setting_up"
 
 
-def test_another_schools_people_are_never_listed(client, school) -> None:
-    """School B has one teacher, "other". The scoping is the whole point of the page."""
-    accounts = client.get("/admin/accounts", headers=as_user("admin")).json()
-    assert "other@x.test" not in {a["email"] for a in accounts}
-    assert len(accounts) == 6
+def test_picking_a_school_lists_only_its_people(client, school) -> None:
+    """School B has one teacher, "other". All schools lists everyone; a picked school only its own."""
+    every = client.get("/admin/accounts", headers=as_user("admin")).json()
+    assert len(every) == 7
+    own = client.get("/admin/accounts", params={"school": str(school["admin"].organisation_id)}, headers=as_user("admin")).json()
+    assert "other@x.test" not in {a["email"] for a in own} and len(own) == 6
+    other = client.get("/admin/accounts", params={"school": str(school["other"].organisation_id)}, headers=as_user("admin")).json()
+    assert [a["email"] for a in other] == ["other@x.test"]
 
 
-def test_a_school_id_that_is_not_mine_is_not_confirmed_to_exist(client, school) -> None:
-    other_org = school["other"].organisation_id
-    assert client.get("/admin/accounts", params={"school": str(other_org)}, headers=as_user("admin")).status_code == 404
-    assert client.get("/admin/accounts", params={"school": "all"}, headers=as_user("admin")).status_code == 200
+def test_a_school_that_does_not_exist_is_a_404(client, school) -> None:
+    for bad in (str(uuid.uuid4()), "not-an-id"):
+        assert client.get("/admin/accounts", params={"school": bad}, headers=as_user("admin")).status_code == 404
+        assert client.get("/admin/overview", params={"school": bad}, headers=as_user("admin")).status_code == 404
 
 
 def test_an_account_is_invited_until_its_first_me_call(client, school) -> None:
@@ -81,9 +88,10 @@ def test_an_admin_cannot_lock_themselves_out(client, school) -> None:
     assert reply.status_code == 400
 
 
-def test_an_account_in_another_school_cannot_be_touched(client, school) -> None:
-    reply = client.patch(f"/admin/accounts/{school['other'].id}", json={"active": True}, headers=as_user("admin"))
-    assert reply.status_code == 404
+def test_an_admin_can_turn_off_an_account_in_another_school(client, db, school) -> None:
+    reply = client.patch(f"/admin/accounts/{school['other'].id}", json={"active": False}, headers=as_user("admin"))
+    assert reply.status_code == 200 and reply.json()["status"] == "turned_off"
+    assert client.patch(f"/admin/accounts/{uuid.uuid4()}", json={"active": True}, headers=as_user("admin")).status_code == 404
 
 
 def test_adding_an_account_goes_through_the_normal_provisioning_path(client, db, school, monkeypatch) -> None:
@@ -105,16 +113,24 @@ def test_adding_an_account_goes_through_the_normal_provisioning_path(client, db,
     assert db.scalar(select(Actor).where(Actor.email == "new.person@x.test")) is not None
 
 
-def test_adding_an_account_to_another_school_is_refused(client, school, monkeypatch) -> None:
+def test_an_account_goes_into_the_school_it_names_and_not_the_admins_own(client, db, school, monkeypatch) -> None:
     monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    other_org = school["other"].organisation_id
     reply = client.post(
         "/admin/accounts",
-        json={
-            "school_id": str(school["other"].organisation_id),
-            "name": "Nope", "email": "nope@x.test", "role": "student", "class_names": [],
-        },
+        json={"school_id": str(other_org), "name": "B Kid", "email": "bkid@x.test", "role": "student", "class_names": ["B1"]},
         headers=as_user("admin"),
     )
+    assert reply.status_code == 201 and reply.json()["school_id"] == str(other_org)
+    from apps.api.app.models import Classroom
+
+    made = db.scalar(select(Classroom).where(Classroom.name == "B1"))
+    assert made.organisation_id == other_org  # its class was made in school B too
+
+
+def test_adding_an_account_to_a_school_that_does_not_exist_is_a_404(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    reply = client.post("/admin/accounts", json=_new_account(school, school_id=str(uuid.uuid4())), headers=as_user("admin"))
     assert reply.status_code == 404
 
 
@@ -171,11 +187,32 @@ def test_a_turned_off_address_is_refused_rather_than_quietly_turned_back_on(clie
     assert school["s1"].active is False  # still off: reactivating is a deliberate act, not a side effect
 
 
-def test_adding_a_school_says_why_it_cannot(client, school) -> None:
-    """Honest 501: there is no operator role above the schools yet."""
-    reply = client.post("/admin/schools", json={"name": "C"}, headers=as_user("admin"))
-    assert reply.status_code == 501
-    assert "operator role" in reply.json()["detail"]
+def test_adding_a_school_makes_an_empty_one_the_picker_can_use(client, db, school) -> None:
+    reply = client.post("/admin/schools", json={"name": "  Riverside Primary "}, headers=as_user("admin"))
+    assert reply.status_code == 201
+    body = reply.json()
+    assert (body["name"], body["students"], body["educators"], body["status"]) == ("Riverside Primary", 0, 0, "setting_up")
+    from apps.api.app.models import Organisation
+
+    # the slug is what `python -m app.provision --school-slug` takes, so a roster CSV can follow
+    assert db.get(Organisation, uuid.UUID(body["id"])).slug == "riverside-primary"
+    assert client.get("/admin/accounts", params={"school": body["id"]}, headers=as_user("admin")).json() == []
+
+
+def test_two_schools_cannot_share_a_name(client, school) -> None:
+    client.post("/admin/schools", json={"name": "Riverside"}, headers=as_user("admin"))
+    again = client.post("/admin/schools", json={"name": "RIVERSIDE"}, headers=as_user("admin"))
+    assert again.status_code == 409
+
+
+def test_a_school_name_needs_a_letter_or_digit(client, school) -> None:
+    assert client.post("/admin/schools", json={"name": "!!!"}, headers=as_user("admin")).status_code == 422
+    assert client.post("/admin/schools", json={"name": ""}, headers=as_user("admin")).status_code == 422
+
+
+def test_only_an_admin_may_add_a_school(client, school) -> None:
+    for who in ("t1", "s1"):
+        assert client.post("/admin/schools", json={"name": "X"}, headers=as_user(who)).status_code == 403
 
 
 def test_the_overview_counts_what_is_really_there(client, db, school) -> None:
@@ -190,7 +227,7 @@ def test_the_overview_counts_what_is_really_there(client, db, school) -> None:
     db.add_all([project, draft])
     db.commit()
 
-    body = client.get("/admin/overview", headers=as_user("admin")).json()
+    body = client.get("/admin/overview", params=_school_a(school), headers=as_user("admin")).json()
     assert body["tiles"]["students"]["value"] == 3
     assert body["tiles"]["educators"]["value"] == 2
     assert body["tiles"]["published"] == {"value": 1, "sub": "1 still drafts"}
@@ -199,11 +236,11 @@ def test_the_overview_counts_what_is_really_there(client, db, school) -> None:
 
 
 def test_the_overview_only_flags_things_it_can_prove(client, db, school) -> None:
-    texts = [item["text"] for item in client.get("/admin/overview", headers=as_user("admin")).json()["attention"]]
+    texts = [item["text"] for item in client.get("/admin/overview", params=_school_a(school), headers=as_user("admin")).json()["attention"]]
     assert "6 people have never signed in" in texts
     client.get("/me", headers=as_user("s1"))
     client.get("/me", headers=as_user("admin"))
-    texts = [item["text"] for item in client.get("/admin/overview", headers=as_user("admin")).json()["attention"]]
+    texts = [item["text"] for item in client.get("/admin/overview", params=_school_a(school), headers=as_user("admin")).json()["attention"]]
     assert "4 people have never signed in" in texts
 
 
@@ -211,7 +248,7 @@ def test_students_active_this_week_uses_the_real_timestamp(client, db, school) -
     school["s1"].last_seen_at = datetime.now(UTC) - timedelta(days=1)
     school["s2"].last_seen_at = datetime.now(UTC) - timedelta(days=40)
     db.commit()
-    tiles = client.get("/admin/overview", headers=as_user("admin")).json()["tiles"]
+    tiles = client.get("/admin/overview", params=_school_a(school), headers=as_user("admin")).json()["tiles"]
     assert tiles["students"]["sub"] == "1 active this week"
 
 
@@ -225,9 +262,81 @@ class _FakeLogins:
     def create_user(self, email: str, display_name: str) -> tuple[str, str]:
         return f"test|{email}", f"https://tenant.test/invite/{email}"
 
+    def sign_in_link(self, subject: str) -> str:
+        return f"https://tenant.test/again/{subject}"
+
 
 class _LoginsWithoutATenant:
     """What DevLogins does: a local subject and no link at all, which is every local run."""
 
     def create_user(self, email: str, display_name: str) -> tuple[str, str]:
         return f"dev|{email.split('@')[0]}", ""
+
+    def sign_in_link(self, subject: str) -> str:
+        return ""
+
+
+class _TenantDown:
+    """Auth0 refusing the ticket call."""
+
+    def sign_in_link(self, subject: str) -> str:
+        raise httpx.HTTPStatusError("503", request=httpx.Request("POST", "https://t"), response=httpx.Response(503))
+
+
+def _school_a(school) -> dict[str, str]:
+    """The overview for school A alone; "all" also counts school B (see the D-A tests above)."""
+    return {"school": str(school["admin"].organisation_id)}
+
+
+def test_all_schools_overview_counts_every_school(client, school) -> None:
+    body = client.get("/admin/overview", headers=as_user("admin")).json()
+    assert body["tiles"]["schools"]["value"] == 2
+    assert body["tiles"]["educators"]["value"] == 3  # t1, t2 in A and "other" in B
+    assert "B has no students yet" in [item["text"] for item in body["attention"]]
+
+
+# --- a new sign-in link (POST /admin/accounts/{id}/invite) ---------------------------------------
+
+
+def test_an_admin_gets_a_fresh_sign_in_link_for_anyone(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    for key in ("s1", "other"):  # any school, as D-A says
+        person = school[key]
+        reply = client.post(f"/admin/accounts/{person.id}/invite", headers=as_user("admin"))
+        assert reply.status_code == 200
+        assert reply.json() == {
+            "account_id": str(person.id),
+            "invite_link": f"https://tenant.test/again/{person.auth0_subject}",
+        }
+
+
+def test_without_a_tenant_the_link_is_null(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _LoginsWithoutATenant())
+    reply = client.post(f"/admin/accounts/{school['s1'].id}/invite", headers=as_user("admin"))
+    assert reply.status_code == 200 and reply.json()["invite_link"] is None
+
+
+def test_a_turned_off_account_gets_no_link(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    target = school["s2"].id
+    client.patch(f"/admin/accounts/{target}", json={"active": False}, headers=as_user("admin"))
+    reply = client.post(f"/admin/accounts/{target}/invite", headers=as_user("admin"))
+    assert reply.status_code == 409 and "turned off" in reply.json()["detail"]
+
+
+def test_a_sign_in_link_for_nobody_is_404(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    assert client.post(f"/admin/accounts/{uuid.uuid4()}/invite", headers=as_user("admin")).status_code == 404
+
+
+def test_only_an_admin_hands_out_sign_in_links(client, school, monkeypatch) -> None:
+    """Sherman, 7 Nov: teachers do not, until what they may do for students is decided."""
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    for key in ("t1", "s1"):
+        assert client.post(f"/admin/accounts/{school['s1'].id}/invite", headers=as_user(key)).status_code == 403
+
+
+def test_auth0_refusing_is_a_502_with_a_reason(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _TenantDown())
+    reply = client.post(f"/admin/accounts/{school['s1'].id}/invite", headers=as_user("admin"))
+    assert reply.status_code == 502 and "Auth0" in reply.json()["detail"]

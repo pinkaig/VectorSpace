@@ -85,9 +85,18 @@ class Auth0Admin:
         else:
             response.raise_for_status()
             user = response.json()
-        ticket = self.http.post("/tickets/password-change", json={"user_id": user["user_id"]})
+        return user["user_id"], self.sign_in_link(user["user_id"])
+
+    def sign_in_link(self, subject: str) -> str:
+        """A fresh one-time password-set link for an existing login.
+
+        Auth0 mints a new ticket on every call and the older ones keep working until they expire
+        or one is used, so this is both "resend the invite" and "I forgot my password". The token
+        is fetched once per Auth0Admin, so a request that mints many links spends one M2M token.
+        """
+        ticket = self.http.post("/tickets/password-change", json={"user_id": subject})
         ticket.raise_for_status()
-        return user["user_id"], ticket.json()["ticket"]
+        return ticket.json()["ticket"]
 
 
 class DevLogins:
@@ -99,6 +108,9 @@ class DevLogins:
 
     def create_user(self, email: str, display_name: str) -> tuple[str, str]:
         return f"dev|{email.split('@')[0]}", ""
+
+    def sign_in_link(self, subject: str) -> str:
+        return ""
 
 
 def logins() -> Auth0Admin | DevLogins:
