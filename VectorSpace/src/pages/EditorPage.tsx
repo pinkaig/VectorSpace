@@ -125,7 +125,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Bumped when an edit is rejected, to pull the viewport's preview meshes back
   // to ProjectData. See runCommand.
   const [syncToken, setSyncToken] = useState(0)
-  const bumpSync = () => setSyncToken((value) => value + 1)
+  const bumpSync = useCallback(() => setSyncToken((value) => value + 1), [])
   const { project, timelineRef, commit, runCommand, resetTimeline, undo, redo } = useEditorHistory(initialProject, bumpSync)
   const { getToken, role } = useSession()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -165,7 +165,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [assetQuery, setAssetQuery] = useState('')
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
-  const { packAssets, packNotice } = usePackAssets(getToken)
+  const { packAssets, packNotice } = usePackAssets(getToken, bumpSync)
   const { visibleAssets, assetNotice, setAssetNotice, importModelFiles, keepOriginalModel, deleteUserAsset } = useUserAssets(project, bumpSync, packAssets)
   const { audioCatalogToken, audioNotice, setAudioNotice, importAudioFiles, deleteUserAudio } = useUserAudio(project)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)

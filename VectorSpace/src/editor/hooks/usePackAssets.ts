@@ -33,7 +33,7 @@ const unavailablePack = (pack: MyPack, reason: string): AssetDefinition => ({
   unavailable: true,
 })
 
-export function usePackAssets(getToken: GetToken): {
+export function usePackAssets(getToken: GetToken, onAssetsLoaded: () => void): {
   packAssets: AssetDefinition[]
   packNotice: PackNotice
 } {
@@ -62,6 +62,7 @@ export function usePackAssets(getToken: GetToken): {
         const assets = results.flat()
         registerPackModels(assets)
         setPackAssets(assets)
+        onAssetsLoaded()
         const failed = assets.filter((asset) => asset.unavailable)
         setPackNotice(failed.length > 0
           ? { tone: 'error', lines: failed.map((asset) => `${asset.label}: ${asset.detail}`) }
@@ -77,7 +78,7 @@ export function usePackAssets(getToken: GetToken): {
     }
     void load()
     return () => { current = false }
-  }, [getToken])
+  }, [getToken, onAssetsLoaded])
 
   return { packAssets, packNotice }
 }
