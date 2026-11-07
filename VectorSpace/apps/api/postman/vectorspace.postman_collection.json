@@ -502,7 +502,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"f1651845-5996-4c64-8635-8899296de023\",\n  \"organisation_id\": \"f1e887de-c2d2-4672-84ee-b5b45b1ed2ea\",\n  \"display_name\": \"s1\",\n  \"role\": \"student\",\n  \"class_ids\": [\n    \"23bdffb6-9eff-4a9e-96bd-ef8cb96792ec\"\n  ]\n}"
+              "body": "{\n  \"id\": \"06a69ee4-f714-42b1-850e-3a3d568c6bab\",\n  \"organisation_id\": \"dda931a3-b138-454b-9c09-682c47448297\",\n  \"display_name\": \"s1\",\n  \"role\": \"student\",\n  \"class_ids\": [\n    \"db5997cb-29cd-4715-90a6-efc4182d4cba\"\n  ]\n}"
             }
           ]
         },
@@ -684,7 +684,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/classes?school=728a4793-710c-42a6-97d5-4a67e4d98a23",
+                  "raw": "{{baseUrl}}/api/v1/classes?school=74643421-0bbc-46f3-84dd-5b91ff22f76e",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -696,7 +696,7 @@
                   "query": [
                     {
                       "key": "school",
-                      "value": "728a4793-710c-42a6-97d5-4a67e4d98a23"
+                      "value": "74643421-0bbc-46f3-84dd-5b91ff22f76e"
                     }
                   ]
                 }
@@ -710,7 +710,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"fe3b1883-e364-4ecd-a842-15c006d97cf5\",\n    \"school_id\": \"728a4793-710c-42a6-97d5-4a67e4d98a23\",\n    \"name\": \"1A\",\n    \"member_count\": 3\n  },\n  {\n    \"id\": \"023d785f-125b-493d-820a-f94055e143d9\",\n    \"school_id\": \"728a4793-710c-42a6-97d5-4a67e4d98a23\",\n    \"name\": \"2B\",\n    \"member_count\": 2\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"b2543fd7-3249-49db-932a-58a713651a1e\",\n    \"school_id\": \"74643421-0bbc-46f3-84dd-5b91ff22f76e\",\n    \"name\": \"1A\",\n    \"member_count\": 3\n  },\n  {\n    \"id\": \"06ee77da-dad2-4125-9c15-262d5a06ba6d\",\n    \"school_id\": \"74643421-0bbc-46f3-84dd-5b91ff22f76e\",\n    \"name\": \"2B\",\n    \"member_count\": 2\n  }\n]"
             }
           ]
         },
@@ -764,7 +764,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/classes/08e45862-7d69-453f-94cd-70b649d42dcc/members",
+                  "raw": "{{baseUrl}}/api/v1/classes/4647e8ad-1acb-4506-838f-f9fe8cfe1d22/members",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -772,7 +772,7 @@
                     "api",
                     "v1",
                     "classes",
-                    "08e45862-7d69-453f-94cd-70b649d42dcc",
+                    "4647e8ad-1acb-4506-838f-f9fe8cfe1d22",
                     "members"
                   ],
                   "query": []
@@ -787,7 +787,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"1077f156-88db-4490-a90c-d8fb180267dc\",\n    \"display_name\": \"t1\",\n    \"role\": \"teacher\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"f481d0ce-3bdc-4c68-a0d9-6763e86ccef2\",\n    \"display_name\": \"t1\",\n    \"role\": \"teacher\"\n  }\n]"
             }
           ]
         },
@@ -1062,7 +1062,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"B1\",\n  \"school_id\": \"c3d3ff32-1a11-49bf-a53e-9f49794a4d62\"\n}",
+                  "raw": "{\n  \"name\": \"B1\",\n  \"school_id\": \"6c146f95-ff84-4fb8-bd26-6c5fd67be406\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1079,7 +1079,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"b3e609ca-f2ba-4c81-9c13-39aa7a4365fc\",\n  \"school_id\": \"c3d3ff32-1a11-49bf-a53e-9f49794a4d62\",\n  \"name\": \"B1\",\n  \"member_count\": 0\n}"
+              "body": "{\n  \"id\": \"3f42d0fb-7903-4c77-b97c-4b537a6f20ff\",\n  \"school_id\": \"6c146f95-ff84-4fb8-bd26-6c5fd67be406\",\n  \"name\": \"B1\",\n  \"member_count\": 0\n}"
             }
           ]
         },
@@ -1227,7 +1227,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/classes/5592d7d8-d238-408f-92f5-5d04e1dc8a57/members",
+                  "raw": "{{baseUrl}}/api/v1/classes/b2d9fd89-fd5c-4175-958f-34eafccecb6c/members",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1235,14 +1235,14 @@
                     "api",
                     "v1",
                     "classes",
-                    "5592d7d8-d238-408f-92f5-5d04e1dc8a57",
+                    "b2d9fd89-fd5c-4175-958f-34eafccecb6c",
                     "members"
                   ],
                   "query": []
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"actor_id\": \"4c8b2061-3133-4443-b818-c0caff88a5f4\"\n}",
+                  "raw": "{\n  \"actor_id\": \"b9135a6d-0c55-4241-8ff1-286d7328811c\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1259,7 +1259,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"4c8b2061-3133-4443-b818-c0caff88a5f4\",\n  \"display_name\": \"s3\",\n  \"role\": \"student\"\n}"
+              "body": "{\n  \"id\": \"b9135a6d-0c55-4241-8ff1-286d7328811c\",\n  \"display_name\": \"s3\",\n  \"role\": \"student\"\n}"
             }
           ]
         },
@@ -1585,7 +1585,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/classes/b1ad1cad-ed91-4c8f-90d7-e7119f8996b7/members/1b4e1f4e-fa92-4c03-b777-1d674baef7f3/move",
+                  "raw": "{{baseUrl}}/api/v1/classes/a9bc8e17-949c-4f8b-a150-c83d031dc3db/members/cdaa27f8-7042-46d7-9523-8b1fb3988e55/move",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1593,16 +1593,16 @@
                     "api",
                     "v1",
                     "classes",
-                    "b1ad1cad-ed91-4c8f-90d7-e7119f8996b7",
+                    "a9bc8e17-949c-4f8b-a150-c83d031dc3db",
                     "members",
-                    "1b4e1f4e-fa92-4c03-b777-1d674baef7f3",
+                    "cdaa27f8-7042-46d7-9523-8b1fb3988e55",
                     "move"
                   ],
                   "query": []
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"to_class_id\": \"bd6e622e-3820-4eac-b3c6-dc0e55350410\"\n}",
+                  "raw": "{\n  \"to_class_id\": \"3c16ab3d-96a9-4d73-91f3-57478abc85bc\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1619,7 +1619,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"student\": {\n    \"id\": \"1b4e1f4e-fa92-4c03-b777-1d674baef7f3\",\n    \"display_name\": \"s1\",\n    \"role\": \"student\"\n  },\n  \"from_class\": {\n    \"id\": \"b1ad1cad-ed91-4c8f-90d7-e7119f8996b7\",\n    \"school_id\": \"9662c265-c171-42db-8ec5-4df196223595\",\n    \"name\": \"1A\",\n    \"member_count\": 2\n  },\n  \"to_class\": {\n    \"id\": \"bd6e622e-3820-4eac-b3c6-dc0e55350410\",\n    \"school_id\": \"9662c265-c171-42db-8ec5-4df196223595\",\n    \"name\": \"2B\",\n    \"member_count\": 3\n  }\n}"
+              "body": "{\n  \"student\": {\n    \"id\": \"cdaa27f8-7042-46d7-9523-8b1fb3988e55\",\n    \"display_name\": \"s1\",\n    \"role\": \"student\"\n  },\n  \"from_class\": {\n    \"id\": \"a9bc8e17-949c-4f8b-a150-c83d031dc3db\",\n    \"school_id\": \"1a078c44-dddb-4818-82b0-8b3e3dc630c1\",\n    \"name\": \"1A\",\n    \"member_count\": 2\n  },\n  \"to_class\": {\n    \"id\": \"3c16ab3d-96a9-4d73-91f3-57478abc85bc\",\n    \"school_id\": \"1a078c44-dddb-4818-82b0-8b3e3dc630c1\",\n    \"name\": \"2B\",\n    \"member_count\": 3\n  }\n}"
             }
           ]
         },
@@ -1901,7 +1901,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"34bba549-8e65-4903-af40-0e4f69425659\",\n  \"organisation_id\": \"af54059c-e72b-47c6-9637-45c432ded2ec\",\n  \"created_by_id\": \"cceccc31-be03-40b8-9b92-4a10154c0bea\",\n  \"class_id\": null,\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"template\",\n  \"name\": \"Museum hall\",\n  \"slug\": \"museum-hall-5d7ebfd1\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T11:51:53\",\n  \"updated_at\": \"2026-11-07T11:51:53\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": null,\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"9df502b2-bb15-4ae5-9eb2-048ae62c151e\",\n  \"organisation_id\": \"f65266a0-3881-44ec-98a9-16913672c3ff\",\n  \"created_by_id\": \"3e849995-bc52-4bd9-b62c-a754315eab2b\",\n  \"class_id\": null,\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"template\",\n  \"name\": \"Museum hall\",\n  \"slug\": \"museum-hall-7a91e594\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T12:11:23\",\n  \"updated_at\": \"2026-11-07T12:11:23\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": null,\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -1973,7 +1973,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1/versions",
+                  "raw": "{{baseUrl}}/api/v1/projects/8a2757e2-120a-4acd-9074-b01baf9439ee/versions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1981,7 +1981,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1",
+                    "8a2757e2-120a-4acd-9074-b01baf9439ee",
                     "versions"
                   ],
                   "query": []
@@ -2005,7 +2005,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"85949d1d-cb0b-4e1a-bbc9-9a9a2f85169c\",\n  \"project_id\": \"6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"30a92875-fc64-409c-8270-9ea710412625\",\n  \"created_at\": \"2026-11-07T11:51:54\",\n  \"created_by_name\": \"\"\n}"
+              "body": "{\n  \"id\": \"a0371303-7a9d-4593-bdbf-1c736205e869\",\n  \"project_id\": \"8a2757e2-120a-4acd-9074-b01baf9439ee\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"697e2454-e98e-420d-a604-9d678198381f\",\n  \"created_at\": \"2026-11-07T12:11:25\",\n  \"created_by_name\": \"\"\n}"
             }
           ]
         },
@@ -2164,7 +2164,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/1d72c3e5-c16b-402c-b599-56fd88fe5f04",
+                  "raw": "{{baseUrl}}/api/v1/projects/0869d74f-b6ef-4e2b-9f24-65e0f05cc734",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2172,7 +2172,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "1d72c3e5-c16b-402c-b599-56fd88fe5f04"
+                    "0869d74f-b6ef-4e2b-9f24-65e0f05cc734"
                   ],
                   "query": []
                 }
@@ -2186,7 +2186,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"1d72c3e5-c16b-402c-b599-56fd88fe5f04\",\n  \"organisation_id\": \"9662c265-c171-42db-8ec5-4df196223595\",\n  \"created_by_id\": \"1b4e1f4e-fa92-4c03-b777-1d674baef7f3\",\n  \"class_id\": \"b1ad1cad-ed91-4c8f-90d7-e7119f8996b7\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"My museum\",\n  \"slug\": \"my-museum\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T11:51:53\",\n  \"updated_at\": \"2026-11-07T11:51:53\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"0869d74f-b6ef-4e2b-9f24-65e0f05cc734\",\n  \"organisation_id\": \"1a078c44-dddb-4818-82b0-8b3e3dc630c1\",\n  \"created_by_id\": \"cdaa27f8-7042-46d7-9523-8b1fb3988e55\",\n  \"class_id\": \"a9bc8e17-949c-4f8b-a150-c83d031dc3db\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"My museum\",\n  \"slug\": \"my-museum\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T12:11:23\",\n  \"updated_at\": \"2026-11-07T12:11:23\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -2240,7 +2240,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3/versions",
+                  "raw": "{{baseUrl}}/api/v1/projects/aa69cd85-0070-4a81-a067-1307939a5e29/versions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2248,7 +2248,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3",
+                    "aa69cd85-0070-4a81-a067-1307939a5e29",
                     "versions"
                   ],
                   "query": []
@@ -2263,7 +2263,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"fb97e395-61cf-408c-b6b6-736556686c6b\",\n    \"project_id\": \"82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3\",\n    \"revision\": 1,\n    \"label\": null,\n    \"content_snapshot_id\": \"0d1fddfc-2a95-4fac-a2e3-65b3668eac17\",\n    \"created_at\": \"2026-11-07T11:51:59.400137\",\n    \"created_by_name\": \"s1\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"e7f2c15a-a95b-4482-8e0a-bac2e2532a35\",\n    \"project_id\": \"aa69cd85-0070-4a81-a067-1307939a5e29\",\n    \"revision\": 1,\n    \"label\": null,\n    \"content_snapshot_id\": \"099cb56f-e22d-4834-b76b-3aa32276c894\",\n    \"created_at\": \"2026-11-07T12:11:29.879211\",\n    \"created_by_name\": \"s1\"\n  }\n]"
             }
           ]
         },
@@ -2318,7 +2318,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3/versions/fb97e395-61cf-408c-b6b6-736556686c6b",
+                  "raw": "{{baseUrl}}/api/v1/projects/aa69cd85-0070-4a81-a067-1307939a5e29/versions/e7f2c15a-a95b-4482-8e0a-bac2e2532a35",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2326,9 +2326,9 @@
                     "api",
                     "v1",
                     "projects",
-                    "82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3",
+                    "aa69cd85-0070-4a81-a067-1307939a5e29",
                     "versions",
-                    "fb97e395-61cf-408c-b6b6-736556686c6b"
+                    "e7f2c15a-a95b-4482-8e0a-bac2e2532a35"
                   ],
                   "query": []
                 }
@@ -2342,7 +2342,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"fb97e395-61cf-408c-b6b6-736556686c6b\",\n  \"project_id\": \"82cea608-9c1d-4f7b-b3f4-b6d66c9f19e3\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"0d1fddfc-2a95-4fac-a2e3-65b3668eac17\",\n  \"created_at\": \"2026-11-07T11:51:59.400137\",\n  \"created_by_name\": \"\",\n  \"data\": {\n    \"schemaVersion\": 1,\n    \"id\": \"p\",\n    \"name\": \"Scene 4\",\n    \"scenes\": []\n  }\n}"
+              "body": "{\n  \"id\": \"e7f2c15a-a95b-4482-8e0a-bac2e2532a35\",\n  \"project_id\": \"aa69cd85-0070-4a81-a067-1307939a5e29\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"099cb56f-e22d-4834-b76b-3aa32276c894\",\n  \"created_at\": \"2026-11-07T12:11:29.879211\",\n  \"created_by_name\": \"\",\n  \"data\": {\n    \"schemaVersion\": 1,\n    \"id\": \"p\",\n    \"name\": \"Scene 4\",\n    \"scenes\": []\n  }\n}"
             }
           ]
         },
@@ -2412,7 +2412,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/e8effb41-080f-408e-b54a-2c10a5884315",
+                  "raw": "{{baseUrl}}/api/v1/projects/ea5c25f9-9ff9-4a16-89cd-76e6fb41442f",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2420,13 +2420,13 @@
                     "api",
                     "v1",
                     "projects",
-                    "e8effb41-080f-408e-b54a-2c10a5884315"
+                    "ea5c25f9-9ff9-4a16-89cd-76e6fb41442f"
                   ],
                   "query": []
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"class_id\": \"38e3a42c-d60b-42ee-b3ea-dfe82ee9c567\"\n}",
+                  "raw": "{\n  \"class_id\": \"c5e6e1b9-81db-4fc6-9f39-63e6a596a0ca\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2443,7 +2443,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"e8effb41-080f-408e-b54a-2c10a5884315\",\n  \"organisation_id\": \"b7d0aa46-c23a-4db1-877d-c63980518ec7\",\n  \"created_by_id\": \"e08f6f31-7a42-4ca0-b6cf-f35d846acae5\",\n  \"class_id\": \"38e3a42c-d60b-42ee-b3ea-dfe82ee9c567\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"p\",\n  \"slug\": \"p-41fd0889\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T11:51:54\",\n  \"updated_at\": \"2026-11-07T11:51:54\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"ea5c25f9-9ff9-4a16-89cd-76e6fb41442f\",\n  \"organisation_id\": \"e8d1116e-3603-4a6a-9bb3-cbcb724001c3\",\n  \"created_by_id\": \"b85281ef-cfe9-49b9-b476-b970d863c041\",\n  \"class_id\": \"c5e6e1b9-81db-4fc6-9f39-63e6a596a0ca\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"p\",\n  \"slug\": \"p-27b17cb4\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T12:11:24\",\n  \"updated_at\": \"2026-11-07T12:11:24\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -2842,7 +2842,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"0767c1ae-d407-4f7a-9ca5-8bab0fa856fa\",\n    \"organisation_id\": \"af54059c-e72b-47c6-9637-45c432ded2ec\",\n    \"created_by_id\": \"5c8525c7-f3d3-4f5f-a4a2-488c194bcd0b\",\n    \"class_id\": \"efba6fe4-fe9a-4ed7-860e-a5ae9d3eb3da\",\n    \"template_id\": \"34bba549-8e65-4903-af40-0e4f69425659\",\n    \"template_revision\": null,\n    \"kind\": \"project\",\n    \"name\": \"Museum hall\",\n    \"slug\": \"museum-hall-5e89996d\",\n    \"status\": \"draft\",\n    \"current_version_id\": null,\n    \"created_at\": \"2026-11-07T11:51:53\",\n    \"updated_at\": \"2026-11-07T11:51:53\",\n    \"created_by_name\": \"s1\",\n    \"class_name\": \"1A\",\n    \"current_revision\": 0,\n    \"saved_at\": null,\n    \"saved_by_name\": \"\",\n    \"template_name\": \"Museum hall\",\n    \"assignment_id\": \"1870b44e-26ca-495d-9df3-8a3a435e8546\",\n    \"task\": \"Changed\",\n    \"due_at\": \"2026-11-20\",\n    \"assigned_by_name\": \"t1\",\n    \"mission_brief\": {\n      \"due\": \"2026-11-20\",\n      \"todos\": [\n        {\n          \"id\": \"t1\",\n          \"text\": \"Place three exhibits\"\n        }\n      ],\n      \"rules\": [\n        {\n          \"id\": \"r1\",\n          \"text\": \"Label every exhibit\"\n        }\n      ]\n    },\n    \"sent\": false,\n    \"published_copies\": 0,\n    \"assignment_ids\": [],\n    \"showcase\": false,\n    \"review_status\": null,\n    \"review_grade\": null,\n    \"review_comment\": null,\n    \"share_with\": null,\n    \"submitted_at\": null\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"de3621ff-50d2-4523-ac09-8076b375c534\",\n    \"organisation_id\": \"f65266a0-3881-44ec-98a9-16913672c3ff\",\n    \"created_by_id\": \"8367bd5a-1a0b-4bdd-8e4c-b9216a76d24d\",\n    \"class_id\": \"c5df052e-2840-414b-a3db-07bb44eaac62\",\n    \"template_id\": \"9df502b2-bb15-4ae5-9eb2-048ae62c151e\",\n    \"template_revision\": null,\n    \"kind\": \"project\",\n    \"name\": \"Museum hall\",\n    \"slug\": \"museum-hall-9057cd37\",\n    \"status\": \"draft\",\n    \"current_version_id\": null,\n    \"created_at\": \"2026-11-07T12:11:23\",\n    \"updated_at\": \"2026-11-07T12:11:23\",\n    \"created_by_name\": \"s1\",\n    \"class_name\": \"1A\",\n    \"current_revision\": 0,\n    \"saved_at\": null,\n    \"saved_by_name\": \"\",\n    \"template_name\": \"Museum hall\",\n    \"assignment_id\": \"65a2a353-d30f-4a8e-b967-e201ba3168d6\",\n    \"task\": \"Changed\",\n    \"due_at\": \"2026-11-20\",\n    \"assigned_by_name\": \"t1\",\n    \"mission_brief\": {\n      \"due\": \"2026-11-20\",\n      \"todos\": [\n        {\n          \"id\": \"t1\",\n          \"text\": \"Place three exhibits\"\n        }\n      ],\n      \"rules\": [\n        {\n          \"id\": \"r1\",\n          \"text\": \"Label every exhibit\"\n        }\n      ]\n    },\n    \"sent\": false,\n    \"published_copies\": 0,\n    \"assignment_ids\": [],\n    \"showcase\": false,\n    \"review_status\": null,\n    \"review_grade\": null,\n    \"review_comment\": null,\n    \"share_with\": null,\n    \"submitted_at\": null\n  }\n]"
             }
           ]
         },
@@ -3029,7 +3029,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/d09ee18e-3fb4-4c51-848e-6aa9bd9a3153",
+                  "raw": "{{baseUrl}}/api/v1/projects/6234ee4c-fa18-4988-ae08-e6f0eb294025",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3037,7 +3037,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "d09ee18e-3fb4-4c51-848e-6aa9bd9a3153"
+                    "6234ee4c-fa18-4988-ae08-e6f0eb294025"
                   ],
                   "query": []
                 }
@@ -3218,7 +3218,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/970f4b6a-6037-4cd5-8cc5-d227e90c5974/media",
+                  "raw": "{{baseUrl}}/api/v1/projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3226,7 +3226,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "970f4b6a-6037-4cd5-8cc5-d227e90c5974",
+                    "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb",
                     "media"
                   ],
                   "query": []
@@ -3250,7 +3250,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"media_asset_id\": \"83808d2b-a645-4aa1-8043-098d0ac3cc52\",\n  \"upload_url\": \"https://store.test/put/projects/970f4b6a-6037-4cd5-8cc5-d227e90c5974/media/83808d2b-a645-4aa1-8043-098d0ac3cc52/stone.png\",\n  \"storage_key\": \"projects/970f4b6a-6037-4cd5-8cc5-d227e90c5974/media/83808d2b-a645-4aa1-8043-098d0ac3cc52/stone.png\"\n}"
+              "body": "{\n  \"media_asset_id\": \"62922c6e-fe9c-4fea-972d-5f03d020b29e\",\n  \"upload_url\": \"https://store.test/put/projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png\",\n  \"storage_key\": \"projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png\"\n}"
             }
           ]
         },
@@ -3478,7 +3478,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/69c32259-5ddb-4669-a521-a2b5792ef9a0/media/links",
+                  "raw": "{{baseUrl}}/api/v1/projects/911635c3-ef77-4f78-886c-ddb72eef104d/media/links",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3486,7 +3486,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "69c32259-5ddb-4669-a521-a2b5792ef9a0",
+                    "911635c3-ef77-4f78-886c-ddb72eef104d",
                     "media",
                     "links"
                   ],
@@ -3511,7 +3511,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"cda4e055-56d5-44de-89ac-80d088a32e32\",\n  \"project_id\": \"69c32259-5ddb-4669-a521-a2b5792ef9a0\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"pending\",\n  \"approved_by_id\": null,\n  \"approved_at\": null,\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-07T11:51:56\",\n  \"updated_at\": \"2026-11-07T11:51:56\"\n}"
+              "body": "{\n  \"id\": \"f247b19c-af94-44e4-9fc2-67d4f8c6adea\",\n  \"project_id\": \"911635c3-ef77-4f78-886c-ddb72eef104d\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"pending\",\n  \"approved_by_id\": null,\n  \"approved_at\": null,\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27\"\n}"
             }
           ]
         },
@@ -3690,7 +3690,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/69c32259-5ddb-4669-a521-a2b5792ef9a0/media/links/cda4e055-56d5-44de-89ac-80d088a32e32",
+                  "raw": "{{baseUrl}}/api/v1/projects/911635c3-ef77-4f78-886c-ddb72eef104d/media/links/f247b19c-af94-44e4-9fc2-67d4f8c6adea",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3698,10 +3698,10 @@
                     "api",
                     "v1",
                     "projects",
-                    "69c32259-5ddb-4669-a521-a2b5792ef9a0",
+                    "911635c3-ef77-4f78-886c-ddb72eef104d",
                     "media",
                     "links",
-                    "cda4e055-56d5-44de-89ac-80d088a32e32"
+                    "f247b19c-af94-44e4-9fc2-67d4f8c6adea"
                   ],
                   "query": []
                 },
@@ -3724,7 +3724,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"cda4e055-56d5-44de-89ac-80d088a32e32\",\n  \"project_id\": \"69c32259-5ddb-4669-a521-a2b5792ef9a0\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"approved\",\n  \"approved_by_id\": \"bb7a21b9-201c-4e6d-bd3c-c7618892e021\",\n  \"approved_at\": \"2026-11-07T11:51:56.489293\",\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-07T11:51:56\",\n  \"updated_at\": \"2026-11-07T11:51:56\"\n}"
+              "body": "{\n  \"id\": \"f247b19c-af94-44e4-9fc2-67d4f8c6adea\",\n  \"project_id\": \"911635c3-ef77-4f78-886c-ddb72eef104d\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"approved\",\n  \"approved_by_id\": \"8c0a9640-92cb-44d1-820c-026c934c2309\",\n  \"approved_at\": \"2026-11-07T12:11:27.059304\",\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27\"\n}"
             }
           ]
         },
@@ -3778,7 +3778,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/ab1f72c8-2782-43e1-9328-ee2b02def99d/media",
+                  "raw": "{{baseUrl}}/api/v1/projects/dd348fd4-c25e-47c2-b280-9e89d3dc8f76/media",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3786,7 +3786,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "ab1f72c8-2782-43e1-9328-ee2b02def99d",
+                    "dd348fd4-c25e-47c2-b280-9e89d3dc8f76",
                     "media"
                   ],
                   "query": []
@@ -3801,7 +3801,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"54cfab64-84c3-486a-95a8-c91727fed05d\",\n    \"project_id\": \"ab1f72c8-2782-43e1-9328-ee2b02def99d\",\n    \"kind\": \"image\",\n    \"source\": \"file\",\n    \"label\": \"stone.png\",\n    \"status\": \"failed\",\n    \"content_type\": \"image/png\",\n    \"size_bytes\": 1000,\n    \"provider\": null,\n    \"provider_id\": null,\n    \"url\": null,\n    \"approval\": null,\n    \"approved_by_id\": null,\n    \"approved_at\": null,\n    \"review_comment\": null,\n    \"download_url\": null,\n    \"download_expires_in\": null,\n    \"created_at\": \"2026-11-07T11:51:56\",\n    \"updated_at\": \"2026-11-07T11:51:56\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"a6d04229-cdc1-4a76-a6e4-2b187c1faad2\",\n    \"project_id\": \"dd348fd4-c25e-47c2-b280-9e89d3dc8f76\",\n    \"kind\": \"image\",\n    \"source\": \"file\",\n    \"label\": \"stone.png\",\n    \"status\": \"failed\",\n    \"content_type\": \"image/png\",\n    \"size_bytes\": 1000,\n    \"provider\": null,\n    \"provider_id\": null,\n    \"url\": null,\n    \"approval\": null,\n    \"approved_by_id\": null,\n    \"approved_at\": null,\n    \"review_comment\": null,\n    \"download_url\": null,\n    \"download_expires_in\": null,\n    \"created_at\": \"2026-11-07T12:11:26\",\n    \"updated_at\": \"2026-11-07T12:11:26\"\n  }\n]"
             }
           ]
         },
@@ -3933,7 +3933,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/eb62f8a9-3f47-485d-8526-5d7877bbe626/media/47990288-dc48-4041-92b8-bbda97401e23",
+                  "raw": "{{baseUrl}}/api/v1/projects/67245289-521c-47d6-8060-9fca1224ddd0/media/c634e8a2-033e-41e9-9f24-4d90d9f45081",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3941,9 +3941,9 @@
                     "api",
                     "v1",
                     "projects",
-                    "eb62f8a9-3f47-485d-8526-5d7877bbe626",
+                    "67245289-521c-47d6-8060-9fca1224ddd0",
                     "media",
-                    "47990288-dc48-4041-92b8-bbda97401e23"
+                    "c634e8a2-033e-41e9-9f24-4d90d9f45081"
                   ],
                   "query": []
                 }
@@ -4258,7 +4258,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1/assign",
+                  "raw": "{{baseUrl}}/api/v1/projects/8a2757e2-120a-4acd-9074-b01baf9439ee/assign",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4266,14 +4266,14 @@
                     "api",
                     "v1",
                     "projects",
-                    "6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1",
+                    "8a2757e2-120a-4acd-9074-b01baf9439ee",
                     "assign"
                   ],
                   "query": []
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"student_id\": \"13fe966f-1795-4796-b194-db2d940e599c\"\n}",
+                  "raw": "{\n  \"student_id\": \"25572cfb-98fd-4afd-85ab-3cd1aee6fa10\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4290,7 +4290,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"e57ee12e-7f83-4a5b-a50a-ac327f18a4b1\",\n  \"organisation_id\": \"01af681c-d9ac-4a15-99da-101fc027a7df\",\n  \"created_by_id\": \"13fe966f-1795-4796-b194-db2d940e599c\",\n  \"class_id\": \"a8274b65-8a7f-4667-92c4-623fe6f66566\",\n  \"template_id\": \"6fe72242-1dfe-4aed-a7b9-737fb6d6a6d1\",\n  \"template_revision\": 1,\n  \"kind\": \"project\",\n  \"name\": \"Gallery walk\",\n  \"slug\": \"gallery-walk-f50b740c\",\n  \"status\": \"draft\",\n  \"current_version_id\": \"5999a9ef-6c3a-4327-bcb2-121f8dfe7d63\",\n  \"created_at\": \"2026-11-07T11:51:54\",\n  \"updated_at\": \"2026-11-07T11:51:54\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 1,\n  \"saved_at\": \"2026-11-07T11:51:54\",\n  \"saved_by_name\": \"t1\",\n  \"template_name\": \"Gallery walk\",\n  \"assignment_id\": \"763a6a3d-9e71-458d-aa4c-6af2009c3001\",\n  \"task\": \"\",\n  \"due_at\": null,\n  \"assigned_by_name\": \"t1\",\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"50ae40af-97dc-4508-8961-99979c7e6e50\",\n  \"organisation_id\": \"bdbaaf9b-d717-45f3-a6c2-6d15ec6bb828\",\n  \"created_by_id\": \"25572cfb-98fd-4afd-85ab-3cd1aee6fa10\",\n  \"class_id\": \"1fd90e6d-3a38-4227-ad6b-1ef936575b48\",\n  \"template_id\": \"8a2757e2-120a-4acd-9074-b01baf9439ee\",\n  \"template_revision\": 1,\n  \"kind\": \"project\",\n  \"name\": \"Gallery walk\",\n  \"slug\": \"gallery-walk-b0229438\",\n  \"status\": \"draft\",\n  \"current_version_id\": \"6bddeb8e-e730-4ede-8f6b-238f65d5ea31\",\n  \"created_at\": \"2026-11-07T12:11:25\",\n  \"updated_at\": \"2026-11-07T12:11:25\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 1,\n  \"saved_at\": \"2026-11-07T12:11:25\",\n  \"saved_by_name\": \"t1\",\n  \"template_name\": \"Gallery walk\",\n  \"assignment_id\": \"a56d8188-53a9-4780-bb6e-5a4a766570b7\",\n  \"task\": \"\",\n  \"due_at\": null,\n  \"assigned_by_name\": \"t1\",\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -4493,7 +4493,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/4cd0a2f8-61cf-4523-952d-94606cbc4bd3/submit",
+                  "raw": "{{baseUrl}}/api/v1/projects/88362b13-254e-4550-aa5b-56b9f7154992/submit",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4501,7 +4501,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "4cd0a2f8-61cf-4523-952d-94606cbc4bd3",
+                    "88362b13-254e-4550-aa5b-56b9f7154992",
                     "submit"
                   ],
                   "query": []
@@ -4525,7 +4525,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"f2d25986-9e22-4423-b6a5-c4098bca13f8\",\n  \"project_id\": \"4cd0a2f8-61cf-4523-952d-94606cbc4bd3\",\n  \"version_id\": \"8257f546-a3a6-4924-b5f1-e7a0110cb923\",\n  \"status\": \"waiting\",\n  \"share_with\": \"public\",\n  \"grade\": null,\n  \"comment\": null,\n  \"submitted_by_id\": \"c2c62a1c-1393-4f49-bb8b-c3b54ebedebe\",\n  \"submitted_at\": \"2026-11-07T11:52:00.953589\",\n  \"reviewed_by_id\": null,\n  \"reviewed_at\": null\n}"
+              "body": "{\n  \"id\": \"5d77715f-f4eb-41ee-8d25-459d2d15caca\",\n  \"project_id\": \"88362b13-254e-4550-aa5b-56b9f7154992\",\n  \"version_id\": \"865a7b2d-120e-4b71-a2e6-275fa3e05a6b\",\n  \"status\": \"waiting\",\n  \"share_with\": \"public\",\n  \"grade\": null,\n  \"comment\": null,\n  \"submitted_by_id\": \"c621adf1-f8bc-4c8e-8164-a82542611137\",\n  \"submitted_at\": \"2026-11-07T12:11:31.587626\",\n  \"reviewed_by_id\": null,\n  \"reviewed_at\": null\n}"
             }
           ]
         },
@@ -4808,7 +4808,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/dc9955ba-af30-43d4-87e8-49336ad81b35/send-back",
+                  "raw": "{{baseUrl}}/api/v1/projects/833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20/send-back",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4816,7 +4816,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "dc9955ba-af30-43d4-87e8-49336ad81b35",
+                    "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
                     "send-back"
                   ],
                   "query": []
@@ -4840,7 +4840,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"62798d20-2000-4410-8233-2e94da4b1c92\",\n  \"project_id\": \"dc9955ba-af30-43d4-87e8-49336ad81b35\",\n  \"version_id\": \"9e144484-6acf-483c-8851-9672499d06e2\",\n  \"status\": \"sent_back\",\n  \"share_with\": null,\n  \"grade\": null,\n  \"comment\": \"Add a second room\",\n  \"submitted_by_id\": \"f9cf1d85-227b-48d5-b409-6c78354c9744\",\n  \"submitted_at\": \"2026-11-07T11:52:01.057776\",\n  \"reviewed_by_id\": \"7a851d01-61b7-481c-a75e-b8c1de0a75dc\",\n  \"reviewed_at\": \"2026-11-07T11:52:01.074675\"\n}"
+              "body": "{\n  \"id\": \"96fad5ce-a645-4610-9e8f-84af4109dbc9\",\n  \"project_id\": \"833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20\",\n  \"version_id\": \"0e19ab0e-f1a9-4b5d-9334-639502b8c3df\",\n  \"status\": \"sent_back\",\n  \"share_with\": null,\n  \"grade\": null,\n  \"comment\": \"Add a second room\",\n  \"submitted_by_id\": \"cdb86faf-d897-4db5-82e1-3c79e3f7f8c0\",\n  \"submitted_at\": \"2026-11-07T12:11:31.688896\",\n  \"reviewed_by_id\": \"1e228d94-094e-465a-a467-e463d5d2736b\",\n  \"reviewed_at\": \"2026-11-07T12:11:31.705708\"\n}"
             }
           ]
         },
@@ -4975,7 +4975,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/dc9955ba-af30-43d4-87e8-49336ad81b35/submissions",
+                  "raw": "{{baseUrl}}/api/v1/projects/833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20/submissions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4983,7 +4983,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "dc9955ba-af30-43d4-87e8-49336ad81b35",
+                    "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
                     "submissions"
                   ],
                   "query": []
@@ -4998,7 +4998,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"566f05b9-da11-48c6-99d1-0d6bf097c074\",\n    \"project_id\": \"dc9955ba-af30-43d4-87e8-49336ad81b35\",\n    \"version_id\": \"9e144484-6acf-483c-8851-9672499d06e2\",\n    \"status\": \"waiting\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": null,\n    \"submitted_by_id\": \"f9cf1d85-227b-48d5-b409-6c78354c9744\",\n    \"submitted_at\": \"2026-11-07T11:52:01.096053\",\n    \"reviewed_by_id\": null,\n    \"reviewed_at\": null\n  },\n  {\n    \"id\": \"62798d20-2000-4410-8233-2e94da4b1c92\",\n    \"project_id\": \"dc9955ba-af30-43d4-87e8-49336ad81b35\",\n    \"version_id\": \"9e144484-6acf-483c-8851-9672499d06e2\",\n    \"status\": \"sent_back\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": \"Add a second room\",\n    \"submitted_by_id\": \"f9cf1d85-227b-48d5-b409-6c78354c9744\",\n    \"submitted_at\": \"2026-11-07T11:52:01.057776\",\n    \"reviewed_by_id\": \"7a851d01-61b7-481c-a75e-b8c1de0a75dc\",\n    \"reviewed_at\": \"2026-11-07T11:52:01.074675\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"937bcb64-4dd2-49f9-8172-38cf5065874e\",\n    \"project_id\": \"833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20\",\n    \"version_id\": \"0e19ab0e-f1a9-4b5d-9334-639502b8c3df\",\n    \"status\": \"waiting\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": null,\n    \"submitted_by_id\": \"cdb86faf-d897-4db5-82e1-3c79e3f7f8c0\",\n    \"submitted_at\": \"2026-11-07T12:11:31.724206\",\n    \"reviewed_by_id\": null,\n    \"reviewed_at\": null\n  },\n  {\n    \"id\": \"96fad5ce-a645-4610-9e8f-84af4109dbc9\",\n    \"project_id\": \"833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20\",\n    \"version_id\": \"0e19ab0e-f1a9-4b5d-9334-639502b8c3df\",\n    \"status\": \"sent_back\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": \"Add a second room\",\n    \"submitted_by_id\": \"cdb86faf-d897-4db5-82e1-3c79e3f7f8c0\",\n    \"submitted_at\": \"2026-11-07T12:11:31.688896\",\n    \"reviewed_by_id\": \"1e228d94-094e-465a-a467-e463d5d2736b\",\n    \"reviewed_at\": \"2026-11-07T12:11:31.705708\"\n  }\n]"
             }
           ]
         },
@@ -5083,7 +5083,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/4cd0a2f8-61cf-4523-952d-94606cbc4bd3/approve",
+                  "raw": "{{baseUrl}}/api/v1/projects/88362b13-254e-4550-aa5b-56b9f7154992/approve",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -5091,7 +5091,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "4cd0a2f8-61cf-4523-952d-94606cbc4bd3",
+                    "88362b13-254e-4550-aa5b-56b9f7154992",
                     "approve"
                   ],
                   "query": []
@@ -5115,7 +5115,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"f2d25986-9e22-4423-b6a5-c4098bca13f8\",\n  \"project_id\": \"4cd0a2f8-61cf-4523-952d-94606cbc4bd3\",\n  \"version_id\": \"8257f546-a3a6-4924-b5f1-e7a0110cb923\",\n  \"status\": \"approved\",\n  \"share_with\": \"public\",\n  \"grade\": \"A\",\n  \"comment\": \"Lovely\",\n  \"submitted_by_id\": \"c2c62a1c-1393-4f49-bb8b-c3b54ebedebe\",\n  \"submitted_at\": \"2026-11-07T11:52:00.953589\",\n  \"reviewed_by_id\": \"16abbd73-eb32-48dc-b4a1-e73ee1f79d7b\",\n  \"reviewed_at\": \"2026-11-07T11:52:00.966728\"\n}"
+              "body": "{\n  \"id\": \"5d77715f-f4eb-41ee-8d25-459d2d15caca\",\n  \"project_id\": \"88362b13-254e-4550-aa5b-56b9f7154992\",\n  \"version_id\": \"865a7b2d-120e-4b71-a2e6-275fa3e05a6b\",\n  \"status\": \"approved\",\n  \"share_with\": \"public\",\n  \"grade\": \"A\",\n  \"comment\": \"Lovely\",\n  \"submitted_by_id\": \"c621adf1-f8bc-4c8e-8164-a82542611137\",\n  \"submitted_at\": \"2026-11-07T12:11:31.587626\",\n  \"reviewed_by_id\": \"e1e6ad87-1292-4c45-b0d4-0790069b22ac\",\n  \"reviewed_at\": \"2026-11-07T12:11:31.601904\"\n}"
             }
           ]
         },
@@ -5225,7 +5225,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/visit/lesson-841d9d5a",
+                  "raw": "{{baseUrl}}/api/v1/visit/lesson-d8c3e2fb",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -5233,7 +5233,7 @@
                     "api",
                     "v1",
                     "visit",
-                    "lesson-841d9d5a"
+                    "lesson-d8c3e2fb"
                   ],
                   "query": []
                 }
@@ -5438,7 +5438,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"project_id\": \"d8ee36c9-5985-48da-81d4-f508c8aafbb6\",\n    \"visits\": 2,\n    \"last_7_days\": [\n      0,\n      0\n    ]\n  }\n]"
+              "body": "[\n  {\n    \"project_id\": \"656c61f3-14bf-45cb-bbb3-4ba52a27145f\",\n    \"visits\": 2,\n    \"last_7_days\": [\n      0,\n      0\n    ]\n  }\n]"
             }
           ]
         },
@@ -5579,7 +5579,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/3507ad07-3ceb-47ac-b6b5-97e2c23436c9/analytics/summary",
+                  "raw": "{{baseUrl}}/api/v1/projects/83f23ed7-089f-4eb6-9049-b98568dd2f0a/analytics/summary",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -5587,7 +5587,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "3507ad07-3ceb-47ac-b6b5-97e2c23436c9",
+                    "83f23ed7-089f-4eb6-9049-b98568dd2f0a",
                     "analytics",
                     "summary"
                   ],
@@ -5682,7 +5682,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"124305e6-8af5-4be6-83b3-9402a0448d28\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"uploaded\",\n    \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"created_at\": \"2026-11-07T11:51:55\",\n    \"updated_at\": \"2026-11-07T11:51:55\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"a2da566b-1248-4a6d-af15-8cd3a1384111\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"uploaded\",\n    \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"created_at\": \"2026-11-07T12:11:25\",\n    \"updated_at\": \"2026-11-07T12:11:25\"\n  }\n]"
             }
           ]
         },
@@ -5929,7 +5929,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"asset\": {\n    \"id\": \"97f4730a-7637-4489-9e96-e4eb6c90a708\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"pending\",\n    \"url\": null,\n    \"created_at\": \"2026-11-07T11:51:55\",\n    \"updated_at\": \"2026-11-07T11:51:55\"\n  },\n  \"upload_url\": \"https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"upload_headers\": {\n    \"Content-Type\": \"model/gltf-binary\",\n    \"Cache-Control\": \"public, max-age=31536000, immutable\"\n  }\n}"
+              "body": "{\n  \"asset\": {\n    \"id\": \"66f51638-dfa3-4feb-847c-5aa7b49f53cd\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"pending\",\n    \"url\": null,\n    \"created_at\": \"2026-11-07T12:11:25\",\n    \"updated_at\": \"2026-11-07T12:11:25\"\n  },\n  \"upload_url\": \"https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"upload_headers\": {\n    \"Content-Type\": \"model/gltf-binary\",\n    \"Cache-Control\": \"public, max-age=31536000, immutable\"\n  }\n}"
             }
           ]
         },
@@ -6013,7 +6013,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/library/cd174589-fc53-4fa4-8286-66235e9dbf49",
+                  "raw": "{{baseUrl}}/api/v1/library/46930dd1-c2f2-4d12-a271-5b92f02c73ce",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -6021,7 +6021,7 @@
                     "api",
                     "v1",
                     "library",
-                    "cd174589-fc53-4fa4-8286-66235e9dbf49"
+                    "46930dd1-c2f2-4d12-a271-5b92f02c73ce"
                   ],
                   "query": []
                 },
@@ -6044,7 +6044,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"cd174589-fc53-4fa4-8286-66235e9dbf49\",\n  \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n  \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"kind\": \"model\",\n  \"content_type\": \"model/gltf-binary\",\n  \"size_bytes\": 15,\n  \"filename\": \"Pedestal.glb\",\n  \"title\": \"Renamed\",\n  \"attribution\": null,\n  \"visibility\": \"public\",\n  \"status\": \"uploaded\",\n  \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"created_at\": \"2026-11-07T11:51:55\",\n  \"updated_at\": \"2026-11-07T11:51:55\"\n}"
+              "body": "{\n  \"id\": \"46930dd1-c2f2-4d12-a271-5b92f02c73ce\",\n  \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n  \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"kind\": \"model\",\n  \"content_type\": \"model/gltf-binary\",\n  \"size_bytes\": 15,\n  \"filename\": \"Pedestal.glb\",\n  \"title\": \"Renamed\",\n  \"attribution\": null,\n  \"visibility\": \"public\",\n  \"status\": \"uploaded\",\n  \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"created_at\": \"2026-11-07T12:11:25\",\n  \"updated_at\": \"2026-11-07T12:11:25\"\n}"
             }
           ]
         },
@@ -6109,7 +6109,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/library/47bc3c5f-c2b4-478b-9a82-108804972bfc",
+                  "raw": "{{baseUrl}}/api/v1/library/2b9f6c8e-cf98-4617-98e6-498a3d2f8b39",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -6117,7 +6117,7 @@
                     "api",
                     "v1",
                     "library",
-                    "47bc3c5f-c2b4-478b-9a82-108804972bfc"
+                    "2b9f6c8e-cf98-4617-98e6-498a3d2f8b39"
                   ],
                   "query": []
                 }
@@ -6247,7 +6247,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"f2f2ad19-1016-49bb-9406-16f5b2569e86\",\n    \"slug\": \"dinosaurs\",\n    \"title\": \"Dinosaurs\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [],\n    \"published_revision\": null,\n    \"published_at\": null,\n    \"manifest_url\": null,\n    \"unpublished_changes\": true,\n    \"created_at\": \"2026-11-07T11:51:58\",\n    \"updated_at\": \"2026-11-07T11:51:58\"\n  },\n  {\n    \"id\": \"614c4d7e-092a-4228-b604-47cfd078e6db\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [\n      \"329ce8df-4d46-4a96-9bd8-9a2eb4724664\"\n    ],\n    \"published_revision\": 1,\n    \"published_at\": \"2026-11-07T11:51:58.430108\",\n    \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n    \"unpublished_changes\": false,\n    \"created_at\": \"2026-11-07T11:51:58\",\n    \"updated_at\": \"2026-11-07T11:51:58.430108\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"f3711fa0-f646-4d7a-bb69-c43cc25e9153\",\n    \"slug\": \"dinosaurs\",\n    \"title\": \"Dinosaurs\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [],\n    \"published_revision\": null,\n    \"published_at\": null,\n    \"manifest_url\": null,\n    \"unpublished_changes\": true,\n    \"created_at\": \"2026-11-07T12:11:29\",\n    \"updated_at\": \"2026-11-07T12:11:29\"\n  },\n  {\n    \"id\": \"64bb2b98-282d-43ab-83a6-6c664eab7418\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [\n      \"b5096d9d-e037-462e-b1db-1b7228443bc2\"\n    ],\n    \"published_revision\": 1,\n    \"published_at\": \"2026-11-07T12:11:29.015452\",\n    \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n    \"unpublished_changes\": false,\n    \"created_at\": \"2026-11-07T12:11:28\",\n    \"updated_at\": \"2026-11-07T12:11:29.015452\"\n  }\n]"
             }
           ]
         },
@@ -6511,7 +6511,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"551f54ec-7153-4af8-9f46-0c94ffcb8f59\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T11:51:57\",\n  \"updated_at\": \"2026-11-07T11:51:57\"\n}"
+              "body": "{\n  \"id\": \"6c08fc18-5229-4a26-bad2-1c784d7f1b2b\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27\"\n}"
             }
           ]
         },
@@ -6635,7 +6635,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"614c4d7e-092a-4228-b604-47cfd078e6db\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"329ce8df-4d46-4a96-9bd8-9a2eb4724664\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-07T11:51:58.430108\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": false,\n  \"created_at\": \"2026-11-07T11:51:58\",\n  \"updated_at\": \"2026-11-07T11:51:58.430108\"\n}"
+              "body": "{\n  \"id\": \"64bb2b98-282d-43ab-83a6-6c664eab7418\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"b5096d9d-e037-462e-b1db-1b7228443bc2\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-07T12:11:29.015452\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": false,\n  \"created_at\": \"2026-11-07T12:11:28\",\n  \"updated_at\": \"2026-11-07T12:11:29.015452\"\n}"
             }
           ]
         },
@@ -6736,7 +6736,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"95e59146-393f-41c0-9f07-d83413051277\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossil hall\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"ce1131b3-8679-43b2-9529-ae8cc18ba4b8\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-07T11:51:57.519089\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T11:51:57\",\n  \"updated_at\": \"2026-11-07T11:51:57.534001\"\n}"
+              "body": "{\n  \"id\": \"99eca2b0-c279-46bb-aa15-c14866677e13\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossil hall\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"f30f1f99-751d-40f6-9c41-b3195983d756\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-07T12:11:27.985423\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:28.000760\"\n}"
             }
           ]
         },
@@ -6822,7 +6822,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"asset_ids\": [\n    \"49c4321c-b1ec-42cc-b70b-d70112f9028f\",\n    \"988f830d-6050-4b15-aeea-a4365f43cd50\"\n  ]\n}",
+                  "raw": "{\n  \"asset_ids\": [\n    \"37d03148-674d-4cd3-85b4-1bc8c680a20b\",\n    \"4bec6750-70fe-4a9e-8e6b-9564983d96f9\"\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -6839,7 +6839,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"551f54ec-7153-4af8-9f46-0c94ffcb8f59\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"49c4321c-b1ec-42cc-b70b-d70112f9028f\",\n    \"988f830d-6050-4b15-aeea-a4365f43cd50\"\n  ],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T11:51:57\",\n  \"updated_at\": \"2026-11-07T11:51:57.438400\"\n}"
+              "body": "{\n  \"id\": \"6c08fc18-5229-4a26-bad2-1c784d7f1b2b\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"37d03148-674d-4cd3-85b4-1bc8c680a20b\",\n    \"4bec6750-70fe-4a9e-8e6b-9564983d96f9\"\n  ],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27.901022\"\n}"
             }
           ]
         },
@@ -7096,7 +7096,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools/c470ec5f-6b18-4df4-866a-5fef5f7cbbd3/packs",
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/af89d1fd-5b17-41d1-87b9-c0e0548e275d/packs",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -7105,7 +7105,7 @@
                     "v1",
                     "admin",
                     "schools",
-                    "c470ec5f-6b18-4df4-866a-5fef5f7cbbd3",
+                    "af89d1fd-5b17-41d1-87b9-c0e0548e275d",
                     "packs"
                   ],
                   "query": []
@@ -7121,7 +7121,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"eeb6ebca-2c93-4db8-a4bd-f2cfe0d2ff8f\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"item_count\": 1,\n    \"revision\": 1,\n    \"enabled\": false\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"0f9352e6-3020-481d-8a0a-6038125215a3\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"item_count\": 1,\n    \"revision\": 1,\n    \"enabled\": false\n  }\n]"
             }
           ]
         },
@@ -7295,7 +7295,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"tiles\": {\n    \"schools\": {\n      \"value\": 2,\n      \"sub\": \"1 active\"\n    },\n    \"educators\": {\n      \"value\": 3,\n      \"sub\": \"3 not signed in yet\"\n    },\n    \"students\": {\n      \"value\": 3,\n      \"sub\": \"0 active this week\"\n    },\n    \"published\": {\n      \"value\": 0,\n      \"sub\": \"0 still drafts\"\n    }\n  },\n  \"schools\": [\n    {\n      \"id\": \"75419eea-100f-4cdf-aea9-7e8504137a7c\",\n      \"name\": \"A\",\n      \"students\": 3,\n      \"educators\": 2,\n      \"status\": \"active\"\n    },\n    {\n      \"id\": \"e4ed1c4f-4a97-4313-9b52-27bbbd5b897a\",\n      \"name\": \"B\",\n      \"students\": 0,\n      \"educators\": 1,\n      \"status\": \"setting_up\"\n    }\n  ],\n  \"attention\": [\n    {\n      \"id\": \"setting-up-e4ed1c4f-4a97-4313-9b52-27bbbd5b897a\",\n      \"text\": \"B has no students yet\",\n      \"action_label\": \"Add accounts\",\n      \"go_to\": \"accounts\"\n    },\n    {\n      \"id\": \"no-classes-e4ed1c4f-4a97-4313-9b52-27bbbd5b897a\",\n      \"text\": \"B has no classes yet\",\n      \"action_label\": \"Add accounts\",\n      \"go_to\": \"accounts\"\n    }\n  ],\n  \"recent\": []\n}"
+              "body": "{\n  \"tiles\": {\n    \"schools\": {\n      \"value\": 2,\n      \"sub\": \"1 active\"\n    },\n    \"educators\": {\n      \"value\": 3,\n      \"sub\": \"3 not signed in yet\"\n    },\n    \"students\": {\n      \"value\": 3,\n      \"sub\": \"0 active this week\"\n    },\n    \"published\": {\n      \"value\": 0,\n      \"sub\": \"0 still drafts\"\n    }\n  },\n  \"schools\": [\n    {\n      \"id\": \"bf2df751-1fe0-44e6-bc6c-08c337b20187\",\n      \"name\": \"A\",\n      \"students\": 3,\n      \"educators\": 2,\n      \"status\": \"active\"\n    },\n    {\n      \"id\": \"88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n      \"name\": \"B\",\n      \"students\": 0,\n      \"educators\": 1,\n      \"status\": \"setting_up\"\n    }\n  ],\n  \"attention\": [\n    {\n      \"id\": \"setting-up-88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n      \"text\": \"B has no students yet\",\n      \"action_label\": \"Add accounts\",\n      \"go_to\": \"accounts\"\n    },\n    {\n      \"id\": \"no-classes-88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n      \"text\": \"B has no classes yet\",\n      \"action_label\": \"Add accounts\",\n      \"go_to\": \"accounts\"\n    }\n  ],\n  \"recent\": []\n}"
             }
           ]
         },
@@ -7369,7 +7369,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"75419eea-100f-4cdf-aea9-7e8504137a7c\",\n    \"name\": \"A\",\n    \"students\": 3,\n    \"educators\": 2,\n    \"status\": \"active\"\n  },\n  {\n    \"id\": \"e4ed1c4f-4a97-4313-9b52-27bbbd5b897a\",\n    \"name\": \"B\",\n    \"students\": 0,\n    \"educators\": 1,\n    \"status\": \"setting_up\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"bf2df751-1fe0-44e6-bc6c-08c337b20187\",\n    \"name\": \"A\",\n    \"students\": 3,\n    \"educators\": 2,\n    \"status\": \"active\"\n  },\n  {\n    \"id\": \"88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n    \"name\": \"B\",\n    \"students\": 0,\n    \"educators\": 1,\n    \"status\": \"setting_up\"\n  }\n]"
             }
           ]
         },
@@ -7444,7 +7444,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"9dd875ba-7fb2-4ec0-8965-88afc80e22ce\",\n    \"school_id\": \"75419eea-100f-4cdf-aea9-7e8504137a7c\",\n    \"name\": \"admin\",\n    \"email\": \"admin@x.test\",\n    \"role\": \"admin\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  },\n  {\n    \"id\": \"a60a1e0f-557c-42d7-acdb-973344e664b4\",\n    \"school_id\": \"e4ed1c4f-4a97-4313-9b52-27bbbd5b897a\",\n    \"name\": \"other\",\n    \"email\": \"other@x.test\",\n    \"role\": \"teacher\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"6ee42d51-b720-4e20-b718-6f765682282e\",\n    \"school_id\": \"bf2df751-1fe0-44e6-bc6c-08c337b20187\",\n    \"name\": \"admin\",\n    \"email\": \"admin@x.test\",\n    \"role\": \"admin\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  },\n  {\n    \"id\": \"aa9633d4-2e27-4b2b-9007-1de6adc807b3\",\n    \"school_id\": \"88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n    \"name\": \"other\",\n    \"email\": \"other@x.test\",\n    \"role\": \"teacher\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  }\n]"
             }
           ]
         },
@@ -7624,7 +7624,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"school_id\": \"f0491300-4c28-4a31-805f-cc93e0aa0e11\",\n  \"name\": \"New Person\",\n  \"email\": \"New.Person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ]\n}",
+                  "raw": "{\n  \"school_id\": \"2a15042c-ba66-4e41-9a58-c474b421abe4\",\n  \"name\": \"New Person\",\n  \"email\": \"New.Person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -7641,7 +7641,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"972d8a4a-fd9e-4063-9ee3-cb44c7a517d0\",\n  \"school_id\": \"f0491300-4c28-4a31-805f-cc93e0aa0e11\",\n  \"name\": \"New Person\",\n  \"email\": \"new.person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ],\n  \"last_active\": null,\n  \"status\": \"invited\",\n  \"invite_link\": \"https://tenant.test/invite/new.person@x.test\"\n}"
+              "body": "{\n  \"id\": \"8d7676e7-75d0-4c9f-a47b-04b70c906ac3\",\n  \"school_id\": \"2a15042c-ba66-4e41-9a58-c474b421abe4\",\n  \"name\": \"New Person\",\n  \"email\": \"new.person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ],\n  \"last_active\": null,\n  \"status\": \"invited\",\n  \"invite_link\": \"https://tenant.test/invite/new.person@x.test\"\n}"
             }
           ]
         },
@@ -7826,7 +7826,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/accounts/0e937dd4-2551-410e-9b06-b92a358404b8/invite",
+                  "raw": "{{baseUrl}}/api/v1/admin/accounts/13c469ad-5536-483c-aa3a-1a288d013374/invite",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -7835,7 +7835,7 @@
                     "v1",
                     "admin",
                     "accounts",
-                    "0e937dd4-2551-410e-9b06-b92a358404b8",
+                    "13c469ad-5536-483c-aa3a-1a288d013374",
                     "invite"
                   ],
                   "query": []
@@ -7850,7 +7850,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"account_id\": \"0e937dd4-2551-410e-9b06-b92a358404b8\",\n  \"invite_link\": \"https://tenant.test/again/s1\"\n}"
+              "body": "{\n  \"account_id\": \"13c469ad-5536-483c-aa3a-1a288d013374\",\n  \"invite_link\": \"https://tenant.test/again/s1\"\n}"
             }
           ]
         },
@@ -8015,7 +8015,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/accounts/0ed943cc-492c-4660-8493-e817a8eae8b2",
+                  "raw": "{{baseUrl}}/api/v1/admin/accounts/13b4754d-2975-4b98-99da-de82a7dc5b32",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -8024,7 +8024,7 @@
                     "v1",
                     "admin",
                     "accounts",
-                    "0ed943cc-492c-4660-8493-e817a8eae8b2"
+                    "13b4754d-2975-4b98-99da-de82a7dc5b32"
                   ],
                   "query": []
                 },
@@ -8047,7 +8047,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"0ed943cc-492c-4660-8493-e817a8eae8b2\",\n  \"school_id\": \"d9e92c61-ab2f-4646-ba77-781607b40b37\",\n  \"name\": \"s1\",\n  \"email\": \"s1@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\"\n  ],\n  \"last_active\": null,\n  \"status\": \"turned_off\"\n}"
+              "body": "{\n  \"id\": \"13b4754d-2975-4b98-99da-de82a7dc5b32\",\n  \"school_id\": \"4335d3f8-780e-4424-ade7-a3d4874a70a7\",\n  \"name\": \"s1\",\n  \"email\": \"s1@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\"\n  ],\n  \"last_active\": null,\n  \"status\": \"turned_off\"\n}"
             }
           ]
         },
@@ -8101,6 +8101,280 @@
                 "invite"
               ],
               "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Import CSV: dry run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"school_id\", \"dry_run\", \"rows\"], \"properties\": {\"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"dry_run\": {\"type\": \"boolean\"}, \"rows\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"line\", \"email\", \"name\", \"role\", \"class_names\", \"outcome\", \"account_id\", \"invite_link\", \"error\"], \"properties\": {\"line\": {\"type\": \"integer\"}, \"email\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"class_names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"outcome\": {\"type\": \"string\"}, \"account_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"invite_link\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"error\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}}}}));",
+                  "pm.test('one outcome per line, nothing made', () => pm.expect(pm.response.json().rows.map((r) => r.outcome)).to.eql(['would_create', 'skipped_exists', 'error']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"email,display_name,role,classes\\npostman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\\npostman.{{run_id}}@example.test,Again,student,\\nbad.{{run_id}}@example.test,Bad,janitor,\\n\",\n  \"dry_run\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "accounts",
+                    "import"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"school_id\": \"9aa8a188-dd21-4fc8-a3ee-64dcd0a70b1e\",\n  \"csv\": \"Email,Display_Name,Role,Classes\\nnew1@x.test,New One,student,3C\\nS1@x.test,Already Here,teacher,\\nnew2@x.test,New Two,principal,\\nnew1@x.test,New One Again,student,\\nnew3@x.test,New Three,teacher,3C;3D\\n\",\n  \"dry_run\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"school_id\": \"9aa8a188-dd21-4fc8-a3ee-64dcd0a70b1e\",\n  \"dry_run\": true,\n  \"rows\": [\n    {\n      \"line\": 2,\n      \"email\": \"new1@x.test\",\n      \"name\": \"New One\",\n      \"role\": \"student\",\n      \"class_names\": [\n        \"3C\"\n      ],\n      \"outcome\": \"would_create\",\n      \"account_id\": null,\n      \"invite_link\": null,\n      \"error\": null\n    },\n    {\n      \"line\": 3,\n      \"email\": \"s1@x.test\",\n      \"name\": \"Already Here\",\n      \"role\": \"teacher\",\n      \"class_names\": [],\n      \"outcome\": \"skipped_exists\",\n      \"account_id\": \"8ac67b5d-53a4-4535-8ad2-f564cb6ec51b\",\n      \"invite_link\": null,\n      \"error\": null\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Import CSV: apply",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"school_id\", \"dry_run\", \"rows\"], \"properties\": {\"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"dry_run\": {\"type\": \"boolean\"}, \"rows\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"line\", \"email\", \"name\", \"role\", \"class_names\", \"outcome\", \"account_id\", \"invite_link\", \"error\"], \"properties\": {\"line\": {\"type\": \"integer\"}, \"email\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"class_names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"outcome\": {\"type\": \"string\"}, \"account_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"invite_link\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"error\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}}}}));",
+                  "pm.test('creates the new one, skips the known one', () => pm.expect(pm.response.json().rows.map((r) => r.outcome)).to.eql(['created', 'skipped_exists', 'error']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"email,display_name,role,classes\\npostman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\\npostman.{{run_id}}@example.test,Again,student,\\nbad.{{run_id}}@example.test,Bad,janitor,\\n\",\n  \"dry_run\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher may not import (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"email,display_name,role,classes\\npostman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\\npostman.{{run_id}}@example.test,Again,student,\\nbad.{{run_id}}@example.test,Bad,janitor,\\n\",\n  \"dry_run\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CSV without the columns is 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"name,email\\nX,x@example.test\\n\",\n  \"dry_run\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -8321,7 +8595,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"37114d5d-4c3a-4b4d-bb76-52d88d2c80c3\",\n  \"name\": \"Riverside Primary\",\n  \"students\": 0,\n  \"educators\": 0,\n  \"status\": \"setting_up\"\n}"
+              "body": "{\n  \"id\": \"3c3bdf3c-12b7-4f29-b4ba-0ff52167ae9e\",\n  \"name\": \"Riverside Primary\",\n  \"students\": 0,\n  \"educators\": 0,\n  \"status\": \"setting_up\"\n}"
             }
           ]
         },
@@ -8562,7 +8836,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools/6cd31a3e-24a5-46f3-b3bd-cbaeb09990b2/permissions",
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/8815994b-60da-4d0e-9802-d7771f767783/permissions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -8571,7 +8845,7 @@
                     "v1",
                     "admin",
                     "schools",
-                    "6cd31a3e-24a5-46f3-b3bd-cbaeb09990b2",
+                    "8815994b-60da-4d0e-9802-d7771f767783",
                     "permissions"
                   ],
                   "query": []
@@ -9027,7 +9301,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools/27907e3b-fab8-4b34-83c4-6a1cd6c1c65a/permissions",
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/a3e098e6-4bb7-467c-895a-e76e25a36f3f/permissions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -9036,7 +9310,7 @@
                     "v1",
                     "admin",
                     "schools",
-                    "27907e3b-fab8-4b34-83c4-6a1cd6c1c65a",
+                    "a3e098e6-4bb7-467c-895a-e76e25a36f3f",
                     "permissions"
                   ],
                   "query": []

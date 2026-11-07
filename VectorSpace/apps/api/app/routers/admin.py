@@ -18,6 +18,7 @@ may use -- is not here; it stays in the browser's adminFake.ts and the page mark
 
 from __future__ import annotations
 
+import csv
 import re
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -26,6 +27,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import permissions
@@ -41,7 +43,7 @@ from ..models import (
     Project,
     SchoolPermission,
 )
-from ..provision import Row, logins, provision
+from ..provision import ROLES, Row, logins, parse_rows, provision
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -325,6 +327,128 @@ def new_sign_in_link(
         # the tenant refused or was unreachable; say so rather than answer 500 with no reason
         raise HTTPException(status_code=502, detail="Auth0 did not give a sign-in link. Try again.") from error
     return SignInLinkResponse(account_id=person.id, invite_link=link or None)
+
+
+# --- create accounts from a CSV (POST /admin/accounts/import) ------------------------------------
+
+# rows per request: a class list fits easily, and each new row costs Auth0 two Management calls
+IMPORT_LIMIT = 200
+
+
+class ImportRequest(BaseModel):
+    school_id: uuid.UUID
+    # the file's text, as the CLI reads it: email,display_name,role,classes (classes split by ";")
+    csv: str = Field(max_length=200_000)
+    # true answers what would happen and writes nothing; the web page always asks this first
+    dry_run: bool = True
+
+
+class ImportRow(BaseModel):
+    line: int
+    email: str
+    name: str
+    role: str
+    class_names: list[str]
+    # would_create (dry run), created, skipped_exists, or error (see error)
+    outcome: str
+    account_id: uuid.UUID | None = None
+    # created rows only, and only where there is a tenant to mint one: a credential, shown once
+    invite_link: str | None = None
+    error: str | None = None
+
+
+class ImportResponse(BaseModel):
+    school_id: uuid.UUID
+    dry_run: bool
+    rows: list[ImportRow]
+
+
+def _row_problem(row: Row, earlier: dict[str, int]) -> str | None:
+    """What is wrong with one row on its own, in a sentence; None when it can be created."""
+    if not row.email:
+        return "No email address"
+    if "@" not in row.email or " " in row.email or len(row.email) > 320:
+        return f"{row.email} is not an email address"
+    if row.email in earlier:
+        return f"{row.email} is already on line {earlier[row.email]} of this file"
+    if not row.display_name:
+        return "No display_name"
+    if len(row.display_name) > 200:
+        return "display_name is longer than 200 characters"
+    if row.role not in ROLES:
+        return f"Unknown role '{row.role}' (use {', '.join(ROLES)})"
+    if any(len(name) > 200 for name in row.classes):
+        return "A class name is longer than 200 characters"
+    return None
+
+
+@router.post("/accounts/import", response_model=ImportResponse)
+def import_accounts(
+    body: ImportRequest, actor: Actor = Depends(require_admin), db: Session = Depends(get_db)
+) -> ImportResponse:
+    """Many accounts from one CSV, in the CLI's format (provision.parse_rows reads both).
+
+    Differs from the CLI on purpose in two ways:
+    - An address the school already has is skipped and reported, never updated. A web upload must
+      not quietly change somebody's role or turn a turned-off account back on (the same reason
+      POST /accounts answers 409).
+    - Each row is committed on its own. If Auth0 fails on row 17, rows 1-16 are saved with their
+      logins, row 17 says what went wrong, and running the same file again skips what was made.
+
+    Classes named in the file are made in that school if they do not exist yet. The reply has one
+    row per line; created rows carry their one-time link, which is shown here and nowhere else.
+    """
+    org = _school_or_404(db, body.school_id)
+    try:
+        rows = parse_rows(body.csv)
+    except (ValueError, csv.Error) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
+    if not rows:
+        raise HTTPException(status_code=422, detail="The CSV names its columns but has nobody in it")
+    if len(rows) > IMPORT_LIMIT:
+        raise HTTPException(
+            status_code=422, detail=f"The CSV has {len(rows)} people; split it into files of {IMPORT_LIMIT} or fewer"
+        )
+
+    known = {
+        email: person_id
+        for email, person_id in db.execute(select(Actor.email, Actor.id).where(Actor.organisation_id == org.id))
+    }
+    earlier: dict[str, int] = {}
+    auth0 = None  # made on the first row to create: one Management token for the whole file
+    report: list[ImportRow] = []
+    for row in rows:
+        result = ImportRow(
+            line=row.line, email=row.email, name=row.display_name, role=row.role,
+            class_names=row.classes, outcome="error",
+        )
+        result.error = _row_problem(row, earlier)
+        earlier.setdefault(row.email, row.line)
+        if result.error is not None:
+            pass
+        elif row.email in known:
+            result.outcome, result.account_id = "skipped_exists", known[row.email]
+        elif body.dry_run:
+            result.outcome = "would_create"
+        else:
+            if auth0 is None:
+                try:
+                    auth0 = logins()
+                except httpx.HTTPError as error:
+                    # nothing is saved yet: the token is fetched before the first row is created
+                    raise HTTPException(status_code=502, detail="Auth0 could not be reached. Try again.") from error
+            try:
+                made = provision(db, auth0, org.slug, org.name, [row])  # commits this row
+            except (httpx.HTTPError, IntegrityError):
+                db.rollback()
+                result.error = "This login could not be made. Run the same file again: rows already made are skipped."
+            else:
+                person_id = db.scalar(select(Actor.id).where(Actor.organisation_id == org.id, Actor.email == row.email))
+                known[row.email] = person_id
+                result.outcome, result.account_id = "created", person_id
+                result.invite_link = made[0][2] or None
+        report.append(result)
+    return ImportResponse(school_id=org.id, dry_run=body.dry_run, rows=report)
 
 
 def _attention(db: Session, schools: list[SchoolResponse], never_signed_in: int) -> list[AttentionItem]:

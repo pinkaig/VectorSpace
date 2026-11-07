@@ -340,3 +340,105 @@ def test_auth0_refusing_is_a_502_with_a_reason(client, school, monkeypatch) -> N
     monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _TenantDown())
     reply = client.post(f"/admin/accounts/{school['s1'].id}/invite", headers=as_user("admin"))
     assert reply.status_code == 502 and "Auth0" in reply.json()["detail"]
+
+
+# --- create accounts from a CSV (POST /admin/accounts/import) ------------------------------------
+
+CLASS_LIST = (
+    "Email,Display_Name,Role,Classes\n"
+    "new1@x.test,New One,student,3C\n"
+    "S1@x.test,Already Here,teacher,\n"  # s1 is in school A: skipped, and not turned into a teacher
+    "new2@x.test,New Two,principal,\n"
+    "new1@x.test,New One Again,student,\n"
+    "new3@x.test,New Three,teacher,3C;3D\n"
+)
+
+
+def _import(client, school, csv_text: str = CLASS_LIST, dry_run: bool = False, who: str = "admin"):
+    body = {"school_id": str(school["admin"].organisation_id), "csv": csv_text, "dry_run": dry_run}
+    return client.post("/admin/accounts/import", json=body, headers=as_user(who))
+
+
+class _FailsOn(_FakeLogins):
+    """Auth0 refusing one address, part-way through a file."""
+
+    def __init__(self, email: str) -> None:
+        self.email = email
+
+    def create_user(self, email: str, display_name: str) -> tuple[str, str]:
+        if email == self.email:
+            raise httpx.HTTPStatusError("503", request=httpx.Request("POST", "https://t"), response=httpx.Response(503))
+        return super().create_user(email, display_name)
+
+
+def test_a_dry_run_reports_every_line_and_writes_nothing(client, db, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    reply = _import(client, school, dry_run=True)
+    assert reply.status_code == 200
+    rows = reply.json()["rows"]
+    assert [(r["line"], r["outcome"]) for r in rows] == [
+        (2, "would_create"), (3, "skipped_exists"), (4, "error"), (5, "error"), (6, "would_create")
+    ]
+    assert "principal" in rows[2]["error"] and "line 2" in rows[3]["error"]
+    assert rows[4]["class_names"] == ["3C", "3D"]
+    assert all(r["invite_link"] is None for r in rows)
+    assert db.scalar(select(Actor).where(Actor.email == "new1@x.test")) is None
+
+
+def test_applying_creates_the_good_rows_skips_the_known_and_hands_out_links(client, db, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    rows = _import(client, school).json()["rows"]
+    assert [r["outcome"] for r in rows] == ["created", "skipped_exists", "error", "error", "created"]
+    assert rows[0]["invite_link"] == "https://tenant.test/invite/new1@x.test"
+    assert rows[1]["account_id"] == str(school["s1"].id) and rows[1]["invite_link"] is None
+    db.expire_all()
+    assert db.get(Actor, school["s1"].id).role == "student"  # skipped, not rewritten
+    made = db.scalar(select(Actor).where(Actor.email == "new3@x.test"))
+    assert made.role == "teacher" and made.organisation_id == school["admin"].organisation_id
+    listed = client.get("/admin/accounts", params=_school_a(school), headers=as_user("admin")).json()
+    assert sorted(next(a for a in listed if a["email"] == "new3@x.test")["class_names"]) == ["3C", "3D"]
+
+
+def test_running_the_same_file_again_creates_nobody_twice(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    _import(client, school)
+    again = [r["outcome"] for r in _import(client, school).json()["rows"]]
+    assert again == ["skipped_exists", "skipped_exists", "error", "error", "skipped_exists"]
+
+
+def test_auth0_failing_mid_file_keeps_the_rows_before_and_after(client, db, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FailsOn("new1@x.test"))
+    rows = _import(client, school).json()["rows"]
+    assert rows[0]["outcome"] == "error" and "again" in rows[0]["error"]
+    assert rows[4]["outcome"] == "created"
+    db.expire_all()
+    assert db.scalar(select(Actor).where(Actor.email == "new1@x.test")) is None
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    assert _import(client, school).json()["rows"][0]["outcome"] == "created"
+
+
+def test_without_a_tenant_created_rows_have_a_null_link(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _LoginsWithoutATenant())
+    rows = _import(client, school, "email,display_name,role\nsolo@x.test,Solo,student\n").json()["rows"]
+    assert rows[0]["outcome"] == "created" and rows[0]["invite_link"] is None
+
+
+def test_a_file_without_the_columns_is_refused_whole(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    reply = _import(client, school, "name,email\nA,a@x.test\n")
+    assert reply.status_code == 422 and "display_name, role" in reply.json()["detail"]
+    assert _import(client, school, "email,display_name,role\n").status_code == 422
+
+
+def test_more_than_200_people_is_refused(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    lines = "".join(f"p{i}@x.test,P {i},student\n" for i in range(201))
+    reply = _import(client, school, "email,display_name,role\n" + lines, dry_run=True)
+    assert reply.status_code == 422 and "200" in reply.json()["detail"]
+
+
+def test_only_an_admin_imports_and_only_into_a_real_school(client, school, monkeypatch) -> None:
+    monkeypatch.setattr("apps.api.app.routers.admin.logins", lambda: _FakeLogins())
+    assert _import(client, school, who="t1").status_code == 403
+    body = {"school_id": str(uuid.uuid4()), "csv": CLASS_LIST, "dry_run": True}
+    assert client.post("/admin/accounts/import", json=body, headers=as_user("admin")).status_code == 404

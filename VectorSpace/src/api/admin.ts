@@ -73,6 +73,25 @@ export type NewAccount = Pick<Account, "schoolId" | "name" | "email" | "role" | 
  */
 export type CreatedAccount = Account & { inviteLink: string | null };
 
+/** What POST /admin/accounts/import says about one CSV line. */
+export type ImportOutcome = "would_create" | "created" | "skipped_exists" | "error";
+export type ImportRow = {
+  line: number;
+  email: string;
+  name: string;
+  role: string;
+  classNames: string[];
+  outcome: ImportOutcome;
+  accountId: string | null;
+  /** created rows only, where there is an Auth0 tenant: a credential, shown and downloaded once */
+  inviteLink: string | null;
+  error: string | null;
+};
+type ImportApiRow = {
+  line: number; email: string; name: string; role: string; class_names: string[]; outcome: ImportOutcome;
+  account_id: string | null; invite_link: string | null; error: string | null;
+};
+
 export type Tile = { value: number; sub: string };
 
 export type AttentionItem = {
@@ -133,6 +152,8 @@ export type AdminApi = {
   setAccountOff: (accountId: string, off: boolean) => Promise<Account>;
   /** A fresh one-time sign-in link (also a password reset); null where the build has no Auth0 tenant. */
   newSignInLink: (accountId: string) => Promise<string | null>;
+  /** One row per CSV line. dryRun writes nothing; otherwise created rows carry their one-time link. */
+  importAccounts: (schoolId: string, csv: string, dryRun: boolean) => Promise<ImportRow[]>;
   getPermissions: (schoolId: string) => Promise<PermissionRow[]>;
   /** Answers every setting as saved, so the page shows what the API kept rather than what it sent. */
   savePermissions: (schoolId: string, rows: PermissionRow[]) => Promise<PermissionRow[]>;
@@ -274,6 +295,15 @@ export function createAdminApi(getToken: GetToken, base?: string): AdminApi {
       (await apiFetch<{ account_id: string; invite_link: string | null }>(
         getToken, `/admin/accounts/${encodeURIComponent(accountId)}/invite`, { method: "POST" }, base,
       )).invite_link,
+
+    importAccounts: async (schoolId, csv, dryRun) =>
+      (await apiFetch<{ rows: ImportApiRow[] }>(getToken, "/admin/accounts/import", {
+        method: "POST",
+        body: { school_id: schoolId, csv, dry_run: dryRun },
+      }, base)).rows.map((r) => ({
+        line: r.line, email: r.email, name: r.name, role: r.role, classNames: r.class_names, outcome: r.outcome,
+        accountId: r.account_id, inviteLink: r.invite_link, error: r.error,
+      })),
 
     setAccountOff: async (accountId, off) =>
       toAccount(

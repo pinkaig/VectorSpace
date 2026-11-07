@@ -84,6 +84,29 @@ describe('admin api', () => {
     await expect(api().newSignInLink('a1')).rejects.toMatchObject({ status: 409 })
   })
 
+  it('imports a CSV as text with dry_run, and maps each line\'s outcome', async () => {
+    const fetchMock = reply({
+      school_id: 'org-1', dry_run: false,
+      rows: [{
+        line: 2, email: 'new@demo.test', name: 'New', role: 'student', class_names: ['3C'], outcome: 'created',
+        account_id: 'a9', invite_link: 'https://tenant.test/invite/new', error: null,
+      }],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const rows = await api().importAccounts('org-1', 'email,display_name,role\nnew@demo.test,New,student\n', false)
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://api/api/v1/admin/accounts/import')
+    expect(JSON.parse(init.body)).toEqual({
+      school_id: 'org-1', csv: 'email,display_name,role\nnew@demo.test,New,student\n', dry_run: false,
+    })
+    expect(rows[0]).toEqual({
+      line: 2, email: 'new@demo.test', name: 'New', role: 'student', classNames: ['3C'], outcome: 'created',
+      accountId: 'a9', inviteLink: 'https://tenant.test/invite/new', error: null,
+    })
+  })
+
   it('adds an account with the database\'s own field names, and keeps the invite link', async () => {
     const fetchMock = reply({
       id: 'a2', school_id: 'org-1', name: 'New Person', email: 'new@demo.test', role: 'teacher',

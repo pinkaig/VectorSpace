@@ -1,8 +1,8 @@
 # Postman collection for /api/v1
 
-A second client of the API the web app uses, with nothing changed for it. 139 requests in 13 folders:
+A second client of the API the web app uses, with nothing changed for it. 143 requests in 13 folders:
 Health, Auth, Me, Classes, Projects, Media, Submissions, Public, Analytics, Library, Packs, Admin,
-Permissions. Every request checks its status code, a time budget and the JSON shape. 52 of them carry
+Permissions. Every request checks its status code, a time budget and the JSON shape. 53 of them carry
 the recorded example from `app/openapi_examples.json`, which is what a Postman mock server answers with.
 
 **A new or changed route gets a request here in the same change** (the rule is also in

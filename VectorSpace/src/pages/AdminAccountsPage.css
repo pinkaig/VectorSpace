@@ -123,3 +123,23 @@
   display: flex;
   justify-content: flex-start;
 }
+
+/* Import class list (CSV): the format note, the one-line count, and the per-line table */
+.admin-import-help {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.admin-import-summary {
+  margin: 12px 0 8px;
+  font-size: 14px;
+}
+
+.admin-import-table {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.admin-import-bad td:last-child {
+  color: var(--red-700);
+}

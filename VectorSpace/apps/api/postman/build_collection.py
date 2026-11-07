@@ -82,6 +82,14 @@ SCHOOL = obj(id=UUID, name=STR, students=INT, educators=INT, status=STR)
 ACCOUNT = obj(id=UUID, school_id=UUID, name=STR, email=STR, role=STR, class_names=array(STR),
               last_active=nullable(STR), status=STR)
 SIGN_IN_LINK = obj(account_id=UUID, invite_link=nullable(STR))
+IMPORT = obj(school_id=UUID, dry_run=BOOL, rows=array(obj(
+    line=INT, email=STR, name=STR, role=STR, class_names=array(STR), outcome=STR,
+    account_id=nullable(UUID), invite_link=nullable(STR), error=nullable(STR))))
+# a new person, the "Add a student" address (known by then), and a bad role: one of each outcome
+IMPORT_CSV = ("email,display_name,role,classes\n"
+              "postman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\n"
+              "postman.{{run_id}}@example.test,Again,student,\n"
+              "bad.{{run_id}}@example.test,Bad,janitor,\n")
 PACK = obj(id=UUID, slug=STR, title=STR, description=nullable(STR), kind={"enum": ["objects", "environments"]},
             asset_ids=array(UUID), published_revision=nullable(INT), published_at=nullable(STR),
             manifest_url=nullable(STR), unpublished_changes=BOOL, created_at=STR, updated_at=STR)
@@ -584,6 +592,18 @@ admin = folder("Admin", "School overview and accounts, admins only.", [
         tests="pm.test('is turned off', () => pm.expect(pm.response.json().status).to.eql('turned_off'));"),
     req("No sign-in link while turned off (409)", "POST", "/admin/accounts/{{account_id}}/invite", as_="admin",
         status=409, schema=ERROR, writes=True),
+    req("Import CSV: dry run", "POST", "/admin/accounts/import", as_="admin", status=200, schema=IMPORT,
+        spec="POST /api/v1/admin/accounts/import", body={"school_id": "{{school_id}}", "csv": IMPORT_CSV, "dry_run": True},
+        tests="pm.test('one outcome per line, nothing made', () => pm.expect(pm.response.json().rows.map((r) => r.outcome))"
+              ".to.eql(['would_create', 'skipped_exists', 'error']));"),
+    req("Import CSV: apply", "POST", "/admin/accounts/import", as_="admin", status=200, schema=IMPORT, writes=True,
+        body={"school_id": "{{school_id}}", "csv": IMPORT_CSV, "dry_run": False},
+        tests="pm.test('creates the new one, skips the known one', () => pm.expect(pm.response.json().rows.map((r) => r.outcome))"
+              ".to.eql(['created', 'skipped_exists', 'error']));"),
+    req("Teacher may not import (403)", "POST", "/admin/accounts/import", as_="teacher", status=403, schema=ERROR,
+        body={"school_id": "{{school_id}}", "csv": IMPORT_CSV, "dry_run": True}),
+    req("CSV without the columns is 422", "POST", "/admin/accounts/import", as_="admin", status=422, schema=ERROR,
+        body={"school_id": "{{school_id}}", "csv": "name,email\nX,x@example.test\n", "dry_run": True}),
     req("Cannot turn yourself off (400)", "PATCH", "/admin/accounts/{{admin_id}}", as_="admin", status=400, schema=ERROR,
         body={"active": False}),
     req("Unknown account is 404", "PATCH", f"/admin/accounts/{NO_SUCH_ID}", as_="admin", status=404, schema=ERROR,

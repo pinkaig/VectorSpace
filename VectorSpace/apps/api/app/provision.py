@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import secrets
 import sys
 from dataclasses import dataclass
@@ -35,6 +36,8 @@ class Row:
     display_name: str
     role: str
     classes: list[str]
+    # the CSV line this came from (header is line 1), so a report can point at it; 0 when not from a file
+    line: int = 0
 
 
 class Auth0Admin:
@@ -118,17 +121,40 @@ def logins() -> Auth0Admin | DevLogins:
     return DevLogins() if get_settings().auth_dev_bypass else Auth0Admin()
 
 
-def read_rows(path: str) -> list[Row]:
-    with open(path, newline="", encoding="utf-8-sig") as handle:
-        rows = [
+def parse_rows(text: str) -> list[Row]:
+    """The roster CSV format, read from text. The CLI (read_rows) and POST /admin/accounts/import both
+    come through here, so the two cannot drift apart.
+
+    Columns: email, display_name, role, classes (semicolon-separated, optional). Headers are matched
+    without regard to case or spaces. Only a missing column fails the whole file (ValueError); a
+    row's own problems (a bad role, an empty name) are left for the caller to judge row by row.
+    """
+    reader = csv.DictReader(io.StringIO(text.lstrip("﻿")))
+    reader.fieldnames = [name.strip().lower() for name in (reader.fieldnames or [])]
+    missing = [name for name in ("email", "display_name", "role") if name not in reader.fieldnames]
+    if missing:
+        raise ValueError(
+            f"The CSV has no {', '.join(missing)} column. The first line must name the columns: "
+            "email,display_name,role,classes"
+        )
+    rows = []
+    for r in reader:
+        rows.append(
             Row(
-                email=r["email"].strip().lower(),
-                display_name=r["display_name"].strip(),
-                role=r["role"].strip().lower(),
+                email=(r.get("email") or "").strip().lower(),
+                display_name=(r.get("display_name") or "").strip(),
+                role=(r.get("role") or "").strip().lower(),
                 classes=[c.strip() for c in (r.get("classes") or "").split(";") if c.strip()],
+                line=reader.line_num,
             )
-            for r in csv.DictReader(handle)
-        ]
+        )
+    return rows
+
+
+def read_rows(path: str) -> list[Row]:
+    """The CLI's reader: the whole file is refused if any role is unknown."""
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        rows = parse_rows(handle.read())
     bad = [r.email for r in rows if r.role not in ROLES]
     if bad:
         raise ValueError(f"Unknown role for: {', '.join(bad)} (use one of {', '.join(ROLES)})")
