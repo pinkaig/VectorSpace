@@ -22,7 +22,7 @@
  * through the API server. Which schools have a pack is admin.ts's getRooms/setRoomEnabled.
  *
  * @status
- * Current. The editor does not read packs yet (P7 in the asset-management roadmap).
+ * Current. The editor reads published packs through /packs/mine and their public manifests.
  */
 
 import { apiFetch, apiUrl, type GetToken } from "./client";

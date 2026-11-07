@@ -94,6 +94,8 @@ PACK = obj(id=UUID, slug=STR, title=STR, description=nullable(STR), kind={"enum"
             asset_ids=array(UUID), published_revision=nullable(INT), published_at=nullable(STR),
             manifest_url=nullable(STR), unpublished_changes=BOOL, created_at=STR, updated_at=STR)
 MY_PACK = obj(slug=STR, title=STR, description=nullable(STR), kind=STR, revision=INT, manifest_url=STR, item_count=INT)
+RESOLVED_PACK_ASSETS = obj(assets=array(obj(id=STR, url=STR, kind=STR, content_type=STR, size_bytes=INT, title=STR,
+                                            attribution=nullable(STR))), missing=array(STR))
 SCHOOL_PACK = obj(id=UUID, slug=STR, title=STR, description=nullable(STR), kind=STR, item_count=INT, revision=INT,
                   enabled=BOOL)
 PERMISSION = obj(key=STR, group=STR, label=STR, students=BOOL, educators=BOOL, can_adjust=BOOL, enforced=BOOL)
@@ -529,6 +531,13 @@ packs = folder("Packs", "Asset packs: an admin drafts one, and a school switches
     req("Teacher may not (403)", "GET", "/packs", as_="teacher", status=403, schema=ERROR),
     req("Student reads the school's packs", "GET", "/packs/mine", as_="student", status=200, schema=array(MY_PACK),
         spec="GET /api/v1/packs/mine", description="Anyone signed in: the published packs their own school has switched on."),
+    req("Anyone resolves pack assets (no token)", "POST", "/packs/resolve", status=200, schema=RESOLVED_PACK_ASSETS,
+        spec="POST /api/v1/packs/resolve",
+        body={"ids": [f"pack:postman-none:{NO_SUCH_ID}", "bundled-model"]},
+        description="A visitor has no token. Ids the server cannot serve (unknown pack, not published, not a pack id) "
+                    "come back in missing, never as an error; the browser reads that as gone for good.",
+        tests="pm.test('both are reported missing', () => { const r = pm.response.json(); pm.expect(r.assets).to.eql([]); pm.expect(r.missing.length).to.eql(2); });"),
+    req("Resolve with no ids is 422", "POST", "/packs/resolve", status=422, schema=ERROR, body={"ids": []}),
     req("Bad short name is 422", "POST", "/packs", as_="admin", status=422, schema=ERROR,
         body={"slug": "Not OK", "title": "Bad name"}),
     req("Admin drafts a pack", "POST", "/packs", as_="admin", status=201, schema=PACK, spec="POST /api/v1/packs",

@@ -28,13 +28,13 @@ import type { ProjectData } from '../../project/model'
 import { AssetDefinition, assetCatalog, countAssetUses } from '../../content/assets'
 import { addUserAssets, loadUserAssets, removeUserAsset, type OptimisedImport } from '../../content/userAssets'
 
-export function useUserAssets(project: ProjectData, bumpSync: () => void) {
+export function useUserAssets(project: ProjectData, bumpSync: () => void, extraAssets: readonly AssetDefinition[] = []) {
   const [userAssets, setUserAssets] = useState<AssetDefinition[]>([])
   // Outcome of the last import. `info` is shown while an import is still running;
   // `optimised` lists imports that were shrunk to fit the real-time budget, each offering
   // to keep the original instead.
   const [assetNotice, setAssetNotice] = useState<{ tone: 'error' | 'success' | 'info'; lines: string[]; optimised?: OptimisedImport[] } | null>(null)
-  const visibleAssets = [...assetCatalog, ...userAssets]
+  const visibleAssets = [...assetCatalog, ...extraAssets, ...userAssets]
 
   useEffect(() => {
     loadUserAssets()

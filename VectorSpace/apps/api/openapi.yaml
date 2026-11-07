@@ -2102,6 +2102,53 @@ paths:
               example: []
       security:
       - HTTPBearer: []
+  /api/v1/packs/resolve:
+    post:
+      tags:
+      - packs
+      summary: Resolve Pack Assets
+      description: 'Where each asked-for pack asset lives. Public: the files are public-read already.'
+      operationId: resolve_pack_assets_api_v1_packs_resolve_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveRequest'
+            example:
+              ids:
+              - pack:fossils:b258a4ef-8553-491f-a82f-c3946c1f0b82
+              - pack:fossils:7ae4c97a-b2d8-4896-a0d9-7e3f49678690
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveResponse'
+              example:
+                assets:
+                - id: pack:fossils:b258a4ef-8553-491f-a82f-c3946c1f0b82
+                  url: https://assets.test/library/b8adeb36c9c297eb6b7170889c795817cb2be2b3fbf58dcbed56be884a57d867/TRex_Skull.glb
+                  kind: model
+                  content_type: model/gltf-binary
+                  size_bytes: 15
+                  title: TRex_Skull
+                  attribution: null
+                - id: pack:fossils:7ae4c97a-b2d8-4896-a0d9-7e3f49678690
+                  url: https://assets.test/library/544a3548837a51aff62a0dad0962114f3c6f46f24649c45eb55c3adc31a3c3bf/Mammoth.glb
+                  kind: model
+                  content_type: model/gltf-binary
+                  size_bytes: 15
+                  title: Mammoth
+                  attribution: null
+                missing: []
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/packs:
     get:
       tags:
@@ -4851,6 +4898,73 @@ components:
       - updated
       - skipped
       title: PushSetupResponse
+    ResolveRequest:
+      properties:
+        ids:
+          items:
+            type: string
+            maxLength: 200
+            minLength: 1
+          type: array
+          maxItems: 200
+          minItems: 1
+          title: Ids
+      type: object
+      required:
+      - ids
+      title: ResolveRequest
+    ResolveResponse:
+      properties:
+        assets:
+          items:
+            $ref: '#/components/schemas/ResolvedAsset'
+          type: array
+          title: Assets
+        missing:
+          items:
+            type: string
+          type: array
+          title: Missing
+      type: object
+      required:
+      - assets
+      - missing
+      title: ResolveResponse
+    ResolvedAsset:
+      properties:
+        id:
+          type: string
+          title: Id
+        url:
+          type: string
+          title: Url
+        kind:
+          type: string
+          title: Kind
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        title:
+          type: string
+          title: Title
+        attribution:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Attribution
+      type: object
+      required:
+      - id
+      - url
+      - kind
+      - content_type
+      - size_bytes
+      - title
+      - attribution
+      title: ResolvedAsset
     ReviewRequest:
       properties:
         grade:

@@ -22,18 +22,23 @@ import {
   InlineTextResolver,
   KindRouterResolver,
   LocalCatalogResolver,
+  PackAssetResolver,
+  PackDirectory,
   PlaceholderAssetResolver,
   PrimitiveResolver,
   isPlaceholderDescriptor,
   type AssetDescriptor,
   type AssetRef,
+  type PackDirectoryEntry,
+  type PackOutcome,
 } from '../../packages/assets/src/index'
+import { ApiError, apiFetch, apiUrl } from '../api/client'
 import { assetRefForAttachment, type Attachment, type SceneObject, type TextAssetMeta } from '../project/model'
 
 // The dev/local GLB catalog: built-in models (assets.ts) and models imported through
 // the UI (userAssets.ts) register here via registerLocalAsset. An assetId that was
 // never registered still fails as a genuine, visible error.
-const localCatalog = new Map<string, { url: string; contentType?: string }>()
+const localCatalog = new Map<string, { url: string; contentType?: string; sizeBytes?: number }>()
 
 /**
  * RESERVED, not live. Text content is inline in ProjectData today, so
@@ -69,12 +74,64 @@ export const setProjectTextAssets = (textAssets: readonly TextAssetMeta[] | unde
  * the catalog. The guard turns a wrong content type or over-cap size on any
  * media kind into an error descriptor before it is cached.
  */
+/**
+ * Cloud pack assets. A scene keeps only "pack:<slug>:<asset id>"; the address is the server's to
+ * give (POST /packs/resolve, open to visitors who have no token because the files are public-read).
+ * The directory batches, dedupes and retries those asks, and says "removed" apart from "could not
+ * reach the server". The catalog leg below consults it for any pack id the local catalogue lacks.
+ */
+type ResolveAnswer = {
+  assets: Array<{ id: string; url: string; content_type: string; size_bytes: number; title: string; attribution: string | null }>
+  missing: string[]
+}
+
+const noToken = async (): Promise<string | null> => null
+
+// Only a 5xx, a timeout or a rate limit is worth another try; any other 4xx will answer the same again.
+const worthRetrying = (error: unknown): boolean => {
+  if (!apiUrl) return false
+  return !(error instanceof ApiError) || error.status >= 500 || error.status === 408 || error.status === 429
+}
+
+export const packDirectory = new PackDirectory({
+  fetchBatch: async (ids) => {
+    const answer = await apiFetch<ResolveAnswer>(noToken, '/packs/resolve', { method: 'POST', body: { ids } })
+    return {
+      found: answer.assets.map((asset) => ({
+        id: asset.id,
+        url: asset.url,
+        contentType: asset.content_type,
+        sizeBytes: asset.size_bytes,
+        title: asset.title,
+        attribution: asset.attribution,
+      })),
+      missing: answer.missing,
+    }
+  },
+  isTransient: worthRetrying,
+})
+
+const catalogListeners = new Set<() => void>()
+const notifyCatalogChanged = () => catalogListeners.forEach((listener) => listener())
+
+/** Told whenever the catalogue gains an address, so a viewer that skipped an object can redraw it. */
+export const subscribeCatalogChanges = (listener: () => void): (() => void) => {
+  catalogListeners.add(listener)
+  return () => { catalogListeners.delete(listener) }
+}
+
+const registerPackEntry = (entry: PackDirectoryEntry): void => {
+  if (localCatalog.get(entry.id)?.url === entry.url) return
+  localCatalog.set(entry.id, { url: entry.url, contentType: entry.contentType, sizeBytes: entry.sizeBytes })
+  notifyCatalogChanged()
+}
+
 const cachingResolver = new CachingAssetResolver(
   new ContentGuardResolver(
     new KindRouterResolver({
       primitives: new PrimitiveResolver(),
       inlineText: new InlineTextResolver((assetId) => textAssetsById.get(assetId)),
-      catalog: new LocalCatalogResolver(localCatalog),
+      catalog: new PackAssetResolver(new LocalCatalogResolver(localCatalog), packDirectory, registerPackEntry),
     }),
   ),
 )
@@ -150,6 +207,7 @@ export const retryAttachment = (attachment: Attachment): Promise<AssetDescriptor
  */
 export const registerLocalAsset = (assetId: string, entry: { url: string; contentType?: string }): void => {
   localCatalog.set(assetId, entry)
+  notifyCatalogChanged()
   descriptors.forEach((descriptor, key) => {
     if (descriptor.status === 'error' && descriptor.ref.assetId === assetId) {
       cachingResolver.invalidate(descriptor.ref)
@@ -159,6 +217,33 @@ export const registerLocalAsset = (assetId: string, entry: { url: string; conten
 }
 
 export const resolveLocalAssetUrl = (assetId: string): string | undefined => localCatalog.get(assetId)?.url
+
+/**
+ * Ask the server for these pack assets and register every address it gives, so the viewport's
+ * synchronous lookup (resolveLocalAssetUrl) can answer. Never rejects: each id gets an outcome.
+ * Ids the catalogue already holds (the palette read their manifest) are not asked for again.
+ */
+export const ensurePackAssets = async (assetIds: readonly string[]): Promise<Map<string, PackOutcome>> => {
+  const outcomes = new Map<string, PackOutcome>()
+  const unknown: string[] = []
+  assetIds.forEach((id) => {
+    const url = localCatalog.get(id)?.url
+    if (url) outcomes.set(id, { status: 'found', entry: { id, url, contentType: localCatalog.get(id)?.contentType ?? 'model/gltf-binary' } })
+    else unknown.push(id)
+  })
+  const asked = await packDirectory.need(unknown)
+  asked.forEach((outcome, id) => {
+    if (outcome.status === 'found') registerPackEntry(outcome.entry)
+    outcomes.set(id, outcome)
+  })
+  return outcomes
+}
+
+/** Forget what was learned about a pack asset (a "gone" or a failed look-up) so the next ask is real. */
+export const forgetPackAsset = (assetId: string): void => {
+  packDirectory.forget(assetId)
+  cachingResolver.invalidate({ assetId, kind: 'model' })
+}
 
 export const unregisterLocalAsset = (assetId: string): void => {
   localCatalog.delete(assetId)
