@@ -20,8 +20,9 @@
  * countAssetUses, filterAssets.
  *
  * @boundary
- * Owns the bundled catalogue only. User-imported assets belong to
- * userAssets.ts, and URL registration to viewport/assetResolution.ts.
+ * Owns the bundled catalogue and the mapping for published cloud-pack models.
+ * User-imported assets belong to userAssets.ts, and URL registration to
+ * viewport/assetResolution.ts.
  *
  * @dependencies
  * ./model, ./userAssets, ./viewport/assetResolution.
@@ -69,7 +70,43 @@ export interface AssetDefinition {
   searchableText: string
   // Present only for `model` assets — the GLB source cloneModel() instances are loaded from.
   modelUrl?: string
+  unavailable?: boolean
 }
+
+export interface PackManifestAsset {
+  id: string
+  title: string
+  kind: string
+  attribution?: string | null
+  url?: string
+}
+
+export interface PackManifest {
+  slug: string
+  title: string
+  description?: string | null
+  kind: 'objects' | 'environments'
+  assets: PackManifestAsset[]
+}
+
+/** Convert one published pack manifest into stable, placeable model entries. */
+export const packManifestToCatalog = (manifest: PackManifest): AssetDefinition[] =>
+  manifest.assets
+    .filter((asset) => asset.kind === 'model')
+    .map((asset) => {
+      const label = asset.title.trim() || asset.id
+      return {
+        kind: 'model',
+        assetId: `pack:${manifest.slug}:${asset.id}`,
+        label,
+        detail: `${manifest.title} · Cloud model`,
+        category: 'model',
+        categories: ['exhibits'],
+        searchableText: `${label.toLowerCase()} ${manifest.title.toLowerCase()} cloud model`,
+        modelUrl: asset.url,
+        unavailable: !asset.url,
+      }
+    })
 
 // Models shipped with the app. Vite bundles every src/assets/*.glb and maps its path to
 // the built (hashed) URL — dropping a new .glb into that folder adds it to the library.
@@ -120,6 +157,12 @@ export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
 assetCatalog.forEach((asset) => {
   if (asset.modelUrl) registerLocalAsset(asset.assetId, { url: asset.modelUrl })
 })
+
+export const registerPackModels = (assets: readonly AssetDefinition[]): void => {
+  assets.forEach((asset) => {
+    if (asset.modelUrl) registerLocalAsset(asset.assetId, { url: asset.modelUrl })
+  })
+}
 
 // three.js stand-ins for models not made yet, temporary placeholder
 registerPlaceholderModels()
