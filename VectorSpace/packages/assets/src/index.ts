@@ -49,3 +49,12 @@ export { RemoteMediaResolver, type RemoteMediaResolverOptions } from './resolver
 export { KindRouterResolver, type KindRoutes } from './resolvers/KindRouterResolver'
 export { parseMediaLink, type ParsedMediaLink } from './parseMediaLink'
 export { InlineTextResolver, type TextAssetLookup } from './resolvers/InlineTextResolver'
+export {
+  PackDirectory,
+  isPackAssetId,
+  type PackBatchAnswer,
+  type PackDirectoryEntry,
+  type PackDirectoryOptions,
+  type PackOutcome,
+} from './PackDirectory'
+export { PackAssetResolver, PACK_ASSET_REMOVED } from './resolvers/PackAssetResolver'
