@@ -62,7 +62,7 @@ export function AccountsTableSection({ rows, onTurnOff, onSignInLink }: Accounts
               <td><StatusChip tone={STATUS[account.status].tone}>{STATUS[account.status].label}</StatusChip></td>
               <td className="admin-actions">
                 {account.status !== "turned_off" && (
-                  <Button size="small" onClick={() => onSignInLink(account)}>New sign-in link</Button>
+                  <Button size="small" cue={null} onClick={() => onSignInLink(account)}>New sign-in link</Button>
                 )}
                 {/* one of: Turn off (Active or Invited), Turn on (Turned off) */}
                 {account.status !== "turned_off" && <Button size="small" variant="danger" onClick={() => onTurnOff(account, true)}>Turn off</Button>}

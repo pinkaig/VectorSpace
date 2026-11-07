@@ -27,9 +27,11 @@ type PopupProps = {
   // the sound it opens with (a cue in src/audio/cue-map.json), e.g. "ui.error" for a popup that
   // reports a problem; null for none. Closing always plays the close sound
   cue?: UiCue;
+  // no sound at all for now: not on open or close, and none of its buttons (data-sfx="none")
+  silent?: boolean;
 };
 
-export function Popup({ title, subtitle, onClose, actions, children, cue = "ui.dialog.open" }: PopupProps) {
+export function Popup({ title, subtitle, onClose, actions, children, cue = "ui.dialog.open", silent = false }: PopupProps) {
   // Escape closes the dialog, as people expect
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
@@ -48,9 +50,9 @@ export function Popup({ title, subtitle, onClose, actions, children, cue = "ui.d
     motion.play("popup.backdrop.enter", backdrop);
     motion.play("popup.enter", card);
     // the sounds replace the click of the button that opened or closed it (one sound per action)
-    uiSound.play(cue);
+    if (!silent) uiSound.play(cue);
     return () => {
-      uiSound.play("ui.close");
+      if (!silent) uiSound.play("ui.close");
       exitAsGhost(backdrop, "popup.backdrop.exit", [{ selector: ".ui-popup", cue: "popup.exit" }]);
     };
   }, []);
@@ -58,7 +60,7 @@ export function Popup({ title, subtitle, onClose, actions, children, cue = "ui.d
   return (
     <div ref={backdropRef} className="ui-popup-backdrop" onMouseDown={onClose}>
       {/* stopPropagation: a click inside the card must not count as a click on the backdrop */}
-      <div ref={cardRef} className="ui-popup" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+      <div ref={cardRef} className="ui-popup" data-sfx={silent ? "none" : undefined} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
         <h2 className="ui-popup-title">{title}</h2>
         {subtitle && <p className="ui-popup-sub">{subtitle}</p>}
         <div className="ui-popup-body">{children}</div>

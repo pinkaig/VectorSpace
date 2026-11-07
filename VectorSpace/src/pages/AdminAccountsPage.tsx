@@ -52,7 +52,7 @@ export default function AdminAccountsPage() {
         <div className="admin-accounts-toolbar">
           <AccountFilters accounts={accounts ?? []} tab={tab} onTab={setTab} search={search} onSearch={setSearch} />
           <div className="admin-accounts-add">
-            <Button onClick={() => setImporting(true)}>Import class list (CSV)</Button>
+            <Button cue={null} onClick={() => setImporting(true)}>Import class list (CSV)</Button>
             <Button variant="primary" onClick={() => setAdding(true)}>+ Add an account</Button>
           </div>
         </div>

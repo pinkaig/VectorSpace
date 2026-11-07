@@ -88,6 +88,7 @@ export function SignInLinkPopup({ account, onClose }: SignInLinkPopupProps) {
 
   return (
     <Popup
+      silent // no sound for now
       title="New sign-in link"
       subtitle={`${account.name} · ${account.email}`}
       onClose={onClose}

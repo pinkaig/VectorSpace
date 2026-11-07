@@ -23,7 +23,7 @@ import { useAdmin } from "./adminContext";
 export function ChooseSchoolSection({ what }: { what: string }) {
   const { schools, setSchoolId } = useAdmin();
   return (
-    <section className="admin-panel admin-choose">
+    <section className="admin-panel admin-choose" data-sfx="none" /* no sound for now */>
       <div className="admin-panel-head">
         <h2>Choose a school</h2>
         <span className="admin-muted">{what} are set per school</span>

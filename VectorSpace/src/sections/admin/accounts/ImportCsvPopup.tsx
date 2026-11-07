@@ -157,6 +157,7 @@ export function ImportCsvPopup({ onClose, onImported }: ImportCsvPopupProps) {
 
   return (
     <Popup
+      silent // no sound for now
       title={done ? "Import finished" : "Import class list (CSV)"}
       subtitle={
         done

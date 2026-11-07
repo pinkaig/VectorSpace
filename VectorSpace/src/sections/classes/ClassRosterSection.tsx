@@ -93,7 +93,7 @@ export function ClassRosterSection({ getToken, schoolId, loadCandidates, student
   const noClasses = classes.data?.length === 0;
 
   return (
-    <div className="roster">
+    <div className="roster" data-sfx="none" /* no sound for now */>
       {/*STEP 1, CLASSES: every class in scope, and + New class*/}
       <section className="admin-panel roster-classes">
         <div className="admin-panel-head">
@@ -271,6 +271,7 @@ function NewClassPopup({ onClose, onCreate }: { onClose: () => void; onCreate: (
   };
   return (
     <Popup
+      silent // no sound for now
       title="New class"
       subtitle="Next you add its people."
       onClose={onClose}
@@ -315,6 +316,7 @@ function AddPeoplePopup({ className, fresh, people, loading, onClose, onAdd }: A
 
   return (
     <Popup
+      silent // no sound for now
       title={`Add people to ${className}`}
       subtitle={fresh ? `${className} is made. Tick who belongs in it.` : "Tick who belongs in this class."}
       onClose={onClose}
@@ -381,6 +383,7 @@ function MovePopup({ member, from, to, onClose, onMove }: MoveProps) {
   const chosen = to.find((c) => c.id === target);
   return (
     <Popup
+      silent // no sound for now
       title={`Move ${member.display_name}`}
       subtitle={`Out of ${from.name} and into another class, in one step.`}
       onClose={onClose}
