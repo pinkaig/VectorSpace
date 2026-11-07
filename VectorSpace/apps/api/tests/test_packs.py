@@ -182,14 +182,15 @@ def test_a_school_switch_is_stored_and_reaches_teachers_and_students(client, sch
     assert client.get("/packs/mine", headers=as_user("t1")).json() == []
 
 
-def test_an_admin_switches_packs_only_for_their_own_school(client, school, fake_storage) -> None:
+def test_an_admin_switches_packs_for_one_school_at_a_time(client, school, fake_storage) -> None:
+    """Admins are VThere staff (D-A): any school, but one at a time, and the switch stays in that school."""
     pack = published_pack(client, fake_storage)
-    other_org = school["other"].organisation_id
-    assert client.get(f"/admin/schools/{other_org}/packs", headers=ADMIN).status_code == 404
+    own_org, other_org = school["admin"].organisation_id, school["other"].organisation_id
     assert client.get("/admin/schools/all/packs", headers=ADMIN).status_code == 404
-    assert client.patch(
-        f"/admin/schools/{other_org}/packs/{pack['id']}", json={"enabled": True}, headers=ADMIN
-    ).status_code == 404
+    assert client.get(f"/admin/schools/{uuid.uuid4()}/packs", headers=ADMIN).status_code == 404
+    on = client.patch(f"/admin/schools/{other_org}/packs/{pack['id']}", json={"enabled": True}, headers=ADMIN)
+    assert on.status_code == 200
+    assert client.get(f"/admin/schools/{own_org}/packs", headers=ADMIN).json()[0]["enabled"] is False
 
 
 def test_a_draft_cannot_be_switched_on(client, school, fake_storage) -> None:

@@ -30,6 +30,7 @@ import { LoadingRows } from "../ui/loadingRows";
 import { LibraryFilesSection } from "../sections/admin/library/LibraryFilesSection";
 import { PacksSection } from "../sections/admin/library/PacksSection";
 import "./AdminLibraryPage.css";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminLibraryPage() {
   const { getToken } = useSession();
@@ -40,10 +41,7 @@ export default function AdminLibraryPage() {
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Library</h1>
-        <p>Shared by every school</p>
-      </div>
+      <AdminPageTitle title="Library" subtitle="Upload models and media once; packs built from them can be switched on for any school." scope={"Shared by every school"} />
 
       {(files.error || packs.error) && (
         <Motion as="p" cue="feedback.error" role="alert">Could not load the library: {files.error ?? packs.error}</Motion>

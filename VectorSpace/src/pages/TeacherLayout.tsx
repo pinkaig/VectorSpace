@@ -67,6 +67,7 @@ export default function TeacherLayout() {
             <NavLink to="/teacher" end className={tabClass}>Classes</NavLink>
             <NavLink to="/teacher/review" className={tabClass}>{`Review (${waiting})`}{pendingLinks > 0 && <span className="review-tab-links" title="Links waiting for your approval"> · {pendingLinks} {pendingLinks === 1 ? "link" : "links"}</span>}</NavLink>
             <NavLink to="/teacher/results" className={tabClass}>Results</NavLink>
+            <NavLink to="/teacher/students" className={tabClass}>Students</NavLink>
           </>
         }
         userName={displayName}

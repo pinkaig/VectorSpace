@@ -502,7 +502,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"b0305b70-de0d-41bd-9faa-1f3d5ebfb83b\",\n  \"organisation_id\": \"ead04526-5ac4-4872-8c6f-86e290a64b64\",\n  \"display_name\": \"s1\",\n  \"role\": \"student\",\n  \"class_ids\": [\n    \"e4a3e53e-fc2d-4f5c-9713-c9068ad1e24a\"\n  ]\n}"
+              "body": "{\n  \"id\": \"06a69ee4-f714-42b1-850e-3a3d568c6bab\",\n  \"organisation_id\": \"dda931a3-b138-454b-9c09-682c47448297\",\n  \"display_name\": \"s1\",\n  \"role\": \"student\",\n  \"class_ids\": [\n    \"db5997cb-29cd-4715-90a6-efc4182d4cba\"\n  ]\n}"
             }
           ]
         },
@@ -645,7 +645,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"member_count\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"member_count\": {\"type\": \"integer\"}}}}));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"school_id\", \"name\", \"member_count\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"member_count\": {\"type\": \"integer\"}}}}));",
                   "pm.test('includes the shared class', () => pm.expect(pm.response.json().map((c) => c.id)).to.include(pm.collectionVariables.get('class_id')));"
                 ]
               }
@@ -684,7 +684,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/classes",
+                  "raw": "{{baseUrl}}/api/v1/classes?school=74643421-0bbc-46f3-84dd-5b91ff22f76e",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -693,7 +693,12 @@
                     "v1",
                     "classes"
                   ],
-                  "query": []
+                  "query": [
+                    {
+                      "key": "school",
+                      "value": "74643421-0bbc-46f3-84dd-5b91ff22f76e"
+                    }
+                  ]
                 }
               },
               "status": "OK",
@@ -705,7 +710,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"725d4db6-865b-4109-a939-fdd05f3a6695\",\n    \"name\": \"1A\",\n    \"member_count\": 3\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"b2543fd7-3249-49db-932a-58a713651a1e\",\n    \"school_id\": \"74643421-0bbc-46f3-84dd-5b91ff22f76e\",\n    \"name\": \"1A\",\n    \"member_count\": 3\n  },\n  {\n    \"id\": \"06ee77da-dad2-4125-9c15-262d5a06ba6d\",\n    \"school_id\": \"74643421-0bbc-46f3-84dd-5b91ff22f76e\",\n    \"name\": \"2B\",\n    \"member_count\": 2\n  }\n]"
             }
           ]
         },
@@ -759,7 +764,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/classes/725d4db6-865b-4109-a939-fdd05f3a6695/members",
+                  "raw": "{{baseUrl}}/api/v1/classes/4647e8ad-1acb-4506-838f-f9fe8cfe1d22/members",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -767,7 +772,7 @@
                     "api",
                     "v1",
                     "classes",
-                    "725d4db6-865b-4109-a939-fdd05f3a6695",
+                    "4647e8ad-1acb-4506-838f-f9fe8cfe1d22",
                     "members"
                   ],
                   "query": []
@@ -782,7 +787,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"a3c791bf-d156-45a3-86af-6bee4ebfbd7c\",\n    \"display_name\": \"s1\",\n    \"role\": \"student\"\n  },\n  {\n    \"id\": \"c443884e-fe7b-43eb-9e60-6c0604864e8e\",\n    \"display_name\": \"s2\",\n    \"role\": \"student\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"f481d0ce-3bdc-4c68-a0d9-6763e86ccef2\",\n    \"display_name\": \"t1\",\n    \"role\": \"teacher\"\n  }\n]"
             }
           ]
         },
@@ -860,6 +865,896 @@
                 "members"
               ],
               "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Student may not create a class (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mine\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin must pick a school (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"No school\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher creates a class",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"school_id\", \"name\", \"member_count\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"member_count\": {\"type\": \"integer\"}}}));",
+                  "pm.test('the teacher teaches it', () => pm.expect(pm.response.json().member_count).to.eql(1));",
+                  "pm.collectionVariables.set('new_class_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman class {{run_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 201",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_teacher}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/classes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "classes"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"B1\",\n  \"school_id\": \"6c146f95-ff84-4fb8-bd26-6c5fd67be406\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3f42d0fb-7903-4c77-b97c-4b537a6f20ff\",\n  \"school_id\": \"6c146f95-ff84-4fb8-bd26-6c5fd67be406\",\n  \"name\": \"B1\",\n  \"member_count\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "Same class name is 409",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman class {{run_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher adds the second student",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"display_name\", \"role\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"display_name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actor_id\": \"{{student2_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_teacher}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/classes/b2d9fd89-fd5c-4175-958f-34eafccecb6c/members",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "classes",
+                    "b2d9fd89-fd5c-4175-958f-34eafccecb6c",
+                    "members"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"actor_id\": \"b9135a6d-0c55-4241-8ff1-286d7328811c\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"b9135a6d-0c55-4241-8ff1-286d7328811c\",\n  \"display_name\": \"s3\",\n  \"role\": \"student\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Teacher may not add the admin (403)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actor_id\": \"{{admin_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher removes them again",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members/{{student2_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members",
+                "{{student2_id}}"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Removing someone not there is 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members/{{student2_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members",
+                "{{student2_id}}"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Put them back in the new class",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"display_name\", \"role\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"display_name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actor_id\": \"{{student2_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Move them to the shared class",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"student\", \"from_class\", \"to_class\"], \"properties\": {\"student\": {\"type\": \"object\", \"required\": [\"id\", \"display_name\", \"role\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"display_name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}}}, \"from_class\": {\"type\": \"object\", \"required\": [\"id\", \"school_id\", \"name\", \"member_count\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"member_count\": {\"type\": \"integer\"}}}, \"to_class\": {\"type\": \"object\", \"required\": [\"id\", \"school_id\", \"name\", \"member_count\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"member_count\": {\"type\": \"integer\"}}}}}));",
+                  "pm.test('lands in the shared class', () => pm.expect(pm.response.json().to_class.id).to.eql(pm.collectionVariables.get('class_id')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members/{{student2_id}}/move",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members",
+                "{{student2_id}}",
+                "move"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_class_id\": \"{{class_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_teacher}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/classes/a9bc8e17-949c-4f8b-a150-c83d031dc3db/members/cdaa27f8-7042-46d7-9523-8b1fb3988e55/move",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "classes",
+                    "a9bc8e17-949c-4f8b-a150-c83d031dc3db",
+                    "members",
+                    "cdaa27f8-7042-46d7-9523-8b1fb3988e55",
+                    "move"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"to_class_id\": \"3c16ab3d-96a9-4d73-91f3-57478abc85bc\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"student\": {\n    \"id\": \"cdaa27f8-7042-46d7-9523-8b1fb3988e55\",\n    \"display_name\": \"s1\",\n    \"role\": \"student\"\n  },\n  \"from_class\": {\n    \"id\": \"a9bc8e17-949c-4f8b-a150-c83d031dc3db\",\n    \"school_id\": \"1a078c44-dddb-4818-82b0-8b3e3dc630c1\",\n    \"name\": \"1A\",\n    \"member_count\": 2\n  },\n  \"to_class\": {\n    \"id\": \"3c16ab3d-96a9-4d73-91f3-57478abc85bc\",\n    \"school_id\": \"1a078c44-dddb-4818-82b0-8b3e3dc630c1\",\n    \"name\": \"2B\",\n    \"member_count\": 3\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Moving again is 404 (not in the new class)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{new_class_id}}/members/{{student2_id}}/move",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{new_class_id}}",
+                "members",
+                "{{student2_id}}",
+                "move"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_class_id\": \"{{class_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Moving into the same class is 422",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/{{class_id}}/members/{{student2_id}}/move",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                "{{class_id}}",
+                "members",
+                "{{student2_id}}",
+                "move"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_class_id\": \"{{class_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -1006,7 +1901,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"dbb70cb6-9475-4cbe-8634-d6bac1dfc158\",\n  \"organisation_id\": \"41c65edb-e12f-4468-a933-f75e9963b192\",\n  \"created_by_id\": \"91345625-96cf-492e-891c-dc7512c08564\",\n  \"class_id\": null,\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"template\",\n  \"name\": \"Museum hall\",\n  \"slug\": \"museum-hall-546b1174\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-04T04:37:20\",\n  \"updated_at\": \"2026-11-04T04:37:20\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": null,\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"9df502b2-bb15-4ae5-9eb2-048ae62c151e\",\n  \"organisation_id\": \"f65266a0-3881-44ec-98a9-16913672c3ff\",\n  \"created_by_id\": \"3e849995-bc52-4bd9-b62c-a754315eab2b\",\n  \"class_id\": null,\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"template\",\n  \"name\": \"Museum hall\",\n  \"slug\": \"museum-hall-7a91e594\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T12:11:23\",\n  \"updated_at\": \"2026-11-07T12:11:23\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": null,\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -1078,7 +1973,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/730a262b-61b8-4c6c-98e1-2e427615f97f/versions",
+                  "raw": "{{baseUrl}}/api/v1/projects/8a2757e2-120a-4acd-9074-b01baf9439ee/versions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1086,7 +1981,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "730a262b-61b8-4c6c-98e1-2e427615f97f",
+                    "8a2757e2-120a-4acd-9074-b01baf9439ee",
                     "versions"
                   ],
                   "query": []
@@ -1110,7 +2005,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"0018a3e8-3e52-4eb4-88e6-859b10a99bd5\",\n  \"project_id\": \"730a262b-61b8-4c6c-98e1-2e427615f97f\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"5a473063-6087-45c5-a28d-a3261b62d9d7\",\n  \"created_at\": \"2026-11-04T04:37:21\",\n  \"created_by_name\": \"\"\n}"
+              "body": "{\n  \"id\": \"a0371303-7a9d-4593-bdbf-1c736205e869\",\n  \"project_id\": \"8a2757e2-120a-4acd-9074-b01baf9439ee\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"697e2454-e98e-420d-a604-9d678198381f\",\n  \"created_at\": \"2026-11-07T12:11:25\",\n  \"created_by_name\": \"\"\n}"
             }
           ]
         },
@@ -1269,7 +2164,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/f790e350-54be-4dbe-b498-86dff8c16cd2",
+                  "raw": "{{baseUrl}}/api/v1/projects/0869d74f-b6ef-4e2b-9f24-65e0f05cc734",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1277,7 +2172,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "f790e350-54be-4dbe-b498-86dff8c16cd2"
+                    "0869d74f-b6ef-4e2b-9f24-65e0f05cc734"
                   ],
                   "query": []
                 }
@@ -1291,7 +2186,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"f790e350-54be-4dbe-b498-86dff8c16cd2\",\n  \"organisation_id\": \"cfb8f1ef-b99e-4305-ba6a-ba297a472d63\",\n  \"created_by_id\": \"c4f2ba13-42ef-4dbc-913d-fed21ddf979f\",\n  \"class_id\": \"289a0b5d-d261-4f32-a0b1-4ef4e85c4d57\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"p\",\n  \"slug\": \"p-e3399327\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-04T04:37:20\",\n  \"updated_at\": \"2026-11-04T04:37:20\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"0869d74f-b6ef-4e2b-9f24-65e0f05cc734\",\n  \"organisation_id\": \"1a078c44-dddb-4818-82b0-8b3e3dc630c1\",\n  \"created_by_id\": \"cdaa27f8-7042-46d7-9523-8b1fb3988e55\",\n  \"class_id\": \"a9bc8e17-949c-4f8b-a150-c83d031dc3db\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"My museum\",\n  \"slug\": \"my-museum\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T12:11:23\",\n  \"updated_at\": \"2026-11-07T12:11:23\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -1345,7 +2240,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/570c3a29-3a67-4313-b066-d67b13fd6607/versions",
+                  "raw": "{{baseUrl}}/api/v1/projects/aa69cd85-0070-4a81-a067-1307939a5e29/versions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1353,7 +2248,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "570c3a29-3a67-4313-b066-d67b13fd6607",
+                    "aa69cd85-0070-4a81-a067-1307939a5e29",
                     "versions"
                   ],
                   "query": []
@@ -1368,7 +2263,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"7f48291d-d6a5-419b-a1a0-cdaff8365804\",\n    \"project_id\": \"570c3a29-3a67-4313-b066-d67b13fd6607\",\n    \"revision\": 1,\n    \"label\": null,\n    \"content_snapshot_id\": \"bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34\",\n    \"created_at\": \"2026-11-04T04:37:24.055769\",\n    \"created_by_name\": \"s1\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"e7f2c15a-a95b-4482-8e0a-bac2e2532a35\",\n    \"project_id\": \"aa69cd85-0070-4a81-a067-1307939a5e29\",\n    \"revision\": 1,\n    \"label\": null,\n    \"content_snapshot_id\": \"099cb56f-e22d-4834-b76b-3aa32276c894\",\n    \"created_at\": \"2026-11-07T12:11:29.879211\",\n    \"created_by_name\": \"s1\"\n  }\n]"
             }
           ]
         },
@@ -1423,7 +2318,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/570c3a29-3a67-4313-b066-d67b13fd6607/versions/7f48291d-d6a5-419b-a1a0-cdaff8365804",
+                  "raw": "{{baseUrl}}/api/v1/projects/aa69cd85-0070-4a81-a067-1307939a5e29/versions/e7f2c15a-a95b-4482-8e0a-bac2e2532a35",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1431,9 +2326,9 @@
                     "api",
                     "v1",
                     "projects",
-                    "570c3a29-3a67-4313-b066-d67b13fd6607",
+                    "aa69cd85-0070-4a81-a067-1307939a5e29",
                     "versions",
-                    "7f48291d-d6a5-419b-a1a0-cdaff8365804"
+                    "e7f2c15a-a95b-4482-8e0a-bac2e2532a35"
                   ],
                   "query": []
                 }
@@ -1447,7 +2342,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"7f48291d-d6a5-419b-a1a0-cdaff8365804\",\n  \"project_id\": \"570c3a29-3a67-4313-b066-d67b13fd6607\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34\",\n  \"created_at\": \"2026-11-04T04:37:24.055769\",\n  \"created_by_name\": \"\",\n  \"data\": {\n    \"schemaVersion\": 1,\n    \"id\": \"p\",\n    \"name\": \"Scene 4\",\n    \"scenes\": []\n  }\n}"
+              "body": "{\n  \"id\": \"e7f2c15a-a95b-4482-8e0a-bac2e2532a35\",\n  \"project_id\": \"aa69cd85-0070-4a81-a067-1307939a5e29\",\n  \"revision\": 1,\n  \"label\": null,\n  \"content_snapshot_id\": \"099cb56f-e22d-4834-b76b-3aa32276c894\",\n  \"created_at\": \"2026-11-07T12:11:29.879211\",\n  \"created_by_name\": \"\",\n  \"data\": {\n    \"schemaVersion\": 1,\n    \"id\": \"p\",\n    \"name\": \"Scene 4\",\n    \"scenes\": []\n  }\n}"
             }
           ]
         },
@@ -1517,7 +2412,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/22d31f69-7837-484d-a070-c071b896480d",
+                  "raw": "{{baseUrl}}/api/v1/projects/ea5c25f9-9ff9-4a16-89cd-76e6fb41442f",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1525,13 +2420,13 @@
                     "api",
                     "v1",
                     "projects",
-                    "22d31f69-7837-484d-a070-c071b896480d"
+                    "ea5c25f9-9ff9-4a16-89cd-76e6fb41442f"
                   ],
                   "query": []
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"class_id\": \"885e519c-5337-499d-b5d9-3c609de67f17\"\n}",
+                  "raw": "{\n  \"class_id\": \"c5e6e1b9-81db-4fc6-9f39-63e6a596a0ca\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1548,7 +2443,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"22d31f69-7837-484d-a070-c071b896480d\",\n  \"organisation_id\": \"b1f0c40c-8f28-4a3c-8e57-1e43de5d7a17\",\n  \"created_by_id\": \"0fa4f0e7-794b-4eef-9838-28ac60f74a22\",\n  \"class_id\": \"885e519c-5337-499d-b5d9-3c609de67f17\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"p\",\n  \"slug\": \"p-9626bb45\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-04T04:37:21\",\n  \"updated_at\": \"2026-11-04T04:37:21\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"ea5c25f9-9ff9-4a16-89cd-76e6fb41442f\",\n  \"organisation_id\": \"e8d1116e-3603-4a6a-9bb3-cbcb724001c3\",\n  \"created_by_id\": \"b85281ef-cfe9-49b9-b476-b970d863c041\",\n  \"class_id\": \"c5e6e1b9-81db-4fc6-9f39-63e6a596a0ca\",\n  \"template_id\": null,\n  \"template_revision\": null,\n  \"kind\": \"project\",\n  \"name\": \"p\",\n  \"slug\": \"p-27b17cb4\",\n  \"status\": \"draft\",\n  \"current_version_id\": null,\n  \"created_at\": \"2026-11-07T12:11:24\",\n  \"updated_at\": \"2026-11-07T12:11:24\",\n  \"created_by_name\": \"t1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 0,\n  \"saved_at\": null,\n  \"saved_by_name\": \"\",\n  \"template_name\": null,\n  \"assignment_id\": null,\n  \"task\": null,\n  \"due_at\": null,\n  \"assigned_by_name\": null,\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -1947,7 +2842,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"c86e6845-62b2-4235-97fc-784e6f2a72a7\",\n    \"organisation_id\": \"41c65edb-e12f-4468-a933-f75e9963b192\",\n    \"created_by_id\": \"578cc5af-7e37-40ca-9027-b81326b57a1e\",\n    \"class_id\": \"e152d8fc-ab26-4afb-bfef-da24b3eda781\",\n    \"template_id\": \"dbb70cb6-9475-4cbe-8634-d6bac1dfc158\",\n    \"template_revision\": null,\n    \"kind\": \"project\",\n    \"name\": \"Museum hall\",\n    \"slug\": \"museum-hall-9b7c5190\",\n    \"status\": \"draft\",\n    \"current_version_id\": null,\n    \"created_at\": \"2026-11-04T04:37:20\",\n    \"updated_at\": \"2026-11-04T04:37:20\",\n    \"created_by_name\": \"s1\",\n    \"class_name\": \"1A\",\n    \"current_revision\": 0,\n    \"saved_at\": null,\n    \"saved_by_name\": \"\",\n    \"template_name\": \"Museum hall\",\n    \"assignment_id\": \"2ae52419-83af-4893-96bc-637bb9ffbe1a\",\n    \"task\": \"Changed\",\n    \"due_at\": \"2026-11-20\",\n    \"assigned_by_name\": \"t1\",\n    \"sent\": false,\n    \"published_copies\": 0,\n    \"assignment_ids\": [],\n    \"showcase\": false,\n    \"review_status\": null,\n    \"review_grade\": null,\n    \"review_comment\": null,\n    \"share_with\": null,\n    \"submitted_at\": null\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"de3621ff-50d2-4523-ac09-8076b375c534\",\n    \"organisation_id\": \"f65266a0-3881-44ec-98a9-16913672c3ff\",\n    \"created_by_id\": \"8367bd5a-1a0b-4bdd-8e4c-b9216a76d24d\",\n    \"class_id\": \"c5df052e-2840-414b-a3db-07bb44eaac62\",\n    \"template_id\": \"9df502b2-bb15-4ae5-9eb2-048ae62c151e\",\n    \"template_revision\": null,\n    \"kind\": \"project\",\n    \"name\": \"Museum hall\",\n    \"slug\": \"museum-hall-9057cd37\",\n    \"status\": \"draft\",\n    \"current_version_id\": null,\n    \"created_at\": \"2026-11-07T12:11:23\",\n    \"updated_at\": \"2026-11-07T12:11:23\",\n    \"created_by_name\": \"s1\",\n    \"class_name\": \"1A\",\n    \"current_revision\": 0,\n    \"saved_at\": null,\n    \"saved_by_name\": \"\",\n    \"template_name\": \"Museum hall\",\n    \"assignment_id\": \"65a2a353-d30f-4a8e-b967-e201ba3168d6\",\n    \"task\": \"Changed\",\n    \"due_at\": \"2026-11-20\",\n    \"assigned_by_name\": \"t1\",\n    \"mission_brief\": {\n      \"due\": \"2026-11-20\",\n      \"todos\": [\n        {\n          \"id\": \"t1\",\n          \"text\": \"Place three exhibits\"\n        }\n      ],\n      \"rules\": [\n        {\n          \"id\": \"r1\",\n          \"text\": \"Label every exhibit\"\n        }\n      ]\n    },\n    \"sent\": false,\n    \"published_copies\": 0,\n    \"assignment_ids\": [],\n    \"showcase\": false,\n    \"review_status\": null,\n    \"review_grade\": null,\n    \"review_comment\": null,\n    \"share_with\": null,\n    \"submitted_at\": null\n  }\n]"
             }
           ]
         },
@@ -2134,7 +3029,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/51a4c185-d5dd-4b19-bcfe-2ed14926bbb2",
+                  "raw": "{{baseUrl}}/api/v1/projects/6234ee4c-fa18-4988-ae08-e6f0eb294025",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2142,7 +3037,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "51a4c185-d5dd-4b19-bcfe-2ed14926bbb2"
+                    "6234ee4c-fa18-4988-ae08-e6f0eb294025"
                   ],
                   "query": []
                 }
@@ -2323,7 +3218,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media",
+                  "raw": "{{baseUrl}}/api/v1/projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2331,7 +3226,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "c8ad103f-8533-470c-bba1-f4a81013ef2c",
+                    "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb",
                     "media"
                   ],
                   "query": []
@@ -2355,7 +3250,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"media_asset_id\": \"e6b440ef-3834-49c2-bd7d-debdd3a630c5\",\n  \"upload_url\": \"https://store.test/put/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png\",\n  \"storage_key\": \"projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png\"\n}"
+              "body": "{\n  \"media_asset_id\": \"62922c6e-fe9c-4fea-972d-5f03d020b29e\",\n  \"upload_url\": \"https://store.test/put/projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png\",\n  \"storage_key\": \"projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png\"\n}"
             }
           ]
         },
@@ -2583,7 +3478,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/975173af-578f-4938-99e5-5d4326ccdd72/media/links",
+                  "raw": "{{baseUrl}}/api/v1/projects/911635c3-ef77-4f78-886c-ddb72eef104d/media/links",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2591,7 +3486,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "975173af-578f-4938-99e5-5d4326ccdd72",
+                    "911635c3-ef77-4f78-886c-ddb72eef104d",
                     "media",
                     "links"
                   ],
@@ -2616,7 +3511,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"4ddc7c0c-10ea-46d9-9225-f5ce97930d68\",\n  \"project_id\": \"975173af-578f-4938-99e5-5d4326ccdd72\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"pending\",\n  \"approved_by_id\": null,\n  \"approved_at\": null,\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-04T04:37:22\",\n  \"updated_at\": \"2026-11-04T04:37:22\"\n}"
+              "body": "{\n  \"id\": \"f247b19c-af94-44e4-9fc2-67d4f8c6adea\",\n  \"project_id\": \"911635c3-ef77-4f78-886c-ddb72eef104d\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"pending\",\n  \"approved_by_id\": null,\n  \"approved_at\": null,\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27\"\n}"
             }
           ]
         },
@@ -2795,7 +3690,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/975173af-578f-4938-99e5-5d4326ccdd72/media/links/4ddc7c0c-10ea-46d9-9225-f5ce97930d68",
+                  "raw": "{{baseUrl}}/api/v1/projects/911635c3-ef77-4f78-886c-ddb72eef104d/media/links/f247b19c-af94-44e4-9fc2-67d4f8c6adea",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2803,10 +3698,10 @@
                     "api",
                     "v1",
                     "projects",
-                    "975173af-578f-4938-99e5-5d4326ccdd72",
+                    "911635c3-ef77-4f78-886c-ddb72eef104d",
                     "media",
                     "links",
-                    "4ddc7c0c-10ea-46d9-9225-f5ce97930d68"
+                    "f247b19c-af94-44e4-9fc2-67d4f8c6adea"
                   ],
                   "query": []
                 },
@@ -2829,7 +3724,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"4ddc7c0c-10ea-46d9-9225-f5ce97930d68\",\n  \"project_id\": \"975173af-578f-4938-99e5-5d4326ccdd72\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"approved\",\n  \"approved_by_id\": \"5b3b53a7-9129-4014-9ef0-98fe58066cf8\",\n  \"approved_at\": \"2026-11-04T04:37:22.934546\",\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-04T04:37:22\",\n  \"updated_at\": \"2026-11-04T04:37:22\"\n}"
+              "body": "{\n  \"id\": \"f247b19c-af94-44e4-9fc2-67d4f8c6adea\",\n  \"project_id\": \"911635c3-ef77-4f78-886c-ddb72eef104d\",\n  \"kind\": \"video\",\n  \"source\": \"external\",\n  \"label\": \"YouTube video dQw4w9WgXcQ\",\n  \"status\": null,\n  \"content_type\": null,\n  \"size_bytes\": null,\n  \"provider\": \"youtube\",\n  \"provider_id\": \"dQw4w9WgXcQ\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"approval\": \"approved\",\n  \"approved_by_id\": \"8c0a9640-92cb-44d1-820c-026c934c2309\",\n  \"approved_at\": \"2026-11-07T12:11:27.059304\",\n  \"review_comment\": null,\n  \"download_url\": null,\n  \"download_expires_in\": null,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27\"\n}"
             }
           ]
         },
@@ -2883,7 +3778,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/713f87c7-b4b8-4ea5-80f1-8aa046dcb496/media",
+                  "raw": "{{baseUrl}}/api/v1/projects/dd348fd4-c25e-47c2-b280-9e89d3dc8f76/media",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2891,7 +3786,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "713f87c7-b4b8-4ea5-80f1-8aa046dcb496",
+                    "dd348fd4-c25e-47c2-b280-9e89d3dc8f76",
                     "media"
                   ],
                   "query": []
@@ -2906,7 +3801,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"1740562a-c84b-422e-b31e-f93abfbc6749\",\n    \"project_id\": \"713f87c7-b4b8-4ea5-80f1-8aa046dcb496\",\n    \"kind\": \"image\",\n    \"source\": \"file\",\n    \"label\": \"stone.png\",\n    \"status\": \"failed\",\n    \"content_type\": \"image/png\",\n    \"size_bytes\": 1000,\n    \"provider\": null,\n    \"provider_id\": null,\n    \"url\": null,\n    \"approval\": null,\n    \"approved_by_id\": null,\n    \"approved_at\": null,\n    \"review_comment\": null,\n    \"download_url\": null,\n    \"download_expires_in\": null,\n    \"created_at\": \"2026-11-04T04:37:22\",\n    \"updated_at\": \"2026-11-04T04:37:22\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"a6d04229-cdc1-4a76-a6e4-2b187c1faad2\",\n    \"project_id\": \"dd348fd4-c25e-47c2-b280-9e89d3dc8f76\",\n    \"kind\": \"image\",\n    \"source\": \"file\",\n    \"label\": \"stone.png\",\n    \"status\": \"failed\",\n    \"content_type\": \"image/png\",\n    \"size_bytes\": 1000,\n    \"provider\": null,\n    \"provider_id\": null,\n    \"url\": null,\n    \"approval\": null,\n    \"approved_by_id\": null,\n    \"approved_at\": null,\n    \"review_comment\": null,\n    \"download_url\": null,\n    \"download_expires_in\": null,\n    \"created_at\": \"2026-11-07T12:11:26\",\n    \"updated_at\": \"2026-11-07T12:11:26\"\n  }\n]"
             }
           ]
         },
@@ -3038,7 +3933,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/f1ee34b8-8df2-4a13-855e-226135df5c19/media/97bb77ba-0b18-43f6-ae49-91d60c38656d",
+                  "raw": "{{baseUrl}}/api/v1/projects/67245289-521c-47d6-8060-9fca1224ddd0/media/c634e8a2-033e-41e9-9f24-4d90d9f45081",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3046,9 +3941,9 @@
                     "api",
                     "v1",
                     "projects",
-                    "f1ee34b8-8df2-4a13-855e-226135df5c19",
+                    "67245289-521c-47d6-8060-9fca1224ddd0",
                     "media",
-                    "97bb77ba-0b18-43f6-ae49-91d60c38656d"
+                    "c634e8a2-033e-41e9-9f24-4d90d9f45081"
                   ],
                   "query": []
                 }
@@ -3363,7 +4258,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/730a262b-61b8-4c6c-98e1-2e427615f97f/assign",
+                  "raw": "{{baseUrl}}/api/v1/projects/8a2757e2-120a-4acd-9074-b01baf9439ee/assign",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3371,14 +4266,14 @@
                     "api",
                     "v1",
                     "projects",
-                    "730a262b-61b8-4c6c-98e1-2e427615f97f",
+                    "8a2757e2-120a-4acd-9074-b01baf9439ee",
                     "assign"
                   ],
                   "query": []
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"student_id\": \"8e874a30-a627-4124-abf5-48313a77e0e4\"\n}",
+                  "raw": "{\n  \"student_id\": \"25572cfb-98fd-4afd-85ab-3cd1aee6fa10\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3395,7 +4290,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"800c818c-e2fd-4c02-a3cd-a4b3479ca548\",\n  \"organisation_id\": \"a3f51301-4319-4c77-af9c-19a824db928e\",\n  \"created_by_id\": \"8e874a30-a627-4124-abf5-48313a77e0e4\",\n  \"class_id\": \"588e3d42-81e8-4993-aaea-5885db9c1ac4\",\n  \"template_id\": \"730a262b-61b8-4c6c-98e1-2e427615f97f\",\n  \"template_revision\": 1,\n  \"kind\": \"project\",\n  \"name\": \"Gallery walk\",\n  \"slug\": \"gallery-walk-edb5e84a\",\n  \"status\": \"draft\",\n  \"current_version_id\": \"d0e73af4-bb7d-44c2-9490-372173988bd3\",\n  \"created_at\": \"2026-11-04T04:37:21\",\n  \"updated_at\": \"2026-11-04T04:37:21\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 1,\n  \"saved_at\": \"2026-11-04T04:37:21\",\n  \"saved_by_name\": \"t1\",\n  \"template_name\": \"Gallery walk\",\n  \"assignment_id\": \"03a005f5-0fe0-4ad5-a21f-49166ea1686d\",\n  \"task\": \"\",\n  \"due_at\": null,\n  \"assigned_by_name\": \"t1\",\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
+              "body": "{\n  \"id\": \"50ae40af-97dc-4508-8961-99979c7e6e50\",\n  \"organisation_id\": \"bdbaaf9b-d717-45f3-a6c2-6d15ec6bb828\",\n  \"created_by_id\": \"25572cfb-98fd-4afd-85ab-3cd1aee6fa10\",\n  \"class_id\": \"1fd90e6d-3a38-4227-ad6b-1ef936575b48\",\n  \"template_id\": \"8a2757e2-120a-4acd-9074-b01baf9439ee\",\n  \"template_revision\": 1,\n  \"kind\": \"project\",\n  \"name\": \"Gallery walk\",\n  \"slug\": \"gallery-walk-b0229438\",\n  \"status\": \"draft\",\n  \"current_version_id\": \"6bddeb8e-e730-4ede-8f6b-238f65d5ea31\",\n  \"created_at\": \"2026-11-07T12:11:25\",\n  \"updated_at\": \"2026-11-07T12:11:25\",\n  \"created_by_name\": \"s1\",\n  \"class_name\": \"1A\",\n  \"current_revision\": 1,\n  \"saved_at\": \"2026-11-07T12:11:25\",\n  \"saved_by_name\": \"t1\",\n  \"template_name\": \"Gallery walk\",\n  \"assignment_id\": \"a56d8188-53a9-4780-bb6e-5a4a766570b7\",\n  \"task\": \"\",\n  \"due_at\": null,\n  \"assigned_by_name\": \"t1\",\n  \"mission_brief\": null,\n  \"sent\": false,\n  \"published_copies\": 0,\n  \"assignment_ids\": [],\n  \"showcase\": false,\n  \"review_status\": null,\n  \"review_grade\": null,\n  \"review_comment\": null,\n  \"share_with\": null,\n  \"submitted_at\": null\n}"
             }
           ]
         },
@@ -3598,7 +4493,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/c46fffe5-004e-4490-86c2-7dc924908a19/submit",
+                  "raw": "{{baseUrl}}/api/v1/projects/88362b13-254e-4550-aa5b-56b9f7154992/submit",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3606,7 +4501,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "c46fffe5-004e-4490-86c2-7dc924908a19",
+                    "88362b13-254e-4550-aa5b-56b9f7154992",
                     "submit"
                   ],
                   "query": []
@@ -3630,7 +4525,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"c250f30e-1776-4caf-8c6c-1840646f19da\",\n  \"project_id\": \"c46fffe5-004e-4490-86c2-7dc924908a19\",\n  \"version_id\": \"a453ec4a-eec0-4459-b4d7-01b7c7fe503b\",\n  \"status\": \"waiting\",\n  \"share_with\": \"public\",\n  \"grade\": null,\n  \"comment\": null,\n  \"submitted_by_id\": \"662e38f0-87d1-4c14-945f-45f5ffe9602f\",\n  \"submitted_at\": \"2026-11-04T04:37:25.333427\",\n  \"reviewed_by_id\": null,\n  \"reviewed_at\": null\n}"
+              "body": "{\n  \"id\": \"5d77715f-f4eb-41ee-8d25-459d2d15caca\",\n  \"project_id\": \"88362b13-254e-4550-aa5b-56b9f7154992\",\n  \"version_id\": \"865a7b2d-120e-4b71-a2e6-275fa3e05a6b\",\n  \"status\": \"waiting\",\n  \"share_with\": \"public\",\n  \"grade\": null,\n  \"comment\": null,\n  \"submitted_by_id\": \"c621adf1-f8bc-4c8e-8164-a82542611137\",\n  \"submitted_at\": \"2026-11-07T12:11:31.587626\",\n  \"reviewed_by_id\": null,\n  \"reviewed_at\": null\n}"
             }
           ]
         },
@@ -3913,7 +4808,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/f3ebf5c3-9020-4615-99a4-eae387d0dc5e/send-back",
+                  "raw": "{{baseUrl}}/api/v1/projects/833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20/send-back",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -3921,7 +4816,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "f3ebf5c3-9020-4615-99a4-eae387d0dc5e",
+                    "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
                     "send-back"
                   ],
                   "query": []
@@ -3945,7 +4840,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"00d115e8-0824-4543-b4f1-0d3074827021\",\n  \"project_id\": \"f3ebf5c3-9020-4615-99a4-eae387d0dc5e\",\n  \"version_id\": \"cd92b8b4-d2ff-4668-8c98-ffd79838f646\",\n  \"status\": \"sent_back\",\n  \"share_with\": null,\n  \"grade\": null,\n  \"comment\": \"Add a second room\",\n  \"submitted_by_id\": \"e176b223-801e-45d0-ba88-f6f9db0f9c58\",\n  \"submitted_at\": \"2026-11-04T04:37:25.527939\",\n  \"reviewed_by_id\": \"f243e391-ac97-4f07-9a0c-78be95cae7bb\",\n  \"reviewed_at\": \"2026-11-04T04:37:25.540354\"\n}"
+              "body": "{\n  \"id\": \"96fad5ce-a645-4610-9e8f-84af4109dbc9\",\n  \"project_id\": \"833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20\",\n  \"version_id\": \"0e19ab0e-f1a9-4b5d-9334-639502b8c3df\",\n  \"status\": \"sent_back\",\n  \"share_with\": null,\n  \"grade\": null,\n  \"comment\": \"Add a second room\",\n  \"submitted_by_id\": \"cdb86faf-d897-4db5-82e1-3c79e3f7f8c0\",\n  \"submitted_at\": \"2026-11-07T12:11:31.688896\",\n  \"reviewed_by_id\": \"1e228d94-094e-465a-a467-e463d5d2736b\",\n  \"reviewed_at\": \"2026-11-07T12:11:31.705708\"\n}"
             }
           ]
         },
@@ -4080,7 +4975,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/f3ebf5c3-9020-4615-99a4-eae387d0dc5e/submissions",
+                  "raw": "{{baseUrl}}/api/v1/projects/833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20/submissions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4088,7 +4983,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "f3ebf5c3-9020-4615-99a4-eae387d0dc5e",
+                    "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
                     "submissions"
                   ],
                   "query": []
@@ -4103,7 +4998,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"90082195-ca1c-4123-bd9c-2502d4b92b6b\",\n    \"project_id\": \"f3ebf5c3-9020-4615-99a4-eae387d0dc5e\",\n    \"version_id\": \"cd92b8b4-d2ff-4668-8c98-ffd79838f646\",\n    \"status\": \"waiting\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": null,\n    \"submitted_by_id\": \"e176b223-801e-45d0-ba88-f6f9db0f9c58\",\n    \"submitted_at\": \"2026-11-04T04:37:25.551304\",\n    \"reviewed_by_id\": null,\n    \"reviewed_at\": null\n  },\n  {\n    \"id\": \"00d115e8-0824-4543-b4f1-0d3074827021\",\n    \"project_id\": \"f3ebf5c3-9020-4615-99a4-eae387d0dc5e\",\n    \"version_id\": \"cd92b8b4-d2ff-4668-8c98-ffd79838f646\",\n    \"status\": \"sent_back\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": \"Add a second room\",\n    \"submitted_by_id\": \"e176b223-801e-45d0-ba88-f6f9db0f9c58\",\n    \"submitted_at\": \"2026-11-04T04:37:25.527939\",\n    \"reviewed_by_id\": \"f243e391-ac97-4f07-9a0c-78be95cae7bb\",\n    \"reviewed_at\": \"2026-11-04T04:37:25.540354\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"937bcb64-4dd2-49f9-8172-38cf5065874e\",\n    \"project_id\": \"833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20\",\n    \"version_id\": \"0e19ab0e-f1a9-4b5d-9334-639502b8c3df\",\n    \"status\": \"waiting\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": null,\n    \"submitted_by_id\": \"cdb86faf-d897-4db5-82e1-3c79e3f7f8c0\",\n    \"submitted_at\": \"2026-11-07T12:11:31.724206\",\n    \"reviewed_by_id\": null,\n    \"reviewed_at\": null\n  },\n  {\n    \"id\": \"96fad5ce-a645-4610-9e8f-84af4109dbc9\",\n    \"project_id\": \"833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20\",\n    \"version_id\": \"0e19ab0e-f1a9-4b5d-9334-639502b8c3df\",\n    \"status\": \"sent_back\",\n    \"share_with\": null,\n    \"grade\": null,\n    \"comment\": \"Add a second room\",\n    \"submitted_by_id\": \"cdb86faf-d897-4db5-82e1-3c79e3f7f8c0\",\n    \"submitted_at\": \"2026-11-07T12:11:31.688896\",\n    \"reviewed_by_id\": \"1e228d94-094e-465a-a467-e463d5d2736b\",\n    \"reviewed_at\": \"2026-11-07T12:11:31.705708\"\n  }\n]"
             }
           ]
         },
@@ -4188,7 +5083,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/c46fffe5-004e-4490-86c2-7dc924908a19/approve",
+                  "raw": "{{baseUrl}}/api/v1/projects/88362b13-254e-4550-aa5b-56b9f7154992/approve",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4196,7 +5091,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "c46fffe5-004e-4490-86c2-7dc924908a19",
+                    "88362b13-254e-4550-aa5b-56b9f7154992",
                     "approve"
                   ],
                   "query": []
@@ -4220,7 +5115,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"c250f30e-1776-4caf-8c6c-1840646f19da\",\n  \"project_id\": \"c46fffe5-004e-4490-86c2-7dc924908a19\",\n  \"version_id\": \"a453ec4a-eec0-4459-b4d7-01b7c7fe503b\",\n  \"status\": \"approved\",\n  \"share_with\": \"public\",\n  \"grade\": \"A\",\n  \"comment\": \"Lovely\",\n  \"submitted_by_id\": \"662e38f0-87d1-4c14-945f-45f5ffe9602f\",\n  \"submitted_at\": \"2026-11-04T04:37:25.333427\",\n  \"reviewed_by_id\": \"8388c913-7075-474a-ae5e-b3012d4911e3\",\n  \"reviewed_at\": \"2026-11-04T04:37:25.343557\"\n}"
+              "body": "{\n  \"id\": \"5d77715f-f4eb-41ee-8d25-459d2d15caca\",\n  \"project_id\": \"88362b13-254e-4550-aa5b-56b9f7154992\",\n  \"version_id\": \"865a7b2d-120e-4b71-a2e6-275fa3e05a6b\",\n  \"status\": \"approved\",\n  \"share_with\": \"public\",\n  \"grade\": \"A\",\n  \"comment\": \"Lovely\",\n  \"submitted_by_id\": \"c621adf1-f8bc-4c8e-8164-a82542611137\",\n  \"submitted_at\": \"2026-11-07T12:11:31.587626\",\n  \"reviewed_by_id\": \"e1e6ad87-1292-4c45-b0d4-0790069b22ac\",\n  \"reviewed_at\": \"2026-11-07T12:11:31.601904\"\n}"
             }
           ]
         },
@@ -4330,7 +5225,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/visit/lesson-1d5599b7",
+                  "raw": "{{baseUrl}}/api/v1/visit/lesson-d8c3e2fb",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4338,7 +5233,7 @@
                     "api",
                     "v1",
                     "visit",
-                    "lesson-1d5599b7"
+                    "lesson-d8c3e2fb"
                   ],
                   "query": []
                 }
@@ -4543,7 +5438,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"project_id\": \"8978e0a7-a146-4974-a687-d6dbaac2cab9\",\n    \"visits\": 2,\n    \"last_7_days\": [\n      0,\n      0\n    ]\n  }\n]"
+              "body": "[\n  {\n    \"project_id\": \"656c61f3-14bf-45cb-bbb3-4ba52a27145f\",\n    \"visits\": 2,\n    \"last_7_days\": [\n      0,\n      0\n    ]\n  }\n]"
             }
           ]
         },
@@ -4684,7 +5579,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/5380a8d5-6736-4e86-bc00-96b678d7ce7e/analytics/summary",
+                  "raw": "{{baseUrl}}/api/v1/projects/83f23ed7-089f-4eb6-9049-b98568dd2f0a/analytics/summary",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -4692,7 +5587,7 @@
                     "api",
                     "v1",
                     "projects",
-                    "5380a8d5-6736-4e86-bc00-96b678d7ce7e",
+                    "83f23ed7-089f-4eb6-9049-b98568dd2f0a",
                     "analytics",
                     "summary"
                   ],
@@ -4787,7 +5682,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"650b80be-1bb7-43b9-ae90-24e7edf2a633\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"uploaded\",\n    \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"created_at\": \"2026-11-04T04:37:21\",\n    \"updated_at\": \"2026-11-04T04:37:21\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"a2da566b-1248-4a6d-af15-8cd3a1384111\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"uploaded\",\n    \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"created_at\": \"2026-11-07T12:11:25\",\n    \"updated_at\": \"2026-11-07T12:11:25\"\n  }\n]"
             }
           ]
         },
@@ -5034,7 +5929,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"asset\": {\n    \"id\": \"06314f4b-d08d-4fc1-81ff-766ffb895671\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"pending\",\n    \"url\": null,\n    \"created_at\": \"2026-11-04T04:37:21\",\n    \"updated_at\": \"2026-11-04T04:37:21\"\n  },\n  \"upload_url\": \"https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"upload_headers\": {\n    \"Content-Type\": \"model/gltf-binary\",\n    \"Cache-Control\": \"public, max-age=31536000, immutable\"\n  }\n}"
+              "body": "{\n  \"asset\": {\n    \"id\": \"66f51638-dfa3-4feb-847c-5aa7b49f53cd\",\n    \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n    \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n    \"kind\": \"model\",\n    \"content_type\": \"model/gltf-binary\",\n    \"size_bytes\": 15,\n    \"filename\": \"Pedestal.glb\",\n    \"title\": \"Pedestal\",\n    \"attribution\": null,\n    \"visibility\": \"public\",\n    \"status\": \"pending\",\n    \"url\": null,\n    \"created_at\": \"2026-11-07T12:11:25\",\n    \"updated_at\": \"2026-11-07T12:11:25\"\n  },\n  \"upload_url\": \"https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"upload_headers\": {\n    \"Content-Type\": \"model/gltf-binary\",\n    \"Cache-Control\": \"public, max-age=31536000, immutable\"\n  }\n}"
             }
           ]
         },
@@ -5118,7 +6013,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/library/83955f2c-57b1-41c7-8342-051511512ddc",
+                  "raw": "{{baseUrl}}/api/v1/library/46930dd1-c2f2-4d12-a271-5b92f02c73ce",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -5126,7 +6021,7 @@
                     "api",
                     "v1",
                     "library",
-                    "83955f2c-57b1-41c7-8342-051511512ddc"
+                    "46930dd1-c2f2-4d12-a271-5b92f02c73ce"
                   ],
                   "query": []
                 },
@@ -5149,7 +6044,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"83955f2c-57b1-41c7-8342-051511512ddc\",\n  \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n  \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"kind\": \"model\",\n  \"content_type\": \"model/gltf-binary\",\n  \"size_bytes\": 15,\n  \"filename\": \"Pedestal.glb\",\n  \"title\": \"Renamed\",\n  \"attribution\": null,\n  \"visibility\": \"public\",\n  \"status\": \"uploaded\",\n  \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"created_at\": \"2026-11-04T04:37:22\",\n  \"updated_at\": \"2026-11-04T04:37:22\"\n}"
+              "body": "{\n  \"id\": \"46930dd1-c2f2-4d12-a271-5b92f02c73ce\",\n  \"content_sha256\": \"5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da\",\n  \"storage_key\": \"library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"kind\": \"model\",\n  \"content_type\": \"model/gltf-binary\",\n  \"size_bytes\": 15,\n  \"filename\": \"Pedestal.glb\",\n  \"title\": \"Renamed\",\n  \"attribution\": null,\n  \"visibility\": \"public\",\n  \"status\": \"uploaded\",\n  \"url\": \"https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb\",\n  \"created_at\": \"2026-11-07T12:11:25\",\n  \"updated_at\": \"2026-11-07T12:11:25\"\n}"
             }
           ]
         },
@@ -5214,7 +6109,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/library/af83f1af-7538-41ab-9a79-6b273280beba",
+                  "raw": "{{baseUrl}}/api/v1/library/2b9f6c8e-cf98-4617-98e6-498a3d2f8b39",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -5222,7 +6117,7 @@
                     "api",
                     "v1",
                     "library",
-                    "af83f1af-7538-41ab-9a79-6b273280beba"
+                    "2b9f6c8e-cf98-4617-98e6-498a3d2f8b39"
                   ],
                   "query": []
                 }
@@ -5352,7 +6247,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"82187d24-4135-4e8c-af14-3367520fe840\",\n    \"slug\": \"dinosaurs\",\n    \"title\": \"Dinosaurs\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [],\n    \"published_revision\": null,\n    \"published_at\": null,\n    \"manifest_url\": null,\n    \"unpublished_changes\": true,\n    \"created_at\": \"2026-11-06T08:43:03\",\n    \"updated_at\": \"2026-11-06T08:43:03\"\n  },\n  {\n    \"id\": \"e221f7c1-6484-4e0d-a8bd-d63f19c5768b\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [\n      \"5868e0be-5bae-4824-b81a-5bbad9901759\"\n    ],\n    \"published_revision\": 1,\n    \"published_at\": \"2026-11-06T08:43:03.742789\",\n    \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n    \"unpublished_changes\": false,\n    \"created_at\": \"2026-11-06T08:43:03\",\n    \"updated_at\": \"2026-11-06T08:43:03.742789\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"f3711fa0-f646-4d7a-bb69-c43cc25e9153\",\n    \"slug\": \"dinosaurs\",\n    \"title\": \"Dinosaurs\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [],\n    \"published_revision\": null,\n    \"published_at\": null,\n    \"manifest_url\": null,\n    \"unpublished_changes\": true,\n    \"created_at\": \"2026-11-07T12:11:29\",\n    \"updated_at\": \"2026-11-07T12:11:29\"\n  },\n  {\n    \"id\": \"64bb2b98-282d-43ab-83a6-6c664eab7418\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"asset_ids\": [\n      \"b5096d9d-e037-462e-b1db-1b7228443bc2\"\n    ],\n    \"published_revision\": 1,\n    \"published_at\": \"2026-11-07T12:11:29.015452\",\n    \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n    \"unpublished_changes\": false,\n    \"created_at\": \"2026-11-07T12:11:28\",\n    \"updated_at\": \"2026-11-07T12:11:29.015452\"\n  }\n]"
             }
           ]
         },
@@ -5758,7 +6653,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"24fe8fa9-3b96-4d9b-a2f1-208541bb8297\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-06T08:42:10\",\n  \"updated_at\": \"2026-11-06T08:42:10\"\n}"
+              "body": "{\n  \"id\": \"6c08fc18-5229-4a26-bad2-1c784d7f1b2b\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27\"\n}"
             }
           ]
         },
@@ -5882,7 +6777,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"e221f7c1-6484-4e0d-a8bd-d63f19c5768b\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"5868e0be-5bae-4824-b81a-5bbad9901759\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-06T08:43:03.742789\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": false,\n  \"created_at\": \"2026-11-06T08:43:03\",\n  \"updated_at\": \"2026-11-06T08:43:03.742789\"\n}"
+              "body": "{\n  \"id\": \"64bb2b98-282d-43ab-83a6-6c664eab7418\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"b5096d9d-e037-462e-b1db-1b7228443bc2\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-07T12:11:29.015452\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": false,\n  \"created_at\": \"2026-11-07T12:11:28\",\n  \"updated_at\": \"2026-11-07T12:11:29.015452\"\n}"
             }
           ]
         },
@@ -5983,7 +6878,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"69a74131-18d1-414b-a11a-83c5421b12e7\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossil hall\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"4eb21bea-b21b-4855-a6b8-97e627c28dd1\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-06T08:42:10.378012\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-06T08:42:10\",\n  \"updated_at\": \"2026-11-06T08:42:10.389593\"\n}"
+              "body": "{\n  \"id\": \"99eca2b0-c279-46bb-aa15-c14866677e13\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossil hall\",\n  \"description\": null,\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"f30f1f99-751d-40f6-9c41-b3195983d756\"\n  ],\n  \"published_revision\": 1,\n  \"published_at\": \"2026-11-07T12:11:27.985423\",\n  \"manifest_url\": \"https://assets.test/library/packs/fossils/1.json\",\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:28.000760\"\n}"
             }
           ]
         },
@@ -6069,7 +6964,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"asset_ids\": [\n    \"df29f236-4e45-4b84-bcac-e7411def1162\",\n    \"334c4c19-35e4-4db0-b85b-793d548fa738\"\n  ]\n}",
+                  "raw": "{\n  \"asset_ids\": [\n    \"37d03148-674d-4cd3-85b4-1bc8c680a20b\",\n    \"4bec6750-70fe-4a9e-8e6b-9564983d96f9\"\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -6086,7 +6981,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"24fe8fa9-3b96-4d9b-a2f1-208541bb8297\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"df29f236-4e45-4b84-bcac-e7411def1162\",\n    \"334c4c19-35e4-4db0-b85b-793d548fa738\"\n  ],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-06T08:42:10\",\n  \"updated_at\": \"2026-11-06T08:42:10.298336\"\n}"
+              "body": "{\n  \"id\": \"6c08fc18-5229-4a26-bad2-1c784d7f1b2b\",\n  \"slug\": \"fossils\",\n  \"title\": \"Fossils\",\n  \"description\": \"Six CC0 scans\",\n  \"kind\": \"objects\",\n  \"asset_ids\": [\n    \"37d03148-674d-4cd3-85b4-1bc8c680a20b\",\n    \"4bec6750-70fe-4a9e-8e6b-9564983d96f9\"\n  ],\n  \"published_revision\": null,\n  \"published_at\": null,\n  \"manifest_url\": null,\n  \"unpublished_changes\": true,\n  \"created_at\": \"2026-11-07T12:11:27\",\n  \"updated_at\": \"2026-11-07T12:11:27.901022\"\n}"
             }
           ]
         },
@@ -6343,7 +7238,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools/371a1623-8b65-437a-b12f-ea108f0f78de/packs",
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/af89d1fd-5b17-41d1-87b9-c0e0548e275d/packs",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -6352,7 +7247,7 @@
                     "v1",
                     "admin",
                     "schools",
-                    "371a1623-8b65-437a-b12f-ea108f0f78de",
+                    "af89d1fd-5b17-41d1-87b9-c0e0548e275d",
                     "packs"
                   ],
                   "query": []
@@ -6368,7 +7263,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"6bc715f7-8dc5-43a2-afe6-d8c71e0185b3\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"item_count\": 1,\n    \"revision\": 1,\n    \"enabled\": false\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"0f9352e6-3020-481d-8a0a-6038125215a3\",\n    \"slug\": \"fossils\",\n    \"title\": \"Fossils\",\n    \"description\": null,\n    \"kind\": \"objects\",\n    \"item_count\": 1,\n    \"revision\": 1,\n    \"enabled\": false\n  }\n]"
             }
           ]
         },
@@ -6542,7 +7437,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"tiles\": {\n    \"schools\": {\n      \"value\": 1,\n      \"sub\": \"1 active\"\n    },\n    \"educators\": {\n      \"value\": 2,\n      \"sub\": \"2 not signed in yet\"\n    },\n    \"students\": {\n      \"value\": 3,\n      \"sub\": \"0 active this week\"\n    },\n    \"published\": {\n      \"value\": 0,\n      \"sub\": \"0 still drafts\"\n    }\n  },\n  \"schools\": [\n    {\n      \"id\": \"de46ed8c-ff51-4a6b-adb3-4d9227282a90\",\n      \"name\": \"A\",\n      \"students\": 3,\n      \"educators\": 2,\n      \"status\": \"active\"\n    }\n  ],\n  \"attention\": [\n    {\n      \"id\": \"never-signed-in\",\n      \"text\": \"6 people have never signed in\",\n      \"action_label\": \"See who\",\n      \"go_to\": \"accounts\"\n    }\n  ],\n  \"recent\": []\n}"
+              "body": "{\n  \"tiles\": {\n    \"schools\": {\n      \"value\": 2,\n      \"sub\": \"1 active\"\n    },\n    \"educators\": {\n      \"value\": 3,\n      \"sub\": \"3 not signed in yet\"\n    },\n    \"students\": {\n      \"value\": 3,\n      \"sub\": \"0 active this week\"\n    },\n    \"published\": {\n      \"value\": 0,\n      \"sub\": \"0 still drafts\"\n    }\n  },\n  \"schools\": [\n    {\n      \"id\": \"bf2df751-1fe0-44e6-bc6c-08c337b20187\",\n      \"name\": \"A\",\n      \"students\": 3,\n      \"educators\": 2,\n      \"status\": \"active\"\n    },\n    {\n      \"id\": \"88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n      \"name\": \"B\",\n      \"students\": 0,\n      \"educators\": 1,\n      \"status\": \"setting_up\"\n    }\n  ],\n  \"attention\": [\n    {\n      \"id\": \"setting-up-88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n      \"text\": \"B has no students yet\",\n      \"action_label\": \"Add accounts\",\n      \"go_to\": \"accounts\"\n    },\n    {\n      \"id\": \"no-classes-88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n      \"text\": \"B has no classes yet\",\n      \"action_label\": \"Add accounts\",\n      \"go_to\": \"accounts\"\n    }\n  ],\n  \"recent\": []\n}"
             }
           ]
         },
@@ -6616,7 +7511,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"de46ed8c-ff51-4a6b-adb3-4d9227282a90\",\n    \"name\": \"A\",\n    \"students\": 3,\n    \"educators\": 2,\n    \"status\": \"active\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"bf2df751-1fe0-44e6-bc6c-08c337b20187\",\n    \"name\": \"A\",\n    \"students\": 3,\n    \"educators\": 2,\n    \"status\": \"active\"\n  },\n  {\n    \"id\": \"88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n    \"name\": \"B\",\n    \"students\": 0,\n    \"educators\": 1,\n    \"status\": \"setting_up\"\n  }\n]"
             }
           ]
         },
@@ -6691,7 +7586,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "[\n  {\n    \"id\": \"c6959ff5-9ca1-40a2-a765-2002874a0941\",\n    \"school_id\": \"de46ed8c-ff51-4a6b-adb3-4d9227282a90\",\n    \"name\": \"admin\",\n    \"email\": \"admin@x.test\",\n    \"role\": \"admin\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  },\n  {\n    \"id\": \"677eab91-9212-4a95-a849-4a3c1414ee4c\",\n    \"school_id\": \"de46ed8c-ff51-4a6b-adb3-4d9227282a90\",\n    \"name\": \"s1\",\n    \"email\": \"s1@x.test\",\n    \"role\": \"student\",\n    \"class_names\": [\n      \"1A\"\n    ],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"6ee42d51-b720-4e20-b718-6f765682282e\",\n    \"school_id\": \"bf2df751-1fe0-44e6-bc6c-08c337b20187\",\n    \"name\": \"admin\",\n    \"email\": \"admin@x.test\",\n    \"role\": \"admin\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  },\n  {\n    \"id\": \"aa9633d4-2e27-4b2b-9007-1de6adc807b3\",\n    \"school_id\": \"88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4\",\n    \"name\": \"other\",\n    \"email\": \"other@x.test\",\n    \"role\": \"teacher\",\n    \"class_names\": [],\n    \"last_active\": null,\n    \"status\": \"invited\"\n  }\n]"
             }
           ]
         },
@@ -6871,7 +7766,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"school_id\": \"faa4cfff-8991-40e1-9ac1-11d291e69d8e\",\n  \"name\": \"New Person\",\n  \"email\": \"New.Person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ]\n}",
+                  "raw": "{\n  \"school_id\": \"2a15042c-ba66-4e41-9a58-c474b421abe4\",\n  \"name\": \"New Person\",\n  \"email\": \"New.Person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -6888,7 +7783,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"186ff664-a01b-454f-a742-00c507bfed97\",\n  \"school_id\": \"faa4cfff-8991-40e1-9ac1-11d291e69d8e\",\n  \"name\": \"New Person\",\n  \"email\": \"new.person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ],\n  \"last_active\": null,\n  \"status\": \"invited\",\n  \"invite_link\": \"https://tenant.test/invite/new.person@x.test\"\n}"
+              "body": "{\n  \"id\": \"8d7676e7-75d0-4c9f-a47b-04b70c906ac3\",\n  \"school_id\": \"2a15042c-ba66-4e41-9a58-c474b421abe4\",\n  \"name\": \"New Person\",\n  \"email\": \"new.person@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\",\n    \"3C\"\n  ],\n  \"last_active\": null,\n  \"status\": \"invited\",\n  \"invite_link\": \"https://tenant.test/invite/new.person@x.test\"\n}"
             }
           ]
         },
@@ -7009,6 +7904,179 @@
           "response": []
         },
         {
+          "name": "New sign-in link",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"account_id\", \"invite_link\"], \"properties\": {\"account_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"invite_link\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}));",
+                  "pm.test('for this account', () => pm.expect(pm.response.json().account_id).to.eql(pm.variables.get('account_id')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/{{account_id}}/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "{{account_id}}",
+                "invite"
+              ],
+              "query": []
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/accounts/13c469ad-5536-483c-aa3a-1a288d013374/invite",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "accounts",
+                    "13c469ad-5536-483c-aa3a-1a288d013374",
+                    "invite"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"account_id\": \"13c469ad-5536-483c-aa3a-1a288d013374\",\n  \"invite_link\": \"https://tenant.test/again/s1\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Teacher may not hand out sign-in links (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/{{account_id}}/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "{{account_id}}",
+                "invite"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign-in link for nobody is 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/00000000-0000-4000-8000-000000000000/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "00000000-0000-4000-8000-000000000000",
+                "invite"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Turn the account off",
           "event": [
             {
@@ -7089,7 +8157,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/accounts/bf703953-ffec-4323-a38b-dcd286626f59",
+                  "raw": "{{baseUrl}}/api/v1/admin/accounts/13b4754d-2975-4b98-99da-de82a7dc5b32",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -7098,7 +8166,7 @@
                     "v1",
                     "admin",
                     "accounts",
-                    "bf703953-ffec-4323-a38b-dcd286626f59"
+                    "13b4754d-2975-4b98-99da-de82a7dc5b32"
                   ],
                   "query": []
                 },
@@ -7121,9 +8189,337 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"bf703953-ffec-4323-a38b-dcd286626f59\",\n  \"school_id\": \"3de6a59c-69c5-4924-9a01-afad6cf4537c\",\n  \"name\": \"s1\",\n  \"email\": \"s1@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\"\n  ],\n  \"last_active\": null,\n  \"status\": \"turned_off\"\n}"
+              "body": "{\n  \"id\": \"13b4754d-2975-4b98-99da-de82a7dc5b32\",\n  \"school_id\": \"4335d3f8-780e-4424-ade7-a3d4874a70a7\",\n  \"name\": \"s1\",\n  \"email\": \"s1@x.test\",\n  \"role\": \"student\",\n  \"class_names\": [\n    \"1A\"\n  ],\n  \"last_active\": null,\n  \"status\": \"turned_off\"\n}"
             }
           ]
+        },
+        {
+          "name": "No sign-in link while turned off (409)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/{{account_id}}/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "{{account_id}}",
+                "invite"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Import CSV: dry run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"school_id\", \"dry_run\", \"rows\"], \"properties\": {\"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"dry_run\": {\"type\": \"boolean\"}, \"rows\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"line\", \"email\", \"name\", \"role\", \"class_names\", \"outcome\", \"account_id\", \"invite_link\", \"error\"], \"properties\": {\"line\": {\"type\": \"integer\"}, \"email\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"class_names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"outcome\": {\"type\": \"string\"}, \"account_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"invite_link\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"error\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}}}}));",
+                  "pm.test('one outcome per line, nothing made', () => pm.expect(pm.response.json().rows.map((r) => r.outcome)).to.eql(['would_create', 'skipped_exists', 'error']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"email,display_name,role,classes\\npostman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\\npostman.{{run_id}}@example.test,Again,student,\\nbad.{{run_id}}@example.test,Bad,janitor,\\n\",\n  \"dry_run\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "accounts",
+                    "import"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"school_id\": \"9aa8a188-dd21-4fc8-a3ee-64dcd0a70b1e\",\n  \"csv\": \"Email,Display_Name,Role,Classes\\nnew1@x.test,New One,student,3C\\nS1@x.test,Already Here,teacher,\\nnew2@x.test,New Two,principal,\\nnew1@x.test,New One Again,student,\\nnew3@x.test,New Three,teacher,3C;3D\\n\",\n  \"dry_run\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"school_id\": \"9aa8a188-dd21-4fc8-a3ee-64dcd0a70b1e\",\n  \"dry_run\": true,\n  \"rows\": [\n    {\n      \"line\": 2,\n      \"email\": \"new1@x.test\",\n      \"name\": \"New One\",\n      \"role\": \"student\",\n      \"class_names\": [\n        \"3C\"\n      ],\n      \"outcome\": \"would_create\",\n      \"account_id\": null,\n      \"invite_link\": null,\n      \"error\": null\n    },\n    {\n      \"line\": 3,\n      \"email\": \"s1@x.test\",\n      \"name\": \"Already Here\",\n      \"role\": \"teacher\",\n      \"class_names\": [],\n      \"outcome\": \"skipped_exists\",\n      \"account_id\": \"8ac67b5d-53a4-4535-8ad2-f564cb6ec51b\",\n      \"invite_link\": null,\n      \"error\": null\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Import CSV: apply",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"school_id\", \"dry_run\", \"rows\"], \"properties\": {\"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"dry_run\": {\"type\": \"boolean\"}, \"rows\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"line\", \"email\", \"name\", \"role\", \"class_names\", \"outcome\", \"account_id\", \"invite_link\", \"error\"], \"properties\": {\"line\": {\"type\": \"integer\"}, \"email\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"class_names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"outcome\": {\"type\": \"string\"}, \"account_id\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, {\"type\": \"null\"}]}, \"invite_link\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"error\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}}}}));",
+                  "pm.test('creates the new one, skips the known one', () => pm.expect(pm.response.json().rows.map((r) => r.outcome)).to.eql(['created', 'skipped_exists', 'error']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"email,display_name,role,classes\\npostman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\\npostman.{{run_id}}@example.test,Again,student,\\nbad.{{run_id}}@example.test,Bad,janitor,\\n\",\n  \"dry_run\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher may not import (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"email,display_name,role,classes\\npostman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\\npostman.{{run_id}}@example.test,Again,student,\\nbad.{{run_id}}@example.test,Bad,janitor,\\n\",\n  \"dry_run\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CSV without the columns is 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts",
+                "import"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"csv\": \"name,email\\nX,x@example.test\\n\",\n  \"dry_run\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         },
         {
           "name": "Cannot turn yourself off (400)",
@@ -7230,14 +8626,144 @@
           "response": []
         },
         {
-          "name": "Adding a school says 501",
+          "name": "Add a school",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 501', () => pm.response.to.have.status(501));",
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"id\", \"name\", \"students\", \"educators\", \"status\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"students\": {\"type\": \"integer\"}, \"educators\": {\"type\": \"integer\"}, \"status\": {\"type\": \"string\"}}}));",
+                  "pm.test('starts empty, setting up', () => { const s = pm.response.json(); pm.expect(s.students + s.educators).to.eql(0); pm.expect(s.status).to.eql('setting_up'); });",
+                  "pm.collectionVariables.set('new_school_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman School {{run_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Recorded 201",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/schools",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "schools"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"  Riverside Primary \"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c3bdf3c-12b7-4f29-b4ba-0ff52167ae9e\",\n  \"name\": \"Riverside Primary\",\n  \"students\": 0,\n  \"educators\": 0,\n  \"status\": \"setting_up\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Same school name is 409",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
                   "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
                 ]
               }
@@ -7270,7 +8796,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Another school\"\n}",
+              "raw": "{\n  \"name\": \"Postman School {{run_id}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7278,56 +8804,116 @@
               }
             }
           },
-          "response": [
+          "response": []
+        },
+        {
+          "name": "The new school has nobody yet",
+          "event": [
             {
-              "name": "Recorded 501",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token_admin}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "admin",
-                    "schools"
-                  ],
-                  "query": []
-                },
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"C\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "Not Implemented",
-              "code": 501,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"detail\": \"Adding a school needs a VThere operator role above the schools, which the data model does not have yet: an admin belongs to one school. Create schools with python -m app.provision --school-slug <slug> --school-name <name> for now.\"\n}"
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Leaves rows behind (an account, a student's copy, a hand-in): runs only where allow_writes is true,",
+                  "// which is the seeded local and CI databases, never the deployed one by default.",
+                  "if (pm.environment.get('allow_writes') !== 'true') {",
+                  "    console.log(`skipped (allow_writes is not true): ${pm.info.requestName}`);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"school_id\", \"name\", \"email\", \"role\", \"class_names\", \"last_active\", \"status\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"school_id\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"}, \"name\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"class_names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"last_active\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}, \"status\": {\"type\": \"string\"}}}}));",
+                  "pm.test('is empty', () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/accounts?school={{new_school_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "accounts"
+              ],
+              "query": [
+                {
+                  "key": "school",
+                  "value": "{{new_school_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher may not add a school (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/schools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "schools"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nope\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -7392,7 +8978,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools/9b14d934-bb9b-473a-98e2-ac2428492b49/permissions",
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/8815994b-60da-4d0e-9802-d7771f767783/permissions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -7401,7 +8987,7 @@
                     "v1",
                     "admin",
                     "schools",
-                    "9b14d934-bb9b-473a-98e2-ac2428492b49",
+                    "8815994b-60da-4d0e-9802-d7771f767783",
                     "permissions"
                   ],
                   "query": []
@@ -7857,7 +9443,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/admin/schools/f481598b-cde8-480c-9ee7-59d213dc30c4/permissions",
+                  "raw": "{{baseUrl}}/api/v1/admin/schools/a3e098e6-4bb7-467c-895a-e76e25a36f3f/permissions",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -7866,7 +9452,7 @@
                     "v1",
                     "admin",
                     "schools",
-                    "f481598b-cde8-480c-9ee7-59d213dc30c4",
+                    "a3e098e6-4bb7-467c-895a-e76e25a36f3f",
                     "permissions"
                   ],
                   "query": []

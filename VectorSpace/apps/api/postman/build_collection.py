@@ -56,8 +56,9 @@ VALIDATION_ERROR = obj(detail=array(obj(loc={"type": "array"}, msg=STR, type=STR
 HEALTH = obj(status={"const": "ok"}, service=STR)
 ME = obj(id=UUID, organisation_id=UUID, display_name=STR, role={"enum": ["admin", "teacher", "student"]},
          class_ids=array(UUID))
-CLASS = obj(id=UUID, name=STR, member_count=INT)
+CLASS = obj(id=UUID, school_id=UUID, name=STR, member_count=INT)
 MEMBER = obj(id=UUID, display_name=STR, role=STR)
+MOVE = obj(student=MEMBER, from_class=CLASS, to_class=CLASS)
 PROJECT = obj(id=UUID, organisation_id=UUID, created_by_id=UUID, class_id=nullable(UUID), kind={"enum": ["project", "template"]},
               name=STR, slug=STR, status={"enum": ["draft", "published", "archived"]}, current_version_id=nullable(UUID),
               current_revision=INT, created_at=STR, updated_at=STR, created_by_name=STR, assignment_id=nullable(UUID),
@@ -80,6 +81,15 @@ VISITS = obj(project_id=UUID, visits=INT, last_7_days=array(INT))
 SCHOOL = obj(id=UUID, name=STR, students=INT, educators=INT, status=STR)
 ACCOUNT = obj(id=UUID, school_id=UUID, name=STR, email=STR, role=STR, class_names=array(STR),
               last_active=nullable(STR), status=STR)
+SIGN_IN_LINK = obj(account_id=UUID, invite_link=nullable(STR))
+IMPORT = obj(school_id=UUID, dry_run=BOOL, rows=array(obj(
+    line=INT, email=STR, name=STR, role=STR, class_names=array(STR), outcome=STR,
+    account_id=nullable(UUID), invite_link=nullable(STR), error=nullable(STR))))
+# a new person, the "Add a student" address (known by then), and a bad role: one of each outcome
+IMPORT_CSV = ("email,display_name,role,classes\n"
+              "postman.csv.{{run_id}}@example.test,Postman CSV {{run_id}},student,\n"
+              "postman.{{run_id}}@example.test,Again,student,\n"
+              "bad.{{run_id}}@example.test,Bad,janitor,\n")
 PACK = obj(id=UUID, slug=STR, title=STR, description=nullable(STR), kind={"enum": ["objects", "environments"]},
             asset_ids=array(UUID), published_revision=nullable(INT), published_at=nullable(STR),
             manifest_url=nullable(STR), unpublished_changes=BOOL, created_at=STR, updated_at=STR)
@@ -290,6 +300,37 @@ classes = folder("Classes", "Rosters: teachers see their classes; students may n
         tests="pm.test('the student is on it', () => pm.expect(pm.response.json().map((m) => m.id)).to.include(pm.collectionVariables.get('student_id')));"),
     req("Student may not list the roster (403)", "GET", "/classes/{{class_id}}/members", as_="student", status=403, schema=ERROR),
     req("Unknown class is 404", "GET", f"/classes/{NO_SUCH_ID}/members", as_="teacher", status=404, schema=ERROR),
+    req("Student may not create a class (403)", "POST", "/classes", as_="student", status=403, schema=ERROR,
+        body={"name": "Mine"}),
+    req("Admin must pick a school (422)", "POST", "/classes", as_="admin", status=422, schema=ERROR,
+        body={"name": "No school"}),
+    req("Teacher creates a class", "POST", "/classes", as_="teacher", status=201, schema=CLASS, writes=True,
+        spec="POST /api/v1/classes", body='{\n  "name": "Postman class {{run_id}}"\n}',
+        tests="\n".join([
+            "pm.test('the teacher teaches it', () => pm.expect(pm.response.json().member_count).to.eql(1));",
+            save("new_class_id", "pm.response.json().id"),
+        ])),
+    req("Same class name is 409", "POST", "/classes", as_="teacher", status=409, schema=ERROR, writes=True,
+        body='{\n  "name": "Postman class {{run_id}}"\n}'),
+    req("Teacher adds the second student", "POST", "/classes/{{new_class_id}}/members", as_="teacher", status=200,
+        schema=MEMBER, writes=True, spec="POST /api/v1/classes/{class_id}/members",
+        body='{\n  "actor_id": "{{student2_id}}"\n}'),
+    req("Teacher may not add the admin (403)", "POST", "/classes/{{new_class_id}}/members", as_="teacher", status=403,
+        schema=ERROR, writes=True, body='{\n  "actor_id": "{{admin_id}}"\n}'),
+    req("Teacher removes them again", "DELETE", "/classes/{{new_class_id}}/members/{{student2_id}}", as_="teacher",
+        status=204, writes=True),
+    req("Removing someone not there is 404", "DELETE", "/classes/{{new_class_id}}/members/{{student2_id}}",
+        as_="teacher", status=404, schema=ERROR, writes=True),
+    req("Put them back in the new class", "POST", "/classes/{{new_class_id}}/members", as_="teacher", status=200,
+        schema=MEMBER, writes=True, body='{\n  "actor_id": "{{student2_id}}"\n}'),
+    req("Move them to the shared class", "POST", "/classes/{{new_class_id}}/members/{{student2_id}}/move",
+        as_="teacher", status=200, schema=MOVE, writes=True,
+        spec="POST /api/v1/classes/{class_id}/members/{actor_id}/move", body='{\n  "to_class_id": "{{class_id}}"\n}',
+        tests="pm.test('lands in the shared class', () => pm.expect(pm.response.json().to_class.id).to.eql(pm.collectionVariables.get('class_id')));"),
+    req("Moving again is 404 (not in the new class)", "POST", "/classes/{{new_class_id}}/members/{{student2_id}}/move",
+        as_="teacher", status=404, schema=ERROR, writes=True, body='{\n  "to_class_id": "{{class_id}}"\n}'),
+    req("Moving into the same class is 422", "POST", "/classes/{{class_id}}/members/{{student2_id}}/move",
+        as_="teacher", status=422, schema=ERROR, writes=True, body='{\n  "to_class_id": "{{class_id}}"\n}'),
     req("Bad class id is 422", "GET", "/classes/not-a-uuid/members", as_="teacher", status=422, schema=VALIDATION_ERROR),
 ])
 
@@ -548,15 +589,47 @@ admin = folder("Admin", "School overview and accounts, admins only.", [
              '  "role": "student"\n}'),
     req("Unknown role is 422", "POST", "/admin/accounts", as_="admin", status=422, schema=ERROR,
         body='{\n  "school_id": "{{school_id}}",\n  "name": "X",\n  "email": "x.{{run_id}}@example.test",\n  "role": "janitor"\n}'),
+    req("New sign-in link", "POST", "/admin/accounts/{{account_id}}/invite", as_="admin", status=200,
+        schema=SIGN_IN_LINK, writes=True, spec="POST /api/v1/admin/accounts/{account_id}/invite",
+        tests="pm.test('for this account', () => pm.expect(pm.response.json().account_id).to.eql(pm.variables.get('account_id')));"),
+    req("Teacher may not hand out sign-in links (403)", "POST", "/admin/accounts/{{account_id}}/invite", as_="teacher",
+        status=403, schema=ERROR),
+    req("Sign-in link for nobody is 404", "POST", f"/admin/accounts/{NO_SUCH_ID}/invite", as_="admin", status=404,
+        schema=ERROR),
     req("Turn the account off", "PATCH", "/admin/accounts/{{account_id}}", as_="admin", status=200, schema=ACCOUNT,
         writes=True, spec="PATCH /api/v1/admin/accounts/{account_id}", body={"active": False},
         tests="pm.test('is turned off', () => pm.expect(pm.response.json().status).to.eql('turned_off'));"),
+    req("No sign-in link while turned off (409)", "POST", "/admin/accounts/{{account_id}}/invite", as_="admin",
+        status=409, schema=ERROR, writes=True),
+    req("Import CSV: dry run", "POST", "/admin/accounts/import", as_="admin", status=200, schema=IMPORT,
+        spec="POST /api/v1/admin/accounts/import", body={"school_id": "{{school_id}}", "csv": IMPORT_CSV, "dry_run": True},
+        tests="pm.test('one outcome per line, nothing made', () => pm.expect(pm.response.json().rows.map((r) => r.outcome))"
+              ".to.eql(['would_create', 'skipped_exists', 'error']));"),
+    req("Import CSV: apply", "POST", "/admin/accounts/import", as_="admin", status=200, schema=IMPORT, writes=True,
+        body={"school_id": "{{school_id}}", "csv": IMPORT_CSV, "dry_run": False},
+        tests="pm.test('creates the new one, skips the known one', () => pm.expect(pm.response.json().rows.map((r) => r.outcome))"
+              ".to.eql(['created', 'skipped_exists', 'error']));"),
+    req("Teacher may not import (403)", "POST", "/admin/accounts/import", as_="teacher", status=403, schema=ERROR,
+        body={"school_id": "{{school_id}}", "csv": IMPORT_CSV, "dry_run": True}),
+    req("CSV without the columns is 422", "POST", "/admin/accounts/import", as_="admin", status=422, schema=ERROR,
+        body={"school_id": "{{school_id}}", "csv": "name,email\nX,x@example.test\n", "dry_run": True}),
     req("Cannot turn yourself off (400)", "PATCH", "/admin/accounts/{{admin_id}}", as_="admin", status=400, schema=ERROR,
         body={"active": False}),
     req("Unknown account is 404", "PATCH", f"/admin/accounts/{NO_SUCH_ID}", as_="admin", status=404, schema=ERROR,
         body={"active": False}),
-    req("Adding a school says 501", "POST", "/admin/schools", as_="admin", status=501, schema=ERROR,
-        spec="POST /api/v1/admin/schools", body={"name": "Another school"}),
+    req("Add a school", "POST", "/admin/schools", as_="admin", status=201, schema=SCHOOL, writes=True,
+        spec="POST /api/v1/admin/schools", body='{\n  "name": "Postman School {{run_id}}"\n}',
+        tests="\n".join([
+            "pm.test('starts empty, setting up', () => { const s = pm.response.json(); pm.expect(s.students + s.educators).to.eql(0); pm.expect(s.status).to.eql('setting_up'); });",
+            save("new_school_id", "pm.response.json().id"),
+        ])),
+    req("Same school name is 409", "POST", "/admin/schools", as_="admin", status=409, schema=ERROR, writes=True,
+        body='{\n  "name": "Postman School {{run_id}}"\n}'),
+    req("The new school has nobody yet", "GET", "/admin/accounts", as_="admin", status=200, schema=array(ACCOUNT),
+        writes=True, query={"school": "{{new_school_id}}"},
+        tests="pm.test('is empty', () => pm.expect(pm.response.json()).to.eql([]));"),
+    req("Teacher may not add a school (403)", "POST", "/admin/schools", as_="teacher", status=403, schema=ERROR,
+        body={"name": "Nope"}),
 ])
 
 FT = "from-templates"

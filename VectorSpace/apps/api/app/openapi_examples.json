@@ -1,7 +1,17 @@
 {
+  "DELETE /api/v1/classes/{class_id}/members/{actor_id}": {
+    "path_params": {
+      "class_id": "b2d9fd89-fd5c-4175-958f-34eafccecb6c",
+      "actor_id": "b9135a6d-0c55-4241-8ff1-286d7328811c"
+    },
+    "query": {},
+    "request": null,
+    "status": 204,
+    "response": null
+  },
   "DELETE /api/v1/library/{asset_id}": {
     "path_params": {
-      "asset_id": "af83f1af-7538-41ab-9a79-6b273280beba"
+      "asset_id": "2b9f6c8e-cf98-4617-98e6-498a3d2f8b39"
     },
     "query": {},
     "request": null,
@@ -19,7 +29,7 @@
   },
   "DELETE /api/v1/projects/{project_id}": {
     "path_params": {
-      "project_id": "51a4c185-d5dd-4b19-bcfe-2ed14926bbb2"
+      "project_id": "6234ee4c-fa18-4988-ae08-e6f0eb294025"
     },
     "query": {},
     "request": null,
@@ -28,8 +38,8 @@
   },
   "DELETE /api/v1/projects/{project_id}/media/{media_id}": {
     "path_params": {
-      "project_id": "f1ee34b8-8df2-4a13-855e-226135df5c19",
-      "media_id": "97bb77ba-0b18-43f6-ae49-91d60c38656d"
+      "project_id": "67245289-521c-47d6-8060-9fca1224ddd0",
+      "media_id": "c634e8a2-033e-41e9-9f24-4d90d9f45081"
     },
     "query": {},
     "request": null,
@@ -38,8 +48,8 @@
   },
   "DELETE /api/v1/projects/{project_id}/rules/{rule_id}": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e",
-      "rule_id": "6c1cc803-8264-4971-a8ce-b8525b7c952e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a",
+      "rule_id": "bcdd3b3a-f295-403c-8c6d-7b495016b6fe"
     },
     "query": {},
     "request": null,
@@ -50,7 +60,7 @@
   },
   "DELETE /api/v1/projects/{project_id}/submit": {
     "path_params": {
-      "project_id": "6d986fab-9187-4799-bcf1-78a3d624012f"
+      "project_id": "1036ddeb-ef69-445c-b864-98facabd8660"
     },
     "query": {},
     "request": null,
@@ -64,8 +74,8 @@
     "status": 200,
     "response": [
       {
-        "id": "c6959ff5-9ca1-40a2-a765-2002874a0941",
-        "school_id": "de46ed8c-ff51-4a6b-adb3-4d9227282a90",
+        "id": "6ee42d51-b720-4e20-b718-6f765682282e",
+        "school_id": "bf2df751-1fe0-44e6-bc6c-08c337b20187",
         "name": "admin",
         "email": "admin@x.test",
         "role": "admin",
@@ -74,14 +84,12 @@
         "status": "invited"
       },
       {
-        "id": "677eab91-9212-4a95-a849-4a3c1414ee4c",
-        "school_id": "de46ed8c-ff51-4a6b-adb3-4d9227282a90",
-        "name": "s1",
-        "email": "s1@x.test",
-        "role": "student",
-        "class_names": [
-          "1A"
-        ],
+        "id": "aa9633d4-2e27-4b2b-9007-1de6adc807b3",
+        "school_id": "88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4",
+        "name": "other",
+        "email": "other@x.test",
+        "role": "teacher",
+        "class_names": [],
         "last_active": null,
         "status": "invited"
       }
@@ -95,12 +103,12 @@
     "response": {
       "tiles": {
         "schools": {
-          "value": 1,
+          "value": 2,
           "sub": "1 active"
         },
         "educators": {
-          "value": 2,
-          "sub": "2 not signed in yet"
+          "value": 3,
+          "sub": "3 not signed in yet"
         },
         "students": {
           "value": 3,
@@ -113,18 +121,31 @@
       },
       "schools": [
         {
-          "id": "de46ed8c-ff51-4a6b-adb3-4d9227282a90",
+          "id": "bf2df751-1fe0-44e6-bc6c-08c337b20187",
           "name": "A",
           "students": 3,
           "educators": 2,
           "status": "active"
+        },
+        {
+          "id": "88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4",
+          "name": "B",
+          "students": 0,
+          "educators": 1,
+          "status": "setting_up"
         }
       ],
       "attention": [
         {
-          "id": "never-signed-in",
-          "text": "6 people have never signed in",
-          "action_label": "See who",
+          "id": "setting-up-88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4",
+          "text": "B has no students yet",
+          "action_label": "Add accounts",
+          "go_to": "accounts"
+        },
+        {
+          "id": "no-classes-88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4",
+          "text": "B has no classes yet",
+          "action_label": "Add accounts",
           "go_to": "accounts"
         }
       ],
@@ -138,24 +159,31 @@
     "status": 200,
     "response": [
       {
-        "id": "de46ed8c-ff51-4a6b-adb3-4d9227282a90",
+        "id": "bf2df751-1fe0-44e6-bc6c-08c337b20187",
         "name": "A",
         "students": 3,
         "educators": 2,
         "status": "active"
+      },
+      {
+        "id": "88d41b2e-5643-4d34-b9fa-f7a1b0f09ad4",
+        "name": "B",
+        "students": 0,
+        "educators": 1,
+        "status": "setting_up"
       }
     ]
   },
   "GET /api/v1/admin/schools/{school}/packs": {
     "path_params": {
-      "school": "371a1623-8b65-437a-b12f-ea108f0f78de"
+      "school": "af89d1fd-5b17-41d1-87b9-c0e0548e275d"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": [
       {
-        "id": "6bc715f7-8dc5-43a2-afe6-d8c71e0185b3",
+        "id": "0f9352e6-3020-481d-8a0a-6038125215a3",
         "slug": "fossils",
         "title": "Fossils",
         "description": null,
@@ -163,6 +191,34 @@
         "item_count": 1,
         "revision": 1,
         "enabled": false
+      }
+    ]
+  },
+  "GET /api/v1/admin/schools/{school}/permissions": {
+    "path_params": {
+      "school": "8815994b-60da-4d0e-9802-d7771f767783"
+    },
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": [
+      {
+        "key": "more-rooms",
+        "group": "Building",
+        "label": "Add more rooms (up to 5 per project)",
+        "students": true,
+        "educators": true,
+        "can_adjust": false,
+        "enforced": false
+      },
+      {
+        "key": "publish-no-approval",
+        "group": "Sharing",
+        "label": "Publish without approval",
+        "students": false,
+        "educators": true,
+        "can_adjust": false,
+        "enforced": false
       }
     ]
   },
@@ -175,7 +231,7 @@
     "status": 200,
     "response": [
       {
-        "project_id": "8978e0a7-a146-4974-a687-d6dbaac2cab9",
+        "project_id": "656c61f3-14bf-45cb-bbb3-4ba52a27145f",
         "visits": 2,
         "last_7_days": [
           0,
@@ -186,34 +242,38 @@
   },
   "GET /api/v1/classes": {
     "path_params": {},
-    "query": {},
+    "query": {
+      "school": "74643421-0bbc-46f3-84dd-5b91ff22f76e"
+    },
     "request": null,
     "status": 200,
     "response": [
       {
-        "id": "725d4db6-865b-4109-a939-fdd05f3a6695",
+        "id": "b2543fd7-3249-49db-932a-58a713651a1e",
+        "school_id": "74643421-0bbc-46f3-84dd-5b91ff22f76e",
         "name": "1A",
         "member_count": 3
+      },
+      {
+        "id": "06ee77da-dad2-4125-9c15-262d5a06ba6d",
+        "school_id": "74643421-0bbc-46f3-84dd-5b91ff22f76e",
+        "name": "2B",
+        "member_count": 2
       }
     ]
   },
   "GET /api/v1/classes/{class_id}/members": {
     "path_params": {
-      "class_id": "725d4db6-865b-4109-a939-fdd05f3a6695"
+      "class_id": "4647e8ad-1acb-4506-838f-f9fe8cfe1d22"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": [
       {
-        "id": "a3c791bf-d156-45a3-86af-6bee4ebfbd7c",
-        "display_name": "s1",
-        "role": "student"
-      },
-      {
-        "id": "c443884e-fe7b-43eb-9e60-6c0604864e8e",
-        "display_name": "s2",
-        "role": "student"
+        "id": "f481d0ce-3bdc-4c68-a0d9-6763e86ccef2",
+        "display_name": "t1",
+        "role": "teacher"
       }
     ]
   },
@@ -234,7 +294,7 @@
     "status": 200,
     "response": [
       {
-        "id": "650b80be-1bb7-43b9-ae90-24e7edf2a633",
+        "id": "a2da566b-1248-4a6d-af15-8cd3a1384111",
         "content_sha256": "5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da",
         "storage_key": "library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
         "kind": "model",
@@ -246,8 +306,8 @@
         "visibility": "public",
         "status": "uploaded",
         "url": "https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
-        "created_at": "2026-11-04T04:37:21",
-        "updated_at": "2026-11-04T04:37:21"
+        "created_at": "2026-11-07T12:11:25",
+        "updated_at": "2026-11-07T12:11:25"
       }
     ]
   },
@@ -257,12 +317,12 @@
     "request": null,
     "status": 200,
     "response": {
-      "id": "b0305b70-de0d-41bd-9faa-1f3d5ebfb83b",
-      "organisation_id": "ead04526-5ac4-4872-8c6f-86e290a64b64",
+      "id": "06a69ee4-f714-42b1-850e-3a3d568c6bab",
+      "organisation_id": "dda931a3-b138-454b-9c09-682c47448297",
       "display_name": "s1",
       "role": "student",
       "class_ids": [
-        "e4a3e53e-fc2d-4f5c-9713-c9068ad1e24a"
+        "db5997cb-29cd-4715-90a6-efc4182d4cba"
       ]
     }
   },
@@ -273,7 +333,7 @@
     "status": 200,
     "response": [
       {
-        "id": "82187d24-4135-4e8c-af14-3367520fe840",
+        "id": "f3711fa0-f646-4d7a-bb69-c43cc25e9153",
         "slug": "dinosaurs",
         "title": "Dinosaurs",
         "description": null,
@@ -283,24 +343,24 @@
         "published_at": null,
         "manifest_url": null,
         "unpublished_changes": true,
-        "created_at": "2026-11-06T08:43:03",
-        "updated_at": "2026-11-06T08:43:03"
+        "created_at": "2026-11-07T12:11:29",
+        "updated_at": "2026-11-07T12:11:29"
       },
       {
-        "id": "e221f7c1-6484-4e0d-a8bd-d63f19c5768b",
+        "id": "64bb2b98-282d-43ab-83a6-6c664eab7418",
         "slug": "fossils",
         "title": "Fossils",
         "description": null,
         "kind": "objects",
         "asset_ids": [
-          "5868e0be-5bae-4824-b81a-5bbad9901759"
+          "b5096d9d-e037-462e-b1db-1b7228443bc2"
         ],
         "published_revision": 1,
-        "published_at": "2026-11-06T08:43:03.742789",
+        "published_at": "2026-11-07T12:11:29.015452",
         "manifest_url": "https://assets.test/library/packs/fossils/1.json",
         "unpublished_changes": false,
-        "created_at": "2026-11-06T08:43:03",
-        "updated_at": "2026-11-06T08:43:03.742789"
+        "created_at": "2026-11-07T12:11:28",
+        "updated_at": "2026-11-07T12:11:29.015452"
       }
     ]
   },
@@ -319,20 +379,37 @@
     "request": null,
     "status": 200,
     "response": {
-      "id": "e221f7c1-6484-4e0d-a8bd-d63f19c5768b",
+      "id": "64bb2b98-282d-43ab-83a6-6c664eab7418",
       "slug": "fossils",
       "title": "Fossils",
       "description": null,
       "kind": "objects",
       "asset_ids": [
-        "5868e0be-5bae-4824-b81a-5bbad9901759"
+        "b5096d9d-e037-462e-b1db-1b7228443bc2"
       ],
       "published_revision": 1,
-      "published_at": "2026-11-06T08:43:03.742789",
+      "published_at": "2026-11-07T12:11:29.015452",
       "manifest_url": "https://assets.test/library/packs/fossils/1.json",
       "unpublished_changes": false,
-      "created_at": "2026-11-06T08:43:03",
-      "updated_at": "2026-11-06T08:43:03.742789"
+      "created_at": "2026-11-07T12:11:28",
+      "updated_at": "2026-11-07T12:11:29.015452"
+    }
+  },
+  "GET /api/v1/permissions/mine": {
+    "path_params": {},
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": {
+      "more-rooms": true,
+      "publish-no-approval": true,
+      "public-links": true,
+      "unlisted-links": true,
+      "signin-links": true,
+      "from-templates": true,
+      "edit-after-assign": true,
+      "see-results": false,
+      "delete-published": false
     }
   },
   "GET /api/v1/projects": {
@@ -344,29 +421,44 @@
     "status": 200,
     "response": [
       {
-        "id": "c86e6845-62b2-4235-97fc-784e6f2a72a7",
-        "organisation_id": "41c65edb-e12f-4468-a933-f75e9963b192",
-        "created_by_id": "578cc5af-7e37-40ca-9027-b81326b57a1e",
-        "class_id": "e152d8fc-ab26-4afb-bfef-da24b3eda781",
-        "template_id": "dbb70cb6-9475-4cbe-8634-d6bac1dfc158",
+        "id": "de3621ff-50d2-4523-ac09-8076b375c534",
+        "organisation_id": "f65266a0-3881-44ec-98a9-16913672c3ff",
+        "created_by_id": "8367bd5a-1a0b-4bdd-8e4c-b9216a76d24d",
+        "class_id": "c5df052e-2840-414b-a3db-07bb44eaac62",
+        "template_id": "9df502b2-bb15-4ae5-9eb2-048ae62c151e",
         "template_revision": null,
         "kind": "project",
         "name": "Museum hall",
-        "slug": "museum-hall-9b7c5190",
+        "slug": "museum-hall-9057cd37",
         "status": "draft",
         "current_version_id": null,
-        "created_at": "2026-11-04T04:37:20",
-        "updated_at": "2026-11-04T04:37:20",
+        "created_at": "2026-11-07T12:11:23",
+        "updated_at": "2026-11-07T12:11:23",
         "created_by_name": "s1",
         "class_name": "1A",
         "current_revision": 0,
         "saved_at": null,
         "saved_by_name": "",
         "template_name": "Museum hall",
-        "assignment_id": "2ae52419-83af-4893-96bc-637bb9ffbe1a",
+        "assignment_id": "65a2a353-d30f-4a8e-b967-e201ba3168d6",
         "task": "Changed",
         "due_at": "2026-11-20",
         "assigned_by_name": "t1",
+        "mission_brief": {
+          "due": "2026-11-20",
+          "todos": [
+            {
+              "id": "t1",
+              "text": "Place three exhibits"
+            }
+          ],
+          "rules": [
+            {
+              "id": "r1",
+              "text": "Label every exhibit"
+            }
+          ]
+        },
         "sent": false,
         "published_copies": 0,
         "assignment_ids": [],
@@ -381,25 +473,25 @@
   },
   "GET /api/v1/projects/{project_id}": {
     "path_params": {
-      "project_id": "f790e350-54be-4dbe-b498-86dff8c16cd2"
+      "project_id": "0869d74f-b6ef-4e2b-9f24-65e0f05cc734"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": {
-      "id": "f790e350-54be-4dbe-b498-86dff8c16cd2",
-      "organisation_id": "cfb8f1ef-b99e-4305-ba6a-ba297a472d63",
-      "created_by_id": "c4f2ba13-42ef-4dbc-913d-fed21ddf979f",
-      "class_id": "289a0b5d-d261-4f32-a0b1-4ef4e85c4d57",
+      "id": "0869d74f-b6ef-4e2b-9f24-65e0f05cc734",
+      "organisation_id": "1a078c44-dddb-4818-82b0-8b3e3dc630c1",
+      "created_by_id": "cdaa27f8-7042-46d7-9523-8b1fb3988e55",
+      "class_id": "a9bc8e17-949c-4f8b-a150-c83d031dc3db",
       "template_id": null,
       "template_revision": null,
       "kind": "project",
-      "name": "p",
-      "slug": "p-e3399327",
+      "name": "My museum",
+      "slug": "my-museum",
       "status": "draft",
       "current_version_id": null,
-      "created_at": "2026-11-04T04:37:20",
-      "updated_at": "2026-11-04T04:37:20",
+      "created_at": "2026-11-07T12:11:23",
+      "updated_at": "2026-11-07T12:11:23",
       "created_by_name": "s1",
       "class_name": "1A",
       "current_revision": 0,
@@ -410,6 +502,7 @@
       "task": null,
       "due_at": null,
       "assigned_by_name": null,
+      "mission_brief": null,
       "sent": false,
       "published_copies": 0,
       "assignment_ids": [],
@@ -423,7 +516,7 @@
   },
   "GET /api/v1/projects/{project_id}/analytics/events": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a"
     },
     "query": {},
     "request": null,
@@ -434,7 +527,7 @@
   },
   "GET /api/v1/projects/{project_id}/analytics/summary": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a"
     },
     "query": {},
     "request": null,
@@ -445,15 +538,15 @@
   },
   "GET /api/v1/projects/{project_id}/media": {
     "path_params": {
-      "project_id": "713f87c7-b4b8-4ea5-80f1-8aa046dcb496"
+      "project_id": "dd348fd4-c25e-47c2-b280-9e89d3dc8f76"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": [
       {
-        "id": "1740562a-c84b-422e-b31e-f93abfbc6749",
-        "project_id": "713f87c7-b4b8-4ea5-80f1-8aa046dcb496",
+        "id": "a6d04229-cdc1-4a76-a6e4-2b187c1faad2",
+        "project_id": "dd348fd4-c25e-47c2-b280-9e89d3dc8f76",
         "kind": "image",
         "source": "file",
         "label": "stone.png",
@@ -469,22 +562,22 @@
         "review_comment": null,
         "download_url": null,
         "download_expires_in": null,
-        "created_at": "2026-11-04T04:37:22",
-        "updated_at": "2026-11-04T04:37:22"
+        "created_at": "2026-11-07T12:11:26",
+        "updated_at": "2026-11-07T12:11:26"
       }
     ]
   },
   "GET /api/v1/projects/{project_id}/media/{media_id}": {
     "path_params": {
-      "project_id": "c8ad103f-8533-470c-bba1-f4a81013ef2c",
-      "media_id": "e6b440ef-3834-49c2-bd7d-debdd3a630c5"
+      "project_id": "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb",
+      "media_id": "62922c6e-fe9c-4fea-972d-5f03d020b29e"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": {
-      "id": "e6b440ef-3834-49c2-bd7d-debdd3a630c5",
-      "project_id": "c8ad103f-8533-470c-bba1-f4a81013ef2c",
+      "id": "62922c6e-fe9c-4fea-972d-5f03d020b29e",
+      "project_id": "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb",
       "kind": "image",
       "source": "file",
       "label": "stone.png",
@@ -498,15 +591,15 @@
       "approved_by_id": null,
       "approved_at": null,
       "review_comment": null,
-      "download_url": "https://store.test/get/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png?expires=900",
+      "download_url": "https://store.test/get/projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png?expires=900",
       "download_expires_in": 900,
-      "created_at": "2026-11-04T04:37:22",
-      "updated_at": "2026-11-04T04:37:22"
+      "created_at": "2026-11-07T12:11:26",
+      "updated_at": "2026-11-07T12:11:26"
     }
   },
   "GET /api/v1/projects/{project_id}/rules": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a"
     },
     "query": {},
     "request": null,
@@ -517,8 +610,8 @@
   },
   "GET /api/v1/projects/{project_id}/rules/{rule_id}": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e",
-      "rule_id": "6c1cc803-8264-4971-a8ce-b8525b7c952e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a",
+      "rule_id": "bcdd3b3a-f295-403c-8c6d-7b495016b6fe"
     },
     "query": {},
     "request": null,
@@ -529,74 +622,74 @@
   },
   "GET /api/v1/projects/{project_id}/submissions": {
     "path_params": {
-      "project_id": "f3ebf5c3-9020-4615-99a4-eae387d0dc5e"
+      "project_id": "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": [
       {
-        "id": "90082195-ca1c-4123-bd9c-2502d4b92b6b",
-        "project_id": "f3ebf5c3-9020-4615-99a4-eae387d0dc5e",
-        "version_id": "cd92b8b4-d2ff-4668-8c98-ffd79838f646",
+        "id": "937bcb64-4dd2-49f9-8172-38cf5065874e",
+        "project_id": "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
+        "version_id": "0e19ab0e-f1a9-4b5d-9334-639502b8c3df",
         "status": "waiting",
         "share_with": null,
         "grade": null,
         "comment": null,
-        "submitted_by_id": "e176b223-801e-45d0-ba88-f6f9db0f9c58",
-        "submitted_at": "2026-11-04T04:37:25.551304",
+        "submitted_by_id": "cdb86faf-d897-4db5-82e1-3c79e3f7f8c0",
+        "submitted_at": "2026-11-07T12:11:31.724206",
         "reviewed_by_id": null,
         "reviewed_at": null
       },
       {
-        "id": "00d115e8-0824-4543-b4f1-0d3074827021",
-        "project_id": "f3ebf5c3-9020-4615-99a4-eae387d0dc5e",
-        "version_id": "cd92b8b4-d2ff-4668-8c98-ffd79838f646",
+        "id": "96fad5ce-a645-4610-9e8f-84af4109dbc9",
+        "project_id": "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
+        "version_id": "0e19ab0e-f1a9-4b5d-9334-639502b8c3df",
         "status": "sent_back",
         "share_with": null,
         "grade": null,
         "comment": "Add a second room",
-        "submitted_by_id": "e176b223-801e-45d0-ba88-f6f9db0f9c58",
-        "submitted_at": "2026-11-04T04:37:25.527939",
-        "reviewed_by_id": "f243e391-ac97-4f07-9a0c-78be95cae7bb",
-        "reviewed_at": "2026-11-04T04:37:25.540354"
+        "submitted_by_id": "cdb86faf-d897-4db5-82e1-3c79e3f7f8c0",
+        "submitted_at": "2026-11-07T12:11:31.688896",
+        "reviewed_by_id": "1e228d94-094e-465a-a467-e463d5d2736b",
+        "reviewed_at": "2026-11-07T12:11:31.705708"
       }
     ]
   },
   "GET /api/v1/projects/{project_id}/versions": {
     "path_params": {
-      "project_id": "570c3a29-3a67-4313-b066-d67b13fd6607"
+      "project_id": "aa69cd85-0070-4a81-a067-1307939a5e29"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": [
       {
-        "id": "7f48291d-d6a5-419b-a1a0-cdaff8365804",
-        "project_id": "570c3a29-3a67-4313-b066-d67b13fd6607",
+        "id": "e7f2c15a-a95b-4482-8e0a-bac2e2532a35",
+        "project_id": "aa69cd85-0070-4a81-a067-1307939a5e29",
         "revision": 1,
         "label": null,
-        "content_snapshot_id": "bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34",
-        "created_at": "2026-11-04T04:37:24.055769",
+        "content_snapshot_id": "099cb56f-e22d-4834-b76b-3aa32276c894",
+        "created_at": "2026-11-07T12:11:29.879211",
         "created_by_name": "s1"
       }
     ]
   },
   "GET /api/v1/projects/{project_id}/versions/{version_id}": {
     "path_params": {
-      "project_id": "570c3a29-3a67-4313-b066-d67b13fd6607",
-      "version_id": "7f48291d-d6a5-419b-a1a0-cdaff8365804"
+      "project_id": "aa69cd85-0070-4a81-a067-1307939a5e29",
+      "version_id": "e7f2c15a-a95b-4482-8e0a-bac2e2532a35"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": {
-      "id": "7f48291d-d6a5-419b-a1a0-cdaff8365804",
-      "project_id": "570c3a29-3a67-4313-b066-d67b13fd6607",
+      "id": "e7f2c15a-a95b-4482-8e0a-bac2e2532a35",
+      "project_id": "aa69cd85-0070-4a81-a067-1307939a5e29",
       "revision": 1,
       "label": null,
-      "content_snapshot_id": "bdd44c3d-2bd5-4eb9-8578-eaa14aa02d34",
-      "created_at": "2026-11-04T04:37:24.055769",
+      "content_snapshot_id": "099cb56f-e22d-4834-b76b-3aa32276c894",
+      "created_at": "2026-11-07T12:11:29.879211",
       "created_by_name": "",
       "data": {
         "schemaVersion": 1,
@@ -615,7 +708,7 @@
   },
   "GET /api/v1/visit/{slug}": {
     "path_params": {
-      "slug": "lesson-1d5599b7"
+      "slug": "lesson-d8c3e2fb"
     },
     "query": {},
     "request": null,
@@ -654,7 +747,7 @@
   },
   "PATCH /api/v1/admin/accounts/{account_id}": {
     "path_params": {
-      "account_id": "bf703953-ffec-4323-a38b-dcd286626f59"
+      "account_id": "13b4754d-2975-4b98-99da-de82a7dc5b32"
     },
     "query": {},
     "request": {
@@ -662,8 +755,8 @@
     },
     "status": 200,
     "response": {
-      "id": "bf703953-ffec-4323-a38b-dcd286626f59",
-      "school_id": "3de6a59c-69c5-4924-9a01-afad6cf4537c",
+      "id": "13b4754d-2975-4b98-99da-de82a7dc5b32",
+      "school_id": "4335d3f8-780e-4424-ade7-a3d4874a70a7",
       "name": "s1",
       "email": "s1@x.test",
       "role": "student",
@@ -676,8 +769,8 @@
   },
   "PATCH /api/v1/admin/schools/{school}/packs/{pack_id}": {
     "path_params": {
-      "school": "371a1623-8b65-437a-b12f-ea108f0f78de",
-      "pack_id": "6bc715f7-8dc5-43a2-afe6-d8c71e0185b3"
+      "school": "af89d1fd-5b17-41d1-87b9-c0e0548e275d",
+      "pack_id": "0f9352e6-3020-481d-8a0a-6038125215a3"
     },
     "query": {},
     "request": {
@@ -685,7 +778,7 @@
     },
     "status": 200,
     "response": {
-      "id": "6bc715f7-8dc5-43a2-afe6-d8c71e0185b3",
+      "id": "0f9352e6-3020-481d-8a0a-6038125215a3",
       "slug": "fossils",
       "title": "Fossils",
       "description": null,
@@ -697,7 +790,7 @@
   },
   "PATCH /api/v1/library/{asset_id}": {
     "path_params": {
-      "asset_id": "83955f2c-57b1-41c7-8342-051511512ddc"
+      "asset_id": "46930dd1-c2f2-4d12-a271-5b92f02c73ce"
     },
     "query": {},
     "request": {
@@ -705,7 +798,7 @@
     },
     "status": 200,
     "response": {
-      "id": "83955f2c-57b1-41c7-8342-051511512ddc",
+      "id": "46930dd1-c2f2-4d12-a271-5b92f02c73ce",
       "content_sha256": "5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da",
       "storage_key": "library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
       "kind": "model",
@@ -717,8 +810,8 @@
       "visibility": "public",
       "status": "uploaded",
       "url": "https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
-      "created_at": "2026-11-04T04:37:22",
-      "updated_at": "2026-11-04T04:37:22"
+      "created_at": "2026-11-07T12:11:25",
+      "updated_at": "2026-11-07T12:11:25"
     }
   },
   "PATCH /api/v1/packs/{slug}": {
@@ -731,45 +824,45 @@
     },
     "status": 200,
     "response": {
-      "id": "69a74131-18d1-414b-a11a-83c5421b12e7",
+      "id": "99eca2b0-c279-46bb-aa15-c14866677e13",
       "slug": "fossils",
       "title": "Fossil hall",
       "description": null,
       "kind": "objects",
       "asset_ids": [
-        "4eb21bea-b21b-4855-a6b8-97e627c28dd1"
+        "f30f1f99-751d-40f6-9c41-b3195983d756"
       ],
       "published_revision": 1,
-      "published_at": "2026-11-06T08:42:10.378012",
+      "published_at": "2026-11-07T12:11:27.985423",
       "manifest_url": "https://assets.test/library/packs/fossils/1.json",
       "unpublished_changes": true,
-      "created_at": "2026-11-06T08:42:10",
-      "updated_at": "2026-11-06T08:42:10.389593"
+      "created_at": "2026-11-07T12:11:27",
+      "updated_at": "2026-11-07T12:11:28.000760"
     }
   },
   "PATCH /api/v1/projects/{project_id}": {
     "path_params": {
-      "project_id": "22d31f69-7837-484d-a070-c071b896480d"
+      "project_id": "ea5c25f9-9ff9-4a16-89cd-76e6fb41442f"
     },
     "query": {},
     "request": {
-      "class_id": "885e519c-5337-499d-b5d9-3c609de67f17"
+      "class_id": "c5e6e1b9-81db-4fc6-9f39-63e6a596a0ca"
     },
     "status": 200,
     "response": {
-      "id": "22d31f69-7837-484d-a070-c071b896480d",
-      "organisation_id": "b1f0c40c-8f28-4a3c-8e57-1e43de5d7a17",
-      "created_by_id": "0fa4f0e7-794b-4eef-9838-28ac60f74a22",
-      "class_id": "885e519c-5337-499d-b5d9-3c609de67f17",
+      "id": "ea5c25f9-9ff9-4a16-89cd-76e6fb41442f",
+      "organisation_id": "e8d1116e-3603-4a6a-9bb3-cbcb724001c3",
+      "created_by_id": "b85281ef-cfe9-49b9-b476-b970d863c041",
+      "class_id": "c5e6e1b9-81db-4fc6-9f39-63e6a596a0ca",
       "template_id": null,
       "template_revision": null,
       "kind": "project",
       "name": "p",
-      "slug": "p-9626bb45",
+      "slug": "p-27b17cb4",
       "status": "draft",
       "current_version_id": null,
-      "created_at": "2026-11-04T04:37:21",
-      "updated_at": "2026-11-04T04:37:21",
+      "created_at": "2026-11-07T12:11:24",
+      "updated_at": "2026-11-07T12:11:24",
       "created_by_name": "t1",
       "class_name": "1A",
       "current_revision": 0,
@@ -780,6 +873,7 @@
       "task": null,
       "due_at": null,
       "assigned_by_name": null,
+      "mission_brief": null,
       "sent": false,
       "published_copies": 0,
       "assignment_ids": [],
@@ -793,8 +887,8 @@
   },
   "PATCH /api/v1/projects/{project_id}/media/links/{link_id}": {
     "path_params": {
-      "project_id": "975173af-578f-4938-99e5-5d4326ccdd72",
-      "link_id": "4ddc7c0c-10ea-46d9-9225-f5ce97930d68"
+      "project_id": "911635c3-ef77-4f78-886c-ddb72eef104d",
+      "link_id": "f247b19c-af94-44e4-9fc2-67d4f8c6adea"
     },
     "query": {},
     "request": {
@@ -802,8 +896,8 @@
     },
     "status": 200,
     "response": {
-      "id": "4ddc7c0c-10ea-46d9-9225-f5ce97930d68",
-      "project_id": "975173af-578f-4938-99e5-5d4326ccdd72",
+      "id": "f247b19c-af94-44e4-9fc2-67d4f8c6adea",
+      "project_id": "911635c3-ef77-4f78-886c-ddb72eef104d",
       "kind": "video",
       "source": "external",
       "label": "YouTube video dQw4w9WgXcQ",
@@ -814,19 +908,19 @@
       "provider_id": "dQw4w9WgXcQ",
       "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       "approval": "approved",
-      "approved_by_id": "5b3b53a7-9129-4014-9ef0-98fe58066cf8",
-      "approved_at": "2026-11-04T04:37:22.934546",
+      "approved_by_id": "8c0a9640-92cb-44d1-820c-026c934c2309",
+      "approved_at": "2026-11-07T12:11:27.059304",
       "review_comment": null,
       "download_url": null,
       "download_expires_in": null,
-      "created_at": "2026-11-04T04:37:22",
-      "updated_at": "2026-11-04T04:37:22"
+      "created_at": "2026-11-07T12:11:27",
+      "updated_at": "2026-11-07T12:11:27"
     }
   },
   "PATCH /api/v1/projects/{project_id}/rules/{rule_id}": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e",
-      "rule_id": "6c1cc803-8264-4971-a8ce-b8525b7c952e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a",
+      "rule_id": "bcdd3b3a-f295-403c-8c6d-7b495016b6fe"
     },
     "query": {},
     "request": {
@@ -854,7 +948,7 @@
     "path_params": {},
     "query": {},
     "request": {
-      "school_id": "faa4cfff-8991-40e1-9ac1-11d291e69d8e",
+      "school_id": "2a15042c-ba66-4e41-9a58-c474b421abe4",
       "name": "New Person",
       "email": "New.Person@x.test",
       "role": "student",
@@ -865,8 +959,8 @@
     },
     "status": 201,
     "response": {
-      "id": "186ff664-a01b-454f-a742-00c507bfed97",
-      "school_id": "faa4cfff-8991-40e1-9ac1-11d291e69d8e",
+      "id": "8d7676e7-75d0-4c9f-a47b-04b70c906ac3",
+      "school_id": "2a15042c-ba66-4e41-9a58-c474b421abe4",
       "name": "New Person",
       "email": "new.person@x.test",
       "role": "student",
@@ -879,15 +973,131 @@
       "invite_link": "https://tenant.test/invite/new.person@x.test"
     }
   },
+  "POST /api/v1/admin/accounts/import": {
+    "path_params": {},
+    "query": {},
+    "request": {
+      "school_id": "9aa8a188-dd21-4fc8-a3ee-64dcd0a70b1e",
+      "csv": "Email,Display_Name,Role,Classes\nnew1@x.test,New One,student,3C\nS1@x.test,Already Here,teacher,\nnew2@x.test,New Two,principal,\nnew1@x.test,New One Again,student,\nnew3@x.test,New Three,teacher,3C;3D\n",
+      "dry_run": true
+    },
+    "status": 200,
+    "response": {
+      "school_id": "9aa8a188-dd21-4fc8-a3ee-64dcd0a70b1e",
+      "dry_run": true,
+      "rows": [
+        {
+          "line": 2,
+          "email": "new1@x.test",
+          "name": "New One",
+          "role": "student",
+          "class_names": [
+            "3C"
+          ],
+          "outcome": "would_create",
+          "account_id": null,
+          "invite_link": null,
+          "error": null
+        },
+        {
+          "line": 3,
+          "email": "s1@x.test",
+          "name": "Already Here",
+          "role": "teacher",
+          "class_names": [],
+          "outcome": "skipped_exists",
+          "account_id": "8ac67b5d-53a4-4535-8ad2-f564cb6ec51b",
+          "invite_link": null,
+          "error": null
+        }
+      ]
+    }
+  },
+  "POST /api/v1/admin/accounts/{account_id}/invite": {
+    "path_params": {
+      "account_id": "13c469ad-5536-483c-aa3a-1a288d013374"
+    },
+    "query": {},
+    "request": null,
+    "status": 200,
+    "response": {
+      "account_id": "13c469ad-5536-483c-aa3a-1a288d013374",
+      "invite_link": "https://tenant.test/again/s1"
+    }
+  },
   "POST /api/v1/admin/schools": {
     "path_params": {},
     "query": {},
     "request": {
-      "name": "C"
+      "name": "  Riverside Primary "
     },
-    "status": 501,
+    "status": 201,
     "response": {
-      "detail": "Adding a school needs a VThere operator role above the schools, which the data model does not have yet: an admin belongs to one school. Create schools with python -m app.provision --school-slug <slug> --school-name <name> for now."
+      "id": "3c3bdf3c-12b7-4f29-b4ba-0ff52167ae9e",
+      "name": "Riverside Primary",
+      "students": 0,
+      "educators": 0,
+      "status": "setting_up"
+    }
+  },
+  "POST /api/v1/classes": {
+    "path_params": {},
+    "query": {},
+    "request": {
+      "name": "B1",
+      "school_id": "6c146f95-ff84-4fb8-bd26-6c5fd67be406"
+    },
+    "status": 201,
+    "response": {
+      "id": "3f42d0fb-7903-4c77-b97c-4b537a6f20ff",
+      "school_id": "6c146f95-ff84-4fb8-bd26-6c5fd67be406",
+      "name": "B1",
+      "member_count": 0
+    }
+  },
+  "POST /api/v1/classes/{class_id}/members": {
+    "path_params": {
+      "class_id": "b2d9fd89-fd5c-4175-958f-34eafccecb6c"
+    },
+    "query": {},
+    "request": {
+      "actor_id": "b9135a6d-0c55-4241-8ff1-286d7328811c"
+    },
+    "status": 200,
+    "response": {
+      "id": "b9135a6d-0c55-4241-8ff1-286d7328811c",
+      "display_name": "s3",
+      "role": "student"
+    }
+  },
+  "POST /api/v1/classes/{class_id}/members/{actor_id}/move": {
+    "path_params": {
+      "class_id": "a9bc8e17-949c-4f8b-a150-c83d031dc3db",
+      "actor_id": "cdaa27f8-7042-46d7-9523-8b1fb3988e55"
+    },
+    "query": {},
+    "request": {
+      "to_class_id": "3c16ab3d-96a9-4d73-91f3-57478abc85bc"
+    },
+    "status": 200,
+    "response": {
+      "student": {
+        "id": "cdaa27f8-7042-46d7-9523-8b1fb3988e55",
+        "display_name": "s1",
+        "role": "student"
+      },
+      "from_class": {
+        "id": "a9bc8e17-949c-4f8b-a150-c83d031dc3db",
+        "school_id": "1a078c44-dddb-4818-82b0-8b3e3dc630c1",
+        "name": "1A",
+        "member_count": 2
+      },
+      "to_class": {
+        "id": "3c16ab3d-96a9-4d73-91f3-57478abc85bc",
+        "school_id": "1a078c44-dddb-4818-82b0-8b3e3dc630c1",
+        "name": "2B",
+        "member_count": 3
+      }
     }
   },
   "POST /api/v1/library/tickets": {
@@ -903,7 +1113,7 @@
     "status": 201,
     "response": {
       "asset": {
-        "id": "06314f4b-d08d-4fc1-81ff-766ffb895671",
+        "id": "66f51638-dfa3-4feb-847c-5aa7b49f53cd",
         "content_sha256": "5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da",
         "storage_key": "library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
         "kind": "model",
@@ -915,8 +1125,8 @@
         "visibility": "public",
         "status": "pending",
         "url": null,
-        "created_at": "2026-11-04T04:37:21",
-        "updated_at": "2026-11-04T04:37:21"
+        "created_at": "2026-11-07T12:11:25",
+        "updated_at": "2026-11-07T12:11:25"
       },
       "upload_url": "https://store.test/put/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
       "upload_headers": {
@@ -927,13 +1137,13 @@
   },
   "POST /api/v1/library/{asset_id}/confirm": {
     "path_params": {
-      "asset_id": "06314f4b-d08d-4fc1-81ff-766ffb895671"
+      "asset_id": "66f51638-dfa3-4feb-847c-5aa7b49f53cd"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": {
-      "id": "06314f4b-d08d-4fc1-81ff-766ffb895671",
+      "id": "66f51638-dfa3-4feb-847c-5aa7b49f53cd",
       "content_sha256": "5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da",
       "storage_key": "library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
       "kind": "model",
@@ -945,8 +1155,8 @@
       "visibility": "public",
       "status": "uploaded",
       "url": "https://assets.test/library/5cb3c48e63a4094e5943a31ceb3e510ebfda55b86e65c2fc673cf6b0d48c77da/Pedestal.glb",
-      "created_at": "2026-11-04T04:37:21",
-      "updated_at": "2026-11-04T04:37:21"
+      "created_at": "2026-11-07T12:11:25",
+      "updated_at": "2026-11-07T12:11:25"
     }
   },
   "POST /api/v1/packs": {
@@ -959,7 +1169,7 @@
     },
     "status": 201,
     "response": {
-      "id": "24fe8fa9-3b96-4d9b-a2f1-208541bb8297",
+      "id": "6c08fc18-5229-4a26-bad2-1c784d7f1b2b",
       "slug": "fossils",
       "title": "Fossils",
       "description": "Six CC0 scans",
@@ -969,8 +1179,8 @@
       "published_at": null,
       "manifest_url": null,
       "unpublished_changes": true,
-      "created_at": "2026-11-06T08:42:10",
-      "updated_at": "2026-11-06T08:42:10"
+      "created_at": "2026-11-07T12:11:27",
+      "updated_at": "2026-11-07T12:11:27"
     }
   },
   "POST /api/v1/packs/{slug}/publish": {
@@ -981,21 +1191,21 @@
     "request": null,
     "status": 200,
     "response": {
-      "id": "24fe8fa9-3b96-4d9b-a2f1-208541bb8297",
+      "id": "6c08fc18-5229-4a26-bad2-1c784d7f1b2b",
       "slug": "fossils",
       "title": "Fossils",
       "description": "Six CC0 scans",
       "kind": "objects",
       "asset_ids": [
-        "df29f236-4e45-4b84-bcac-e7411def1162",
-        "334c4c19-35e4-4db0-b85b-793d548fa738"
+        "37d03148-674d-4cd3-85b4-1bc8c680a20b",
+        "4bec6750-70fe-4a9e-8e6b-9564983d96f9"
       ],
       "published_revision": 1,
-      "published_at": "2026-11-06T08:42:10.307887",
+      "published_at": "2026-11-07T12:11:27.912933",
       "manifest_url": "https://assets.test/library/packs/fossils/1.json",
       "unpublished_changes": false,
-      "created_at": "2026-11-06T08:42:10",
-      "updated_at": "2026-11-06T08:42:10.307887"
+      "created_at": "2026-11-07T12:11:27",
+      "updated_at": "2026-11-07T12:11:27.912933"
     }
   },
   "POST /api/v1/projects": {
@@ -1007,19 +1217,19 @@
     },
     "status": 201,
     "response": {
-      "id": "dbb70cb6-9475-4cbe-8634-d6bac1dfc158",
-      "organisation_id": "41c65edb-e12f-4468-a933-f75e9963b192",
-      "created_by_id": "91345625-96cf-492e-891c-dc7512c08564",
+      "id": "9df502b2-bb15-4ae5-9eb2-048ae62c151e",
+      "organisation_id": "f65266a0-3881-44ec-98a9-16913672c3ff",
+      "created_by_id": "3e849995-bc52-4bd9-b62c-a754315eab2b",
       "class_id": null,
       "template_id": null,
       "template_revision": null,
       "kind": "template",
       "name": "Museum hall",
-      "slug": "museum-hall-546b1174",
+      "slug": "museum-hall-7a91e594",
       "status": "draft",
       "current_version_id": null,
-      "created_at": "2026-11-04T04:37:20",
-      "updated_at": "2026-11-04T04:37:20",
+      "created_at": "2026-11-07T12:11:23",
+      "updated_at": "2026-11-07T12:11:23",
       "created_by_name": "t1",
       "class_name": null,
       "current_revision": 0,
@@ -1030,6 +1240,7 @@
       "task": null,
       "due_at": null,
       "assigned_by_name": null,
+      "mission_brief": null,
       "sent": false,
       "published_copies": 0,
       "assignment_ids": [],
@@ -1043,7 +1254,7 @@
   },
   "POST /api/v1/projects/{project_id}/analytics/events": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a"
     },
     "query": {},
     "request": {
@@ -1061,7 +1272,7 @@
   },
   "POST /api/v1/projects/{project_id}/approve": {
     "path_params": {
-      "project_id": "c46fffe5-004e-4490-86c2-7dc924908a19"
+      "project_id": "88362b13-254e-4550-aa5b-56b9f7154992"
     },
     "query": {},
     "request": {
@@ -1070,52 +1281,53 @@
     },
     "status": 200,
     "response": {
-      "id": "c250f30e-1776-4caf-8c6c-1840646f19da",
-      "project_id": "c46fffe5-004e-4490-86c2-7dc924908a19",
-      "version_id": "a453ec4a-eec0-4459-b4d7-01b7c7fe503b",
+      "id": "5d77715f-f4eb-41ee-8d25-459d2d15caca",
+      "project_id": "88362b13-254e-4550-aa5b-56b9f7154992",
+      "version_id": "865a7b2d-120e-4b71-a2e6-275fa3e05a6b",
       "status": "approved",
       "share_with": "public",
       "grade": "A",
       "comment": "Lovely",
-      "submitted_by_id": "662e38f0-87d1-4c14-945f-45f5ffe9602f",
-      "submitted_at": "2026-11-04T04:37:25.333427",
-      "reviewed_by_id": "8388c913-7075-474a-ae5e-b3012d4911e3",
-      "reviewed_at": "2026-11-04T04:37:25.343557"
+      "submitted_by_id": "c621adf1-f8bc-4c8e-8164-a82542611137",
+      "submitted_at": "2026-11-07T12:11:31.587626",
+      "reviewed_by_id": "e1e6ad87-1292-4c45-b0d4-0790069b22ac",
+      "reviewed_at": "2026-11-07T12:11:31.601904"
     }
   },
   "POST /api/v1/projects/{project_id}/assign": {
     "path_params": {
-      "project_id": "730a262b-61b8-4c6c-98e1-2e427615f97f"
+      "project_id": "8a2757e2-120a-4acd-9074-b01baf9439ee"
     },
     "query": {},
     "request": {
-      "student_id": "8e874a30-a627-4124-abf5-48313a77e0e4"
+      "student_id": "25572cfb-98fd-4afd-85ab-3cd1aee6fa10"
     },
     "status": 201,
     "response": {
-      "id": "800c818c-e2fd-4c02-a3cd-a4b3479ca548",
-      "organisation_id": "a3f51301-4319-4c77-af9c-19a824db928e",
-      "created_by_id": "8e874a30-a627-4124-abf5-48313a77e0e4",
-      "class_id": "588e3d42-81e8-4993-aaea-5885db9c1ac4",
-      "template_id": "730a262b-61b8-4c6c-98e1-2e427615f97f",
+      "id": "50ae40af-97dc-4508-8961-99979c7e6e50",
+      "organisation_id": "bdbaaf9b-d717-45f3-a6c2-6d15ec6bb828",
+      "created_by_id": "25572cfb-98fd-4afd-85ab-3cd1aee6fa10",
+      "class_id": "1fd90e6d-3a38-4227-ad6b-1ef936575b48",
+      "template_id": "8a2757e2-120a-4acd-9074-b01baf9439ee",
       "template_revision": 1,
       "kind": "project",
       "name": "Gallery walk",
-      "slug": "gallery-walk-edb5e84a",
+      "slug": "gallery-walk-b0229438",
       "status": "draft",
-      "current_version_id": "d0e73af4-bb7d-44c2-9490-372173988bd3",
-      "created_at": "2026-11-04T04:37:21",
-      "updated_at": "2026-11-04T04:37:21",
+      "current_version_id": "6bddeb8e-e730-4ede-8f6b-238f65d5ea31",
+      "created_at": "2026-11-07T12:11:25",
+      "updated_at": "2026-11-07T12:11:25",
       "created_by_name": "s1",
       "class_name": "1A",
       "current_revision": 1,
-      "saved_at": "2026-11-04T04:37:21",
+      "saved_at": "2026-11-07T12:11:25",
       "saved_by_name": "t1",
       "template_name": "Gallery walk",
-      "assignment_id": "03a005f5-0fe0-4ad5-a21f-49166ea1686d",
+      "assignment_id": "a56d8188-53a9-4780-bb6e-5a4a766570b7",
       "task": "",
       "due_at": null,
       "assigned_by_name": "t1",
+      "mission_brief": null,
       "sent": false,
       "published_copies": 0,
       "assignment_ids": [],
@@ -1129,11 +1341,11 @@
   },
   "POST /api/v1/projects/{project_id}/assign-class": {
     "path_params": {
-      "project_id": "dbb70cb6-9475-4cbe-8634-d6bac1dfc158"
+      "project_id": "9df502b2-bb15-4ae5-9eb2-048ae62c151e"
     },
     "query": {},
     "request": {
-      "class_id": "e152d8fc-ab26-4afb-bfef-da24b3eda781",
+      "class_id": "c5df052e-2840-414b-a3db-07bb44eaac62",
       "mission_brief": {
         "due": "2026-11-20",
         "todos": [
@@ -1154,14 +1366,14 @@
     },
     "status": 200,
     "response": {
-      "assignment_id": "2ae52419-83af-4893-96bc-637bb9ffbe1a",
+      "assignment_id": "65a2a353-d30f-4a8e-b967-e201ba3168d6",
       "students": 2,
       "sent": 2
     }
   },
   "POST /api/v1/projects/{project_id}/media": {
     "path_params": {
-      "project_id": "c8ad103f-8533-470c-bba1-f4a81013ef2c"
+      "project_id": "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb"
     },
     "query": {},
     "request": {
@@ -1172,14 +1384,14 @@
     },
     "status": 201,
     "response": {
-      "media_asset_id": "e6b440ef-3834-49c2-bd7d-debdd3a630c5",
-      "upload_url": "https://store.test/put/projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png",
-      "storage_key": "projects/c8ad103f-8533-470c-bba1-f4a81013ef2c/media/e6b440ef-3834-49c2-bd7d-debdd3a630c5/stone.png"
+      "media_asset_id": "62922c6e-fe9c-4fea-972d-5f03d020b29e",
+      "upload_url": "https://store.test/put/projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png",
+      "storage_key": "projects/3db358ae-2f7f-46c4-a64f-8f3e35fb27fb/media/62922c6e-fe9c-4fea-972d-5f03d020b29e/stone.png"
     }
   },
   "POST /api/v1/projects/{project_id}/media/links": {
     "path_params": {
-      "project_id": "975173af-578f-4938-99e5-5d4326ccdd72"
+      "project_id": "911635c3-ef77-4f78-886c-ddb72eef104d"
     },
     "query": {},
     "request": {
@@ -1187,8 +1399,8 @@
     },
     "status": 201,
     "response": {
-      "id": "4ddc7c0c-10ea-46d9-9225-f5ce97930d68",
-      "project_id": "975173af-578f-4938-99e5-5d4326ccdd72",
+      "id": "f247b19c-af94-44e4-9fc2-67d4f8c6adea",
+      "project_id": "911635c3-ef77-4f78-886c-ddb72eef104d",
       "kind": "video",
       "source": "external",
       "label": "YouTube video dQw4w9WgXcQ",
@@ -1204,21 +1416,21 @@
       "review_comment": null,
       "download_url": null,
       "download_expires_in": null,
-      "created_at": "2026-11-04T04:37:22",
-      "updated_at": "2026-11-04T04:37:22"
+      "created_at": "2026-11-07T12:11:27",
+      "updated_at": "2026-11-07T12:11:27"
     }
   },
   "POST /api/v1/projects/{project_id}/media/{media_id}/confirm": {
     "path_params": {
-      "project_id": "c8ad103f-8533-470c-bba1-f4a81013ef2c",
-      "media_id": "e6b440ef-3834-49c2-bd7d-debdd3a630c5"
+      "project_id": "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb",
+      "media_id": "62922c6e-fe9c-4fea-972d-5f03d020b29e"
     },
     "query": {},
     "request": null,
     "status": 200,
     "response": {
-      "id": "e6b440ef-3834-49c2-bd7d-debdd3a630c5",
-      "project_id": "c8ad103f-8533-470c-bba1-f4a81013ef2c",
+      "id": "62922c6e-fe9c-4fea-972d-5f03d020b29e",
+      "project_id": "3db358ae-2f7f-46c4-a64f-8f3e35fb27fb",
       "kind": "image",
       "source": "file",
       "label": "stone.png",
@@ -1234,13 +1446,13 @@
       "review_comment": null,
       "download_url": null,
       "download_expires_in": null,
-      "created_at": "2026-11-04T04:37:22",
-      "updated_at": "2026-11-04T04:37:22"
+      "created_at": "2026-11-07T12:11:26",
+      "updated_at": "2026-11-07T12:11:26"
     }
   },
   "POST /api/v1/projects/{project_id}/push-setup": {
     "path_params": {
-      "project_id": "ea287097-6a65-4111-b222-f42047c28d19"
+      "project_id": "dca8e3f5-8fbb-4392-a9ee-72c498553ef1"
     },
     "query": {},
     "request": null,
@@ -1252,7 +1464,7 @@
   },
   "POST /api/v1/projects/{project_id}/rules": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a"
     },
     "query": {},
     "request": {
@@ -1278,7 +1490,7 @@
   },
   "POST /api/v1/projects/{project_id}/send-back": {
     "path_params": {
-      "project_id": "f3ebf5c3-9020-4615-99a4-eae387d0dc5e"
+      "project_id": "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20"
     },
     "query": {},
     "request": {
@@ -1286,22 +1498,22 @@
     },
     "status": 200,
     "response": {
-      "id": "00d115e8-0824-4543-b4f1-0d3074827021",
-      "project_id": "f3ebf5c3-9020-4615-99a4-eae387d0dc5e",
-      "version_id": "cd92b8b4-d2ff-4668-8c98-ffd79838f646",
+      "id": "96fad5ce-a645-4610-9e8f-84af4109dbc9",
+      "project_id": "833dca5f-6b7a-429c-ba7f-ef6cc0b5aa20",
+      "version_id": "0e19ab0e-f1a9-4b5d-9334-639502b8c3df",
       "status": "sent_back",
       "share_with": null,
       "grade": null,
       "comment": "Add a second room",
-      "submitted_by_id": "e176b223-801e-45d0-ba88-f6f9db0f9c58",
-      "submitted_at": "2026-11-04T04:37:25.527939",
-      "reviewed_by_id": "f243e391-ac97-4f07-9a0c-78be95cae7bb",
-      "reviewed_at": "2026-11-04T04:37:25.540354"
+      "submitted_by_id": "cdb86faf-d897-4db5-82e1-3c79e3f7f8c0",
+      "submitted_at": "2026-11-07T12:11:31.688896",
+      "reviewed_by_id": "1e228d94-094e-465a-a467-e463d5d2736b",
+      "reviewed_at": "2026-11-07T12:11:31.705708"
     }
   },
   "POST /api/v1/projects/{project_id}/submit": {
     "path_params": {
-      "project_id": "c46fffe5-004e-4490-86c2-7dc924908a19"
+      "project_id": "88362b13-254e-4550-aa5b-56b9f7154992"
     },
     "query": {},
     "request": {
@@ -1309,22 +1521,22 @@
     },
     "status": 201,
     "response": {
-      "id": "c250f30e-1776-4caf-8c6c-1840646f19da",
-      "project_id": "c46fffe5-004e-4490-86c2-7dc924908a19",
-      "version_id": "a453ec4a-eec0-4459-b4d7-01b7c7fe503b",
+      "id": "5d77715f-f4eb-41ee-8d25-459d2d15caca",
+      "project_id": "88362b13-254e-4550-aa5b-56b9f7154992",
+      "version_id": "865a7b2d-120e-4b71-a2e6-275fa3e05a6b",
       "status": "waiting",
       "share_with": "public",
       "grade": null,
       "comment": null,
-      "submitted_by_id": "662e38f0-87d1-4c14-945f-45f5ffe9602f",
-      "submitted_at": "2026-11-04T04:37:25.333427",
+      "submitted_by_id": "c621adf1-f8bc-4c8e-8164-a82542611137",
+      "submitted_at": "2026-11-07T12:11:31.587626",
       "reviewed_by_id": null,
       "reviewed_at": null
     }
   },
   "POST /api/v1/projects/{project_id}/versions": {
     "path_params": {
-      "project_id": "730a262b-61b8-4c6c-98e1-2e427615f97f"
+      "project_id": "8a2757e2-120a-4acd-9074-b01baf9439ee"
     },
     "query": {},
     "request": {
@@ -1335,19 +1547,19 @@
     },
     "status": 201,
     "response": {
-      "id": "0018a3e8-3e52-4eb4-88e6-859b10a99bd5",
-      "project_id": "730a262b-61b8-4c6c-98e1-2e427615f97f",
+      "id": "a0371303-7a9d-4593-bdbf-1c736205e869",
+      "project_id": "8a2757e2-120a-4acd-9074-b01baf9439ee",
       "revision": 1,
       "label": null,
-      "content_snapshot_id": "5a473063-6087-45c5-a28d-a3261b62d9d7",
-      "created_at": "2026-11-04T04:37:21",
+      "content_snapshot_id": "697e2454-e98e-420d-a604-9d678198381f",
+      "created_at": "2026-11-07T12:11:25",
       "created_by_name": ""
     }
   },
   "POST /api/v1/projects/{project_id}/versions/{version_id}/activate": {
     "path_params": {
-      "project_id": "5380a8d5-6736-4e86-bc00-96b678d7ce7e",
-      "version_id": "6c1cc803-8264-4971-a8ce-b8525b7c952e"
+      "project_id": "83f23ed7-089f-4eb6-9049-b98568dd2f0a",
+      "version_id": "bcdd3b3a-f295-403c-8c6d-7b495016b6fe"
     },
     "query": {},
     "request": null,
@@ -1356,84 +1568,9 @@
       "detail": "activate_version is not implemented"
     }
   },
-  "PUT /api/v1/packs/{slug}/assets": {
-    "path_params": {
-      "slug": "fossils"
-    },
-    "query": {},
-    "request": {
-      "asset_ids": [
-        "df29f236-4e45-4b84-bcac-e7411def1162",
-        "334c4c19-35e4-4db0-b85b-793d548fa738"
-      ]
-    },
-    "status": 200,
-    "response": {
-      "id": "24fe8fa9-3b96-4d9b-a2f1-208541bb8297",
-      "slug": "fossils",
-      "title": "Fossils",
-      "description": "Six CC0 scans",
-      "kind": "objects",
-      "asset_ids": [
-        "df29f236-4e45-4b84-bcac-e7411def1162",
-        "334c4c19-35e4-4db0-b85b-793d548fa738"
-      ],
-      "published_revision": null,
-      "published_at": null,
-      "manifest_url": null,
-      "unpublished_changes": true,
-      "created_at": "2026-11-06T08:42:10",
-      "updated_at": "2026-11-06T08:42:10.298336"
-    }
-  },
-  "GET /api/v1/admin/schools/{school}/permissions": {
-    "path_params": {
-      "school": "9b14d934-bb9b-473a-98e2-ac2428492b49"
-    },
-    "query": {},
-    "request": null,
-    "status": 200,
-    "response": [
-      {
-        "key": "more-rooms",
-        "group": "Building",
-        "label": "Add more rooms (up to 5 per project)",
-        "students": true,
-        "educators": true,
-        "can_adjust": false,
-        "enforced": false
-      },
-      {
-        "key": "publish-no-approval",
-        "group": "Sharing",
-        "label": "Publish without approval",
-        "students": false,
-        "educators": true,
-        "can_adjust": false,
-        "enforced": false
-      }
-    ]
-  },
-  "GET /api/v1/permissions/mine": {
-    "path_params": {},
-    "query": {},
-    "request": null,
-    "status": 200,
-    "response": {
-      "more-rooms": true,
-      "publish-no-approval": true,
-      "public-links": true,
-      "unlisted-links": true,
-      "signin-links": true,
-      "from-templates": true,
-      "edit-after-assign": true,
-      "see-results": false,
-      "delete-published": false
-    }
-  },
   "PUT /api/v1/admin/schools/{school}/permissions": {
     "path_params": {
-      "school": "f481598b-cde8-480c-9ee7-59d213dc30c4"
+      "school": "a3e098e6-4bb7-467c-895a-e76e25a36f3f"
     },
     "query": {},
     "request": [
@@ -1464,6 +1601,36 @@
         "enforced": false
       }
     ]
+  },
+  "PUT /api/v1/packs/{slug}/assets": {
+    "path_params": {
+      "slug": "fossils"
+    },
+    "query": {},
+    "request": {
+      "asset_ids": [
+        "37d03148-674d-4cd3-85b4-1bc8c680a20b",
+        "4bec6750-70fe-4a9e-8e6b-9564983d96f9"
+      ]
+    },
+    "status": 200,
+    "response": {
+      "id": "6c08fc18-5229-4a26-bad2-1c784d7f1b2b",
+      "slug": "fossils",
+      "title": "Fossils",
+      "description": "Six CC0 scans",
+      "kind": "objects",
+      "asset_ids": [
+        "37d03148-674d-4cd3-85b4-1bc8c680a20b",
+        "4bec6750-70fe-4a9e-8e6b-9564983d96f9"
+      ],
+      "published_revision": null,
+      "published_at": null,
+      "manifest_url": null,
+      "unpublished_changes": true,
+      "created_at": "2026-11-07T12:11:27",
+      "updated_at": "2026-11-07T12:11:27.901022"
+    }
   },
   "POST /api/v1/packs/resolve": {
     "path_params": {},

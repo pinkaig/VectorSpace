@@ -27,9 +27,3 @@ def test_an_unbuilt_route_answers_501(client, method, path, body) -> None:
     reply = client.request(method, path, json=body)
     assert reply.status_code == 501
     assert "not implemented" in reply.json()["detail"]
-
-
-def test_adding_a_school_answers_501_with_the_way_round_it(client, school) -> None:
-    reply = client.post("/admin/schools", headers={"Authorization": "Bearer admin"})
-    assert reply.status_code == 501
-    assert "app.provision" in reply.json()["detail"]

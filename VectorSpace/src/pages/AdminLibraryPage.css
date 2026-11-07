@@ -26,34 +26,6 @@
 
 /* ── files ─────────────────────────────────────────────────────────────── */
 
-.admin-library-drop {
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--radius-btn);
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  background: var(--surface);
-}
-
-.admin-library-drop p {
-  margin: 0 0 4px;
-}
-
-.admin-library-drop-over {
-  border-color: var(--purple-500);
-  background: var(--purple-50);
-}
-
-.admin-library-link {
-  border: 0;
-  padding: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  font-weight: 800;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 .admin-library-check {
   display: flex;
   gap: 8px;

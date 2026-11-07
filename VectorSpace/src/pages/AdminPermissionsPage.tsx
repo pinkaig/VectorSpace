@@ -16,28 +16,27 @@
 
 import { useAdmin } from "../sections/admin/adminContext";
 import { PermissionsGridSection } from "../sections/admin/permissions/PermissionsGridSection";
-import { PickSchoolNotice } from "../sections/admin/PickSchoolNotice";
 import "./AdminPermissionsPage.css";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminPermissionsPage() {
-  const { school } = useAdmin();
+  const { schools } = useAdmin();
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Permissions</h1>
-        <p>{school ? school.name : "All schools"}</p>
-      </div>
+      <AdminPageTitle title="Permissions" subtitle="What students and educators may do. One set of settings for every school." scope="All schools" />
 
       {/*SAVED, NOT ALL ENFORCED: say which switches the product checks, so none promises more than it does*/}
-      {school && (
+      {schools.length > 0 && (
         <p className="admin-notstored" role="note">
-          Settings are saved for this school. Those marked "Not enforced yet" are kept for later: nothing checks them yet.
+          Settings are saved for every school. Those marked "Not enforced yet" are kept for later: nothing checks them yet.
         </p>
       )}
 
-      {/*GRID: one school's settings, or a note asking for a school to be picked*/}
-      {school ? <PermissionsGridSection key={school.id} schoolId={school.id} /> : <PickSchoolNotice what="Permissions" />}
+      {/*GRID: the settings every school shares; with no school yet there is nothing to save to*/}
+      {schools.length > 0
+        ? <PermissionsGridSection schoolIds={schools.map((s) => s.id)} />
+        : <p className="admin-muted">Add a school on the Overview page first.</p>}
     </>
   );
 }
