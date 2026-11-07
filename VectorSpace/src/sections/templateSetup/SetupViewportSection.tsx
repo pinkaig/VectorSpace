@@ -34,6 +34,7 @@ import { environmentLibrary, makeScene, type EnvironmentDefinition, type Project
 import { createEditorScene, removeEditorScene, selectEditorScene, updateEditorScene } from "../../editor/editorOperations";
 import { cellBeside, freeCell, isAllowedCell, roomAt, roomCell, ROOM_SIDES, type RoomSide } from "../../editor/roomLayout";
 import Viewport, { type ViewportPick } from "../../viewport/Viewport";
+import { AssetGate } from "../../content/AssetGate";
 import { Button } from "../../ui/button";
 import { addSpot, addStarterObject, markersFor, removeSpot, removeThing, setSpotText, spotAt, SPOT_TEXT_MAX, STARTER_OBJECTS, toggleLock } from "../../editor/teacherTools";
 import "./templateSetup.css";
@@ -320,6 +321,7 @@ export function SetupViewportSection({ draft, onChange, expanded, onExpandedChan
         <button type="button" className="setup-expand" onClick={() => onExpandedChange(!expanded)} title={expanded ? "Shrink the preview" : "Make the preview bigger"} aria-label={expanded ? "Shrink the preview" : "Make the preview bigger"}>
           {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
+        <AssetGate project={draft}>
         <Viewport
           objects={scene.objects}
           selectedId={null}
@@ -337,6 +339,7 @@ export function SetupViewportSection({ draft, onChange, expanded, onExpandedChan
           markers={markers}
           onPick={picking ? onPick : undefined}
         />
+        </AssetGate>
       </div>
       <p className="ui-box setup-viewport-hint">{/*HINT: where the teacher tools are*/}
         <strong>Edit room</strong> to suggest spots, lock things or add starter objects.

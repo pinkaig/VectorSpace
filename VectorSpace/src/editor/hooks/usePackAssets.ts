@@ -36,7 +36,10 @@ const unavailablePack = (pack: MyPack, reason: string): AssetDefinition => ({
 export function usePackAssets(getToken: GetToken, onAssetsLoaded: () => void): {
   packAssets: AssetDefinition[]
   packNotice: PackNotice
+  /** Ask again, after a failed load. */
+  reloadPacks: () => void
 } {
+  const [attempt, setAttempt] = useState(0)
   const [packAssets, setPackAssets] = useState<AssetDefinition[]>([])
   const [packNotice, setPackNotice] = useState<PackNotice>(null)
 
@@ -78,7 +81,7 @@ export function usePackAssets(getToken: GetToken, onAssetsLoaded: () => void): {
     }
     void load()
     return () => { current = false }
-  }, [getToken, onAssetsLoaded])
+  }, [getToken, onAssetsLoaded, attempt])
 
-  return { packAssets, packNotice }
+  return { packAssets, packNotice, reloadPacks: () => setAttempt((value) => value + 1) }
 }
