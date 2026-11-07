@@ -67,6 +67,23 @@ describe('admin api', () => {
     expect(account.status).toBe('turned_off')
   })
 
+  it('asks for a new sign-in link and hands back only the link', async () => {
+    const fetchMock = reply({ account_id: 'a1', invite_link: 'https://tenant.test/again/a1' })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const link = await api().newSignInLink('a1')
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://api/api/v1/admin/accounts/a1/invite')
+    expect(init.method).toBe('POST')
+    expect(link).toBe('https://tenant.test/again/a1')
+  })
+
+  it('passes a turned-off account 409 through to the popup', async () => {
+    vi.stubGlobal('fetch', reply({ detail: 'X is turned off. Turn it on first.' }, 409))
+    await expect(api().newSignInLink('a1')).rejects.toMatchObject({ status: 409 })
+  })
+
   it('adds an account with the database\'s own field names, and keeps the invite link', async () => {
     const fetchMock = reply({
       id: 'a2', school_id: 'org-1', name: 'New Person', email: 'new@demo.test', role: 'teacher',
@@ -107,9 +124,17 @@ describe('admin api', () => {
     })).rejects.toThrow(/already belongs to Aisyah Rahman/)
   })
 
-  it('passes the API\'s reason for refusing to add a school straight through', async () => {
-    vi.stubGlobal('fetch', reply({ detail: 'Adding a school needs a VThere operator role' }, 501))
-    await expect(api().addSchool('New School')).rejects.toThrow(/operator role/)
+  it('sends the new school\'s name and returns the school the API made', async () => {
+    const fetchMock = reply({ id: 'org-9', name: 'New School', students: 0, educators: 0, status: 'setting_up' }, 201)
+    vi.stubGlobal('fetch', fetchMock)
+    const made = await api().addSchool('New School')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ name: 'New School' })
+    expect(made).toEqual({ id: 'org-9', name: 'New School', students: 0, educators: 0, status: 'setting_up' })
+  })
+
+  it('passes the API\'s reason for refusing a duplicate school straight through', async () => {
+    vi.stubGlobal('fetch', reply({ detail: 'A school called New School already exists' }, 409))
+    await expect(api().addSchool('New School')).rejects.toThrow(/already exists/)
   })
 
   it('reads one school permission settings from the API', async () => {
