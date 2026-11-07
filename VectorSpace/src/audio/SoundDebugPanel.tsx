@@ -13,8 +13,8 @@
  *  - Cues: every cue by kind of sound and the file(s) it plays; choose others; export both maps.
  *
  * Turned on per browser, in dev or a build made with VITE_SOUND_DEBUG=true, by adding ?sounddebug to the address:
- *   https://<site>/?sounddebug#/login     on, remembered in this browser
- *   https://<site>/?sounddebug=off        off again
+ *   https://<site>/?sounddebug#/login     on while the address carries it (not remembered)
+ *   https://<site>/#/login                 off: any address without it
  * App.tsx imports this file only when soundDebugFlag.ts says it is on, so nobody else downloads it.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.

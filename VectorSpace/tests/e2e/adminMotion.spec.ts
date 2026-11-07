@@ -17,7 +17,7 @@ const openImportPopup = async (page: Page) => {
 test('a popup opens, and closing it leaves nothing behind on the page', async ({ page }) => {
   await signInAsAdmin(page)
   await openImportPopup(page)
-  await page.getByRole('button', { name: 'OK' }).click()
+  await page.getByRole('button', { name: 'Cancel' }).click()
 
   // the exit animation plays on a copy; the copy must be deleted when it ends. A leaked one
   // would still be in the DOM here, so this counts elements, not accessible dialogs
@@ -30,7 +30,7 @@ test('a popup that closes while its exit is still playing still leaves nothing b
   // open and close twice in one breath: the second open starts while the first copy is mid-exit
   for (let round = 0; round < 2; round++) {
     await page.getByRole('button', { name: 'Import class list (CSV)' }).click()
-    await page.getByRole('button', { name: 'OK' }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
   }
   await expect(page.locator('.ui-popup-backdrop')).toHaveCount(0)
 })
@@ -75,7 +75,7 @@ test.describe('with reduced motion asked for', () => {
   test('a popup still closes and leaves nothing behind', async ({ page }) => {
     await signInAsAdmin(page)
     await openImportPopup(page)
-    await page.getByRole('button', { name: 'OK' }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
     await expect(page.locator('.ui-popup-backdrop')).toHaveCount(0)
   })
 })
