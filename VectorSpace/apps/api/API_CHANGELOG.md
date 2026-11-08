@@ -12,6 +12,18 @@ The rules:
 - `/health` stays unversioned for the infrastructure probes (Render `healthCheckPath`, Docker
   `HEALTHCHECK`). `/api/v1/health` is the same answer for clients.
 
+## v1, pack asset resolve (7 Nov 2026)
+
+- Added `POST /api/v1/packs/resolve`, **no token needed**. Body `{ids: ["pack:<slug>:<asset id>", ...]}`
+  (1 to 200 ids, each up to 200 characters; otherwise **422**). Answers `{assets: [...], missing: [...]}`:
+  each asset has `id`, `url`, `kind`, `content_type`, `size_bytes`, `title`, `attribution`. An id the
+  server will not serve (malformed, unknown pack, pack not published, file no longer in it) is listed
+  in `missing`, never as an error. A client reads `missing` as "gone" and a failed request as "try
+  again". It exists so a visitor with no token and no school can still show a shared project's cloud
+  models; it gives only the public address the bucket already serves.
+- Answers **503** if the server has no public storage address set (`S3_PUBLIC_BASE_URL`).
+- Postman collection: two requests added to the Packs folder, 122 in all.
+
 ## v1, permissions (6 Nov 2026)
 
 - Added `GET` and `PUT /api/v1/admin/schools/{school}/permissions` (admins, own school only). `GET`

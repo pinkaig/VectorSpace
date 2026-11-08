@@ -6,6 +6,10 @@ Who may do what:
 - anyone signed in: GET /packs/mine, the packs their own school has switched on. This is the
   read path a teacher's catalogue and (later, P7) a student's editor use, because /library itself
   is admin-only.
+- anyone, signed in or not: POST /packs/resolve. The browser says which pack assets a scene needs
+  ("pack:<slug>:<asset id>") and is told where each one lives. A visitor opening a shared project
+  has no school and no token, so this cannot hang off /packs/mine. It answers only for assets in
+  a published pack, and gives only the public address the bucket already serves.
 
 A pack is a draft until it is published. Publishing builds a manifest -- one JSON file that lists
 each file with its public URL -- and writes it to library/packs/<slug>/<revision>.json. The order
@@ -24,6 +28,7 @@ import json
 import re
 import uuid
 from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
@@ -93,6 +98,31 @@ class MyPackResponse(BaseModel):
     revision: int
     manifest_url: str
     item_count: int
+
+
+class ResolveRequest(BaseModel):
+    # "pack:<slug>:<library asset id>", the id a placed object keeps; at most a scene's worth
+    ids: list[Annotated[str, Field(min_length=1, max_length=200)]] = Field(min_length=1, max_length=200)
+
+
+class ResolvedAsset(BaseModel):
+    id: str
+    url: str
+    kind: str
+    content_type: str
+    size_bytes: int
+    title: str
+    attribution: str | None
+
+
+class ResolveResponse(BaseModel):
+    assets: list[ResolvedAsset]
+    # asked for but not served: a malformed id, an unpublished or unknown pack, a file no longer in it.
+    # The browser treats these as gone for good, and treats a failed request as "try again".
+    missing: list[str]
+
+
+_PACK_ASSET_ID = re.compile(r"^pack:([a-z0-9][a-z0-9-]{0,99}):([0-9a-fA-F-]{36})$")
 
 
 def _manifest_url(pack: AssetPack) -> str | None:
@@ -175,6 +205,52 @@ def my_packs(actor: Actor = Depends(get_current_actor), db: Session = Depends(ge
             revision=pack.published_revision, manifest_url=url, item_count=len(pack.items),
         ))
     return mine
+
+
+@router.post("/resolve", response_model=ResolveResponse)
+def resolve_pack_assets(body: ResolveRequest, db: Session = Depends(get_db)) -> ResolveResponse:
+    """Where each asked-for pack asset lives. Public: the files are public-read already."""
+    wanted: dict[str, tuple[str, uuid.UUID]] = {}
+    for raw in dict.fromkeys(body.ids):
+        match = _PACK_ASSET_ID.match(raw)
+        if match is None:
+            continue
+        try:
+            wanted[raw] = (match.group(1), uuid.UUID(match.group(2)))
+        except ValueError:
+            continue
+    found: dict[tuple[str, uuid.UUID], LibraryAsset] = {}
+    if wanted:
+        rows = db.execute(
+            select(AssetPack.slug, LibraryAsset)
+            .join(PackAsset, PackAsset.pack_id == AssetPack.id)
+            .join(LibraryAsset, LibraryAsset.id == PackAsset.library_asset_id)
+            .where(
+                AssetPack.slug.in_({slug for slug, _ in wanted.values()}),
+                AssetPack.published_revision.is_not(None),
+                LibraryAsset.id.in_({asset_id for _, asset_id in wanted.values()}),
+            )
+        )
+        found = {(slug, asset.id): asset for slug, asset in rows}
+    assets, missing = [], []
+    for raw in body.ids:
+        key = wanted.get(raw)
+        asset = found.get(key) if key else None
+        if asset is None:
+            if raw not in missing:
+                missing.append(raw)
+            continue
+        if any(item.id == raw for item in assets):
+            continue
+        try:
+            url = storage.public_url(asset.storage_key)
+        except RuntimeError as error:
+            raise HTTPException(status_code=503, detail="Asset storage has no public address set") from error
+        assets.append(ResolvedAsset(
+            id=raw, url=url, kind=asset.kind, content_type=asset.content_type,
+            size_bytes=asset.size_bytes, title=asset.title, attribution=asset.attribution,
+        ))
+    return ResolveResponse(assets=assets, missing=missing)
 
 
 @router.get("", response_model=list[PackResponse])

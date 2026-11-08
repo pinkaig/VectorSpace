@@ -6505,6 +6505,148 @@
           ]
         },
         {
+          "name": "Anyone resolves pack assets (no token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"assets\", \"missing\"], \"properties\": {\"assets\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"url\", \"kind\", \"content_type\", \"size_bytes\", \"title\", \"attribution\"], \"properties\": {\"id\": {\"type\": \"string\"}, \"url\": {\"type\": \"string\"}, \"kind\": {\"type\": \"string\"}, \"content_type\": {\"type\": \"string\"}, \"size_bytes\": {\"type\": \"integer\"}, \"title\": {\"type\": \"string\"}, \"attribution\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}]}}}}, \"missing\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}}));",
+                  "pm.test('both are reported missing', () => { const r = pm.response.json(); pm.expect(r.assets).to.eql([]); pm.expect(r.missing.length).to.eql(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "resolve"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"pack:postman-none:00000000-0000-4000-8000-000000000000\",\n    \"bundled-model\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "A visitor has no token. Ids the server cannot serve (unknown pack, not published, not a pack id) come back in missing, never as an error; the browser reads that as gone for good."
+          },
+          "response": [
+            {
+              "name": "Recorded 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/packs/resolve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "packs",
+                    "resolve"
+                  ],
+                  "query": []
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [\n    \"pack:fossils:b258a4ef-8553-491f-a82f-c3946c1f0b82\",\n    \"pack:fossils:7ae4c97a-b2d8-4896-a0d9-7e3f49678690\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "A visitor has no token. Ids the server cannot serve (unknown pack, not published, not a pack id) come back in missing, never as an error; the browser reads that as gone for good."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"assets\": [\n    {\n      \"id\": \"pack:fossils:b258a4ef-8553-491f-a82f-c3946c1f0b82\",\n      \"url\": \"https://assets.test/library/b8adeb36c9c297eb6b7170889c795817cb2be2b3fbf58dcbed56be884a57d867/TRex_Skull.glb\",\n      \"kind\": \"model\",\n      \"content_type\": \"model/gltf-binary\",\n      \"size_bytes\": 15,\n      \"title\": \"TRex_Skull\",\n      \"attribution\": null\n    },\n    {\n      \"id\": \"pack:fossils:7ae4c97a-b2d8-4896-a0d9-7e3f49678690\",\n      \"url\": \"https://assets.test/library/544a3548837a51aff62a0dad0962114f3c6f46f24649c45eb55c3adc31a3c3bf/Mammoth.glb\",\n      \"kind\": \"model\",\n      \"content_type\": \"model/gltf-binary\",\n      \"size_bytes\": 15,\n      \"title\": \"Mammoth\",\n      \"attribution\": null\n    }\n  ],\n  \"missing\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Resolve with no ids is 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packs/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packs",
+                "resolve"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Bad short name is 422",
           "event": [
             {

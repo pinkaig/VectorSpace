@@ -208,3 +208,50 @@ def test_admins_list_packs_and_read_one(client, school, fake_storage) -> None:
     one = client.get("/packs/fossils", headers=ADMIN)
     assert one.status_code == 200 and len(one.json()["asset_ids"]) == 1
     assert client.get("/packs/nope", headers=ADMIN).status_code == 404
+
+
+def test_anyone_can_resolve_a_published_pack_asset_without_signing_in(client, school, fake_storage) -> None:
+    """A visitor opening a shared project has no token: the scene's pack ids still come back with addresses."""
+    make_pack(client)
+    one, two = a_file(client, fake_storage, "TRex_Skull"), a_file(client, fake_storage, "Mammoth")
+    client.put("/packs/fossils/assets", json={"asset_ids": [one["id"], two["id"]]}, headers=ADMIN)
+    client.post("/packs/fossils/publish", headers=ADMIN)
+
+    ids = [f"pack:fossils:{one['id']}", f"pack:fossils:{two['id']}", f"pack:fossils:{one['id']}"]
+    answer = client.post("/packs/resolve", json={"ids": ids})  # no Authorization header
+    assert answer.status_code == 200, answer.text
+    body = answer.json()
+    assert body["missing"] == []
+    assert [a["id"] for a in body["assets"]] == ids[:2]  # asked twice, answered once
+    first = body["assets"][0]
+    assert first["url"].startswith(f"{PUBLIC_BASE}/library/") and first["kind"] == "model"
+    assert first["title"] == "TRex_Skull" or first["title"]  # the library title travels with it
+
+
+def test_resolve_reports_what_it_cannot_serve_as_missing(client, school, fake_storage) -> None:
+    make_pack(client, slug="draft-only", title="Draft only")
+    draft_file = a_file(client, fake_storage, "draft-file")
+    client.put("/packs/draft-only/assets", json={"asset_ids": [draft_file["id"]]}, headers=ADMIN)  # never published
+    make_pack(client)
+    kept, loose = a_file(client, fake_storage, "kept"), a_file(client, fake_storage, "loose")
+    client.put("/packs/fossils/assets", json={"asset_ids": [kept["id"]]}, headers=ADMIN)
+    client.post("/packs/fossils/publish", headers=ADMIN)
+
+    asked = [
+        f"pack:fossils:{kept['id']}",
+        f"pack:draft-only:{draft_file['id']}",   # pack not published
+        f"pack:fossils:{loose['id']}",           # a real file, but not in this pack
+        f"pack:nope:{uuid.uuid4()}",              # no such pack
+        "pack:fossils:not-a-uuid",                # malformed
+        "bundled-asset",                          # not a pack id at all
+    ]
+    body = client.post("/packs/resolve", json={"ids": asked}).json()
+    assert [a["id"] for a in body["assets"]] == [asked[0]]
+    assert body["missing"] == asked[1:]
+
+
+def test_resolve_checks_its_input(client, school, fake_storage) -> None:
+    assert client.post("/packs/resolve", json={"ids": []}).status_code == 422
+    assert client.post("/packs/resolve", json={}).status_code == 422
+    assert client.post("/packs/resolve", json={"ids": ["x" * 201]}).status_code == 422
+    assert client.post("/packs/resolve", json={"ids": [f"pack:a:{uuid.uuid4()}"] * 201}).status_code == 422

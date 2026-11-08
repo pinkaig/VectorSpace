@@ -1631,5 +1631,39 @@
       "created_at": "2026-11-07T12:11:27",
       "updated_at": "2026-11-07T12:11:27.901022"
     }
+  },
+  "POST /api/v1/packs/resolve": {
+    "path_params": {},
+    "query": {},
+    "request": {
+      "ids": [
+        "pack:fossils:b258a4ef-8553-491f-a82f-c3946c1f0b82",
+        "pack:fossils:7ae4c97a-b2d8-4896-a0d9-7e3f49678690"
+      ]
+    },
+    "status": 200,
+    "response": {
+      "assets": [
+        {
+          "id": "pack:fossils:b258a4ef-8553-491f-a82f-c3946c1f0b82",
+          "url": "https://assets.test/library/b8adeb36c9c297eb6b7170889c795817cb2be2b3fbf58dcbed56be884a57d867/TRex_Skull.glb",
+          "kind": "model",
+          "content_type": "model/gltf-binary",
+          "size_bytes": 15,
+          "title": "TRex_Skull",
+          "attribution": null
+        },
+        {
+          "id": "pack:fossils:7ae4c97a-b2d8-4896-a0d9-7e3f49678690",
+          "url": "https://assets.test/library/544a3548837a51aff62a0dad0962114f3c6f46f24649c45eb55c3adc31a3c3bf/Mammoth.glb",
+          "kind": "model",
+          "content_type": "model/gltf-binary",
+          "size_bytes": 15,
+          "title": "Mammoth",
+          "attribution": null
+        }
+      ],
+      "missing": []
+    }
   }
 }

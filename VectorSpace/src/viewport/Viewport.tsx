@@ -69,6 +69,7 @@ import {
   resolveAsset,
   retryAsset,
   subscribeAssetResolution,
+  subscribeCatalogChanges,
   type AssetDescriptor,
 } from '../content/assetResolution'
 import { AssetStatusBadge } from '../viewport/editing/AssetStatusBadge'
@@ -534,6 +535,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       inRoom.sync(objects)
       requestRender()
     }
+    // A cloud pack model has no address until the asset manager has asked the server, so an object
+    // can be skipped on the first pass. When an address arrives, rebuild once from the data.
+    const stopCatalogWatch = subscribeCatalogChanges(() => { synced = null; requestRender() })
 
     // ---- WHEN→DO runtime (Tiers 1-3) -------------------------------------
     // All of it lives inside this effect so it shares the renderer's lifecycle:
@@ -1011,6 +1015,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     return () => {
       cancelAnimationFrame(frame)
+      stopCatalogWatch()
       // Unmounting is an exit from play mode: stop sequencing and dispose every
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
