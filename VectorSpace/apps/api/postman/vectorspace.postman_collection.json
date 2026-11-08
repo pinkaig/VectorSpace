@@ -6608,7 +6608,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }

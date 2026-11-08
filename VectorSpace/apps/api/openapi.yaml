@@ -5284,11 +5284,87 @@ paths:
                   attribution: null
                 missing: []
         '422':
-          description: Validation Error
+          description: The request is not valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: Name must be at most 200 characters
+                code: invalid_request
+                apiVersion: v1
+                source: vectorspace-api
+                timestamp: '2026-11-08T09:30:00+00:00'
+                requestId: 3f6c1f0e-0000-4000-8000-000000000000
+                fields:
+                - field: name
+                  message: must be at most 200 characters
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: 'Not signed in: send an Authorization: Bearer <token> header'
+                code: unauthorised
+                apiVersion: v1
+                source: vectorspace-api
+                timestamp: '2026-11-08T09:30:00+00:00'
+                requestId: 3f6c1f0e-0000-4000-8000-000000000000
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: You are not allowed to do that
+                code: forbidden
+                apiVersion: v1
+                source: vectorspace-api
+                timestamp: '2026-11-08T09:30:00+00:00'
+                requestId: 3f6c1f0e-0000-4000-8000-000000000000
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: Not found
+                code: not_found
+                apiVersion: v1
+                source: vectorspace-api
+                timestamp: '2026-11-08T09:30:00+00:00'
+                requestId: 3f6c1f0e-0000-4000-8000-000000000000
+        '413':
+          description: Request Entity Too Large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: The request is too large to send. Shorten it and try again.
+                code: too_large
+                apiVersion: v1
+                source: vectorspace-api
+                timestamp: '2026-11-08T09:30:00+00:00'
+                requestId: 3f6c1f0e-0000-4000-8000-000000000000
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: Something went wrong on our side. Please try again; if it keeps happening, quote
+                  the request id.
+                code: server_error
+                apiVersion: v1
+                source: vectorspace-api
+                timestamp: '2026-11-08T09:30:00+00:00'
+                requestId: 3f6c1f0e-0000-4000-8000-000000000000
   /api/v1/packs:
     get:
       tags:
