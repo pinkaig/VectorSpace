@@ -2,15 +2,25 @@
  * @file        MissionBriefPanel.tsx
  * @project     VectorSpace
  * @author      <your name>
- * @brief       The mission brief as students see it in the editor: floats over the top-left of
- *              the room, under the Select / Move tools. Two looks:
+ * @brief       The mission brief as students see it in the editor: hangs from the top edge of
+ *              the room, 24px in from the left. Two looks:
  *                open:   the full card (to-dos, rules, "Got it, let's build")
  *                folded: a slim tab with one bar per to-do and "2 of 4 done"; click to open
  *              It starts open, and "Got it, let's build" folds it so it is out of the way.
+ *              Under the title: who it is from and when it is due ("From Ms Tan · due Friday,
+ *              6 Nov"), with the teacher's name shortened to title and surname (teacherName,
+ *              passed in by the editor); just "Due …" when no teacher is known.
  *
  *              The to-dos TICK THEMSELVES: each one's text is read by parseTodo and counted
  *              against the live project by checkGoal, so placing an exhibit updates it at once.
  *              A to-do parseTodo cannot read shows a dashed box: the teacher ticks it in review.
+ *              To-dos that clash (mission/conflicts.ts) still tick themselves here: not every
+ *              to-do has to be done, and the teacher was warned about the clash at setup.
+ *
+ *              Under the rules, "Info cards to write" lists the cards the teacher set
+ *              (brief.cardTasks) and how far each one is: not started, in progress on a
+ *              thing, or done. A card the teacher assigned to a thing is a button that goes
+ *              to that thing (Weian Ching).
  *
  *              The brief comes from project.missionBrief, which the teacher's template setup
  *              page writes. With no brief (or an empty one) nothing is shown.
@@ -22,23 +32,36 @@
 /******************************************************************************/
 
 import { useState } from "react";
-import { Check, ChevronDown, ClipboardList } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
 import type { ProjectData } from "../../project/model";
 import type { MissionBrief } from "../../mission/missionBrief";
 import { parseTodo } from "../../mission/parseTodo";
 import { checkGoal, progressLabel, type GoalProgress } from "../../mission/checkTodo";
+import { taskStatus } from "../../mission/cardTasks";
 import "./missionBriefPanel.css";
 
 type MissionBriefPanelProps = {
   brief: MissionBrief;
   // the project being built, which the to-dos are counted against
   project: ProjectData;
+  // the teacher who assigned it, for "From Ms Tan" under the title; left out = only the due date
+  teacherName?: string | null;
+  // a card assigned to a thing was clicked: go to that thing
+  onOpenCard?: (objectId: string) => void;
 };
 
 // one to-do, worked out: its text, and how far along it is (null = the teacher ticks it)
 type TodoState = { id: string; text: string; progress: GoalProgress | null };
 
-export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
+// "Ms Tan Hui Min" → "Ms Tan": the title and the surname, the way students address a teacher.
+// A name without a title (or a lone word) is shown as it is.
+const TITLES = ["Mr", "Ms", "Mrs", "Mdm", "Miss", "Dr"];
+const shortTeacherName = (name: string): string => {
+  const [title, surname] = name.trim().split(/\s+/);
+  return TITLES.includes(title.replace(".", "")) && surname ? `${title} ${surname}` : name.trim();
+};
+
+export function MissionBriefPanel({ brief, project, teacherName, onOpenCard }: MissionBriefPanelProps) {
   const [open, setOpen] = useState(true);
 
   // worked out again on every render, so the ticks follow the student's edits
@@ -48,8 +71,21 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
   });
   const doneCount = todos.filter((todo) => todo.progress?.complete).length;
   const doneText = `${doneCount} of ${todos.length} done`;
+  // "Friday, 6 Nov" → "Friday": the prototype shows only the day
+  const dueDay = brief.due ? brief.due.split(",")[0].trim() : "";
+  // "From Ms Tan · due Friday", or just "Due Friday" when the teacher isn't known
+  const subline = teacherName
+    ? `From ${shortTeacherName(teacherName)}${dueDay ? ` · due ${dueDay}` : ""}`
+    : dueDay ? `Due ${dueDay}` : "";
 
-  if (todos.length === 0 && brief.rules.length === 0) return null;
+  const cardTasks = (brief.cardTasks ?? []).map((task, index) => ({ task, index, status: taskStatus(project, task) }));
+  // the thing the teacher suggested a card for, by name, if it is still in the project
+  const suggestedName = (objectId?: string) =>
+    objectId ? project.scenes.flatMap((scene) => scene.objects).find((object) => object.id === objectId)?.name : undefined;
+  // clickable when the teacher assigned it to a thing that is still in the project
+  const canOpen = (objectId?: string) => onOpenCard !== undefined && suggestedName(objectId) !== undefined;
+
+  if (todos.length === 0 && brief.rules.length === 0 && cardTasks.length === 0) return null;
 
   // ── FOLDED: a tab to open it again ──
   if (!open) {
@@ -73,7 +109,7 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
         <div className="mb-head-icon"><ClipboardList size={22} /></div>
         <div className="mb-head-text">
           <h2 className="mb-title">Mission brief</h2>
-          {brief.due && <p className="mb-due">Due {brief.due}</p>}
+          {subline && <p className="mb-due">{subline}</p>}
         </div>
         <span className="mb-done-chip">{doneText}</span>
       </div>
@@ -93,6 +129,44 @@ export function MissionBriefPanel({ brief, project }: MissionBriefPanelProps) {
           <ul className="mb-rules">
             {brief.rules.map((rule) => <li key={rule.id}>{rule.text}</li>)}
           </ul>
+        </>
+      )}
+      {/*INFO CARDS TO WRITE: the teacher's cards, and how far each one is*/}
+      {cardTasks.length > 0 && (
+        <>
+          <h3 className="mb-heading">Info cards to write</h3>
+          <ul className="mb-todos">
+            {cardTasks.map(({ task, index, status }) => {
+              const rowClass = `mb-todo ${status.state === "done" ? "mb-todo-done" : ""}`;
+              const row = (
+                <>
+                  <span className={`mb-tick ${status.state === "done" ? "mb-tick-done" : ""}`}>
+                    {status.state === "done" && <Check size={14} strokeWidth={3.5} />}
+                  </span>
+                  <span className="mb-todo-text">{task.title || `Card ${index + 1}`}</span>
+                  <span className="mb-todo-count">
+                    {status.state === "todo"
+                      ? suggestedName(task.objectId) ? `for ${suggestedName(task.objectId)}` : task.kind === "blanks" ? "fill in the blanks" : "answer the questions"
+                      : status.state === "done" ? `on ${status.objectName}` : `started on ${status.objectName}`}
+                  </span>
+                </>
+              );
+              return canOpen(task.objectId) ? (
+                <li key={task.id}>
+                  <button type="button" className={`${rowClass} mb-todo-go`} title={`Go to ${suggestedName(task.objectId)}`} onClick={() => onOpenCard?.(task.objectId as string)}>
+                    {row}
+                    <ChevronRight size={15} className="mb-todo-go-icon" />
+                  </button>
+                </li>
+              ) : (
+                <li key={task.id} className={rowClass}>{row}</li>
+              );
+            })}
+          </ul>
+          <p className="mb-card-hint">
+            {cardTasks.some(({ task }) => canOpen(task.objectId)) ? "Click a card to go to its thing, then open Fact card. " : "Pick a thing, open Info, then Fact card. "}
+            Start from your teacher's card.
+          </p>
         </>
       )}
 

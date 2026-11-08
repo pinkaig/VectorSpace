@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import type { School } from "../../../api/admin";
+import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { Field } from "../../../ui/field";
 import { Popup } from "../../../ui/popup";
@@ -47,7 +48,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
     <section className="admin-panel admin-overview-schools">
       <div className="admin-panel-head">
         <h2>Schools</h2>
-        <Button variant="primary" onClick={() => setAdding(true)}>+ Add a school</Button>
+        <Button variant="primary" cue={null} onClick={() => setAdding(true)}>+ Add a school</Button>
       </div>
 
       <div className="admin-scroll">
@@ -74,6 +75,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
 
       {adding && (
         <Popup
+          silent // no sound for now
           title="Add a school"
           subtitle="It starts as Setting up. Add its people and rooms next."
           onClose={close}
@@ -87,7 +89,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
           <Field label="School name">
             <input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
           </Field>
-          {problem && <p role="alert">{problem}</p>}
+          {problem && <Motion as="p" cue="feedback.error" role="alert">{problem}</Motion>}
         </Popup>
       )}
     </section>

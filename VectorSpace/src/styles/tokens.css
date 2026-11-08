@@ -67,6 +67,8 @@
   --radius-btn-lg: 14px;
   --radius-btn: 12px;
   --radius-btn-sm: 10px;
+  --radius-sm: 8px;   /* small chips and badges */
+  --radius-xs: 6px;   /* tiny buttons and markers */
   --radius-pill: 999px;
   --font-heading: 'Fredoka', sans-serif;
   --font-body: 'Nunito', system-ui, sans-serif;

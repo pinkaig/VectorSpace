@@ -12,10 +12,13 @@
 /******************************************************************************/
 
 import type { ReactNode } from "react";
+import { useMotionOnChange } from "../motion/useMotion";
 import "./statusChip.css";
 
 export type ChipTone = "green" | "amber" | "purple" | "grey" | "red";
 
 export function StatusChip({ tone, children }: { tone: ChipTone; children: ReactNode }) {
-  return <span className={`ui-chip ui-chip-${tone}`}>{children}</span>;
+  // a chip that changes in place (Active -> Turned off) pulses, so the row that changed is the one the eye goes to
+  const ref = useMotionOnChange<HTMLSpanElement>("table.row.status", tone);
+  return <span ref={ref} className={`ui-chip ui-chip-${tone}`}>{children}</span>;
 }

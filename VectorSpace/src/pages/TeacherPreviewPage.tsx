@@ -23,14 +23,19 @@ import { useLocation, useNavigate } from "react-router";
 import { Eye } from "lucide-react";
 import { loadProjectWithSource } from "../project/serializer";
 import { tidyBrief, type MissionBrief } from "../mission/missionBrief";
+import type { ProjectData } from "../project/model";
 import StudentHomePage from "./StudentHomePage";
+import { LoadingRoom } from "../ui/LoadingRoom";
 import "./TeacherPreviewPage.css";
 
 // the editor is large, so it is only downloaded when a preview shows it (as /editor does)
 const EditorApplication = lazy(() => import("../../apps/editor/src/EditorApplication"));
 
-// what the template setup page sends here, and gets back from Exit preview
-export type PreviewState = { brief?: MissionBrief } | null;
+// what the template setup page sends here, and gets back from Exit preview; projectId is the
+// server project being set up, so setup opens the same one again. draft is setup's copy of the
+// rooms (with any spots, locks and starter objects not saved yet), so the preview shows that
+// project and Exit preview hands it back unchanged.
+export type PreviewState = { brief?: MissionBrief; projectId?: string; draft?: ProjectData } | null;
 
 // WHICH PAGE THE PREVIEW SHOWS. Change this one word to switch:
 //   "editor"       the editor, as a student building the project sees it
@@ -40,19 +45,22 @@ const PREVIEW_SHOWS: PreviewTarget = "editor";
 
 export default function TeacherPreviewPage() {
   const navigate = useNavigate();
-  const brief = (useLocation().state as PreviewState)?.brief;
+  const handed = useLocation().state as PreviewState;
+  const brief = handed?.brief;
 
-  // the project the editor opens: this browser's draft with the brief being set up on it.
-  // In memory only; the editor's preview mode never writes it back.
+  // the project the editor opens: the one being set up (else this browser's draft, for a visit
+  // without one), with the brief being set up on it. In memory only; the editor's preview mode
+  // never writes it back.
   const [start] = useState(() => {
     const loaded = loadProjectWithSource();
-    return brief ? { ...loaded, project: { ...loaded.project, missionBrief: tidyBrief(brief) } } : loaded;
+    const project = handed?.draft ?? loaded.project;
+    return { ...loaded, project: brief ? { ...project, missionBrief: tidyBrief(brief) } : project };
   });
 
   // the pages a preview can show
   const pages: Record<PreviewTarget, () => ReactNode> = {
     editor: () => (
-      <Suspense fallback={<p>Loading editor…</p>}>
+      <Suspense fallback={<LoadingRoom />}>
         <EditorApplication start={start} preview />
       </Suspense>
     ),
@@ -61,7 +69,7 @@ export default function TeacherPreviewPage() {
 
   // back to template setup, handing the brief back
   const exitPreview = () => {
-    const state: PreviewState = { brief };
+    const state: PreviewState = { brief, projectId: handed?.projectId, draft: handed?.draft };
     navigate("/teacher/template", { state });
   };
 

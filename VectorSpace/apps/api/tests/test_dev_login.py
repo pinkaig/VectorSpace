@@ -1,16 +1,15 @@
 """The dev-only login (AUTH_DEV_BYPASS) and the demo seed that goes with it."""
 
 import pytest
-from fastapi.testclient import TestClient
-from pydantic import ValidationError
-from sqlalchemy import select
-
 from apps.api.app import auth, seed
 from apps.api.app.config import Settings
 from apps.api.app.db import get_db
-from apps.api.app.main import app
+from apps.api.app.main import API_PREFIX, app
 from apps.api.app.models import Actor
 from apps.api.app.provision import provision
+from fastapi.testclient import TestClient
+from pydantic import ValidationError
+from sqlalchemy import select
 
 
 @pytest.fixture
@@ -20,7 +19,7 @@ def real_login(db, monkeypatch):
 
     def use(bypass: bool) -> TestClient:
         monkeypatch.setattr(auth, "get_settings", lambda: Settings(auth_dev_bypass=bypass, app_env="local"))
-        return TestClient(app)
+        return TestClient(app, base_url=f"http://testserver{API_PREFIX}/")
 
     yield use
     app.dependency_overrides.clear()
@@ -63,3 +62,9 @@ def test_seed_dry_run_writes_nothing(db):
     report = provision(db, None, seed.SLUG, seed.SCHOOL, seed.ROWS)
     assert {outcome for _, outcome, _ in report} == {"would create"}
     assert db.scalars(select(Actor)).all() == []
+
+
+def test_a_protected_route_without_a_token_is_401(real_login) -> None:
+    reply = real_login(False).get("/me")
+    assert reply.status_code == 401
+    assert reply.headers["www-authenticate"] == "Bearer"

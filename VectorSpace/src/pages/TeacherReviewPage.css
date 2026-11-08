@@ -2,10 +2,11 @@
  * @file        TeacherReviewPage.css
  * @project     VectorSpace
  * @author      Chloe Lau Rey En
- * @brief       Styles for the teacher Review tab: the submissions list panel
- *              (scrolls on its own), status chips, and the selected museum
- *              panel. The frame and height come from TeacherLayout. Values
- *              from the V3 manual.
+ * @brief       Styles for the teacher Review tab: status tabs, the class list
+ *              in pages of 8, status chips, and the selected museum panel with
+ *              grade, comment and quick comments. The frame and height come
+ *              from TeacherLayout. Values from the V3 manual and the 2.03
+ *              prototype.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -47,45 +48,66 @@
   color: var(--text-muted);
 }
 
+/* no scrolling: the pager is how you see the rest */
 .review-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .review-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  flex: 1 1 0;          /* rows share the list's height evenly */
+  min-height: 52px;     /* never squashed smaller than this */
+  max-height: 72px;     /* never stretched too tall on a short tab */
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-box);
   background: var(--surface);
   font-family: var(--font-body);
   text-align: left;
   cursor: pointer;
+  transition: background-color 250ms ease-in-out, border-color 250ms ease-in-out;
 }
 
-.review-item:hover {
-  background: var(--purple-50);
+/* rows that aren't selected: a plain light grey, just off white */
+.review-item:not(.review-item-selected):hover {
+  background: color-mix(in srgb, var(--surface), var(--Black) 4%);
+}
+
+/* the selected row goes a little deeper purple on hover */
+.review-item-selected:hover {
+  background: color-mix(in srgb, var(--purple-100), var(--purple-300) 25%);
 }
 
 /* manual: selected = purple-100 fill + 2px purple-500 border */
 .review-item-selected {
   border: 2px solid var(--purple-500);
-  padding: 9px 11px;
+  padding: 7px 11px;    /* 1px less, so the thicker border doesn't make it jump */
   background: var(--purple-100);
+}
+
+/* keyboard focus: a purple ring instead of the browser's black one */
+.review-item:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}
+
+.review-item:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .review-avatar {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-pill);
   background: var(--purple-100);
   color: var(--purple-700);
@@ -99,15 +121,120 @@
 }
 
 .review-item-text strong {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--ink);
 }
 
 .review-item-text span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Status tabs: 3 × 2 rounded rectangles with counts ────────────────── */
+.review-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));   /* equal columns that may shrink */
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.review-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.review-tab:hover { background: var(--bg-app); }
+
+.review-tab-selected {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.review-tab-selected:hover { background: var(--purple-600); }
+
+.review-tab-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--bg-app);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.review-tab-selected .review-tab-count {
+  background: var(--purple-700);
+  color: var(--surface);
+}
+
+.review-empty {
+  margin: 16px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── Pager: "1–8 of 24" left, page buttons right ──────────────────────── */
+.review-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.review-pager-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.review-pager-buttons button {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.review-pager-buttons button:hover:not(:disabled):not(.review-page-current) {
+  background: var(--bg-app);
+}
+
+.review-pager-buttons button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.review-pager-buttons .review-page-current {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
 }
 
 /* ── Status chips (manual colours) ────────────────────────────────────── */
@@ -139,12 +266,60 @@
   color: var(--red-900);
 }
 
+.review-chip-purple {
+  border-color: var(--border-strong);
+  background: var(--purple-100);
+  color: var(--purple-700);
+}
+
+.review-chip-grey {
+  border-color: var(--border);
+  background: var(--bg-app);
+  color: var(--text-muted);
+}
+
 /* ── Detail: header ───────────────────────────────────────────────────── */
 .review-detail-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+/* a published museum: the switch that puts it on the public sign-in page */
+.review-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--purple-50);
+}
+
+.review-showcase > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.review-showcase strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.review-showcase small {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.review-showcase-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-700);
 }
 
 .review-avatar-large {
@@ -165,6 +340,13 @@
   margin: 2px 0 0;
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* an update to a published museum: what visitors see meanwhile */
+.review-detail-note {
+  margin: 4px 0 0;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
@@ -279,38 +461,127 @@
   color: var(--text-muted);
 }
 
-/* ── Comment and buttons ──────────────────────────────────────────────── */
-.review-comment {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+/* ── Grade (left) and comment (right) under the picture ───────────────── */
+.review-feedback {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.review-field-label {
+  display: block;
+  margin-bottom: 6px;
   font-size: 14px;
   font-weight: 800;
   color: var(--ink-2);
 }
 
-.review-comment textarea {
-  height: 64px;
-  padding: 10px 12px;
+/* manual inputs: 1px border-strong, 12px radius, 16px text */
+.review-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
   font-family: var(--font-body);
-  font-size: 15px;
-  resize: none;
+  font-size: 16px;
+  font-weight: 400;
 }
 
-.review-comment textarea:focus {
+.review-input::placeholder { color: var(--text-muted); }
+
+.review-input:focus {
   outline: 2px solid var(--purple-500);
   border-color: transparent;
 }
 
+.review-textarea {
+  height: 64px;
+  padding: 10px 12px;
+  resize: none;
+}
+
+.review-grade-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.review-grade-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.review-comment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* "+ Save as quick comment": a quiet text button */
+.review-save-quick {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--purple-600);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-save-quick:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Quick comments row ───────────────────────────────────────────────── */
+.review-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.review-quick .review-label {
+  margin: 0 4px 0 0;
+}
+
+.review-quick-chip {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--purple-100), var(--surface) 50%);   /* soft purple */
+  color: var(--purple-700);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.review-quick-chip:hover {
+  background: var(--purple-100);   /* a gentle step deeper */
+}
+
+/* ── Result note and buttons ──────────────────────────────────────────── */
 .review-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: auto; 
+  margin-top: auto;      /* pushes the buttons to the bottom of the panel */
 }
 
 .review-message {
@@ -344,6 +615,7 @@
   font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 150ms ease;
 }
 
 .review-send-back {
@@ -352,7 +624,7 @@
   color: var(--ink-2);
 }
 
-.review-send-back:hover { background: var(--purple-50); }
+.review-send-back:hover:not(:disabled) { background: var(--bg-app); }
 
 .review-approve {
   border: none;
@@ -360,7 +632,16 @@
   color: var(--surface);
 }
 
-/* ── Entrance: the list panel slides in from the left with a small bounce ── */
+.review-approve:hover:not(:disabled) { background: var(--green-800); }
+
+/* only a museum that was sent can be approved or sent back */
+.review-send-back:disabled,
+.review-approve:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Entrance: the list panel slides in from the right with a small bounce ── */
 @keyframes review-panel-in {
   from {
     opacity: 0;
@@ -381,4 +662,47 @@
   .review-list-panel {
     animation: none;
   }
+}
+
+/* ── No page scroll: the picture takes whatever height is left ─────────── */
+/* the detail panel is a column; the strip, fields and buttons keep their size,
+   and the picture area shrinks so a published museum's sign-in strip still fits */
+.review-detail-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.review-detail-body {
+  flex: 1;
+  min-height: 0; /* lets it shrink below the picture's natural height */
+}
+
+.review-preview {
+  height: 100%;
+  min-height: 0;
+}
+
+.review-preview .museum-preview {
+  height: 100%;
+  object-fit: cover; /* cropped, never stretched */
+}
+
+/* chip on the right of the header, with the sign-in page switch beside it when published */
+.review-detail-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.review-showcase-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-2);
+  white-space: nowrap;
 }

@@ -298,7 +298,7 @@ describe('attachment operations', () => {
 
     expect(copy.attachments?.[0].id).not.toBe(original.attachments?.[0].id)
     expect(copy.attachments).not.toBe(original.attachments)
-    copy.attachments?.[0] && (copy.attachments[0].assetId = 'mutated')
+    if (copy.attachments?.[0]) copy.attachments[0].assetId = 'mutated'
     expect(original.attachments?.[0].assetId).toBe('text-1')
   })
 

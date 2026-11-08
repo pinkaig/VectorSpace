@@ -16,16 +16,19 @@ services:
       retries: 10
 
   minio:
-    image: quay.io/minio/minio:latest
-    command: server /data --console-address ":9001"
+    # MinIO no longer publishes public images (quay.io/minio and minio/minio refuse pulls), so this is
+    # Bitnami's frozen copy (MinIO 2025.5.24), the same image CI uses. It starts the server itself,
+    # creates the bucket below on first start, and has no web console (use `mc` or the API instead).
+    image: bitnamilegacy/minio:2025.5.24
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-vectorspace_minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-vectorspace_minio_local}
+      MINIO_DEFAULT_BUCKETS: vectorspace-media
     ports:
       - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
     volumes:
-      - vectorspace_minio_data:/data
+      # New volume name: the old one was written by the quay image as root, which Bitnami (uid 1001) cannot use.
+      - vectorspace_minio_bitnami_data:/bitnami/minio/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
@@ -34,4 +37,4 @@ services:
 
 volumes:
   vectorspace_postgres_data:
-  vectorspace_minio_data:
+  vectorspace_minio_bitnami_data:

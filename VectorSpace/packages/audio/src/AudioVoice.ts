@@ -53,11 +53,13 @@ export class AudioVoice {
   private duration: number | null = null
   private pendingSeekSeconds: number | null = null
   private pendingPause = false
+  private readonly fadeInSeconds: number
+  private fadingOut = false
 
   constructor(
     private readonly backend: AudioBackend,
     private readonly channelGain: BackendGain,
-    opts: { assetId: string; channel: ChannelId; volume: number; loop: boolean; rate: number; startAtSeconds: number },
+    opts: { assetId: string; channel: ChannelId; volume: number; loop: boolean; rate: number; startAtSeconds: number; fadeInSeconds?: number },
     private readonly onEvent: VoiceEventHandler,
   ) {
     this.id = `voice-${nextVoiceId++}`
@@ -67,9 +69,12 @@ export class AudioVoice {
     this.loop = opts.loop
     this.rate = opts.rate
     this.startAtSeconds = opts.startAtSeconds
+    this.fadeInSeconds = Math.max(0, opts.fadeInSeconds ?? 0)
     this.gain = backend.createGain()
     this.gain.connect(channelGain)
-    this.applyGain()
+    // A fading-in voice starts silent and ramps up once the buffer attaches, so load time is not spent fading.
+    if (this.fadeInSeconds > 0) this.gain.setValue(0, 0)
+    else this.applyGain()
   }
 
   /** Called once decode resolves. A voice stopped or errored while loading ignores this. */
@@ -96,6 +101,7 @@ export class AudioVoice {
       this.pendingPause = false
     } else {
       this.status = 'playing'
+      if (this.fadeInSeconds > 0) this.gain.rampTo(this.muted ? 0 : this.volume, this.fadeInSeconds)
       this.onEvent(this, 'started')
     }
   }
@@ -134,6 +140,18 @@ export class AudioVoice {
     this.status = 'stopped'
     this.gain.disconnect()
     this.onEvent(this, 'stopped')
+  }
+
+  /** True once a fade-out has begun; the owner stops the voice when it finishes. */
+  get isFadingOut(): boolean {
+    return this.fadingOut
+  }
+
+  /** Ramps the voice to silence over `seconds`. Stopping it afterwards is the caller's job (see AudioSystem.stop). */
+  fadeOut(seconds: number): void {
+    if (this.fadingOut || (this.status !== 'playing' && this.status !== 'paused')) return
+    this.fadingOut = true
+    this.gain.rampTo(0, seconds)
   }
 
   seek(timeSeconds: number): void {

@@ -31,7 +31,7 @@ describe('loadRemoteProject', () => {
       .mockResolvedValueOnce(reply(200, { revision: 3, data: JSON.parse(serializeProject(saved)) }))
     vi.stubGlobal('fetch', fetchMock)
     const { project, revision } = await loadRemoteProject(token, 'p-saved', API)
-    expect(fetchMock.mock.calls[1][0]).toBe('http://api/projects/p-saved/versions/v3')
+    expect(fetchMock.mock.calls[1][0]).toBe('http://api/api/v1/projects/p-saved/versions/v3')
     expect(revision).toBe(3)
     // the home page lists the row's name, so the editor shows the same one
     expect(project.name).toBe('Row name')
@@ -76,7 +76,7 @@ describe('ServerSyncTransport', () => {
     await transport.send(change(project))
     const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body as string).base_revision)
     expect(bodies).toEqual([0, 1])
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api/projects/p-save/versions')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api/api/v1/projects/p-save/versions')
   })
 
   it('reports a 409 as a conflict carrying the server revision, not as a retry', async () => {

@@ -20,8 +20,9 @@
  * countAssetUses, filterAssets.
  *
  * @boundary
- * Owns the bundled catalogue only. User-imported assets belong to
- * userAssets.ts, and URL registration to viewport/assetResolution.ts.
+ * Owns the bundled catalogue and the mapping for published cloud-pack models.
+ * User-imported assets belong to userAssets.ts, and URL registration to
+ * viewport/assetResolution.ts.
  *
  * @dependencies
  * ./model, ./userAssets, ./viewport/assetResolution.
@@ -36,6 +37,27 @@
 import { AssetKind, type ProjectData } from '../project/model'
 import { getUserModelUrlModifier } from './userAssets'
 import { registerLocalAsset, resolveLocalAssetUrl } from '../content/assetResolution'
+import { registerPlaceholderModels } from './placeholderModels'
+
+// ── CATALOGUE CATEGORIES ──
+// The catalogue's tabs, left to right. Each asset lists the tabs it shows under
+// (AssetDefinition.categories), so one asset can be in more than one.
+// To add a tab: add its id to CatalogueCategoryId and a row to catalogueCategories.
+export type CatalogueCategoryId = 'exhibits' | 'signs' | 'misc' | 'zones'
+
+export interface CatalogueCategory {
+  id: CatalogueCategoryId
+  label: string     // the tab's text
+  singular: string  // one item of it, e.g. "Sign"
+  tone?: 'zone'     // a different chip colour (CSS: .chip.tone-zone); absent = the normal chip
+}
+
+export const catalogueCategories: CatalogueCategory[] = [
+  { id: 'exhibits', label: 'Exhibits', singular: 'Exhibit' },
+  { id: 'signs', label: 'Signs', singular: 'Sign' },
+  { id: 'misc', label: 'Misc', singular: 'Misc' },
+  { id: 'zones', label: 'Zones and markers', singular: 'Zone or marker', tone: 'zone' },
+]
 
 export interface AssetDefinition {
   kind: AssetKind
@@ -43,10 +65,48 @@ export interface AssetDefinition {
   label: string
   detail: string
   category: 'primitive' | 'model'
+  // the catalogue tabs it shows under (see catalogueCategories above); can be more than one
+  categories: CatalogueCategoryId[]
   searchableText: string
   // Present only for `model` assets — the GLB source cloneModel() instances are loaded from.
   modelUrl?: string
+  unavailable?: boolean
 }
+
+export interface PackManifestAsset {
+  id: string
+  title: string
+  kind: string
+  attribution?: string | null
+  url?: string
+}
+
+export interface PackManifest {
+  slug: string
+  title: string
+  description?: string | null
+  kind: 'objects' | 'environments'
+  assets: PackManifestAsset[]
+}
+
+/** Convert one published pack manifest into stable, placeable model entries. */
+export const packManifestToCatalog = (manifest: PackManifest): AssetDefinition[] =>
+  manifest.assets
+    .filter((asset) => asset.kind === 'model')
+    .map((asset) => {
+      const label = asset.title.trim() || asset.id
+      return {
+        kind: 'model',
+        assetId: `pack:${manifest.slug}:${asset.id}`,
+        label,
+        detail: `${manifest.title} · Cloud model`,
+        category: 'model',
+        categories: ['exhibits'],
+        searchableText: `${label.toLowerCase()} ${manifest.title.toLowerCase()} cloud model`,
+        modelUrl: asset.url,
+        unavailable: !asset.url,
+      }
+    })
 
 // Models shipped with the app. Vite bundles every src/assets/*.glb and maps its path to
 // the built (hashed) URL — dropping a new .glb into that folder adds it to the library.
@@ -55,6 +115,23 @@ const bundledModelUrls = import.meta.glob<string>('./assets/*.glb', { query: '?u
 // './assets/Display_Case.glb' -> 'Display Case'
 const labelFromPath = (path: string): string =>
   path.replace(/^.*\//, '').replace(/\.glb$/i, '').replace(/[_-]+/g, ' ').trim()
+
+// CATEGORIES for the built-in models, by file name (lower case, no .glb).
+// A new model in src/content/assets/ should get a line here; one without a line shows under Misc.
+const BUNDLED_CATEGORIES: Record<string, CatalogueCategoryId[]> = {
+  sign: ['signs'],
+  arrow: ['signs'],
+  pedestal: ['misc'],
+  stanchion: ['misc'],
+  // fossil scans (CC0, Smithsonian, Digital Atlas of Ancient Life and Virtual Museums of Malopolska, via Sketchfab); credits in assets/CREDITS.md
+  triceratops: ['exhibits'],
+  mammoth: ['exhibits'],
+  'trex skull': ['exhibits'],
+  ammonite: ['exhibits'],
+  trilobite: ['exhibits'],
+  'dinosaur footprint': ['exhibits'],
+}
+const UNTAGGED_CATEGORIES: CatalogueCategoryId[] = ['misc']
 
 // The primitive (cube/sphere/cylinder) placeholders are no longer offered here, but
 // objects already saved with them still render — syncArtefacts keeps drawing them.
@@ -68,6 +145,7 @@ export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
       label,
       detail: 'Built-in model',
       category: 'model',
+      categories: BUNDLED_CATEGORIES[label.toLowerCase()] ?? UNTAGGED_CATEGORIES,
       searchableText: `${label.toLowerCase()} model`,
       modelUrl: url,
     }
@@ -79,6 +157,15 @@ export const assetCatalog: AssetDefinition[] = Object.entries(bundledModelUrls)
 assetCatalog.forEach((asset) => {
   if (asset.modelUrl) registerLocalAsset(asset.assetId, { url: asset.modelUrl })
 })
+
+export const registerPackModels = (assets: readonly AssetDefinition[]): void => {
+  assets.forEach((asset) => {
+    if (asset.modelUrl) registerLocalAsset(asset.assetId, { url: asset.modelUrl })
+  })
+}
+
+// three.js stand-ins for models not made yet, temporary placeholder
+registerPlaceholderModels()
 
 // The single place renderer code resolves a model SceneObject's assetId to a URL.
 export const resolveModelUrl = (assetId: string): string | undefined => resolveLocalAssetUrl(assetId)
@@ -93,6 +180,10 @@ export const resolveModelUrlModifier = (assetId: string): ((url: string) => stri
 // in use can't be removed from the library, or those objects would lose their model.
 export const countAssetUses = (project: ProjectData, assetId: string): number =>
   project.scenes.reduce((total, scene) => total + scene.objects.filter((object) => object.assetId === assetId).length, 0)
+
+// The assets under one catalogue tab
+export const assetsInCategory = (categoryId: CatalogueCategoryId, catalog: readonly AssetDefinition[] = assetCatalog): AssetDefinition[] =>
+  catalog.filter((asset) => asset.categories.includes(categoryId))
 
 export const filterAssets =(query: string, catalog: readonly AssetDefinition[] = assetCatalog): AssetDefinition[] => {
   const normalized = query.trim().toLowerCase()

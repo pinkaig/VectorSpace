@@ -7,7 +7,7 @@ test('a signed-out visit to the editor is sent to login', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Educator/ })).toBeVisible()
 })
 
-test('the login page downloads neither the editor nor any audio', async ({ page }) => {
+test('the login page downloads neither the editor nor any sound file', async ({ page }) => {
   const requested: string[] = []
   page.on('request', (request) => requested.push(request.url()))
   await page.goto('/#/login')
@@ -15,7 +15,9 @@ test('the login page downloads neither the editor nor any audio', async ({ page 
   await page.waitForLoadState('networkidle')
 
   expect(requested.filter((url) => /EditorPage|EditorApplication/.test(url))).toEqual([])
-  expect(requested.filter((url) => url.includes('/audio/'))).toEqual([])
+  // The UI sound engine and its cue map load on idle so the first press can click; the sound
+  // files themselves wait until a cue first plays.
+  expect(requested.filter((url) => /\.(wav|ogg|mp3)(\?|$)/.test(url))).toEqual([])
 })
 
 test('a teacher can walk login, home, editor, home and sign out', async ({ page }) => {
@@ -94,7 +96,7 @@ test('the admin area opens on Overview and has its four pages', async ({ page })
   await page.getByRole('link', { name: 'Accounts' }).click()
   await expect(page).toHaveURL(/#\/admin\/accounts$/)
   await page.getByRole('link', { name: 'Permissions' }).click()
-  await expect(page.getByRole('heading', { name: 'Pick a school' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Permissions' })).toBeVisible()
   await page.getByRole('link', { name: 'Rooms & assets' }).click()
   await expect(page).toHaveURL(/#\/admin\/rooms$/)
 

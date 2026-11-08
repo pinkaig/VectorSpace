@@ -17,7 +17,8 @@ import { useEffect, useState } from "react";
  * Runs `load` when the page opens and again whenever `reloadKey` changes (for example the
  * picked school), and returns what came back. `data` is null while loading; setData lets a
  * page update what it shows after a change without asking the API again, and reload() asks
- * again on purpose (after adding something the page cannot patch in by itself).
+ * again on purpose (after adding something the page cannot patch in by itself). `loading` says
+ * the answer is still on its way, so a page can show a skeleton (ui/loadingRows.tsx).
  */
 export function useLoad<T>(load: () => Promise<T>, reloadKey: string) {
   const [data, setData] = useState<T | null>(null);
@@ -38,5 +39,8 @@ export function useLoad<T>(load: () => Promise<T>, reloadKey: string) {
     // `load` is a new function on every render; reloadKey is what says "ask again"
   }, [reloadKey, again]);
 
-  return { data, setData, error, reload: () => setAgain((count) => count + 1) };
+  // true from the first render until an answer or an error arrives; callers that do not read it are unaffected
+  const loading = data === null && error === null;
+
+  return { data, setData, error, loading, reload: () => setAgain((count) => count + 1) };
 }

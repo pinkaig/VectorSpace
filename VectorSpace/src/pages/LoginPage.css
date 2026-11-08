@@ -271,6 +271,22 @@
   background: var(--purple-600);
 }
 
+/* the way out of a refused hosted login: present, but quieter than the sign-in button */
+.login-secondary {
+  height: 48px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn-lg);
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.login-secondary:hover {
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+}
+
 .login-note {
   margin: 20px 0;
   font-size: 14px;

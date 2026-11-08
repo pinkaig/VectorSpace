@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import secrets
 import sys
 from dataclasses import dataclass
@@ -35,10 +36,17 @@ class Row:
     display_name: str
     role: str
     classes: list[str]
+    # the CSV line this came from (header is line 1), so a report can point at it; 0 when not from a file
+    line: int = 0
 
 
 class Auth0Admin:
-    """The two Management API calls we need. Replaced by a fake in tests."""
+    """The Management API calls we need. Replaced by a fake in tests.
+
+    Scopes: create:users, create:user_tickets, and read:users for the already-exists
+    fallback below. Missing read:users is invisible until a roster names somebody the
+    tenant already has, and then shows up as 403 on /users-by-email.
+    """
 
     def __init__(self) -> None:
         s = get_settings()
@@ -80,9 +88,18 @@ class Auth0Admin:
         else:
             response.raise_for_status()
             user = response.json()
-        ticket = self.http.post("/tickets/password-change", json={"user_id": user["user_id"]})
+        return user["user_id"], self.sign_in_link(user["user_id"])
+
+    def sign_in_link(self, subject: str) -> str:
+        """A fresh one-time password-set link for an existing login.
+
+        Auth0 mints a new ticket on every call and the older ones keep working until they expire
+        or one is used, so this is both "resend the invite" and "I forgot my password". The token
+        is fetched once per Auth0Admin, so a request that mints many links spends one M2M token.
+        """
+        ticket = self.http.post("/tickets/password-change", json={"user_id": subject})
         ticket.raise_for_status()
-        return user["user_id"], ticket.json()["ticket"]
+        return ticket.json()["ticket"]
 
 
 class DevLogins:
@@ -95,23 +112,49 @@ class DevLogins:
     def create_user(self, email: str, display_name: str) -> tuple[str, str]:
         return f"dev|{email.split('@')[0]}", ""
 
+    def sign_in_link(self, subject: str) -> str:
+        return ""
+
 
 def logins() -> Auth0Admin | DevLogins:
     """Whichever one this deployment can actually use."""
     return DevLogins() if get_settings().auth_dev_bypass else Auth0Admin()
 
 
-def read_rows(path: str) -> list[Row]:
-    with open(path, newline="", encoding="utf-8-sig") as handle:
-        rows = [
+def parse_rows(text: str) -> list[Row]:
+    """The roster CSV format, read from text. The CLI (read_rows) and POST /admin/accounts/import both
+    come through here, so the two cannot drift apart.
+
+    Columns: email, display_name, role, classes (semicolon-separated, optional). Headers are matched
+    without regard to case or spaces. Only a missing column fails the whole file (ValueError); a
+    row's own problems (a bad role, an empty name) are left for the caller to judge row by row.
+    """
+    reader = csv.DictReader(io.StringIO(text.lstrip("﻿")))
+    reader.fieldnames = [name.strip().lower() for name in (reader.fieldnames or [])]
+    missing = [name for name in ("email", "display_name", "role") if name not in reader.fieldnames]
+    if missing:
+        raise ValueError(
+            f"The CSV has no {', '.join(missing)} column. The first line must name the columns: "
+            "email,display_name,role,classes"
+        )
+    rows = []
+    for r in reader:
+        rows.append(
             Row(
-                email=r["email"].strip().lower(),
-                display_name=r["display_name"].strip(),
-                role=r["role"].strip().lower(),
+                email=(r.get("email") or "").strip().lower(),
+                display_name=(r.get("display_name") or "").strip(),
+                role=(r.get("role") or "").strip().lower(),
                 classes=[c.strip() for c in (r.get("classes") or "").split(";") if c.strip()],
+                line=reader.line_num,
             )
-            for r in csv.DictReader(handle)
-        ]
+        )
+    return rows
+
+
+def read_rows(path: str) -> list[Row]:
+    """The CLI's reader: the whole file is refused if any role is unknown."""
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        rows = parse_rows(handle.read())
     bad = [r.email for r in rows if r.role not in ROLES]
     if bad:
         raise ValueError(f"Unknown role for: {', '.join(bad)} (use one of {', '.join(ROLES)})")

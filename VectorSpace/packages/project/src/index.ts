@@ -20,6 +20,9 @@
  * MediaKind, AssetRefKind, Attachment (audio/text), TextAssetMeta,
  * TextPresentation, MissionBrief (todos/rules), defaultProject, cloneProject,
  * emptyMissionBrief, and makeObject.
+ * MediaKind, AssetRefKind, Attachment (audio/text/image/video), CardMedia,
+ * MediaViewProps, AttachmentCapabilities, TextAssetMeta, TextPresentation, CardField,
+ * defaultProject, cloneProject, and makeObject.
  *
  * @documentation
  * Larger system guide: https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Project-Serialization
@@ -28,6 +31,11 @@
 // attachment lookup helpers must be re-exported here to be importable.
 export { assetRefForAttachment, collectAttachments, findAttachment } from './attachments'
 export type { AttachmentHostRef, AttachmentLocation } from './attachments'
+export { getAttachmentCapabilities, listAttachmentCapabilities } from './capabilities'
+export type {
+  ActionParamSpec, AttachmentActionDescriptor, AttachmentCapabilities, AttachmentCapabilityKey,
+  AttachmentEventDescriptor, CapabilityStatus,
+} from './capabilities'
 
 export type AssetKind = 'cube' | 'sphere' | 'cylinder' | 'model'
 
@@ -55,6 +63,9 @@ export interface SceneObject {
   // (e.g. 0x4ea7a0) that overrides the primitive material for just this object,
   // without needing a new AssetKind or touching asset resolution.
   color?: number
+  // Set by the teacher on a template (template setup, "Lock things"): a student can't move,
+  // turn, resize or delete it. Absent = not locked; the teacher can always change it.
+  locked?: boolean
 }
 
 /**
@@ -86,41 +97,41 @@ export const environmentLibrary: EnvironmentDefinition[] = [
     name: 'Empty',
     kind: 'procedural',
     proceduralId: 'empty',
-    description: 'No walls or floor — just the grid, for working against a blank scene.',
+    description: 'a blank scene.',
   },
   // `url` for these is relative to the app's src/ — the app bundles src/env/*.glb and
   // resolves it to the built file (see loadGlb in src/environments.ts).
   {
-    id: 'env-room-1',
-    name: 'Room 1',
+    id: 'env-classroom',
+    name: 'Classroom',
     kind: 'glb',
-    url: 'env/room_1.glb',
-    description: 'Exhibition room 1.',
+    url: 'env/classroom.glb',
+    description: 'Classroom',
   },
   {
-    id: 'env-room-2',
-    name: 'Room 2',
+    id: 'env-exhibition',
+    name: 'Exhibition',
     kind: 'glb',
-    url: 'env/room_2.glb',
-    description: 'Exhibition room 2.',
+    url: 'env/exhibition.glb',
+    description: 'Exhibition',
   },
   {
-    id: 'env-room-3',
-    name: 'Room 3',
+    id: 'env-museum',
+    name: 'Museum',
     kind: 'glb',
-    url: 'env/room_3.glb',
-    description: 'Exhibition room 3.',
+    url: 'env/museum.glb',
+    description: 'Museum',
   },
   {
-    id: 'env-room-4',
-    name: 'Room 4',
+    id: 'env-highlight-exhibit',
+    name: 'Highlight Exhibit',
     kind: 'glb',
-    url: 'env/room_4.glb',
-    description: 'Exhibition room 4.',
+    url: 'env/highlight_exhibit.glb',
+    description: 'Highlight Exhibit',
   },
   {
-    id: 'env-room-5',
-    name: 'Room 5',
+    id: 'env-test',
+    name: 'Test',
     kind: 'glb',
     url: 'env/the_hallwyl_museum_1st_floor_combined.glb',
     description: 'Test environment.',
@@ -154,6 +165,9 @@ export interface ZoneDefinition {
   // same contract as SceneObject.attachments; a zone attachment has no
   // transform of its own — the zone's position and shape apply
   attachments?: Attachment[]
+  // 'hotspot': a visible marker visitors click to open the zone's info card.
+  // Absent = an ordinary invisible trigger zone, as in every save before hotspots.
+  marker?: 'hotspot'
 }
 
 /**
@@ -190,6 +204,23 @@ export interface SceneData {
   // Cell on the rooms map: x grows east, z grows south. Absent on scenes made before
   // the map existed; the editor treats an unplaced first scene as the origin.
   layout?: RoomCell
+  // Wall and floor style picked in "Your rooms" (style names, e.g. 'Style 4'; see
+  // src/content/roomSurfaces.ts). Absent = the room's own look from its model.
+  surfaces?: RoomSurfaces
+  // Numbered spots the teacher suggests on the floor ("Put an exhibit here"); students see
+  // them while they build. Absent = none. Their number is their place in this list.
+  spots?: SuggestedSpot[]
+}
+
+export interface SuggestedSpot {
+  id: string
+  position: [number, number, number]
+  text: string
+}
+
+export interface RoomSurfaces {
+  walls: string
+  floor: string
 }
 
 export interface RoomCell {
@@ -219,11 +250,9 @@ export interface AudioSettings {
 }
 
 /**
- * The media kinds the attachment model can bind to a host. All four names are
- * reserved now so `MEDIA_KIND_SPECS` and the serializer allowlist stay
- * table-driven, but only `audio` and `text` have Attachment shapes yet —
- * image and video join the union when their design docs' presentation types
- * are approved (https://github.com/gsherman01/Project5_Team17_DoReMi-yaki/wiki/Attachment-Integration section 3).
+ * The media kinds the attachment model can bind to a host. Every kind now has
+ * an Attachment shape: audio and text from the start, image and video added
+ * for info cards (docs/handover/info-card-and-media-overview.md, Step 0).
  */
 export type MediaKind = 'audio' | 'image' | 'video' | 'text'
 
@@ -245,8 +274,41 @@ export interface TextStyle {
   align?: 'left' | 'center' | 'right'
 }
 
+/**
+ * One piece of a teacher's info card task (see CardTask): either the
+ * teacher's own words (locked) or a spot the student fills in. On a student's
+ * card the filled-in answer is `value`.
+ */
+export interface CardField {
+  key: string
+  label: string      // locked: the teacher's words; a question: the question; a blank: empty
+  locked?: boolean   // the teacher's text, which a student cannot change
+  prompt?: string    // the hint shown in an empty blank or answer box
+  value?: string     // the student's answer (on the student's card only)
+}
+
+/**
+ * An info card the teacher wants students to complete, set in the mission
+ * brief. 'blanks': a passage with gaps, its fields in reading order (locked
+ * words and blanks). 'prompts': pointers or questions, one unlocked field each.
+ */
+export interface CardTask {
+  id: string
+  title: string
+  kind: 'blanks' | 'prompts'
+  fields: CardField[]
+  objectId?: string   // the thing in the template the teacher suggests this card for
+  inRoom?: boolean    // a card started from this task begins as a sign in the room
+}
+
+/**
+ * How a text attachment is shown. 'panel' is the plain pop-up and 'card' is
+ * the info card (title, text, one media slot). 'label', 'surface' and
+ * 'dialogue' are reserved names that nothing renders yet; they stay so saves
+ * that already use them keep loading.
+ */
 export interface TextPresentation {
-  mode: 'panel' | 'label' | 'surface' | 'dialogue'
+  mode: 'panel' | 'card' | 'label' | 'surface' | 'dialogue'
   title?: string
   anchor?: 'center' | 'top' | 'bottom' | 'left' | 'right'
   size?: [number, number]
@@ -255,6 +317,10 @@ export interface TextPresentation {
   modal?: boolean
   autoCloseMs?: number
   paging?: 'none' | 'auto'
+  media?: CardMedia     // card mode only: the image or video under the title, by reference
+  fields?: CardField[]  // card mode only: the teacher's task, with the student's answers
+  taskId?: string       // card mode only: the CardTask in the mission brief this card completes
+  inRoom?: boolean      // card mode only: also shown as a sign floating above its thing in the room
 }
 
 /**
@@ -285,7 +351,42 @@ export interface AttachmentBase {
 }
 export interface AudioAttachment extends AttachmentBase { kind: 'audio'; assetId: string }
 export interface TextAttachment extends AttachmentBase { kind: 'text'; assetId: string; presentation: TextPresentation }
-export type Attachment = AudioAttachment | TextAttachment
+/**
+ * Image and video attachments hold only the id of a media library entry. The
+ * entry (an uploaded file or a teacher-approved link) is looked up at run
+ * time, so no bytes or URLs are ever stored in ProjectData.
+ */
+export interface ImageAttachment extends AttachmentBase { kind: 'image'; assetId: string }
+// screen: saves from when a video could also show on a screen in the room; no longer used,
+// kept so those saves load
+export interface VideoAttachment extends AttachmentBase { kind: 'video'; assetId: string; screen?: boolean }
+export type Attachment = AudioAttachment | TextAttachment | ImageAttachment | VideoAttachment
+
+/**
+ * The one media slot on an info card: an image or a video, by reference.
+ * assetId names a media library entry; caption and alt are short author text
+ * shown with it. Nothing reads this until the card mode lands (Track A1).
+ */
+export interface CardMedia {
+  kind: 'image' | 'video'
+  assetId: string
+  caption?: string
+  alt?: string
+}
+
+/** What MediaView reports as it loads and plays; 'unavailable' is the visible fallback, not an error. */
+export type MediaViewState = 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'unavailable'
+
+/**
+ * The fixed seam between the info card and the media player. Kept here, not
+ * in the component, so the card and the player can be built apart and joined
+ * with one import. Change it only with both sides agreeing.
+ */
+export interface MediaViewProps {
+  media: CardMedia
+  autoplay?: boolean   // video only; default false
+  onState?: (state: MediaViewState) => void
+}
 
 /**
  * The mission brief a teacher writes on a template: what students must do (to-dos), what they
@@ -308,6 +409,8 @@ export interface MissionBrief {
   due: string
   todos: MissionTodo[]
   rules: MissionRule[]
+  // info cards the teacher wants written; absent in briefs saved before card tasks
+  cardTasks?: CardTask[]
 }
 
 export interface ProjectData {
@@ -327,6 +430,8 @@ export interface ProjectData {
   // absent = no brief (any project not made from a template, and files written before briefs
   // existed); left undefined rather than backfilled, so those files keep their exact shape
   missionBrief?: MissionBrief
+  // the environment a student may add, set by the teacher in template setup.
+  validateEnvironment?: string[]
 }
 
 export const defaultAudioSettings = (): AudioSettings => ({

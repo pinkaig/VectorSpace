@@ -80,12 +80,15 @@ export class TextSystem {
       attachmentId: att.id,
       assetId: att.assetId,
       mode: att.presentation.mode,
-      state: meta === undefined ? 'error' : 'open',
+      // a card that only shows a picture or video (a video pop-up) needs no text asset
+      state: meta === undefined && !(att.presentation.mode === 'card' && att.presentation.media) ? 'error' : 'open',
       // setting resolution order: action params > attachment presentation > meta
       modal: opts.modal ?? att.presentation.modal,
       autoCloseMs: opts.autoCloseMs ?? att.presentation.autoCloseMs,
       title: opts.title ?? att.presentation.title ?? meta?.title,
       lang: meta?.lang,
+      // only a card shows media; other modes ignore the field even if a save carries it
+      media: att.presentation.mode === 'card' ? att.presentation.media : undefined,
     })
     if (nodes) this.nodesByPanel.set(status.id, nodes)
     return {

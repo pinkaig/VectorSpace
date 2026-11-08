@@ -86,3 +86,117 @@
 .admin-accounts-wide {
   grid-column: 1 / -1;
 }
+
+.admin-accounts-problem {
+  margin: 12px 0 0;
+  color: var(--red-700);
+  font-size: 14px;
+}
+
+/* what replaces the form once the account exists: the one-time password link and a copy button */
+.admin-accounts-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-accounts-invite p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.admin-accounts-invite-link {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--bg-app);
+  color: var(--ink);
+  font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+  word-break: break-all;
+}
+
+.admin-accounts-invite-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Import class list (CSV): the format note, the one-line count, and the per-line table */
+.admin-import-help {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.admin-import-summary {
+  margin: 12px 0 8px;
+  font-size: 14px;
+}
+
+.admin-import-table {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.admin-import-bad td:last-child {
+  color: var(--red-700);
+}
+
+/* the import popup's three steps, across the top: done ones ticked, the current one purple */
+.admin-steps {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.admin-steps li {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-btn);
+  background: var(--bg-app);
+}
+
+.admin-step-dot {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  font-weight: 800;
+}
+
+.admin-steps .admin-step-now {
+  background: var(--purple-100);
+  color: var(--purple-700);
+  font-weight: 800;
+}
+
+.admin-step-now .admin-step-dot {
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.admin-step-done .admin-step-dot {
+  background: var(--green-50);
+  color: var(--green-800);
+}
+
+.admin-import-drop {
+  margin: 14px 0 0;
+  padding: 18px;
+}
+
+.admin-import-drop .admin-muted {
+  font-size: 13px;
+}

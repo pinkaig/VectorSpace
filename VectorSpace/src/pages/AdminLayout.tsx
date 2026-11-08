@@ -12,8 +12,9 @@
  */
 /******************************************************************************/
 
-import { Boxes, LayoutDashboard, ShieldCheck, Users } from "lucide-react";
-import { NavLink, Outlet } from "react-router";
+import { Boxes, GraduationCap, LayoutDashboard, Library, ShieldCheck, Users } from "lucide-react";
+import { NavLink, Outlet, useLocation } from "react-router";
+import { useMotionOnChange } from "../motion/useMotion";
 import { TopBar } from "../ui/topBar";
 import { AdminProvider } from "../sections/admin/adminContext";
 import { SchoolPicker } from "../sections/admin/SchoolPicker";
@@ -25,10 +26,14 @@ const PAGES = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/permissions", label: "Permissions", icon: ShieldCheck, end: false },
   { to: "/admin/accounts", label: "Accounts", icon: Users, end: false },
+  { to: "/admin/classes", label: "Classes", icon: GraduationCap, end: false },
   { to: "/admin/rooms", label: "Rooms & assets", icon: Boxes, end: false },
+  { to: "/admin/library", label: "Library", icon: Library, end: false },
 ];
 
 export default function AdminLayout() {
+  // a new page fades in whenever the address changes; opacity only, so the sticky table headers keep working
+  const mainRef = useMotionOnChange<HTMLElement>("nav.page.swap", useLocation().pathname);
   return (
     <AdminProvider>
       <div className="admin-shell">
@@ -47,7 +52,7 @@ export default function AdminLayout() {
           </nav>
 
           {/*MIDDLE: whichever page the address bar names*/}
-          <main className="admin-main">
+          <main ref={mainRef} className="admin-main">
             <Outlet />
           </main>
         </div>

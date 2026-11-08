@@ -25,14 +25,42 @@
  */
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import AudioControls from "./AudioControls";
 import Viewport, { type PlayMove, type ViewportHandle } from "../viewport/Viewport";
 import { ProjectData } from "../project/model";
+import { AssetGate } from "../content/AssetGate";
 import { isTypingTarget } from "../viewport/viewportTypes";
 
 interface RuntimeViewProps {
   project: ProjectData;
-  onExit: () => void;
+  // the editor's way back (the button and Esc); left out on the visitor's page, which has none
+  onExit?: () => void;
+  // the banner's text; the editor's Play leaves it out
+  title?: string;
+  // the exit button's text; "Back to building" unless given
+  exitLabel?: string;
+  // false: Esc does not leave (the visitor's page, where leaving means a different page)
+  escapeExits?: boolean;
 }
+
+const VOLUME_KEY = "vectorspace-visitor-volume";
+const MUTED_KEY = "vectorspace-visitor-muted";
+
+// Storage can throw or be empty (private windows, blocked site data), so the controls fall back to full volume.
+const readStored = (key: string): string | null => {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const writeStored = (key: string, value: string) => {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Not remembered next visit; the setting still applies for this one.
+  }
+};
 
 const MOVE_MODES: { mode: PlayMove; label: string }[] = [
   { mode: "tap", label: "Tap to go" },
@@ -86,12 +114,20 @@ function Joystick({ onChange }: { onChange: (x: number, z: number) => void }) {
   );
 }
 
-export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
+export default function RuntimeView({ project, onExit, title, exitLabel = "Back to building", escapeExits = true }: RuntimeViewProps) {
   const scene =
     project.scenes.find((item) => item.id === project.activeSceneId) ??
     project.scenes[0];
   const roomNumber = project.scenes.indexOf(scene) + 1;
   const viewportRef = useRef<ViewportHandle>(null);
+  const [volume, setVolume] = useState(() => {
+    const stored = Number(readStored(VOLUME_KEY));
+    return readStored(VOLUME_KEY) !== null && Number.isFinite(stored) ? Math.min(1, Math.max(0, stored)) : 1;
+  });
+  const [muted, setMuted] = useState(() => readStored(MUTED_KEY) === "true");
+
+  useEffect(() => writeStored(VOLUME_KEY, String(volume)), [volume]);
+  useEffect(() => writeStored(MUTED_KEY, String(muted)), [muted]);
   const [moveBy, setMoveBy] = useState<PlayMove>("tap");
   const [spotIndex, setSpotIndex] = useState(0);
   // A mouse (PC) gets first-person Walk and no joystick; touch screens drag and use the stick.
@@ -138,9 +174,10 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target) || event.repeat) return;
       if (event.code === "Escape") {
-        if (document.pointerLockElement || performance.now() - releasedAt < 300) return;
-        onExit();
+        if (!escapeExits || document.pointerLockElement || performance.now() - releasedAt < 300) return;
+        onExit?.();
       }
+      else if (event.code === "KeyM") setMuted((current) => !current);
       else if (event.code === "KeyR") {
         viewportRef.current?.restartRuntime();
         setSpotIndex(0);
@@ -152,7 +189,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerlockchange", onLockChange);
     };
-  }, [onExit]);
+  }, [onExit, escapeExits]);
 
   // Tour markers sit on the floor, so they're re-placed every frame as the visitor moves
   // and looks; hidden while behind the visitor.
@@ -178,6 +215,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
 
   return (
     <section className="play-stage">
+      <AssetGate project={project}>
       <Viewport
         ref={viewportRef}
         objects={scene.objects}
@@ -186,6 +224,7 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
         onMove={() => undefined}
         sceneId={scene.id}
         environmentId={scene.environmentId}
+        surfaces={scene.surfaces}
         startCamera={scene.startCamera}
         cameraMode="walk"
         interactive={false}
@@ -196,12 +235,16 @@ export default function RuntimeView({ project, onExit }: RuntimeViewProps) {
         zones={scene.zones ?? []}
         audioAssets={project.audioAssets ?? []}
         audioSettings={project.audioSettings}
+        audioMasterVolume={volume}
+        audioMasterMuted={muted}
         textAssets={project.textAssets ?? []}
       />
+      </AssetGate>
 
       <div className="play-banner">
-        <span>Playing · exactly what visitors will see</span>
-        <button onClick={onExit}>Back to building</button>
+        <span>{title ?? "Playing · exactly what visitors will see"}</span>
+        <AudioControls volume={volume} muted={muted} onVolumeChange={setVolume} onMutedChange={setMuted} />
+        {onExit && <button onClick={onExit}>{exitLabel}</button>}
       </div>
 
       <div className="play-panel">

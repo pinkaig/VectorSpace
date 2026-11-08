@@ -71,8 +71,8 @@ describe('TextSystem', () => {
   it('lays out an attachment through the measurer seam', () => {
     const text = build()
     const result = text.layout(attachment(), { width: 100, height: 64 }, { family: 'body', sizePx: 14, lineHeightPx: 16 })
-    expect(result.lines.length).toBeGreaterThan(0)
-    expect(result.lines[0].startsHeading).toBe(true)
+    expect(result?.lines.length).toBeGreaterThan(0)
+    expect(result?.lines[0].startsHeading).toBe(true)
   })
 
   it('dispose closes every panel and clears listeners', () => {
@@ -80,5 +80,58 @@ describe('TextSystem', () => {
     text.open(attachment())
     text.dispose()
     expect(text.getStats().openPanels).toBe(0)
+  })
+})
+
+describe('TextSystem info cards', () => {
+  const card = (id: string, presentation: Partial<TextAttachment['presentation']> = {}): TextAttachment =>
+    attachment({ id, presentation: { mode: 'card', title: 'Card', ...presentation } })
+  const media = { kind: 'image' as const, assetId: 'media-stone', caption: 'Found in 1799', alt: 'A stone slab' }
+
+  it('carries a card\'s media reference into the panel status', () => {
+    const text = build()
+    const handle = text.open(card('att-card', { media }))
+    const status = text.store.getSnapshot().panels.find((panel) => panel.id === handle.id)
+    expect(status).toMatchObject({ mode: 'card', media })
+  })
+
+  it('ignores media on a plain panel, so only cards show it', () => {
+    const text = build()
+    text.open(attachment({ presentation: { mode: 'panel', media } }))
+    expect(text.store.getSnapshot().panels[0].media).toBeUndefined()
+  })
+
+  it('stacks two cards with the modal one on top, the same as panels', () => {
+    const text = build()
+    const modal = text.open(card('att-a', { modal: true }))
+    const plain = text.open(card('att-b'))
+    const snapshot = text.store.getSnapshot()
+    expect(snapshot.panels.map((panel) => panel.id)).toEqual([plain.id, modal.id])
+    expect(snapshot.topPanelId).toBe(modal.id)
+    expect(snapshot.modalOpen).toBe(true)
+  })
+
+  it('closes a card on its auto-close timer and never after it was closed by hand', () => {
+    let now = 0
+    const text = build({ clock: () => now })
+    text.open(card('att-timed', { autoCloseMs: 5000 }))
+    const closedEarly = text.open(card('att-early', { autoCloseMs: 5000 }))
+    closedEarly.close()
+    now = 4999
+    text.tick()
+    expect(text.store.isOpen('att-timed')).toBe(true)
+    now = 5000
+    text.tick()
+    expect(text.store.isOpen('att-timed')).toBe(false)
+    expect(text.store.getSnapshot().panels).toEqual([])
+  })
+
+  it('still drops javascript: links from a card\'s text', () => {
+    const text = new TextSystem({
+      library: new TextLibrary([{ ...meta, content: 'A [bad link](javascript:alert(1)) and a [good one](https://example.org).' }]),
+    })
+    const nodes = text.open(card('att-links')).nodes ?? []
+    const hrefs = JSON.stringify(nodes).match(/"href":"[^"]*"/g) ?? []
+    expect(hrefs).toEqual(['"href":"https://example.org"'])
   })
 })

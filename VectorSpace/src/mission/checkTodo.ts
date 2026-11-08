@@ -1,7 +1,7 @@
 /**
  * @file        checkTodo.ts
  * @project     VectorSpace
- * @author      <your name>
+ * @author      Daniel
  * @brief       Counts how far a project is towards a mission goal, so a to-do can tick itself
  *              in the student editor and show "4/3" on the teacher's review page.
  *              An 'atLeast' goal is done at the target or above; an 'atMost' goal (a limit,
@@ -25,7 +25,7 @@
 /******************************************************************************/
 
 import type { ProjectData, SceneObject } from '../project/model'
-import type { GoalKind, MissionGoal } from './missionBrief'
+import type { Compare, GoalKind, MissionGoal } from './missionBrief'
 
 // Decides whether a placed object is an exhibit. A placed object does not record which
 // catalogue category it came from, so every object counts as an exhibit.
@@ -35,7 +35,7 @@ export const everyObjectIsAnExhibit: IsExhibit = () => true
 export interface GoalProgress {
   done: number
   target: number
-  compare: 'atLeast' | 'atMost'
+  compare: Compare
   complete: boolean
 }
 

@@ -13,17 +13,20 @@
 /******************************************************************************/
 
 import { useLoad } from "../api/useLoad";
+import { Motion } from "../motion/useMotion";
+import { LoadingRows } from "../ui/loadingRows";
 import { useAdmin } from "../sections/admin/adminContext";
 import { StatTilesSection } from "../sections/admin/overview/StatTilesSection";
 import { SchoolsSection } from "../sections/admin/overview/SchoolsSection";
 import { NeedsAttentionSection } from "../sections/admin/overview/NeedsAttentionSection";
 import { RecentlyPublishedSection } from "../sections/admin/overview/RecentlyPublishedSection";
 import "./AdminOverviewPage.css";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminOverviewPage() {
   const { api, school, schoolId, refreshSchools } = useAdmin();
   // asks the API again whenever the School picker changes
-  const { data, error, reload } = useLoad(() => api.getOverview(schoolId), schoolId);
+  const { data, error, loading, reload } = useLoad(() => api.getOverview(schoolId), schoolId);
 
   // a new school changes both the picker's list and this page's numbers
   const onSchoolAdded = async () => {
@@ -34,14 +37,12 @@ export default function AdminOverviewPage() {
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Overview</h1>
-        <p>{school ? school.name : "All schools"}</p>
-      </div>
+      <AdminPageTitle title="Overview" subtitle="Every school at a glance, and what needs you next." scope={school ? school.name : "All schools"} />
 
-      {error && <p role="alert">Could not load the overview: {error}</p>}
+      {error && <Motion as="p" cue="feedback.error" role="alert">Could not load the overview: {error}</Motion>}
+      <LoadingRows loading={loading} />
       {data && (
-        <div className="admin-overview">
+        <Motion cue="panel.content.enter" className="admin-overview">
           {/*TILES: Schools, Educators, Students, Published*/}
           <StatTilesSection tiles={data.tiles} />
 
@@ -53,7 +54,7 @@ export default function AdminOverviewPage() {
 
           {/*RECENTLY PUBLISHED: title, where, visits, access level*/}
           <RecentlyPublishedSection items={data.recent} />
-        </div>
+        </Motion>
       )}
     </>
   );

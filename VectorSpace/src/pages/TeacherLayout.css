@@ -30,3 +30,8 @@
   flex: 1;
   min-height: 0;
 }
+/* "· 2 links" on the Review tab: links students added that wait for approval (Weian Ching) */
+.review-tab-links {
+  color: #8A5A00;
+  font-weight: 800;
+}

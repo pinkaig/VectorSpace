@@ -32,6 +32,14 @@ export default defineConfig({
       },
     },
     {
+      // Every browser on iOS and iPadOS is WebKit, and chromium cannot see its differences.
+      // Only the admin motion smoke specs: they need no WebGL, which is what the chromium flags above are for.
+      // Local: npm run test:e2e:webkit (install once with: npx playwright install webkit)
+      name: 'webkit',
+      testMatch: /adminMotion\.spec\.ts/,
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
       name: 'perf',
       testMatch: /perf\/.*\.spec\.ts/,
       workers: 1,

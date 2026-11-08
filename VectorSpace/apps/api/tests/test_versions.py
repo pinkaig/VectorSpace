@@ -1,5 +1,17 @@
-"""Saving and loading a project's scene: numbered revisions, with a refusal when two people collide."""
+"""Saving and loading a project's scene: numbered revisions, with a refusal when two people collide.
 
+Merging quick saves is off here, so every changed save is its own revision; test_save_history.py
+covers merging and trimming."""
+
+from datetime import timedelta
+
+import pytest
+from apps.api.app.routers import publish
+
+
+@pytest.fixture(autouse=True)
+def every_save_is_a_revision(monkeypatch) -> None:
+    monkeypatch.setattr(publish, "MERGE_WINDOW", timedelta(0))
 
 
 def as_user(key: str) -> dict[str, str]:
@@ -78,6 +90,9 @@ def test_a_student_copy_of_a_template_starts_at_the_templates_content(client, sc
     template = make(client, "t1", "tpl", kind="template")
     save(client, "t1", template)
     client.patch(f"/projects/{template['id']}", json={"status": "published"}, headers=as_user("t1"))
+    # students copy templates only where the school allows it (test_permissions.py)
+    allow = [{"key": "from-templates", "students": True, "educators": True}]
+    client.put(f"/admin/schools/{school['admin'].organisation_id}/permissions", json=allow, headers=as_user("admin"))
     copy = make(client, "s1", template_id=template["id"], class_id=str(school["class1"].id))
     assert copy["template_revision"] == 1
     listed = client.get(f"/projects/{copy['id']}/versions", headers=as_user("s1")).json()

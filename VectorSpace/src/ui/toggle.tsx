@@ -11,6 +11,7 @@
  */
 /******************************************************************************/
 
+import { useMotionOnChange } from "../motion/useMotion";
 import "./toggle.css";
 
 type ToggleProps = {
@@ -24,15 +25,20 @@ type ToggleProps = {
 };
 
 export function Toggle({ checked, onChange, label, disabled = false, text }: ToggleProps) {
+  // pulses the track when the value changes, whether the click or the parent caused it
+  const trackRef = useMotionOnChange<HTMLButtonElement>("control.toggle.change", String(checked));
   return (
     <span className="ui-toggle-wrap">
       <button
+        ref={trackRef}
         type="button"
         role="switch"
         aria-checked={checked}
         aria-label={label}
         disabled={disabled}
         className={`ui-toggle ${checked ? "ui-toggle-on" : ""}`}
+        // the press sounds through the sound director (on or off by aria-checked); a value the parent
+        // changes stays silent (the pulse above still shows it)
         onClick={() => onChange(!checked)}
       >
         <span className="ui-toggle-knob" />
@@ -46,8 +52,10 @@ type TickBoxProps = { checked: boolean; onChange: (next: boolean) => void; label
 
 // a real checkbox underneath (keyboard and screen readers work for free), drawn as the manual's 26px box
 export function TickBox({ checked, onChange, label }: TickBoxProps) {
+  const ref = useMotionOnChange<HTMLInputElement>("control.tick.change", String(checked));
   return (
     <input
+      ref={ref}
       type="checkbox"
       className="ui-tick"
       checked={checked}

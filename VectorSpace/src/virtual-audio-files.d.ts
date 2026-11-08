@@ -26,3 +26,9 @@ declare module 'virtual:audio-files' {
   const audioFileNames: string[]
   export default audioFileNames
 }
+
+/** File names in public/audio/SFX: the platform's own UI sounds, which the five-sounds page offers. */
+declare module 'virtual:ui-sfx-files' {
+  const uiSfxFileNames: string[]
+  export default uiSfxFileNames
+}

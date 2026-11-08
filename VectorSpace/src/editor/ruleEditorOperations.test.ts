@@ -22,6 +22,15 @@ describe('addEditorClickRule', () => {
     expect(rule.actions).toEqual([{ kind: 'showPanel', params: { assetId: next.textAssets?.[0].assetId } }])
   })
 
+  it('points a "show its info card" or "play its video" reaction at the attachment by id', () => {
+    const { project, sceneId, objectId } = setup()
+    const card = addEditorClickRule(project, sceneId, objectId, { action: 'showCard', attachmentId: 'att-card-1' }).project
+    expect(card.rules?.[0].actions).toEqual([{ kind: 'showPanel', params: { attachmentId: 'att-card-1' } }])
+    expect(card.textAssets ?? []).toHaveLength(0)
+    const video = addEditorClickRule(project, sceneId, objectId, { action: 'playVideo', attachmentId: 'att-video-1' }).project
+    expect(video.rules?.[0].actions).toEqual([{ kind: 'playMedia', params: { attachmentId: 'att-video-1' } }])
+  })
+
   it('leaves the original project untouched so undo restores it', () => {
     const { project, sceneId, objectId } = setup()
     addEditorClickRule(project, sceneId, objectId, { action: 'showText', message: 'Hello' })

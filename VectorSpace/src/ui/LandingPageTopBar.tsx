@@ -13,11 +13,11 @@
 /******************************************************************************/
 
 import type { ReactNode } from "react";
-import { Box } from "lucide-react";
 import { Link } from "react-router";
+import { Box } from "lucide-react";
+import { SoundToggle } from "../audio";
+import { homePath, useSession } from "../session/session";
 import "./LandingPageTopBar.css";
-
-const HOME = { teacher: "/teacher", admin: "/admin", student: "/student" } as const;
 
 type LandingPageTopBarProps = {
   roleBadge?: "teacher" | "admin"; // students have no badge
@@ -36,11 +36,14 @@ export function LandingPageTopBar({
   actions,
   onSignOut,
 }: LandingPageTopBarProps) {
+  // the logo goes to this person's home page, the same rule as sign-in and the editor's cube
+  const { role, admin } = useSession();
+  const home = role ? homePath(role, admin) : "/";
   return (
     <header className="landing-top-bar">
-      <div className="landing-top-bar-brand">
-        {/* logo and name take you back to this role's home page */}
-        <Link to={HOME[roleBadge ?? "student"]} className="landing-top-bar-home" aria-label="VectorSpace home">
+            <div className="landing-top-bar-brand">
+        {/* logo and name: back to the home (landing) page, e.g. from the Review or Results tab */}
+        <Link to={home} className="landing-top-bar-home" title="Back to home">
           <div className="landing-top-bar-logo">
             <Box size={22} />
           </div>
@@ -57,6 +60,7 @@ export function LandingPageTopBar({
       <nav className="landing-top-bar-tabs">{tabs}</nav>
 
       {actions && <div className="landing-top-bar-actions">{actions}</div>}
+      <SoundToggle />
       <div className="landing-top-bar-divider" />
 
       <div className="landing-top-bar-account">

@@ -1,16 +1,37 @@
 """API test fixtures: in-memory SQLite, and a fake login where the bearer value is the Auth0 subject."""
 
+import os
+
 import pytest
+from apps.api.app.auth import TokenPayload, get_current_token, get_optional_token
+from apps.api.app.db import Base, get_db
+from apps.api.app.main import API_PREFIX, app
+from apps.api.app.models import Actor, ClassMember, Classroom, Organisation
 from fastapi import Header
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from apps.api.app.auth import TokenPayload, get_current_token
-from apps.api.app.db import Base, get_db
-from apps.api.app.main import app
-from apps.api.app.models import Actor, ClassMember, Classroom, Organisation
+# VS_RECORD_EXAMPLES=1 copies one real exchange per endpoint into app/openapi_examples.json
+# (see record_examples.py); off by default so an ordinary run never rewrites that file
+_recorder = None
+
+
+def pytest_sessionstart(session) -> None:
+    global _recorder
+    if os.environ.get("VS_RECORD_EXAMPLES") == "1":
+        from record_examples import Recorder
+
+        _recorder = Recorder()
+        _recorder.start()
+
+
+def pytest_sessionfinish(session, exitstatus) -> None:
+    if _recorder is not None:
+        _recorder.stop()
+        if exitstatus == 0:  # a failing run may have recorded answers the code no longer gives
+            _recorder.write()
 
 
 @pytest.fixture
@@ -27,7 +48,12 @@ def client(db: Session):
     app.dependency_overrides[get_current_token] = lambda authorization=Header(...): TokenPayload(
         {"sub": authorization.removeprefix("Bearer ")}
     )
-    yield TestClient(app)
+    # the same fake login where signing in is optional (the visitor's page): no header, no one
+    app.dependency_overrides[get_optional_token] = lambda authorization=Header(None): (
+        TokenPayload({"sub": authorization.removeprefix("Bearer ")}) if authorization else None
+    )
+    # every request path in the tests is relative to the version prefix, as in src/api/client.ts
+    yield TestClient(app, base_url=f"http://testserver{API_PREFIX}/")
     app.dependency_overrides.clear()
 
 

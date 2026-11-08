@@ -17,6 +17,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* exactly the window tall, so the page itself never scrolls; the panels scroll inside */
+  height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
   max-width: 1440px;
   margin: 0 auto;
   padding: 12px;
@@ -31,9 +35,6 @@
   justify-content: space-between;
   gap: 16px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
 }
 
 .setup-header-project {
@@ -81,13 +82,20 @@
   display: grid;
   grid-template-columns: 420px minmax(0, 1fr) 320px;
   gap: 12px;
-  min-height: 720px;
+  /* takes the height left under the header; min-height: 0 lets the panels shrink and scroll */
+  flex: 1;
+  min-height: 0;
 }
 
-/* a narrow window: stack the panels one under another */
+/* the room preview expanded: it has the row to itself */
+.setup-body.setup-body-expanded { grid-template-columns: minmax(0, 1fr); }
+
+/* a narrow window: stack the panels one under another, and let the page scroll again,
+   since three stacked panels cannot fit in one window */
 @media (max-width: 1100px) {
+  .setup-shell { height: auto; overflow: visible; }
   .setup-header { flex-wrap: wrap; }
-  .setup-body { grid-template-columns: 1fr; }
+  .setup-body { grid-template-columns: 1fr; min-height: 720px; }
 }
 
 /* ── Notice under the header: how assigning went ──────────────────────── */
@@ -98,9 +106,6 @@
   gap: 8px;
   margin: 0;
   padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
   font-size: 14px;
   font-weight: 700;
 }
@@ -115,4 +120,14 @@
   border-color: var(--red-200);
   background: var(--red-50);
   color: var(--red-900);
+}
+
+/* the class picker beside "Assign to <class>", shown when the teacher has more than one class */
+.setup-class-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
 }

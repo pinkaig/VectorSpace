@@ -27,6 +27,7 @@ import type { ProjectData } from '../../project/model'
 import { loadProjectWithSource, saveProject } from '../../project/serializer'
 import { isRemoteProject } from '../../project/remoteProject'
 import {
+  flushProjectSync,
   getProjectSyncStatus,
   stageProjectSync,
   subscribeProjectSync,
@@ -93,11 +94,18 @@ export function useAutosave(project: ProjectData, initialSource: ReturnType<type
   // render's copy is safe to keep.
   const latestProjectRef = useRef(project)
   latestProjectRef.current = project
+  // A server project's saves are held up to 30 s (projectSync.ts); leaving the editor sends the
+  // held one now, as does pressing Save.
   useEffect(() => () => {
     if (savePendingRef.current) persist(latestProjectRef.current, 'Saved')
+    flushProjectSync()
   }, [])
   useEffect(() => subscribeProjectSync(setSyncStatus), [])
-  const save = () => persist(project, 'Saved')
+  // resolves once the save has reached the server (or failed), so a hand-in sends this save
+  const save = (): Promise<void> => {
+    persist(project, 'Saved')
+    return flushProjectSync()
+  }
 
   return { savedAt, setSavedAt, persistenceState, setPersistenceState, syncStatus, syncStatusLabel, persist, save }
 }

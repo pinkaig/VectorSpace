@@ -2,9 +2,13 @@
  * @file        missionBriefPanel.css
  * @project     VectorSpace
  * @author      <your name>
- * @brief       Styles for MissionBriefPanel: the open card and the folded tab. Both hang over
- *              the top-left of the editor's room, just under the Select / Move tool row
- *              (that row is 46px tall: 34px buttons + 6px padding top and bottom).
+ * @brief       Styles for MissionBriefPanel: the open card and the folded tab. Both hang from
+ *              the top edge of the editor's room, 24px in from the left; while the World / Local
+ *              toggle is showing there (Rotate or Scale handle in use), they drop below it (that
+ *              row is 46px tall: 34px buttons + 6px padding). The open card has a torn-paper
+ *              zigzag bottom (a CSS mask), grows to fit its content with no scrollbar, and lists
+ *              the rules with small bullets lined up with the RULES heading, as in the 3.05
+ *              prototype. It slides down a little as it appears (none with reduced motion).
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -16,12 +20,12 @@
 .mb-card,
 .mb-tab {
   position: absolute;
-  top: calc(var(--float-gap, 5px) + 54px);
-  left: var(--float-gap, 5px);
+  top: 0; /* flush with the top edge of the room, like the prototype */
+  left: 24px;
   z-index: 3;
   box-sizing: border-box;
   width: 380px;
-  max-width: calc(100% - 2 * var(--float-gap, 5px));
+  max-width: calc(100% - 48px);
   border: 1px solid var(--border-strong);
   border-top: 6px solid var(--purple-500);
   background: var(--surface);
@@ -30,16 +34,37 @@
   box-shadow: 0 6px 20px rgba(31, 27, 58, 0.12);
 }
 
+/* The World / Local toggle shares this corner: when it is showing, move down below it */
+.floating-controls.top-left:has(.float-group) ~ .mb-card,
+.floating-controls.top-left:has(.float-group) ~ .mb-tab {
+  top: calc(var(--float-gap, 5px) + 54px);
+}
+
 /* ── Open card ────────────────────────────────────────────────────────── */
 .mb-card {
+  /* how big each tooth of the torn-paper bottom is */
+  --tooth: 9px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* never taller than the room, leaving space for the bottom controls */
-  max-height: calc(100% - 140px);
+  /* fits its content; only on a very short screen does it stop at the room's height */
+  max-height: calc(100% - 24px);
   overflow-y: auto;
-  padding: 16px 18px;
-  border-radius: 4px 4px var(--radius-box) var(--radius-box);
+  scrollbar-width: none; /* no scrollbar (Firefox); the Chrome rule is below */
+  /* extra room at the bottom so the teeth never cut into the button */
+  padding: 16px 18px calc(16px + var(--tooth));
+  border-bottom: none;
+  border-radius: 0;
+  /* a mask also cuts off shadows, so the zigzag edge is the card's outline instead */
+  box-shadow: none;
+  /* the zigzag: a repeating row of V shapes along the bottom is hidden, leaving teeth */
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(var(--tooth) * 2) 100%;
+          mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(var(--tooth) * 2) 100%;
+}
+
+/* no scrollbar in Chrome and Edge either; it can still scroll with the wheel on a tiny screen */
+.mb-card::-webkit-scrollbar {
+  display: none;
 }
 
 .mb-head {
@@ -120,6 +145,24 @@
   min-width: 0;
 }
 
+/* a card assigned to a thing: the row is a button that goes to it */
+.mb-todo-go {
+  width: calc(100% + 16px);
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mb-todo-go:hover { background: #F0EDFB; }
+.mb-todo-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mb-todo-go-icon { flex-shrink: 0; margin-left: -4px; color: var(--text-muted); }
+
 /* a finished to-do is crossed out and greyed, so what is left stands out */
 .mb-todo-done .mb-todo-text {
   color: var(--text-muted);
@@ -160,10 +203,24 @@
 .mb-rules {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
-  padding-left: 18px;
-  font-size: 14px;
+  padding: 0;
+  list-style: none; /* our own bullet below, lined up with the RULES heading */
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.mb-rules > li {
+  display: flex;
+  gap: 6px;
+}
+
+/* the prototype's small bullet */
+.mb-rules > li::before {
+  content: "•";
+  flex-shrink: 0;
   color: var(--ink-2);
 }
 
@@ -235,4 +292,55 @@
 .mb-tab:focus-visible {
   outline: 2px solid var(--purple-500);
   outline-offset: 2px;
+}
+
+/* under "Info cards to write": where to start one (Weian Ching) */
+.mb-card-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* the open card drops in with a small bounce when it appears (after the first tutorial,
+   or when the folded tab is opened again) */
+.mb-card {
+  animation: mb-drop-in 550ms ease-out;
+}
+
+@keyframes mb-drop-in {
+  0% {
+    opacity: 0;
+    translate: 0 -20px;
+  }
+  55% {
+    opacity: 1;
+    translate: 0 5px; /* goes a little too far */
+  }
+  80% {
+    translate: 0 -2px; /* bounces back up */
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0; /* settles */
+  }
+}
+
+/* no movement for people who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  .mb-card {
+    animation: none;
+  }
+}
+
+/* On a short screen the card stops at the room's height and scrolls. The button stays pinned
+   at its bottom, above the torn edge, so it is never cut; the list scrolls behind it. */
+.mb-card > * {
+  flex-shrink: 0; /* the lists keep their size and scroll, instead of getting squashed */
+}
+
+.mb-fold {
+  position: sticky;
+  bottom: 0;
+  /* a strip of white above the button, so scrolled text does not show right behind its top edge */
+  box-shadow: 0 -10px 0 var(--surface);
 }

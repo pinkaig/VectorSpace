@@ -1,0 +1,176 @@
+/**
+ * @file        mediaLibraryPanel.css
+ * @project     Spatial Experience Builder
+ * @author      Weian Ching
+ * @brief       Styles for the media library panel. Only styles the inside;
+ *              whatever page mounts it decides where it sits and how wide it is.
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.media-library {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.media-library h2,
+.media-library h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+}
+
+.media-library h2 { font-size: 18px; }
+.media-library h3 { font-size: 15px; }
+
+.media-library-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-box);
+  background: var(--purple-50);
+}
+
+.media-library small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.media-library-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.media-library-field input,
+.media-library-review textarea {
+  padding: 7px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn-sm);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.media-library-progress {
+  width: 100%;
+  accent-color: var(--purple-500);
+}
+
+.media-library .media-library-hint-error,
+.media-library-problem {
+  margin: 0;
+  color: var(--red-700);
+}
+
+.media-library-row {
+  display: flex;
+  gap: 8px;
+}
+
+.media-library-button {
+  align-self: flex-start;
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.media-library-button.primary {
+  border-color: var(--purple-500);
+  background: var(--purple-500);
+  color: var(--surface);
+}
+
+.media-library-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.media-library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.media-library-entry,
+.media-library-review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.media-library-review {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.media-library-kind {
+  color: var(--purple-600);
+  font-weight: 800;
+}
+
+.media-library-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-library-status {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.media-library-status.ready { background: var(--green-50); color: var(--green-800); }
+.media-library-status.waiting { background: var(--amber-50); color: var(--amber-900); }
+.media-library-status.problem { background: #FDECEA; color: var(--red-700); }
+
+.media-library-comment {
+  flex-basis: 100%;
+  font-style: italic;
+}
+
+.media-library-remove {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.media-library-remove:hover {
+  color: var(--red-500);
+}
+
+.media-library-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
