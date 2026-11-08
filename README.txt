@@ -229,3 +229,17 @@ Commit and merge rules
 - Get the tech lead's approval and they will merge the PRs.
 - Reference the relevant Jira issue key in the branch name or PR description
   when one exists.
+
+
+Performance budget (checked by CI / tests unless marked "target")
+- API: every request answers within 2000 ms (Newman time-budget check, all routes).
+- API request body: 5 MB maximum, larger returns 413 (guard test).
+- Imported models: triangle/texture budget enforced by the import pipeline.
+- Editor frame rate: target 30 FPS or better on a school laptop (target, not yet measured in CI).
+- Page load on the deployed site: target under 5 s on a normal connection (target, not yet measured).
+
+Architecture
+- Diagram: "[M1 Submission] Architecture v0.1 Diagram.png" in this folder; written guide in the wiki above.
+- Layers: src/ (React pages) -> packages/ (reusable logic) -> apps/api (FastAPI + Postgres + MinIO).
+- Errors: every API error uses one envelope (detail, code, requestId); the UI shows sentences, and
+  src/ErrorBoundary.tsx catches page crashes.
