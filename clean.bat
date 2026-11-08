@@ -4,7 +4,7 @@ REM
 REM Usage:
 REM   clean.bat            show what would be removed, delete nothing
 REM   clean.bat --force    actually remove it
-REM   clean.bat --deps     also remove node_modules (forces a fresh npm ci)
+REM   clean.bat --deps     also remove node_modules and the API .venv (forces a fresh install)
 REM
 REM Only ever touches files git already ignores, so committed work is safe.
 REM Dry run is the default on purpose: read the list before deleting.
@@ -26,7 +26,7 @@ exit /b 2
 :show_help
 echo clean.bat            show what would be removed, delete nothing
 echo clean.bat --force    actually remove it
-echo clean.bat --deps     also remove node_modules
+echo clean.bat --deps     also remove node_modules and the API .venv
 exit /b 0
 
 :args_done
@@ -50,6 +50,8 @@ call :remove_dir "%APP_DIR%\test-results"
 call :remove_dir "%APP_DIR%\.vite"
 call :remove_dir "%APP_DIR%\.pytest_cache"
 call :remove_dir "%APP_DIR%\apps\api\.pytest_cache"
+call :remove_dir "%APP_DIR%\.ruff_cache"
+call :remove_dir "%APP_DIR%\apps\api\.ruff_cache"
 if !FOUND!==0 echo   (none)
 
 echo.
@@ -78,12 +80,18 @@ if "%DEPS%"=="1" (
   echo.
   echo Dependencies:
   call :remove_dir "%APP_DIR%\node_modules"
+  call :remove_dir "node_modules"
+  call :remove_dir "%APP_DIR%\apps\api\.venv"
 )
 
 REM .env files are deliberately left alone: they are not recoverable.
 echo.
 echo Not removed - review by hand:
-if exist "%APP_DIR%\.env" (echo   %APP_DIR%\.env) else (echo   (none^))
+set /a KEEP=0
+for %%f in ("%APP_DIR%\.env" "%APP_DIR%\apps\api\.env" "%APP_DIR%\apps\api\roster.csv" "%APP_DIR%\apps\api\invites.csv") do (
+  if exist %%f (echo   %%~f& set /a KEEP+=1)
+)
+if !KEEP!==0 echo   (none)
 
 echo.
 echo ----------------------------------------------------------------

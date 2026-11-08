@@ -5,7 +5,7 @@
 # Usage:
 #   ./clean.sh            show what would be removed, delete nothing
 #   ./clean.sh --force    actually remove it
-#   ./clean.sh --deps     also remove node_modules (forces a fresh npm ci)
+#   ./clean.sh --deps     also remove node_modules and the API .venv (forces a fresh install)
 #
 # Only ever touches files git already ignores, so committed work is safe.
 # Dry run is the default on purpose: read the list before deleting.
@@ -37,6 +37,8 @@ TARGETS=(
   ".vite"
   ".pytest_cache"
   "apps/api/.pytest_cache"
+  ".ruff_cache"
+  "apps/api/.ruff_cache"
 )
 
 echo "Repository cleanup"
@@ -94,6 +96,8 @@ if [[ $DEPS -eq 1 ]]; then
   echo
   echo "Dependencies:"
   remove "$APP_DIR/node_modules"
+  remove "node_modules"
+  remove "$APP_DIR/apps/api/.venv"
 fi
 
 # Anything git ignores that this script does not know about. Reported only --
@@ -105,9 +109,9 @@ while IFS= read -r line; do
   path="${line#!! }"
   path="${path%\"}"; path="${path#\"}"
   case "$path" in
-    */node_modules/*|*/node_modules|.claude/) continue ;;
+    */node_modules/*|*/node_modules|node_modules/|.vite/|.claude/) continue ;;
     */dist/*|*/dist|*/coverage/*|*/__pycache__/*|*.tsbuildinfo) continue ;;
-    */.pytest_cache/*|*/.pytest_cache|*/playwright-report/*|*/test-results/*) continue ;;
+    */.pytest_cache/*|*/.pytest_cache|*/.ruff_cache/*|*/.ruff_cache|*/.venv/*|*/.venv|*/playwright-report/*|*/test-results/*) continue ;;
   esac
   other=$((other + 1))
   printf '  %s\n' "$path"

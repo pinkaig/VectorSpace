@@ -5,9 +5,11 @@ REM Usage:
 REM   run.bat             full pipeline, then serve the app
 REM   run.bat --no-e2e    skip the browser tests (they download Chromium on first run)
 REM   run.bat --ci        run every check and exit without serving
+REM   run.bat --no-docker serve the static build only (no API / database)
 REM
-REM This project is a frontend-only single-page app for M1: there is no backend
-REM or database to start. See README.md for why.
+REM After the checks, if Docker Desktop is running, this starts the full local stack
+REM (Postgres in Docker + API + web app) via VectorSpace\scripts\dev-stack-docker.bat.
+REM Without Docker it falls back to serving the frontend build on its own.
 
 setlocal EnableDelayedExpansion
 
@@ -16,11 +18,13 @@ set "MIN_NODE_MAJOR=22"
 set "MIN_NPM_MAJOR=10"
 set "RUN_E2E=1"
 set "SERVE=1"
+set "DOCKER=1"
 
 :parse_args
 if "%~1"=="" goto args_done
 if /i "%~1"=="--no-e2e" set "RUN_E2E=0" & shift & goto parse_args
 if /i "%~1"=="--ci"     set "SERVE=0"   & shift & goto parse_args
+if /i "%~1"=="--no-docker" set "DOCKER=0" & shift & goto parse_args
 if /i "%~1"=="-h"       goto show_help
 if /i "%~1"=="--help"   goto show_help
 echo Unknown option: %~1 (try --help)>&2
@@ -30,6 +34,7 @@ exit /b 2
 echo run.bat             full pipeline, then serve the app
 echo run.bat --no-e2e    skip the browser tests
 echo run.bat --ci        run every check and exit without serving
+echo run.bat --no-docker serve the static build only (no API / database)
 exit /b 0
 
 :args_done
@@ -110,6 +115,18 @@ if "%SERVE%"=="0" (
 )
 
 call :say "Starting the app"
+
+if "%DOCKER%"=="1" (
+  docker info >nul 2>&1
+  if errorlevel 1 (
+    echo   Docker is not running: serving the frontend build only.
+    echo   Start Docker Desktop and re-run for the full stack (API + database^).
+  ) else (
+    call scripts\dev-stack-docker.bat
+    exit /b !errorlevel!
+  )
+)
+
 echo.
 echo   ----------------------------------------------------------------
 echo   All checks passed. Serving the production build.

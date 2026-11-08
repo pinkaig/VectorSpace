@@ -24,16 +24,15 @@
  */
 
 import type { AdminApi, Rooms } from "./admin";
+import { environmentLibrary } from "../project/model";
 
-// [id, name, description]
-const ENVIRONMENTS: [string, string, string][] = [
-  ["museum-hall", "Museum hall", "A tall gallery with spotlights"],
-  ["classroom", "Classroom", "Desks, a board and a window"],
-  ["riverside-dock", "Riverside dock", "A wooden pier over water"],
-  ["ancient-temple", "Ancient temple", "Stone columns and torchlight"],
-];
+// The room shells the editor really ships (src/content/env/*.glb, listed in environmentLibrary),
+// so the switches match what a student can pick. "Empty" is always available, so it is left out.
+const ENVIRONMENTS: [string, string, string][] = environmentLibrary
+  .filter((env) => env.url)
+  .map((env) => [env.id, env.name, env.description ?? ""]);
 
-const DEFAULT_ON = ["museum-hall", "classroom"];
+const DEFAULT_ON = ENVIRONMENTS.map(([id]) => id);
 
 // what has been changed this page load, per school id; a school not in here gets the defaults
 const switchedOn = new Map<string, Set<string>>();
