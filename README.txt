@@ -5,7 +5,7 @@ Product Manager		Carrie Lam Tze Ying  2401405	(lam.c@digipen.edu)
 Tech Lead		Sherman Goh Wee Hao  2301472	(shermanweehao.goh@digipen.edu)
 Programmer		Chloe Lau Rey En     2402250	(l.chloereyen@digipen.edu)
 Programmer		Tee Ming Zhe, Daniel 2200679	(m.tee@digipen.edu)
-Programmer		Goh Pin Kai	     2301388	(pinkai.g@digipen.edu)
+Programmer		Goh Pin Kai	     	 2301388	(pinkai.g@digipen.edu)
 Programmer		Wei An CHING	     2202589	(weian.ching@digipen.edu)
 
 			
@@ -27,6 +27,15 @@ https://doremiyaki.atlassian.net/jira/software/projects/PROJ5/summary
 Active front-end website via Render,
 https://vectorspace-tigs.onrender.com  (API: https://vectorspace-api-bcsx.onrender.com)
 
+Demo logins (Auth0, on the Render site above)
+Passwords are not stored in the repo: request them from gsherman01.
+  Role      Username (email)       Name                   Class
+  Admin     admin@demo.test        Jasmine Ong (VThere)   - (platform-wide)
+  Teacher   teacher@demo.test      Ms Tan Hui Min         1A Science, 2A Humanities
+  Student   student1@demo.test     Aisyah Rahman          1A Science
+  Student   student2@demo.test     Ethan Lim              1A Science
+  Student   student3@demo.test     Chloe Tan              1A Science
+
 One-command build, test, and run
 ./run.sh          # macOS/Linux
 run.bat           # Windows
@@ -39,7 +48,7 @@ Then —
 
 
 ==================================================================================
-Minimum Viable Product (M1)
+Minimum Viable Product (M1) (can't complete a full M2 one due to time)
 
 The M1 deliverable is a **browser-only scene authoring tool**: 
 open the app, 
@@ -217,6 +226,69 @@ For Users to "click" on something, it would be wrt the crosshair.
 
 
 ==================================================================================
+Almost Fully Working Product (M2)
+
+How to try the M2 features:
+- Hosted: https://vectorspace-tigs.onrender.com (requires an Auth0 sign-in,
+  see "Demo logins" above).
+- Local, no Auth0 (dev login bypass, Docker Desktop must be running):
+    VectorSpace\scripts\dev-stack-docker.bat        start Postgres + API + web app
+    VectorSpace\scripts\dev-stack-docker.bat stop   stop Postgres
+- Or run "run.bat" (Windows) / "./run.sh" (macOS/Linux) at the repo root:
+  it builds and tests the app, then starts the same Docker stack
+  (Vite web app + API + Postgres). Without Docker it serves the web app only.
+- Decision: the 3D model assets are also kept locally in the repo (bundled with the
+  web app), so the local Docker version works fully without cloud object storage.
+
+M2 turns the M1 editor into a school platform with three roles.
+Everyone signs in with Auth0, and the API checks every request
+against the user's roster row (role, school, class).
+
+Core loop:
+ admin sets up school & accounts -> teacher assigns -> student builds
+ -> student submits -> teacher approves / sends back -> publish
+
+[Admin]  (VThere staff, platform-wide)
+- Create and manage schools, classes and accounts (teachers, students).
+- Dashboard totals read from the database.
+- Upload, list and delete 3D assets in cloud storage (MinIO local / R2 deployed),
+  grouped into asset packs.
+
+[Teacher]
+- Teacher home: pick up where you left off, start a new project.
+- Set up a project from a template and write the mission brief.
+- Assign it to a class with a due date (archive only after the due date).
+- Review submissions: status tabs, paging, grade, quick comments.
+- Approve and publish, or send it back with a comment.
+- Results: whole-class view.
+
+[Student]
+- Student home: assigned task, due date and teacher, real review status,
+  notification bell, all projects.
+- Build in the editor: catalogue, room types, teacher's suggested spots,
+  Object Inspector with info card, image and video.
+- Submit the project for review; read the sent-back comment and resubmit.
+
+Where the roles meet (handshakes):
+ 1. Admin -> Teacher/Student : accounts + roster rows. Without a roster row
+                               a valid Auth0 login still gets no access.
+ 2. Admin -> Teacher/Student : asset packs in cloud storage show up in the
+                               editor catalogue. Students never upload assets.
+ 3. Teacher -> Student       : the assignment (template, mission brief, due date)
+                               appears on the student home.
+ 4. Student -> Teacher       : "Submit for review" puts the project in the
+                               teacher's review queue.
+ 5. Teacher -> Student       : "Send back" returns it with a comment (bell + home);
+                               "Approve" publishes it for visitors.
+
+Not fully done in M2:
+- Role permissions are enforced on the main routes, not every one yet.
+- Notifications are in-app only (no email).
+- Editor FPS and deployed page-load numbers are targets, not measured yet.
+- Interaction subtab in the Object Inspector.
+
+
+==================================================================================
 Commit and merge rules
 
 - Branch from `Working`;
@@ -229,9 +301,10 @@ Commit and merge rules
 - Get the tech lead's approval and they will merge the PRs.
 - Reference the relevant Jira issue key in the branch name or PR description
   when one exists.
+- Who owns which Jira ticket, and the PR rules: [M2 Submission] CONTRIBUTING.md.
 
 
-Performance budget (checked by CI / tests unless marked "target")
+Performance budget (checked by CI / tests unless marked "target"; full table in [M2 Submission]  PERFORMANCE.md)
 - API: every request answers within 2000 ms (Newman time-budget check, all routes).
 - API request body: 5 MB maximum, larger returns 413 (guard test).
 - Imported models: triangle/texture budget enforced by the import pipeline.
@@ -239,7 +312,8 @@ Performance budget (checked by CI / tests unless marked "target")
 - Page load on the deployed site: target under 5 s on a normal connection (target, not yet measured).
 
 Architecture
-- Diagram: "[M1 Submission] Architecture v0.1 Diagram.png" in this folder; written guide in the wiki above.
-- Layers: src/ (React pages) -> packages/ (reusable logic) -> apps/api (FastAPI + Postgres + MinIO).
+- Diagram: "[M2 Submission] Architecture v1.0 Diagram.png" in this folder (M1: v0.1 diagram);
+  details in ARCHITECTURE.md and the wiki above.
+- Layers: src/ (React pages) -> packages/ (reusable logic) -> apps/api (FastAPI on Render + Postgres/Neon + MinIO/R2 + Auth0).
 - Errors: every API error uses one envelope (detail, code, requestId); the UI shows sentences, and
   src/ErrorBoundary.tsx catches page crashes.
