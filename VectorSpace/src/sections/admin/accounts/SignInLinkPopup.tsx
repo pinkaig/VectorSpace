@@ -15,7 +15,7 @@
 
 import { useState } from "react";
 import type { Account } from "../../../api/admin";
-import { ApiError } from "../../../api/client";
+import { describeError } from "../../../api/client";
 import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { Popup } from "../../../ui/popup";
@@ -80,7 +80,7 @@ export function SignInLinkPopup({ account, onClose }: SignInLinkPopupProps) {
       setLink(await api.newSignInLink(account.id));
     } catch (error) {
       // 409 for a turned-off account, 502 when Auth0 refused: both carry a sentence
-      setProblem(error instanceof ApiError && typeof error.detail === "string" ? error.detail : String(error));
+      setProblem(describeError(error));
     } finally {
       setBusy(false);
     }

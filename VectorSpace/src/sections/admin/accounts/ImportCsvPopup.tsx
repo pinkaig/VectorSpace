@@ -17,7 +17,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import { ALL_SCHOOLS, type ImportRow } from "../../../api/admin";
-import { ApiError } from "../../../api/client";
+import { describeError } from "../../../api/client";
 import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { Field } from "../../../ui/field";
@@ -38,8 +38,7 @@ const OUTCOME_LABEL: Record<ImportRow["outcome"], string> = {
 };
 
 function reason(error: unknown): string {
-  if (error instanceof ApiError && typeof error.detail === "string") return error.detail;
-  return `Could not read the file: ${error instanceof Error ? error.message : String(error)}`;
+  return describeError(error);
 }
 
 // a blank file in the right shape, with one example line, so nobody has to type the header

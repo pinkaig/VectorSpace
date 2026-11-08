@@ -14,7 +14,7 @@
  */
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ApiError, apiUrl } from '../api/client'
+import { ApiError, apiUrl, describeError } from '../api/client'
 import { loadRemoteProject } from '../project/remoteProject'
 import type { ProjectLoadResult } from '../project/serializer'
 import { LoadingRoom } from '../ui/LoadingRoom'
@@ -28,7 +28,7 @@ const describe = (error: unknown): string =>
   error instanceof ApiError && error.status === 404 ? 'Project not found.'
   : error instanceof ApiError && error.status === 403 ? 'You cannot open this project.'
   : error instanceof ApiError && error.status === 401 ? 'Please sign in again.'
-  : `Could not open the project: ${error instanceof Error ? error.message : 'unknown error'}`
+  : `Could not open the project: ${describeError(error)}`
 
 export default function ProjectEditorPage() {
   const { projectId } = useParams()

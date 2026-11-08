@@ -13,6 +13,7 @@
  */
 /****************************************************************************************************/
 import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { ErrorBoundary } from './ErrorBoundary'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router'
 import AdminAccountsPage from './pages/AdminAccountsPage'
 import AdminClassesPage from './pages/AdminClassesPage'
@@ -30,7 +31,7 @@ import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
 import TeacherStudentsPage from './pages/TeacherStudentsPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
-import { ApiError } from './api/client'
+import { ApiError, describeError } from './api/client'
 import { auth0Enabled } from './session/auth0'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
 import { isSoundDebugOn } from './audio/soundDebugFlag'
@@ -76,8 +77,8 @@ function SignIn() {
   // an admin goes to /admin, everyone else to the page named after their role
   const onSignIn = (role: Role, admin?: boolean) => {
     setProblem(null)
-    signIn(role, { admin }).then((landed) => navigate(next ?? homePath(landed.role, landed.admin)), (error: Error) => setProblem(
-      error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
+    signIn(role, { admin }).then((landed) => navigate(next ?? homePath(landed.role, landed.admin)), (error: unknown) => setProblem(
+      error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${describeError(error)}`,
     ))
   }
   // Auth0 returns to the hash route the sign-in started from, which is this page, and the
@@ -177,6 +178,7 @@ function AdminNav({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <SessionProvider>
       <HashRouter>
         <Routes>
@@ -214,5 +216,6 @@ export default function App() {
         {SoundDebugPanel && <Suspense fallback={null}><SoundDebugPanel /></Suspense>}
       </HashRouter>
     </SessionProvider>
+    </ErrorBoundary>
   )
 }
