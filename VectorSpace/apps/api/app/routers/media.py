@@ -25,7 +25,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -43,10 +43,10 @@ MAX_COMMENT_LENGTH = 500
 
 
 class MediaUploadRequest(BaseModel):
-    kind: str
-    content_type: str
+    kind: str = Field(max_length=30)
+    content_type: str = Field(max_length=100)
     size_bytes: int
-    filename: str
+    filename: str = Field(max_length=255)
 
 
 class MediaUploadResponse(BaseModel):
@@ -56,12 +56,12 @@ class MediaUploadResponse(BaseModel):
 
 
 class MediaLinkRequest(BaseModel):
-    url: str
+    url: str = Field(max_length=2048)
 
 
 class MediaApprovalRequest(BaseModel):
-    approval: str  # 'approved' or 'rejected' (sent back)
-    comment: str | None = None
+    approval: str = Field(max_length=20)  # 'approved' or 'rejected' (sent back)
+    comment: str | None = Field(None, max_length=MAX_COMMENT_LENGTH)
 
 
 class MediaEntryResponse(BaseModel):

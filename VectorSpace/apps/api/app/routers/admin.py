@@ -120,10 +120,10 @@ class SignInLinkResponse(BaseModel):
 
 class NewAccountRequest(BaseModel):
     school_id: uuid.UUID
-    name: str
-    email: str
-    role: str
-    class_names: list[str] = []
+    name: str = Field(max_length=200)
+    email: str = Field(max_length=254)
+    role: str = Field(max_length=20)
+    class_names: list[str] = Field(default=[], max_length=50)
 
 
 class AccountPatchRequest(BaseModel):

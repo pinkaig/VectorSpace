@@ -37,15 +37,15 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 class ProjectCreateRequest(BaseModel):
-    name: str
-    kind: str = "project"
+    name: str = Field(max_length=200)
+    kind: str = Field("project", max_length=30)
     class_id: uuid.UUID | None = None
     template_id: uuid.UUID | None = None
 
 
 class ProjectUpdateRequest(BaseModel):
-    name: str | None = None
-    status: str | None = None
+    name: str | None = Field(None, max_length=200)
+    status: str | None = Field(None, max_length=30)
     # the class the project is for (a teacher's Assign picks it); only a class the caller is in
     class_id: uuid.UUID | None = None
     # shown on the public sign-in page: teachers and admins only, published museums only
@@ -291,7 +291,7 @@ def create_project(
 
 class AssignRequest(BaseModel):
     student_id: uuid.UUID
-    task: str | None = None  # the teacher's one-line task; left out = keep what's saved
+    task: str | None = Field(None, max_length=2000)  # the teacher's one-line task; left out = keep what's saved
     due_at: date | None = None  # "YYYY-MM-DD"; left out = keep what's saved
 
 

@@ -51,8 +51,14 @@ def array(items: dict) -> dict:
     return {"type": "array", "items": items}
 
 
-ERROR = obj(detail={"anyOf": [STR, {"type": "array"}, {"type": "object"}]})
-VALIDATION_ERROR = obj(detail=array(obj(loc={"type": "array"}, msg=STR, type=STR)))
+# Every failure has this one shape (app/errors.py); 422 for bad input also names the fields.
+ERROR = obj(detail={"anyOf": [STR, {"type": "object"}]}, code=STR, apiVersion={"const": "v1"},
+            source={"const": "vectorspace-api"}, timestamp=STR, requestId=STR)
+VALIDATION_ERROR = obj(detail=STR, code={"const": "invalid_request"}, apiVersion={"const": "v1"},
+                       source={"const": "vectorspace-api"}, timestamp=STR, requestId=STR,
+                       fields=array(obj(field=STR, message=STR)))
+REQUEST_ID_MATCHES = ("pm.test('the body quotes the same request id as the header', () => "
+                      "pm.expect(pm.response.json().requestId).to.eql(pm.response.headers.get('x-request-id')));")
 HEALTH = obj(status={"const": "ok"}, service=STR)
 ME = obj(id=UUID, organisation_id=UUID, display_name=STR, role={"enum": ["admin", "teacher", "student"]},
          class_ids=array(UUID))
@@ -375,6 +381,13 @@ projects = folder("Projects", "A student's project, start to finish: create, sav
     req("Student may not make a template (403)", "POST", "/projects", as_="student", status=403, schema=ERROR,
         body={"name": "Template attempt", "kind": "template"}),
     req("Missing name is 422", "POST", "/projects", as_="student", status=422, schema=VALIDATION_ERROR, body={}),
+    req("Missing name names the field (422)", "POST", "/projects", as_="student", status=422, schema=VALIDATION_ERROR,
+        body={}, tests="pm.test('says which field', () => pm.expect(pm.response.json().fields[0].field).to.eql('name'));"),
+    req("Over-long name is 422, not saved", "POST", "/projects", as_="student", status=422, schema=VALIDATION_ERROR,
+        body={"name": "x" * 201},
+        tests="pm.test('says why', () => pm.expect(pm.response.json().fields[0].message).to.include('at most'));"),
+    req("Unknown path is 404 in the same shape", "GET", "/no-such-route", as_="student", status=404, schema=ERROR,
+        tests=REQUEST_ID_MATCHES),
     req("Unknown project is 404", "GET", f"/projects/{NO_SUCH_ID}", as_="student", status=404, schema=ERROR),
     req("Bad project id is 422", "GET", "/projects/not-a-uuid", as_="student", status=422, schema=VALIDATION_ERROR),
     req("Page 1 of my projects", "GET", "/projects", as_="student", status=200, schema=array(PROJECT),

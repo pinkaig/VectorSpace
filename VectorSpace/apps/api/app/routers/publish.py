@@ -20,7 +20,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -45,7 +45,7 @@ class SaveRequest(BaseModel):
     # someone saved in between and this save would overwrite their work
     base_revision: int
     data: dict[str, Any]
-    label: str | None = None
+    label: str | None = Field(None, max_length=200)
 
 
 class ProjectVersionResponse(BaseModel):

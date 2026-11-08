@@ -44,10 +44,10 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class LibraryTicketRequest(BaseModel):
-    content_sha256: str
+    content_sha256: str = Field(max_length=64)
     filename: str = Field(min_length=1, max_length=255)
-    kind: str
-    content_type: str
+    kind: str = Field(max_length=30)
+    content_type: str = Field(max_length=100)
     size_bytes: int
     title: str | None = Field(default=None, max_length=200)
     attribution: str | None = Field(default=None, max_length=500)
@@ -56,7 +56,7 @@ class LibraryTicketRequest(BaseModel):
 class LibraryPatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     attribution: str | None = Field(default=None, max_length=500)
-    visibility: str | None = None
+    visibility: str | None = Field(None, max_length=20)
 
 
 class LibraryAssetResponse(BaseModel):

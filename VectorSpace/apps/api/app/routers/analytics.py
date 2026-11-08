@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -20,8 +20,8 @@ router = APIRouter(prefix="/projects/{project_id}/analytics", tags=["analytics"]
 
 
 class AnalyticsEventRequest(BaseModel):
-    session_id: str
-    event_type: str
+    session_id: str = Field(max_length=100)
+    event_type: str = Field(max_length=100)
     payload: dict | None = None
     occurred_at: datetime
 

@@ -284,7 +284,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 401', () => pm.response.to.have.status(401));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));",
                   "pm.test('says how to authenticate', () => pm.expect(pm.response.headers.get('WWW-Authenticate')).to.include('Bearer'));"
                 ]
               }
@@ -317,7 +317,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 401', () => pm.response.to.have.status(401));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -354,7 +354,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 401', () => pm.response.to.have.status(401));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -392,7 +392,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 401', () => pm.response.to.have.status(401));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -800,7 +800,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -839,7 +839,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -878,7 +878,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -928,7 +928,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -1106,7 +1106,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -1286,7 +1286,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -1405,7 +1405,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -1646,7 +1646,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -1714,7 +1714,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -1768,7 +1768,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -2018,7 +2018,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));",
                   "pm.test('reports the current revision', () => pm.expect(pm.response.json().detail.current_revision).to.eql(1));"
                 ]
               }
@@ -2072,7 +2072,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -2495,7 +2495,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -2546,7 +2546,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -2585,7 +2585,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -2635,7 +2635,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -2677,6 +2677,146 @@
           "response": []
         },
         {
+          "name": "Missing name names the field (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));",
+                  "pm.test('says which field', () => pm.expect(pm.response.json().fields[0].field).to.eql('name'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Over-long name is 422, not saved",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));",
+                  "pm.test('says why', () => pm.expect(pm.response.json().fields[0].message).to.include('at most'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unknown path is 404 in the same shape",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));",
+                  "pm.test('the body quotes the same request id as the header', () => pm.expect(pm.response.json().requestId).to.eql(pm.response.headers.get('x-request-id')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/no-such-route",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "no-such-route"
+              ],
+              "query": []
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Unknown project is 404",
           "event": [
             {
@@ -2685,7 +2825,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -2723,7 +2863,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -2907,7 +3047,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -2949,7 +3089,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -3064,7 +3204,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3263,7 +3403,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3315,7 +3455,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3376,7 +3516,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3524,7 +3664,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3577,7 +3717,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3814,7 +3954,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -3854,7 +3994,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -4317,7 +4457,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -4383,7 +4523,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -4552,7 +4692,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -4618,7 +4758,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -4684,7 +4824,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -5142,7 +5282,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -5328,7 +5468,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -5451,7 +5591,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -5494,7 +5634,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"loc\", \"msg\", \"type\"], \"properties\": {\"loc\": {\"type\": \"array\"}, \"msg\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\"}}}}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\", \"fields\"], \"properties\": {\"detail\": {\"type\": \"string\"}, \"code\": {\"const\": \"invalid_request\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}, \"fields\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"field\", \"message\"], \"properties\": {\"field\": {\"type\": \"string\"}, \"message\": {\"type\": \"string\"}}}}}}));"
                 ]
               }
             }
@@ -5537,7 +5677,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 501', () => pm.response.to.have.status(501));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -5695,7 +5835,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -5732,7 +5872,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -5774,7 +5914,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -6144,7 +6284,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -6260,7 +6400,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -6468,7 +6608,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -6515,7 +6655,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -6666,7 +6806,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -6994,7 +7134,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7046,7 +7186,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7158,7 +7298,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7276,7 +7416,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7316,7 +7456,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7599,7 +7739,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7637,7 +7777,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7810,7 +7950,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -7861,7 +8001,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8005,7 +8145,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8045,7 +8185,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8216,7 +8356,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8426,7 +8566,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8478,7 +8618,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8530,7 +8670,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 400', () => pm.response.to.have.status(400));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8582,7 +8722,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8764,7 +8904,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 409', () => pm.response.to.have.status(409));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -8873,7 +9013,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -9015,7 +9155,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -9055,7 +9195,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -9095,7 +9235,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 404', () => pm.response.to.have.status(404));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -9136,7 +9276,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 422', () => pm.response.to.have.status(422));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));"
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));"
                 ]
               }
             }
@@ -9556,7 +9696,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 403', () => pm.response.to.have.status(403));",
-                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"array\"}, {\"type\": \"object\"}]}}}));",
+                  "pm.test('matches the documented shape', () => pm.response.to.have.jsonSchema({\"type\": \"object\", \"required\": [\"detail\", \"code\", \"apiVersion\", \"source\", \"timestamp\", \"requestId\"], \"properties\": {\"detail\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"object\"}]}, \"code\": {\"type\": \"string\"}, \"apiVersion\": {\"const\": \"v1\"}, \"source\": {\"const\": \"vectorspace-api\"}, \"timestamp\": {\"type\": \"string\"}, \"requestId\": {\"type\": \"string\"}}}));",
                   "pm.test('says why', () => pm.expect(pm.response.json().detail).to.include('templates'));"
                 ]
               }

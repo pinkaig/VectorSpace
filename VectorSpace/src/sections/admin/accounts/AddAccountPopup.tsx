@@ -16,7 +16,7 @@
 
 import { useState } from "react";
 import { ALL_SCHOOLS, type Account, type CreatedAccount } from "../../../api/admin";
-import { ApiError } from "../../../api/client";
+import { describeError } from "../../../api/client";
 import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { Field } from "../../../ui/field";
@@ -28,9 +28,7 @@ type AddAccountPopupProps = { onClose: () => void; onAdded: (account: Account) =
 
 /** The API's own sentence where it has one (a 409 names the person), ours otherwise. */
 function reason(error: unknown): string {
-  if (error instanceof ApiError && typeof error.detail === "string") return error.detail;
-  const message = error instanceof Error ? error.message : String(error);
-  return `Could not add the account: ${message}`;
+  return describeError(error);
 }
 
 export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {

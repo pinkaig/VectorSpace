@@ -59,7 +59,7 @@ class PackCreate(BaseModel):
     slug: str = Field(min_length=1, max_length=100)
     title: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=500)
-    kind: str = "objects"
+    kind: str = Field("objects", max_length=30)
 
 
 class PackPatch(BaseModel):
