@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ._skeleton import not_implemented
 
@@ -14,10 +14,10 @@ router = APIRouter(prefix="/projects/{project_id}/rules", tags=["rules"])
 
 
 class InteractionRuleRequest(BaseModel):
-    object_id: str | None = None
-    zone_id: str | None = None
-    triggers: list
-    actions: list
+    object_id: str | None = Field(None, max_length=200)
+    zone_id: str | None = Field(None, max_length=200)
+    triggers: list = Field(max_length=100)
+    actions: list = Field(max_length=100)
     priority: int = 0
 
 
