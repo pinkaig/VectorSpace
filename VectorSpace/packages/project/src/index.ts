@@ -189,6 +189,9 @@ export interface InteractionRule {
   objectId?: string
   zoneId?: string
   triggers: string[]
+  // Extra detail for the WHEN that a trigger name cannot hold, e.g. { cardId } = which card's close fires it.
+  // Optional, so saves made before this field existed still load unchanged.
+  triggerParams?: Record<string, unknown>
   actions: ActionSpec[]
   priority?: number
 }

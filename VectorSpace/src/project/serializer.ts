@@ -230,6 +230,10 @@ const validateRules = (project: ProjectData, objectIds: Set<string>, zoneIds: Se
       if (!action || typeof action !== 'object' || typeof action.kind !== 'string' || !action.kind || action.kind.length > MAX_LABEL_LENGTH) throw new Error('Project contains an interaction rule with an invalid action')
       if (action.params !== undefined && (typeof action.params !== 'object' || action.params === null || Array.isArray(action.params))) throw new Error('Project contains an interaction rule with invalid action parameters')
     }
+
+    // Same check as action params: a plain object, never null or an array.
+    // cardId is deliberately not checked against the card list, so deleting a card can never stop a project loading.
+    if (rule.triggerParams !== undefined && (typeof rule.triggerParams !== 'object' || rule.triggerParams === null || Array.isArray(rule.triggerParams))) throw new Error('Project contains an interaction rule with invalid trigger parameters')
     if (rule.priority !== undefined && (typeof rule.priority !== 'number' || !Number.isFinite(rule.priority))) throw new Error('Project contains an interaction rule with an invalid priority')
     if (rule.objectId !== undefined && !objectIds.has(rule.objectId)) throw new Error('Project contains an interaction rule referencing an object that does not exist')
     if (rule.zoneId !== undefined && !zoneIds.has(rule.zoneId)) throw new Error('Project contains an interaction rule referencing a zone that does not exist')
