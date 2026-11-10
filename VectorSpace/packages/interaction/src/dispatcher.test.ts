@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultProject, type ProjectData } from '@vectorspace/project'
+import { defaultProject, makeObject, makeScene, type ProjectData } from '@vectorspace/project'
 import { dispatch } from './dispatcher'
 import { createRuntimeState } from './RuntimeState'
 import type { InteractionRule } from './InteractionRule'
@@ -140,5 +140,51 @@ describe('dispatch', () => {
     const first = dispatch({ kind: 'zoneEnter', zoneId: 'zone-a' }, [], project, state())
     const second = dispatch({ kind: 'zoneEnter', zoneId: 'zone-b' }, [], project, first.nextState)
     expect([...second.nextState.visitedZones].sort()).toEqual(['zone-a', 'zone-b'])
+  })
+
+    // A played room holding cube-1, so rules owned by cube-1 count as "in this room"
+  const roomWithCube: ProjectData = {
+    ...defaultProject(),
+    scenes: [{ ...makeScene('scene-gallery', 'Gallery'), objects: [{ ...makeObject('cube', 1), id: 'cube-1' }] }],
+  }
+  const cardEvent = (attachmentId: string) =>
+    ({ kind: 'panelClosed', payload: { attachmentId, assetId: 'text-1', panelId: 'panel-1' } }) as const
+
+  it('fires a room-start rule whose owner is in the room being played', () => {
+    const rules = [rule('start', { triggers: ['sceneStart'], objectId: 'cube-1' })]
+    const result = dispatch({ kind: 'sceneStart' }, rules, roomWithCube, state())
+    expect(result.rulesMatched.map((r) => r.id)).toEqual(['start'])
+  })
+
+  // otherwise a room 2 exhibit's room-start rule would also fire when room 1 is played
+  it('does not fire a room-start rule whose owner is in another room', () => {
+    const rules = [rule('start', { triggers: ['sceneStart'], objectId: 'cube-in-room-2' })]
+    const result = dispatch({ kind: 'sceneStart' }, rules, roomWithCube, state())
+    expect(result.rulesMatched).toEqual([])
+  })
+
+  it('fires a card-closed rule only for the chosen card', () => {
+    const rules = [rule('closed', { triggers: ['panelClosed'], objectId: 'cube-1', triggerParams: { cardId: 'card-a' } })]
+    expect(dispatch(cardEvent('card-a'), rules, roomWithCube, state()).rulesMatched.map((r) => r.id)).toEqual(['closed'])
+    expect(dispatch(cardEvent('card-b'), rules, roomWithCube, state()).rulesMatched).toEqual([])
+  })
+
+  it('fires a card-closed rule with no chosen card for any card', () => {
+    const rules = [rule('closed', { triggers: ['panelClosed'], objectId: 'cube-1' })]
+    expect(dispatch(cardEvent('card-b'), rules, roomWithCube, state()).rulesMatched.map((r) => r.id)).toEqual(['closed'])
+  })
+
+  // zone events name the visitor ('viewer'), not the rule's object, so the owner must not block them
+  it('fires a zone rule owned by an object when the visitor walks in', () => {
+    const rules = [rule('zone', { triggers: ['zoneEnter'], objectId: 'cube-1', zoneId: 'zone-a' })]
+    const result = dispatch({ kind: 'zoneEnter', objectId: 'viewer', zoneId: 'zone-a' }, rules, roomWithCube, state())
+    expect(result.rulesMatched.map((r) => r.id)).toEqual(['zone'])
+  })
+
+  it('still needs the same object for a click, even when the owner is in the room', () => {
+    const rules = [rule('both', { triggers: ['click', 'sceneStart'], objectId: 'cube-1' })]
+    expect(dispatch({ kind: 'click', objectId: 'cube-2' }, rules, roomWithCube, state()).rulesMatched).toEqual([])
+    expect(dispatch({ kind: 'click', objectId: 'cube-1' }, rules, roomWithCube, state()).rulesMatched.map((r) => r.id)).toEqual(['both'])
+    expect(dispatch({ kind: 'sceneStart' }, rules, roomWithCube, state()).rulesMatched.map((r) => r.id)).toEqual(['both'])
   })
 })
