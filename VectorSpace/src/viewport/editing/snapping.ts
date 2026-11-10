@@ -20,11 +20,18 @@ export const SCALE_STEP = 0.25
 
 const toStep = (value: number, step: number) => Math.round(value / step) * step
 
-/** A world position with x and z on the floor grid; y (height) unchanged*/
-export const snapToFloorGrid = ([x, y, z]: [number, number, number]): [number, number, number] => [
-  toStep(x, MOVE_STEP),
+/**
+ * A world position with x and z on the floor grid; y (height) unchanged.
+ * `origin` is the grid's centre on the floor ([x, z]): the grid fits itself to each
+ * environment, so its cells are counted from the room's centre, not the world's.
+ */
+export const snapToFloorGrid = (
+  [x, y, z]: [number, number, number],
+  [originX, originZ]: [number, number] = [0, 0],
+): [number, number, number] => [
+  originX + toStep(x - originX, MOVE_STEP),
   y,
-  toStep(z, MOVE_STEP),
+  originZ + toStep(z - originZ, MOVE_STEP),
 ]
 
 /** An angle in radians to the nearest 15 degree step*/
