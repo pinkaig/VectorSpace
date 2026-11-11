@@ -652,6 +652,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     /** Shared by "exit play mode" and "restart scene", per the design doc. */
     const stopRun = (restart: boolean) => {
+      // Clear the run first: resetting closes open cards, and those close events must not fire card-closed rules mid-restart
+      runtimeState = null
       runtimeState = resetRuntime(
         { sequencer, effects, zones: zoneTracker },
         { restart, sceneId: dataRef.current.sceneId },

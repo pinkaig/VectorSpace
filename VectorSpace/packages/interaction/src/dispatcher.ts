@@ -40,10 +40,27 @@ import { cloneRuntimeState, type RuntimeState } from './RuntimeState'
  * a wildcard, which is what lets a lifecycle rule such as sceneStart — which
  * names no object — match at all.
  */
-const matches = (rule: InteractionRule, event: RuntimeEvent): boolean => {
+// Triggers that aren't about the rule's own object: their events carry no objectId (sceneStart, panel events)
+// or name the visitor ('viewer' for zones). For these, the rule's objectId only means "the object it belongs to".
+const ROOM_TRIGGERS = new Set(['sceneStart', 'panelOpened', 'panelClosed', 'zoneEnter', 'zoneExit'])
+
+// The caller passes only the room being played (Viewport's projectForDispatch), so this asks "is the owner in this room?"
+const ownerIsInPlayedRoom = (project: ProjectData, objectId: string): boolean =>
+  project.scenes.find((scene) => scene.id === project.activeSceneId)?.objects.some((object) => object.id === objectId) ?? false
+
+const matches = (rule: InteractionRule, event: RuntimeEvent, project: ProjectData): boolean => {
   if (!rule.triggers.includes(event.kind)) return false
-  if (rule.objectId !== undefined && rule.objectId !== event.objectId) return false
+  if (rule.objectId !== undefined) {
+    // Room triggers check where the owner is instead, so a rule from another room never fires here
+    if (ROOM_TRIGGERS.has(event.kind)) {
+      if (!ownerIsInPlayedRoom(project, rule.objectId)) return false
+    } else if (rule.objectId !== event.objectId) return false
+  }
   if (rule.zoneId !== undefined && rule.zoneId !== event.zoneId) return false
+  // A card rule can name one card ("which card?"); with no cardId it reacts to any card
+  const cardId = rule.triggerParams?.cardId
+  const eventCardId = (event.payload as { attachmentId?: unknown } | undefined)?.attachmentId
+  if ((event.kind === 'panelClosed' || event.kind === 'panelOpened') && typeof cardId === 'string' && cardId !== eventCardId) return false
   return true
 }
 
@@ -64,7 +81,7 @@ export const dispatch = (
     nextState.visitedZones.add(event.zoneId)
   }
 
-  const matched = rules.filter((rule) => matches(rule, event))
+  const matched = rules.filter((rule) => matches(rule, event, project))
 
   // Priority first, then authoring order. `sort` is stable in ES2019+, so
   // equal-priority rules keep their array order — the guarantee the design docs
@@ -73,11 +90,6 @@ export const dispatch = (
 
   const actions: ActionSpec[] = []
   for (const rule of ordered) actions.push(...rule.actions)
-
-  // `project` is read-only context for matching. It is deliberately never
-  // written: the whole "visual reset is free" property depends on ProjectData
-  // being untouched for the life of a play session.
-  void project
 
   return { rulesMatched: ordered, actions, nextState }
 }
