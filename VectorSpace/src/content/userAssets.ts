@@ -226,6 +226,7 @@ export const addUserAssets = async (
     try {
       hashes.set(await hashBuiltIn(model.url), model.label)
     } catch {
+      // unfetchable: left to the name check, as above
     }
   }
   const takenNames = new Set(existingNames.map(normalizeAssetName))

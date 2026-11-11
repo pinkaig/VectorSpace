@@ -12,7 +12,7 @@
 /******************************************************************************/
 
 import type { ButtonHTMLAttributes } from "react";
-import { uiSound, type UiCue } from "../audio";
+import type { UiCue } from "../audio";
 import { motion } from "../motion/motion";
 import "./button.css";
 
@@ -22,7 +22,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "danger" | "add";
   size?: "normal" | "small";
   // the sound a press makes (a cue in src/audio/cue-map.json); null for none. Left out, the
-  // purple button makes the main-action click and the rest the plain one
+  // rules in src/audio/ui-sound-map.json decide (the purple button makes the main-action click)
   cue?: UiCue;
 };
 
@@ -32,11 +32,11 @@ export function Button({ variant = "secondary", size = "normal", className = "",
     <button
       type="button"
       className={`ui-btn ui-btn-${variant} ui-btn-${size} ${className}`}
+      // read by the sound director (src/audio/uiSoundDirector.ts), which plays every press
+      data-sfx={cue === null ? "none" : cue || undefined}
       onClick={(event) => {
         // the click animation sits on top of the CSS hover and press response, which stay in button.css
         motion.play("control.button.click", event.currentTarget);
-        // waits for the end of the click: a dialog this press closes plays its close sound instead
-        uiSound.press(cue !== undefined ? cue : variant === "primary" ? "ui.click.primary" : "ui.click");
         onClick?.(event);
       }}
       {...rest}

@@ -1,0 +1,164 @@
+/**
+ * @file        AdminLibraryPage.css
+ * @project     VectorSpace
+ * @author      Sherman Goh Wee Hao
+ * @brief       Styles for the admin Library page: files on the left, packs on the right
+ *              (one column on a narrow screen).
+ *
+ * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
+ *              Reproduction or disclosure of this file or its contents without the
+ *              prior written consent of DigiPen Institute of Technology is prohibited.
+ */
+/******************************************************************************/
+
+.admin-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .admin-library {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── files ─────────────────────────────────────────────────────────────── */
+
+.admin-library-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.admin-library-progress {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.admin-library-progress-failed {
+  color: var(--red-700);
+}
+
+.admin-library-progress-done {
+  color: var(--green-800);
+}
+
+.admin-library-table td {
+  vertical-align: top;
+}
+
+.admin-library-title,
+.admin-library-credit {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 32px;
+  margin-bottom: 4px;
+}
+
+.admin-library-title {
+  font-weight: 800;
+}
+
+.admin-library-credit {
+  font-size: 13px;
+}
+
+.admin-library-filename {
+  font-size: 12px;
+}
+
+/* ── packs ─────────────────────────────────────────────────────────────── */
+
+.admin-library-newpack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.admin-library-newpack .ui-input {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 38px;
+}
+
+.admin-library-newpack select.ui-input {
+  flex: 0 0 auto;
+}
+
+.admin-library-packlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.admin-library-pack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name chip" "meta chip";
+  gap: 2px 12px;
+  align-items: center;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--purple-50);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-library-pack .admin-rooms-name { grid-area: name; }
+.admin-library-pack .admin-muted { grid-area: meta; font-size: 13px; }
+.admin-library-pack .ui-chip { grid-area: chip; }
+
+.admin-library-pack-open {
+  border-color: var(--border-strong);
+  box-shadow: inset 4px 0 0 var(--purple-500);
+}
+
+.admin-library-builder {
+  border-top: 1px solid var(--purple-50);
+  padding-top: 10px;
+}
+
+.admin-library-builder-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-library-builder-head h3 {
+  margin: 0 0 2px;
+}
+
+.admin-library-builder-head p {
+  margin: 0 0 2px;
+}
+
+.admin-library-note {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--green-800);
+}
+
+.admin-library-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-library-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

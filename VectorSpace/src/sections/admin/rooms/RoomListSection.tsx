@@ -11,6 +11,7 @@
  */
 /******************************************************************************/
 
+import type { ReactNode } from "react";
 import type { RoomItem } from "../../../api/admin";
 import { Button } from "../../../ui/button";
 import { Toggle } from "../../../ui/toggle";
@@ -23,9 +24,11 @@ type RoomListSectionProps = {
   onToggle: (itemId: string, enabled: boolean) => void;
   // "upload" adds the + Upload environment button, which is off until uploading is built
   extra?: "upload";
+  // shown under the note, e.g. a link to where the items are made
+  children?: ReactNode;
 };
 
-export function RoomListSection({ title, note, items, onToggle, extra }: RoomListSectionProps) {
+export function RoomListSection({ title, note, items, onToggle, extra, children }: RoomListSectionProps) {
   const [noLogic, noLogicPopup] = useNoLogic();
   return (
     <section className="admin-panel">
@@ -34,6 +37,7 @@ export function RoomListSection({ title, note, items, onToggle, extra }: RoomLis
         {extra === "upload" && <Button variant="add" onClick={() => noLogic("Upload environment")}>+ Upload environment</Button>}
       </div>
       <p className="admin-rooms-note">{note}</p>
+      {children && <p className="admin-rooms-note">{children}</p>}
 
       <div className="admin-scroll">
         {items.map((item) => (

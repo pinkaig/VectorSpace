@@ -18,7 +18,8 @@ Folder layout (the first folder decides the kind; files outside these folders ar
 
 Who you are: --dev-as NAME sends "dev|NAME", which only an API running with AUTH_DEV_BYPASS accepts
 (local use). Against the deployed API pass an admin's access token with --token or VTHERE_TOKEN.
-The API address is --api or VTHERE_API, default http://localhost:8000.
+The API address is --api or VTHERE_API, default http://localhost:8000/api/v1 (the API serves
+everything under /api/v1 since 4 Nov; give the prefix for the deployed API too).
 
 Safe to repeat. The library keys every file by the SHA-256 of its bytes, so a file it already holds
 costs one request and no upload, and an interrupted run simply continues. This script never deletes
@@ -37,9 +38,9 @@ import hashlib
 import json
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import httpx
 
@@ -217,7 +218,7 @@ def sync(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("folder", type=Path, help="the folder holding your control copy of the assets")
-    parser.add_argument("--api", default=os.environ.get("VTHERE_API", "http://localhost:8000"))
+    parser.add_argument("--api", default=os.environ.get("VTHERE_API", "http://localhost:8000/api/v1"))
     parser.add_argument("--token", default=os.environ.get("VTHERE_TOKEN"), help="an admin's access token")
     parser.add_argument("--dev-as", metavar="NAME", help="local only: act as dev|NAME (needs AUTH_DEV_BYPASS)")
     parser.add_argument("--kind", choices=sorted(set(KIND_FOLDERS.values())), help="treat every file in a flat folder as this kind")

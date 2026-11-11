@@ -23,7 +23,7 @@ import yaml
 API_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(API_DIR))
 
-from app.main import app  # noqa: E402
+from app.main import app
 
 SPEC_PATH = API_DIR / "openapi.yaml"
 

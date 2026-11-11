@@ -152,7 +152,6 @@ export const validateAudioCatalog = async (
     const keep = catalog.filter((asset) => !removedIds.has(asset.assetId))
     catalog.splice(0, catalog.length, ...keep)
     removed.forEach((asset) => unregisterAudioAsset(asset.assetId))
-    // eslint-disable-next-line no-console
     console.warn(`Audio catalog: skipped ${removed.length} file(s) that could not be decoded as audio:`, removed.map((asset) => asset.url))
   }
   return { removed }

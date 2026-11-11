@@ -6,8 +6,10 @@
  *              switches for what students cannot change, the room types students can add, and
  *              which asset catalogues the project uses. The room types are saved with the
  *              project (validateEnvironment) and limit the editor's "What kind of room?".
- *              DRAWN ONLY: the template name, the lock switches and catalogue chips flip on
- *              screen but nothing is saved.
+ *              The catalogue lists the asset packs the admin has published and switched on
+ *              for this school (GET /packs/mine).
+ *              DRAWN ONLY: the template name, the lock switches and which catalogue chips are
+ *              picked flip on screen but nothing is saved.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -15,25 +17,23 @@
  */
 /******************************************************************************/
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { Toggle } from "../../ui/toggle";
 import { environmentLibrary, type ProjectData } from "../../project/model";
 import { studentRoomEnv } from "../../editor/roomLayout";
+import { apiUrl } from "../../api/client";
+import { createLibraryApi, type MyPack } from "../../api/library";
+import { useLoad } from "../../api/useLoad";
+import { useSession } from "../../session/session";
 import "./templateSetup.css";
 
-// SAMPLE DATA: the template name, locks and catalogues shown in this panel
+// SAMPLE DATA: the template name and locks shown in this panel
 const SAMPLE_TEMPLATE = "Museum template";
 const SAMPLE_LOCKS = [
   { id: "walls", name: "Walls and floor", on: true },
   { id: "entrance", name: "Entrance door", on: true },
   { id: "spots", name: "Suggested spots", on: false },
-];
-const SAMPLE_CATALOGUES = [
-  { id: "dinosaurs", name: "Dinosaurs", on: true },
-  { id: "basics", name: "Museum basics", on: true },
-  { id: "egypt", name: "Ancient Egypt", on: false },
-  { id: "space", name: "Outer space", on: false },
 ];
 
 type ProjectDetailsSectionProps = {
@@ -57,12 +57,22 @@ export function ProjectDetailsSection({ className, due, draft, onChange }: Proje
 
   // kept on this screen only, so the switches and chips respond when clicked
   const [locks, setLocks] = useState(SAMPLE_LOCKS);
-  const [catalogues, setCatalogues] = useState(SAMPLE_CATALOGUES);
+  // the school's packs come from the API; which ones this project uses is not saved yet, so
+  // every pack starts picked and a click only changes this screen
+  const { getToken } = useSession();
+  const library = useMemo(() => createLibraryApi(getToken), [getToken]);
+  const packs = useLoad<MyPack[]>(() => (apiUrl ? library.myPacks() : Promise.resolve([])), "my-packs");
+  const [unpicked, setUnpicked] = useState<Set<string>>(new Set());
 
   const flipLock = (id: string, on: boolean) =>
     setLocks((list) => list.map((lock) => (lock.id === id ? { ...lock, on } : lock)));
-  const flipCatalogue = (id: string) =>
-    setCatalogues((list) => list.map((cat) => (cat.id === id ? { ...cat, on: !cat.on } : cat)));
+  const flipCatalogue = (slug: string) =>
+    setUnpicked((set) => {
+      const next = new Set(set);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
 
   return (
     <section className="ui-panel setup-panel">
@@ -108,18 +118,32 @@ export function ProjectDetailsSection({ className, due, draft, onChange }: Proje
       </p>
       <h3 className="setup-heading">Catalogue for this project</h3>{/*CATALOGUE: chips that are picked (dark, with a tick) or not (white)*/}
       <div className="details-catalogues">
-        {catalogues.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            className={`details-catalogue ${cat.on ? "details-catalogue-on" : ""}`}
-            onClick={() => flipCatalogue(cat.id)}
-          >
-            {cat.on && <Check size={14} strokeWidth={3} />}
-            {cat.name}
-          </button>
-        ))}
+        {packs.data?.map((pack) => {
+          const on = !unpicked.has(pack.slug);
+          return (
+            <button
+              key={pack.slug}
+              type="button"
+              aria-pressed={on}
+              title={`${pack.itemCount} ${pack.itemCount === 1 ? "item" : "items"}${pack.description ? `: ${pack.description}` : ""}`}
+              className={`details-catalogue ${on ? "details-catalogue-on" : ""}`}
+              onClick={() => flipCatalogue(pack.slug)}
+            >
+              {on && <Check size={14} strokeWidth={3} />}
+              {pack.title}
+            </button>
+          );
+        })}
       </div>
+      <p className="details-roomkind-note">
+        {packs.error
+          ? `Could not load your school's packs: ${packs.error}`
+          : packs.loading
+            ? "Loading your school's packs…"
+            : packs.data?.length
+              ? "Asset packs your admin has switched on for this school."
+              : "No asset packs are switched on for this school yet. Your admin turns them on in Rooms & assets."}
+      </p>
     </section>
   );
 }

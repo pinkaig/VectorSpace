@@ -12,7 +12,7 @@
  */
 /******************************************************************************/
 
-import { Boxes, LayoutDashboard, ShieldCheck, Users } from "lucide-react";
+import { Boxes, GraduationCap, LayoutDashboard, Library, ShieldCheck, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useMotionOnChange } from "../motion/useMotion";
 import { TopBar } from "../ui/topBar";
@@ -26,7 +26,9 @@ const PAGES = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/permissions", label: "Permissions", icon: ShieldCheck, end: false },
   { to: "/admin/accounts", label: "Accounts", icon: Users, end: false },
+  { to: "/admin/classes", label: "Classes", icon: GraduationCap, end: false },
   { to: "/admin/rooms", label: "Rooms & assets", icon: Boxes, end: false },
+  { to: "/admin/library", label: "Library", icon: Library, end: false },
 ];
 
 export default function AdminLayout() {

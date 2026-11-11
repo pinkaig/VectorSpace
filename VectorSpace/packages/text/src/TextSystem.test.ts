@@ -71,8 +71,8 @@ describe('TextSystem', () => {
   it('lays out an attachment through the measurer seam', () => {
     const text = build()
     const result = text.layout(attachment(), { width: 100, height: 64 }, { family: 'body', sizePx: 14, lineHeightPx: 16 })
-    expect(result.lines.length).toBeGreaterThan(0)
-    expect(result.lines[0].startsHeading).toBe(true)
+    expect(result?.lines.length).toBeGreaterThan(0)
+    expect(result?.lines[0].startsHeading).toBe(true)
   })
 
   it('dispose closes every panel and clears listeners', () => {

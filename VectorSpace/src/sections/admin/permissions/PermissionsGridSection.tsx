@@ -4,7 +4,8 @@
  * @author      Sherman Goh Wee Hao
  * @brief       Permissions section: the grid of nine settings with an On/Off switch for
  *              Students, one for Educators and a Can adjust tick, plus Save changes.
- *              Edits go to a draft copy; Save changes sends the draft to the API.
+ *              Edits go to a draft copy; Save changes sends the draft to the API and shows
+ *              what the API kept. A setting the product does not check yet says so.
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -21,9 +22,10 @@ import { TickBox, Toggle } from "../../../ui/toggle";
 import { useLoad } from "../../../api/useLoad";
 import { useAdmin } from "../adminContext";
 
-export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
+// one set of settings for every school: shown from the first school, saved to all of them
+export function PermissionsGridSection({ schoolIds }: { schoolIds: string[] }) {
   const { api } = useAdmin();
-  const { data: saved, setData: setSaved, error, loading } = useLoad(() => api.getPermissions(schoolId), schoolId);
+  const { data: saved, setData: setSaved, error, loading } = useLoad(() => api.getPermissions(schoolIds[0]), schoolIds.join());
 
   // the admin's changes so far, or null before the first click; what is shown is the changed
   // copy if there is one, otherwise what was saved
@@ -37,11 +39,18 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
     setJustSaved(false);
     setEdited(draft.map((row) => (row.key === key ? { ...row, ...patch } : row)));
   };
+  const [saveError, setSaveError] = useState<string | null>(null);
   const save = async () => {
-    await api.savePermissions(schoolId, draft);
-    setSaved(draft);
-    setEdited(null);
-    setJustSaved(true);
+    setSaveError(null);
+    try {
+      const kept = await Promise.all(schoolIds.map((id) => api.savePermissions(id, draft)));
+      setSaved(kept[0]);
+      setEdited(null);
+      setJustSaved(true);
+    } catch (problem) {
+      // keep the draft, so the admin's changes are still there to try again
+      setSaveError((problem as Error).message);
+    }
   };
 
   // the nine rows arrive in group order, so a heading is printed whenever the group changes
@@ -60,6 +69,7 @@ export function PermissionsGridSection({ schoolId }: { schoolId: string }) {
       </div>
 
       {error && <Motion as="p" cue="feedback.error" role="alert">Could not load permissions: {error}</Motion>}
+      {saveError && <Motion as="p" cue="feedback.error" role="alert">Could not save: {saveError}</Motion>}
       <LoadingRows loading={loading} />
       {/* the key changes when the answer arrives, so the grid fades in then and not before */}
       <Motion key={saved ? "loaded" : "loading"} cue="panel.content.enter" className="admin-scroll">
@@ -90,7 +100,10 @@ function PermissionRows({ row, group, onChange }: PermissionRowsProps) {
     <>
       {group && <tr><th colSpan={4} className="admin-permissions-group">{group}</th></tr>}
       <tr>
-        <td>{row.label}</td>
+        <td>
+          {row.label}
+          {!row.enforced && <span className="admin-permissions-later"> Not enforced yet</span>}
+        </td>
         <td className="admin-permissions-cell">
           <Toggle checked={row.students} label={`${row.label}: students`} onChange={(next) => onChange(row.key, { students: next })} />
         </td>

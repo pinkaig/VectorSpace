@@ -21,6 +21,7 @@ import { SchoolsSection } from "../sections/admin/overview/SchoolsSection";
 import { NeedsAttentionSection } from "../sections/admin/overview/NeedsAttentionSection";
 import { RecentlyPublishedSection } from "../sections/admin/overview/RecentlyPublishedSection";
 import "./AdminOverviewPage.css";
+import { AdminPageTitle } from "../sections/admin/AdminPageTitle";
 
 export default function AdminOverviewPage() {
   const { api, school, schoolId, refreshSchools } = useAdmin();
@@ -36,10 +37,7 @@ export default function AdminOverviewPage() {
   return (
     <>
       {/*TITLE*/}
-      <div className="admin-page-title">
-        <h1>Overview</h1>
-        <p>{school ? school.name : "All schools"}</p>
-      </div>
+      <AdminPageTitle title="Overview" subtitle="Every school at a glance, and what needs you next." scope={school ? school.name : "All schools"} />
 
       {error && <Motion as="p" cue="feedback.error" role="alert">Could not load the overview: {error}</Motion>}
       <LoadingRows loading={loading} />

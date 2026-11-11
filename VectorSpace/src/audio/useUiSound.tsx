@@ -43,6 +43,8 @@ export function SoundToggle() {
     <button
       type="button"
       className="ui-sound-toggle"
+      // its own sound below: the director's click would be muted, or cut off by the mute
+      data-sfx="none"
       aria-pressed={!muted}
       aria-label={label}
       title={label}

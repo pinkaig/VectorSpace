@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from apps.api.app.main import API_PREFIX, app
 
 SPEC_PATH = Path(__file__).resolve().parents[1] / "openapi.yaml"

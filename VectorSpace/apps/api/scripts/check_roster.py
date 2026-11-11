@@ -30,15 +30,15 @@ from pathlib import Path
 API_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(API_DIR))
 
-from sqlalchemy import func, select  # noqa: E402
-from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
-from sqlalchemy.orm import Session  # noqa: E402
+from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
-from app.access import class_ids, visible_projects  # noqa: E402
-from app.auth import decode_token, reset_jwks_cache  # noqa: E402
-from app.config import get_settings  # noqa: E402
-from app.models import Actor, Classroom, Organisation, Project  # noqa: E402
-from app.provision import read_rows  # noqa: E402
+from app.access import class_ids, visible_projects
+from app.auth import decode_token, reset_jwks_cache
+from app.config import get_settings
+from app.models import Actor, Classroom, Organisation, Project
+from app.provision import read_rows
 
 failures = 0
 

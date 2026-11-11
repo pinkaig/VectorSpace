@@ -184,6 +184,36 @@ describe('deserializeProject rules and zones', () => {
     const restored = deserializeProject(serializeProject(result.project))
     expect(restored.rules).toEqual([])
   })
+
+  // triggerParams is new and optional, so a rule saved before it existed must come back exactly the same
+  it('loads an older rule without triggerParams unchanged', () => {
+    const rule = { id: 'r1', objectId: 'cube-1', triggers: ['click'], actions: [{ kind: 'showPanel', params: { attachmentId: 'att-1' } }] }
+    const project = deserializeProject(projectJson({ rules: [rule] }))
+    expect(project.rules).toEqual([rule])
+  })
+
+  it('keeps triggerParams on a card-closed rule through save and load', () => {
+    const original = deserializeProject(
+      projectJson({ rules: [{ id: 'r1', objectId: 'cube-1', triggers: ['panelClosed'], triggerParams: { cardId: 'att-1' }, actions: [{ kind: 'playAudio' }] }] }),
+    )
+    const restored = deserializeProject(serializeProject(original))
+    expect(restored.rules?.[0].triggerParams).toEqual({ cardId: 'att-1' })
+  })
+
+  it('rejects triggerParams that is not a plain object', () => {
+    for (const triggerParams of [null, ['att-1'], 'att-1']) {
+      expect(() =>
+        deserializeProject(projectJson({ rules: [{ id: 'r1', triggers: ['panelClosed'], triggerParams, actions: [] }] })),
+      ).toThrow(/invalid trigger parameters/)
+    }
+  })
+
+  // a deleted card must never make a student's project fail to open
+  it('loads a card-closed rule whose card no longer exists', () => {
+    expect(() =>
+      deserializeProject(projectJson({ rules: [{ id: 'r1', objectId: 'cube-1', triggers: ['panelClosed'], triggerParams: { cardId: 'deleted-card' }, actions: [] }] })),
+    ).not.toThrow()
+  })
 })
 
 describe('deserializeProject attachments and text assets', () => {

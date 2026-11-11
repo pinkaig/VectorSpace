@@ -48,7 +48,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
     <section className="admin-panel admin-overview-schools">
       <div className="admin-panel-head">
         <h2>Schools</h2>
-        <Button variant="primary" onClick={() => setAdding(true)}>+ Add a school</Button>
+        <Button variant="primary" cue={null} onClick={() => setAdding(true)}>+ Add a school</Button>
       </div>
 
       <div className="admin-scroll">
@@ -75,6 +75,7 @@ export function SchoolsSection({ schools, onAdded }: SchoolsSectionProps) {
 
       {adding && (
         <Popup
+          silent // no sound for now
           title="Add a school"
           subtitle="It starts as Setting up. Add its people and rooms next."
           onClose={close}

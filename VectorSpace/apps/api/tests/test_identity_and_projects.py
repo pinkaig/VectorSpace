@@ -106,6 +106,9 @@ def test_template_is_visible_to_school_and_copied_with_provenance(client, school
     assert client.get(f"/projects/{template['id']}", headers=as_user("s3")).status_code == 200
     assert client.get(f"/projects/{template['id']}", headers=as_user("other")).status_code == 404
 
+    # students copy templates only where the school allows it (test_permissions.py)
+    allow = [{"key": "from-templates", "students": True, "educators": True}]
+    client.put(f"/admin/schools/{school['admin'].organisation_id}/permissions", json=allow, headers=as_user("admin"))
     copy = make(client, "s1", "My lesson", template_id=template["id"])
     assert copy["kind"] == "project"
     assert copy["template_id"] == template["id"]

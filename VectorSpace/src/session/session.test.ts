@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adminRedirect, devSubjectFor, guardRedirect, homePath } from './session'
+import { adminRedirect, devSubjectFor, guardRedirect, homePath, isLostSession } from './session'
 
 describe('guardRedirect', () => {
   it('lets the required role stay', () => {
@@ -61,5 +61,19 @@ describe('homePath', () => {
   it('sends everyone else to the page named after their role', () => {
     expect(homePath('teacher', false)).toBe('/teacher')
     expect(homePath('student', false)).toBe('/student')
+  })
+})
+
+describe('isLostSession', () => {
+  it('treats Auth0 codes that need a new sign-in as a lost session', () => {
+    expect(isLostSession({ error: 'missing_refresh_token' })).toBe(true)
+    expect(isLostSession({ error: 'invalid_grant' })).toBe(true)
+    expect(isLostSession({ error: 'login_required' })).toBe(true)
+  })
+
+  it('does not sign anyone out over a network failure or an unknown error', () => {
+    expect(isLostSession(new TypeError('Failed to fetch'))).toBe(false)
+    expect(isLostSession({ error: 'timeout' })).toBe(false)
+    expect(isLostSession(null)).toBe(false)
   })
 })

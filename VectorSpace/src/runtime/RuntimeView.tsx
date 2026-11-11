@@ -28,6 +28,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import AudioControls from "./AudioControls";
 import Viewport, { type PlayMove, type ViewportHandle } from "../viewport/Viewport";
 import { ProjectData } from "../project/model";
+import { AssetGate } from "../content/AssetGate";
 import { isTypingTarget } from "../viewport/viewportTypes";
 import { doorsFor, OPPOSITE_SIDE, type RoomSide } from "../editor/roomLayout";
 
@@ -225,6 +226,7 @@ export default function RuntimeView({ project, onExit, title, exitLabel = "Back 
 
   return (
     <section className="play-stage">
+      <AssetGate project={project}>
       <Viewport
         ref={viewportRef}
         objects={scene.objects}
@@ -251,6 +253,7 @@ export default function RuntimeView({ project, onExit, title, exitLabel = "Back 
         onDoor={goThrough}
         arriveFrom={room.arrivedFrom}
       />
+      </AssetGate>
 
       <div className="play-banner">
         <span>{title ?? "Playing · exactly what visitors will see"}</span>

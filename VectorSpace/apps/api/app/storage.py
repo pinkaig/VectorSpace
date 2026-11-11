@@ -79,3 +79,12 @@ def head_object(storage_key: str) -> tuple[int, str] | None:
 
 def delete_object(storage_key: str) -> None:
     get_s3_client().delete_object(Bucket=bucket_for(storage_key), Key=storage_key)
+
+
+def put_object(storage_key: str, body: bytes, content_type: str, cache_control: str | None = None) -> None:
+    """Write a small object from the server itself (a pack manifest). Uploads of user files never
+    come through here: those go browser -> bucket with a presigned PUT."""
+    params = {"Bucket": bucket_for(storage_key), "Key": storage_key, "Body": body, "ContentType": content_type}
+    if cache_control:
+        params["CacheControl"] = cache_control
+    get_s3_client().put_object(**params)

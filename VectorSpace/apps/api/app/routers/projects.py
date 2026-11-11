@@ -9,10 +9,11 @@ from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from pydantic import BaseModel,Field
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from .. import permissions
 from ..access import can_read, can_write, class_ids, visible_projects
 from ..auth import get_current_actor
 from ..db import get_db
@@ -31,22 +32,20 @@ from ..models import (
     Submission,
 )
 from ..teacher_setup import push_setup
-from ._skeleton import not_implemented
-
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 class ProjectCreateRequest(BaseModel):
-    name: str
-    kind: str = "project"
+    name: str = Field(max_length=200)
+    kind: str = Field("project", max_length=30)
     class_id: uuid.UUID | None = None
     template_id: uuid.UUID | None = None
 
 
 class ProjectUpdateRequest(BaseModel):
-    name: str | None = None
-    status: str | None = None
+    name: str | None = Field(None, max_length=200)
+    status: str | None = Field(None, max_length=30)
     # the class the project is for (a teacher's Assign picks it); only a class the caller is in
     class_id: uuid.UUID | None = None
     # shown on the public sign-in page: teachers and admins only, published museums only
@@ -259,6 +258,12 @@ def create_project(
 
     template = None
     if body.template_id:
+        # the admin Permissions page's "Set up projects from templates" (app/permissions.py)
+        if not permissions.allowed(db, actor, "from-templates"):
+            raise HTTPException(
+                status_code=403,
+                detail="Your school does not let you set up projects from templates. Ask your teacher or admin.",
+            )
         template = _load(db, actor, body.template_id)
         if template.kind != "template":
             raise HTTPException(status_code=422, detail="template_id does not point at a template")
@@ -286,7 +291,7 @@ def create_project(
 
 class AssignRequest(BaseModel):
     student_id: uuid.UUID
-    task: str | None = None  # the teacher's one-line task; left out = keep what's saved
+    task: str | None = Field(None, max_length=2000)  # the teacher's one-line task; left out = keep what's saved
     due_at: date | None = None  # "YYYY-MM-DD"; left out = keep what's saved
 
 

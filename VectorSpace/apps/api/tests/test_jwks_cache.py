@@ -2,9 +2,8 @@
 
 import httpx
 import pytest
-from fastapi import HTTPException
-
 from apps.api.app import auth
+from fastapi import HTTPException
 
 
 @pytest.fixture(autouse=True)

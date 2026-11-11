@@ -28,13 +28,46 @@ interface Member extends Student {
 
 export interface ClassInfo {
   id: string
+  school_id: string
   name: string
   member_count: number
 }
 
+export type ClassMemberInfo = Member
+
 /** The classes the signed-in person is in (every class in the school for an admin), by name. */
 export function listMyClasses(getToken: GetToken, base?: string): Promise<ClassInfo[]> {
   return apiFetch<ClassInfo[]>(getToken, '/classes', {}, base)
+}
+
+// ── Organising classes (POST/DELETE /classes...). An admin works on any school's classes and passes
+// schoolId; a teacher works only on classes they teach and only moves students. The API enforces both.
+
+/** An admin's classes for one school, or a teacher's own classes when schoolId is left out. */
+export function listClasses(getToken: GetToken, schoolId?: string, base?: string): Promise<ClassInfo[]> {
+  return apiFetch<ClassInfo[]>(getToken, schoolId ? `/classes?school=${encodeURIComponent(schoolId)}` : '/classes', {}, base)
+}
+
+export function listMembers(getToken: GetToken, classId: string, base?: string): Promise<ClassMemberInfo[]> {
+  return apiFetch<ClassMemberInfo[]>(getToken, `/classes/${classId}/members`, {}, base)
+}
+
+/** A teacher's new class is in their own school and they teach it; an admin names the school. */
+export function createClass(getToken: GetToken, name: string, schoolId?: string, base?: string): Promise<ClassInfo> {
+  return apiFetch<ClassInfo>(getToken, '/classes', { method: 'POST', body: schoolId ? { name, school_id: schoolId } : { name } }, base)
+}
+
+export function addMember(getToken: GetToken, classId: string, actorId: string, base?: string): Promise<ClassMemberInfo> {
+  return apiFetch<ClassMemberInfo>(getToken, `/classes/${classId}/members`, { method: 'POST', body: { actor_id: actorId } }, base)
+}
+
+export function removeMember(getToken: GetToken, classId: string, actorId: string, base?: string): Promise<void> {
+  return apiFetch<void>(getToken, `/classes/${classId}/members/${actorId}`, { method: 'DELETE' }, base)
+}
+
+/** Out of one class and into another in one call. The student's own work stays theirs. */
+export function moveMember(getToken: GetToken, fromClassId: string, actorId: string, toClassId: string, base?: string): Promise<unknown> {
+  return apiFetch(getToken, `/classes/${fromClassId}/members/${actorId}/move`, { method: 'POST', body: { to_class_id: toClassId } }, base)
 }
 
 export async function listMyStudents(getToken: GetToken, base?: string): Promise<Student[]> {

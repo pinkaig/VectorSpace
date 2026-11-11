@@ -1,7 +1,6 @@
 """Media library routes: who may upload, add links, approve and see what. Storage is faked."""
 
 import pytest
-
 from apps.api.app import storage
 
 

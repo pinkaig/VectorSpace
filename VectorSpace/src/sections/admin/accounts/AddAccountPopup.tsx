@@ -5,7 +5,8 @@
  * @brief       Accounts section: the "+ Add an account" form. The new person starts as
  *              Invited. With All schools picked the form asks which school. On success the
  *              same popup shows the one-time password link, which is the only way in:
- *              nothing emails it and it cannot be shown again.
+ *              nothing emails it and it is never shown again (a lost one is replaced from the
+ *              row's New sign-in link, see SignInLinkPopup.tsx).
  *
  * @copyright   Copyright (C) 2026 DigiPen Institute of Technology.
  *              Reproduction or disclosure of this file or its contents without the
@@ -15,20 +16,19 @@
 
 import { useState } from "react";
 import { ALL_SCHOOLS, type Account, type CreatedAccount } from "../../../api/admin";
-import { ApiError } from "../../../api/client";
+import { describeError } from "../../../api/client";
 import { Motion } from "../../../motion/useMotion";
 import { Button } from "../../../ui/button";
 import { Field } from "../../../ui/field";
 import { Popup } from "../../../ui/popup";
 import { useAdmin } from "../adminContext";
+import { OneTimeLink } from "./SignInLinkPopup";
 
 type AddAccountPopupProps = { onClose: () => void; onAdded: (account: Account) => void };
 
 /** The API's own sentence where it has one (a 409 names the person), ours otherwise. */
 function reason(error: unknown): string {
-  if (error instanceof ApiError && typeof error.detail === "string") return error.detail;
-  const message = error instanceof Error ? error.message : String(error);
-  return `Could not add the account: ${message}`;
+  return describeError(error);
 }
 
 export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {
@@ -44,7 +44,6 @@ export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {
   const [created, setCreated] = useState<CreatedAccount | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const ready = name.trim() !== "" && email.includes("@") && chosenSchool !== "";
   const add = async () => {
@@ -65,15 +64,6 @@ export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {
       setProblem(reason(error));
     } finally {
       setBusy(false);
-    }
-  };
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(created?.inviteLink ?? "");
-      setCopied(true);
-    } catch {
-      setCopied(false); // clipboard blocked: the link below can still be selected by hand
     }
   };
 
@@ -100,34 +90,11 @@ export function AddAccountPopup({ onClose, onAdded }: AddAccountPopupProps) {
       }
     >
       {created ? (
-        <div className="admin-accounts-invite">
-          {created.inviteLink ? (
-            <>
-              <p>
-                Give this link to {created.name}: it is how they set a password and sign in for the
-                first time. It works once, and this is the only time it can be shown.
-              </p>
-              <textarea
-                className="admin-accounts-invite-link"
-                readOnly
-                rows={3}
-                value={created.inviteLink}
-                aria-label="One-time password link"
-                onFocus={(event) => event.currentTarget.select()}
-              />
-              <div className="admin-accounts-invite-actions">
-                <Button onClick={copy}>{copied ? "Copied" : "Copy link"}</Button>
-              </div>
-            </>
-          ) : (
-            <p>
-              This build signs in without Auth0, so there is no link to hand over and no password
-              to set: the API takes a &quot;dev|&hellip;&quot; bearer value instead of one (see
-              DevLogins in provision.py). Against the real tenant, {created.name}&apos;s one-time
-              password link appears here instead.
-            </p>
-          )}
-        </div>
+        <OneTimeLink
+          name={created.name}
+          link={created.inviteLink}
+          intro={`Give this link to ${created.name}: it is how they set a password and sign in for the first time.`}
+        />
       ) : (
         <>
           <div className="admin-accounts-form">

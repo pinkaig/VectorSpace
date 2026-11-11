@@ -23,11 +23,12 @@
     "build:auth0": "tsc -b && vite build --mode auth0",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:webkit": "playwright test --project=webkit",
     "test:startup": "playwright test -c playwright.startup.config.ts",
-    "check": "npm run typecheck && npm test && npm run test:e2e",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:e2e",
     "test:perf": "playwright test --project=perf --workers=1 --reporter=list",
     "test:perf:gpu": "playwright test --project=perf-gpu --workers=1 --reporter=list"
   },
@@ -47,11 +48,17 @@
     "vite": "6.3.5"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@playwright/test": "1.55.0",
     "@types/node": "22.14.1",
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.2",
     "@types/three": "0.177.0",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "typescript-eslint": "8.72.0",
     "vitest": "3.1.2"
   }
 }

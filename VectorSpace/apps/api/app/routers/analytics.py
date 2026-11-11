@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,15 +14,14 @@ from ..access import visible_projects
 from ..auth import get_current_actor
 from ..db import get_db
 from ..models import Actor, AnalyticsEvent, Project
-
 from ._skeleton import not_implemented
 
 router = APIRouter(prefix="/projects/{project_id}/analytics", tags=["analytics"])
 
 
 class AnalyticsEventRequest(BaseModel):
-    session_id: str
-    event_type: str
+    session_id: str = Field(max_length=100)
+    event_type: str = Field(max_length=100)
     payload: dict | None = None
     occurred_at: datetime
 
@@ -68,7 +67,7 @@ class MuseumVisits(BaseModel):
 
 def _utc(moment: datetime) -> datetime:
     # SQLite hands back naive datetimes; they were stored as UTC
-    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
 
 
 @results_router.get("/visits", response_model=list[MuseumVisits])
@@ -82,7 +81,7 @@ def museum_visits(
         raise HTTPException(status_code=403, detail="Only teachers can see results")
     readable = visible_projects(db, actor).where(Project.kind == "project", Project.status == "published")
     project_ids = select(readable.subquery().c.id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     today = now.date()
     since = now - timedelta(days=max(days or 0, 7))
     query = select(AnalyticsEvent.project_id, AnalyticsEvent.occurred_at).where(

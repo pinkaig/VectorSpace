@@ -25,7 +25,6 @@ import {
   TextAssetMeta,
   TextAttachment,
   ZoneDefinition,
-  defaultAudioSettings,
   defaultCameraPose,
   defaultEnvironmentId,
 } from '../project/model'
@@ -71,6 +70,7 @@ import {
   resolveAsset,
   retryAsset,
   subscribeAssetResolution,
+  subscribeCatalogChanges,
   type AssetDescriptor,
 } from '../content/assetResolution'
 import { AssetStatusBadge } from '../viewport/editing/AssetStatusBadge'
@@ -586,6 +586,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       inRoom.sync(objects)
       requestRender()
     }
+    // A cloud pack model has no address until the asset manager has asked the server, so an object
+    // can be skipped on the first pass. When an address arrives, rebuild once from the data.
+    const stopCatalogWatch = subscribeCatalogChanges(() => { synced = null; requestRender() })
 
     // ---- WHEN→DO runtime (Tiers 1-3) -------------------------------------
     // All of it lives inside this effect so it shares the renderer's lifecycle:
@@ -703,6 +706,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     /** Shared by "exit play mode" and "restart scene", per the design doc. */
     const stopRun = (restart: boolean) => {
+      // Clear the run first: resetting closes open cards, and those close events must not fire card-closed rules mid-restart
+      runtimeState = null
       runtimeState = resetRuntime(
         { sequencer, effects, zones: zoneTracker },
         { restart, sceneId: dataRef.current.sceneId },
@@ -1129,6 +1134,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
 
     return () => {
       cancelAnimationFrame(frame)
+      stopCatalogWatch()
       // Unmounting is an exit from play mode: stop sequencing and dispose every
       // registered side effect, or a panel/audio element outlives its scene.
       stopRun(false)
@@ -1260,7 +1266,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       },
     })
     return loadHandle.cancel
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environmentId, sceneId, reloadToken])
 
   useEffect(() => {
@@ -1320,7 +1325,6 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       else if (existing.status === 'loading' || existing.status === 'error') unpickableAssetIdsRef.current.add(object.id)
     })
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects])
 
   const retrySelectedAsset = () => {

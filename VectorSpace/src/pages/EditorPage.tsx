@@ -42,6 +42,8 @@ import { MissionBriefPanel } from '../sections/missionBrief/MissionBriefPanel'
 import { KickoffTutorial, markTutorialSeen, tutorialSeen } from '../sections/tutorial/KickoffTutorial'
 import { ReactionsTip } from '../sections/tutorial/ReactionsTip'
 import { useUserAssets } from '../editor/hooks/useUserAssets'
+import { usePackAssets } from '../editor/hooks/usePackAssets'
+import { AssetGate } from '../content/AssetGate'
 import { useUserAudio } from '../editor/hooks/useUserAudio'
 import { useBlockStrayFileDrop } from '../editor/hooks/useBlockStrayFileDrop'
 import { useSceneEditing } from '../editor/hooks/useSceneEditing'
@@ -124,8 +126,9 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   // Bumped when an edit is rejected, to pull the viewport's preview meshes back
   // to ProjectData. See runCommand.
   const [syncToken, setSyncToken] = useState(0)
-  const bumpSync = () => setSyncToken((value) => value + 1)
+  const bumpSync = useCallback(() => setSyncToken((value) => value + 1), [])
   const { project, timelineRef, commit, runCommand, resetTimeline, undo, redo } = useEditorHistory(initialProject, bumpSync)
+  const { getToken, role } = useSession()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // the step being worked on, shared by the top bar and the object panel's tabs (see EditStep)
   const [step, setStep] = useState<EditStep>(1)
@@ -163,7 +166,8 @@ export default function EditorPage({ start, preview = false }: { start?: Project
   const [assetQuery, setAssetQuery] = useState('')
   const [LeftTabs, SetLeftTab] = useState<'scenes' | 'assets' | 'interactions'>('scenes') //for tabs on left column
   const [expandedSceneIds, setExpandedSceneIds] = useState<Set<string>>(() => new Set([initialProject.activeSceneId]))
-  const { visibleAssets, assetNotice, setAssetNotice, importModelFiles, keepOriginalModel, deleteUserAsset } = useUserAssets(project, bumpSync)
+  const { packAssets, packNotice, reloadPacks } = usePackAssets(getToken, bumpSync)
+  const { visibleAssets, assetNotice, setAssetNotice, importModelFiles, keepOriginalModel, deleteUserAsset } = useUserAssets(project, bumpSync, packAssets)
   const { audioCatalogToken, audioNotice, setAudioNotice, importAudioFiles, deleteUserAudio } = useUserAudio(project)
   const [isDraggingAsset, setIsDraggingAsset] = useState(false)
   const assetDragDepthRef = useRef(0)
@@ -233,7 +237,6 @@ export default function EditorPage({ start, preview = false }: { start?: Project
 
   const isFileDrag = (event: ReactDragEvent) => event.dataTransfer.types.includes('Files')
 
-  const { getToken, role } = useSession()
   // what a student sees: locks apply and suggested spots show (a teacher previewing too)
   const studentView = preview || role === 'student'
   // the teacher's suggested spots, and a lock over each locked thing, for anyone editing
@@ -661,6 +664,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             This avoids recreating WebGL contexts and reloading shaders,
             geometry, and textures whenever the layout changes.
           */}
+          <AssetGate project={project}>
           <div className={layoutMode === 'quad' ? 'quad-viewport' : 'quad-viewport single-mode'}>
             <Viewport
               ref={viewportRef}
@@ -705,6 +709,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="front" label="FRONT" />
             <ReferenceViewport objects={scene.objects} selectedId={selectedId} environmentId={scene.environmentId} axis="right" label="RIGHT" />
           </div>
+          </AssetGate>
 
           {/* Top-left: which handle is showing is picked in the object panel (Position tab); only the
               world/local choice for that handle lives here, since the panel has no equivalent. */}
@@ -952,7 +957,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                   {shownAssets.map((asset, index) => {
                     const Icon = catalogueIcons[asset.kind] ?? Box
                     return (
-                    <button className="asset-card" key={asset.assetId} onClick={() => placeFromCatalogue(asset)}>
+                    <button className="asset-card" key={asset.assetId} disabled={asset.unavailable} title={asset.unavailable ? asset.detail : undefined} onClick={() => placeFromCatalogue(asset)}>
                       <span className={`asset-tile ${catalogueTileColours[index % catalogueTileColours.length]}`}><Icon size={20} strokeWidth={1.75} /></span>
                       <span className="asset-copy"><strong>{asset.label}</strong><small>{asset.detail}</small></span>
                       {isUserAsset(asset.assetId)
@@ -971,6 +976,7 @@ export default function EditorPage({ start, preview = false }: { start?: Project
                     </button>
                     )
                   })}
+                  {packNotice && <div className="asset-empty">{packNotice.lines.join(' ')} <button type="button" className="float-button" onClick={reloadPacks}>Try again</button></div>}
                   {shownAssets.length === 0 && <div className="asset-empty">{assetQuery.trim() ? 'No approved assets match this search.' : 'Nothing in this tab yet. Try another tab.'}</div>}
                 </div>
             </div>

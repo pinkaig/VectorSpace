@@ -11,14 +11,14 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import (
+    JSON,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
-    Boolean,
     Index,
     Integer,
-    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -45,9 +45,9 @@ class Organisation(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    actors: Mapped[list["Actor"]] = relationship(back_populates="organisation")
-    projects: Mapped[list["Project"]] = relationship(back_populates="organisation")
-    classes: Mapped[list["Classroom"]] = relationship(back_populates="organisation")
+    actors: Mapped[list[Actor]] = relationship(back_populates="organisation")
+    projects: Mapped[list[Project]] = relationship(back_populates="organisation")
+    classes: Mapped[list[Classroom]] = relationship(back_populates="organisation")
 
     __table_args__ = (UniqueConstraint("slug", name="uq_organisations_slug"),)
 
@@ -72,9 +72,9 @@ class Actor(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    organisation: Mapped["Organisation"] = relationship(back_populates="actors")
-    projects: Mapped[list["Project"]] = relationship(back_populates="created_by")
-    analytics_events: Mapped[list["AnalyticsEvent"]] = relationship(back_populates="actor")
+    organisation: Mapped[Organisation] = relationship(back_populates="actors")
+    projects: Mapped[list[Project]] = relationship(back_populates="created_by")
+    analytics_events: Mapped[list[AnalyticsEvent]] = relationship(back_populates="actor")
 
     __table_args__ = (
         UniqueConstraint("auth0_subject", name="uq_actors_auth0_subject"),
@@ -95,8 +95,8 @@ class Classroom(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    organisation: Mapped["Organisation"] = relationship(back_populates="classes")
-    members: Mapped[list["ClassMember"]] = relationship(back_populates="classroom")
+    organisation: Mapped[Organisation] = relationship(back_populates="classes")
+    members: Mapped[list[ClassMember]] = relationship(back_populates="classroom")
 
     __table_args__ = (UniqueConstraint("organisation_id", "name", name="uq_classes_org_name"),)
 
@@ -111,8 +111,8 @@ class ClassMember(Base):
         UUID(as_uuid=True), ForeignKey("actors.id", ondelete="CASCADE"), primary_key=True
     )
 
-    classroom: Mapped["Classroom"] = relationship(back_populates="members")
-    actor: Mapped["Actor"] = relationship()
+    classroom: Mapped[Classroom] = relationship(back_populates="members")
+    actor: Mapped[Actor] = relationship()
 
 class Assignment(Base):
     """A project a teacher gives to a class, with the task and due date the students see.
@@ -183,15 +183,15 @@ class Project(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    organisation: Mapped["Organisation"] = relationship(back_populates="projects")
-    created_by: Mapped["Actor"] = relationship(back_populates="projects")
-    versions: Mapped[list["ProjectVersion"]] = relationship(
+    organisation: Mapped[Organisation] = relationship(back_populates="projects")
+    created_by: Mapped[Actor] = relationship(back_populates="projects")
+    versions: Mapped[list[ProjectVersion]] = relationship(
         back_populates="project", foreign_keys="ProjectVersion.project_id"
     )
-    media_assets: Mapped[list["MediaAsset"]] = relationship(back_populates="project")
-    media_links: Mapped[list["MediaLink"]] = relationship(back_populates="project")
-    interaction_rules: Mapped[list["InteractionRule"]] = relationship(back_populates="project")
-    analytics_events: Mapped[list["AnalyticsEvent"]] = relationship(back_populates="project")
+    media_assets: Mapped[list[MediaAsset]] = relationship(back_populates="project")
+    media_links: Mapped[list[MediaLink]] = relationship(back_populates="project")
+    interaction_rules: Mapped[list[InteractionRule]] = relationship(back_populates="project")
+    analytics_events: Mapped[list[AnalyticsEvent]] = relationship(back_populates="project")
 
     __table_args__ = (
         UniqueConstraint("organisation_id", "slug", name="uq_projects_org_slug"),
@@ -217,9 +217,9 @@ class ProjectVersion(Base):
     label: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    project: Mapped["Project"] = relationship(back_populates="versions", foreign_keys=[project_id])
-    created_by: Mapped["Actor"] = relationship()
-    content_snapshot: Mapped["ContentSnapshot | None"] = relationship(back_populates="project_version")
+    project: Mapped[Project] = relationship(back_populates="versions", foreign_keys=[project_id])
+    created_by: Mapped[Actor] = relationship()
+    content_snapshot: Mapped[ContentSnapshot | None] = relationship(back_populates="project_version")
 
     __table_args__ = (UniqueConstraint("project_id", "revision", name="uq_project_versions_project_revision"),)
 
@@ -284,8 +284,8 @@ class MediaAsset(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    project: Mapped["Project"] = relationship(back_populates="media_assets")
-    uploaded_by: Mapped["Actor"] = relationship()
+    project: Mapped[Project] = relationship(back_populates="media_assets")
+    uploaded_by: Mapped[Actor] = relationship()
 
     __table_args__ = (
         UniqueConstraint("project_id", "storage_key", name="uq_media_assets_project_storage_key"),
@@ -328,8 +328,8 @@ class MediaLink(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    project: Mapped["Project"] = relationship(back_populates="media_links")
-    created_by: Mapped["Actor"] = relationship(foreign_keys=[created_by_id])
+    project: Mapped[Project] = relationship(back_populates="media_links")
+    created_by: Mapped[Actor] = relationship(foreign_keys=[created_by_id])
 
     __table_args__ = (
         UniqueConstraint("project_id", "provider", "provider_id", name="uq_media_links_project_provider_id"),
@@ -372,7 +372,7 @@ class LibraryAsset(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    uploaded_by: Mapped["Actor"] = relationship()
+    uploaded_by: Mapped[Actor] = relationship()
 
     __table_args__ = (
         UniqueConstraint("content_sha256", name="uq_library_assets_sha256"),
@@ -381,6 +381,103 @@ class LibraryAsset(Base):
         CheckConstraint("status in ('pending', 'uploaded', 'failed')", name="ck_library_assets_status"),
         CheckConstraint("size_bytes >= 0", name="ck_library_assets_size_nonnegative"),
         Index("ix_library_assets_kind_created", "kind", "created_at"),
+    )
+
+
+class AssetPack(Base):
+    """A named group of library files that an admin can turn on for a school.
+
+    A draft until published: publish writes library/packs/<slug>/<revision>.json (an immutable
+    manifest) and then bumps published_revision, so a revision never points at a missing file.
+    Platform-wide like the library itself (decision D2): no organisation_id here; pack_grants
+    says which schools may use it.
+    """
+
+    __tablename__ = "asset_packs"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    slug: Mapped[str] = mapped_column(String(100), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="objects")
+    published_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    # the draft's contents in order; publishing copies them into the manifest
+    items: Mapped[list[PackAsset]] = relationship(
+        back_populates="pack", cascade="all, delete-orphan", order_by="PackAsset.position"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("slug", name="uq_asset_packs_slug"),
+        CheckConstraint("kind in ('objects', 'environments')", name="ck_asset_packs_kind"),
+        CheckConstraint("published_revision is null or published_revision >= 1", name="ck_asset_packs_revision"),
+    )
+
+
+class PackAsset(Base):
+    """One library file in one pack, at a position. RESTRICT on the file: a shipped file cannot vanish."""
+
+    __tablename__ = "pack_assets"
+
+    pack_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("asset_packs.id", ondelete="CASCADE"), primary_key=True
+    )
+    library_asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("library_assets.id", ondelete="RESTRICT"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    pack: Mapped[AssetPack] = relationship(back_populates="items")
+    asset: Mapped[LibraryAsset] = relationship()
+
+    # the delete guard asks "does any pack use this file?", which is a lookup by library_asset_id
+    __table_args__ = (Index("ix_pack_assets_library_asset", "library_asset_id"),)
+
+
+class PackGrant(Base):
+    """A school may use a pack. A row with enabled=False remembers a switch turned off."""
+
+    __tablename__ = "pack_grants"
+
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), primary_key=True
+    )
+    pack_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("asset_packs.id", ondelete="CASCADE"), primary_key=True
+    )
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    granted_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="SET NULL"), nullable=True
+    )
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SchoolPermission(Base):
+    """One permission setting as a school's admin saved it. No row = the default in app/permissions.py."""
+
+    __tablename__ = "school_permissions"
+
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), primary_key=True
+    )
+    # a key from app/permissions.py SETTINGS; the route refuses any other
+    key: Mapped[str] = mapped_column(String(50), primary_key=True)
+    students: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    educators: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    can_adjust: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("actors.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
 
@@ -395,8 +492,8 @@ class ContentSnapshot(Base):
     checksum: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    project: Mapped["Project"] = relationship()
-    project_version: Mapped["ProjectVersion | None"] = relationship(
+    project: Mapped[Project] = relationship()
+    project_version: Mapped[ProjectVersion | None] = relationship(
         back_populates="content_snapshot", uselist=False
     )
 
@@ -419,8 +516,8 @@ class AnalyticsEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    project: Mapped["Project"] = relationship(back_populates="analytics_events")
-    actor: Mapped["Actor | None"] = relationship(back_populates="analytics_events")
+    project: Mapped[Project] = relationship(back_populates="analytics_events")
+    actor: Mapped[Actor | None] = relationship(back_populates="analytics_events")
 
     __table_args__ = (
         Index("ix_analytics_events_project_occurred_at", "project_id", "occurred_at"),
@@ -444,7 +541,7 @@ class InteractionRule(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    project: Mapped["Project"] = relationship(back_populates="interaction_rules")
+    project: Mapped[Project] = relationship(back_populates="interaction_rules")
 
     __table_args__ = (
         UniqueConstraint("project_id", "id", name="uq_interaction_rules_project_id_id"),

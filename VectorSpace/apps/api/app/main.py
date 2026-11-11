@@ -19,19 +19,48 @@ from uuid import uuid4
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from .config import get_settings
-from .routers import admin, analytics, classes, library, me, media, projects, publish, rules, showcase, submissions, visit
-
+from .errors import document_errors, envelope
+from .errors import install as install_error_handlers
+from .routers import (
+    admin,
+    analytics,
+    classes,
+    library,
+    me,
+    media,
+    packs,
+    permissions,
+    projects,
+    publish,
+    rules,
+    showcase,
+    submissions,
+    visit,
+)
 
 logger = logging.getLogger("vectorspace.api")
+
+# The biggest request body the API reads. A saved museum is the largest thing sent (a few hundred
+# KB); files go straight to storage, never through here. Anything bigger is refused unread.
+MAX_BODY_BYTES = 5 * 1024 * 1024
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get("x-request-id", str(uuid4()))
+        request.state.request_id = request_id  # errors.py puts it in every error body
+        length = request.headers.get("content-length", "")
+        if length.isdigit() and int(length) > MAX_BODY_BYTES:
+            return JSONResponse(
+                envelope(413, "The request is too large to send. Shorten it and try again.", request_id),
+                status_code=413,
+                headers={"x-request-id": request_id},
+            )
         started = time.perf_counter()
         try:
             response = await call_next(request)
@@ -54,6 +83,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
 app = FastAPI(title="VectorSpace API", version="0.1.0")
+install_error_handlers(app)
 app.add_middleware(RequestLoggingMiddleware)
 # the browser app is on another address (localhost:5173 in development), so it must be allowed in
 app.add_middleware(
@@ -76,6 +106,8 @@ for router in (
     projects.router,
     media.router,
     library.router,
+    packs.router,
+    permissions.router,
     publish.router,
     analytics.router,
     analytics.results_router,
@@ -130,7 +162,7 @@ def openapi() -> dict:
     if app.openapi_schema is None:
         spec = FastAPI.openapi(app)
         examples = json.loads(EXAMPLES_PATH.read_text(encoding="utf-8")) if EXAMPLES_PATH.exists() else {}
-        app.openapi_schema = _with_examples(spec, examples)
+        app.openapi_schema = document_errors(_with_examples(spec, examples))
     return app.openapi_schema
 
 

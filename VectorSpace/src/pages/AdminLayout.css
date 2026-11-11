@@ -151,7 +151,7 @@
   color: var(--text-muted);
 }
 
-.admin-notice p {
+.admin-choose p {
   margin: 0;
   color: var(--text-muted);
 }
@@ -180,4 +180,131 @@
   background: var(--amber-50);
   color: var(--amber-900);
   font-size: 14px;
+}
+
+/* ── Page title: name, one sentence under it, and the school on the right (prototype pattern) ── */
+.admin-page-title .admin-page-sub {
+  margin: 4px 0 0;
+  max-width: 720px;
+}
+
+.admin-page-title .admin-page-scope {
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 800;
+}
+
+/* ── Avatar: a circle of initials beside a name ──────────────────────── */
+.admin-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--purple-100);
+  color: var(--purple-700);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* a name with its avatar on the left and the email under the name */
+.admin-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-person > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Choose a school: shown on per-school pages while All schools is picked ── */
+/* one row per school, like a table: a line between rows, the whole row is the button */
+.admin-choose-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-choose-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.admin-choose-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-choose-card:hover,
+.admin-choose-card:focus-visible {
+  background: var(--purple-50);
+}
+
+.admin-choose-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-choose-name .admin-muted {
+  font-size: 13px;
+}
+
+.admin-choose-open {
+  color: var(--purple-700);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* ── Drop zone: drag files in, or the underlined link opens the file chooser (Library, CSV import) ── */
+.admin-library-drop {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-btn);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: var(--surface);
+}
+
+.admin-library-drop p {
+  margin: 0 0 4px;
+}
+
+.admin-library-drop-over {
+  border-color: var(--purple-500);
+  background: var(--purple-50);
+}
+
+.admin-library-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* a long school name (the Postman runs make some) wraps instead of pushing the chip out */
+.admin-choose-name strong {
+  overflow-wrap: anywhere;
 }

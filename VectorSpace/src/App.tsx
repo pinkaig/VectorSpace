@@ -13,12 +13,15 @@
  */
 /****************************************************************************************************/
 import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { ErrorBoundary } from './ErrorBoundary'
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router'
 import AdminAccountsPage from './pages/AdminAccountsPage'
+import AdminClassesPage from './pages/AdminClassesPage'
 import AdminLayout from './pages/AdminLayout'
 import AdminOverviewPage from './pages/AdminOverviewPage'
 import AdminPermissionsPage from './pages/AdminPermissionsPage'
 import AdminRoomsPage from './pages/AdminRoomsPage'
+import AdminLibraryPage from './pages/AdminLibraryPage'
 import LoginPage from './pages/LoginPage'
 import StudentHomePage from './pages/StudentHomePage'
 import TeacherHomePage from './pages/TeacherHomePage'
@@ -26,10 +29,12 @@ import TeacherLayout from './pages/TeacherLayout'
 import { LoadingRoom } from './ui/LoadingRoom'
 import TeacherReviewPage from './pages/TeacherReviewPage'
 import TeacherResultsPage from './pages/TeacherResultsPage'
+import TeacherStudentsPage from './pages/TeacherStudentsPage'
 import TeacherPreviewPage from './pages/TeacherPreviewPage'
-import { ApiError } from './api/client'
+import { ApiError, describeError } from './api/client'
 import { auth0Enabled } from './session/auth0'
 import { RequireAdmin, RequireRole, SessionProvider, adminOverrideEnabled, homePath, useSession, type Role } from './session/session'
+import { isSoundDebugOn } from './audio/soundDebugFlag'
 
 // The editor (three.js, the authoring engine, the audio catalog) is by far the largest part
 // of the app, so it is downloaded when someone opens /editor, not on the login page.
@@ -48,6 +53,10 @@ const LayoutTest = lazy(() => import('./editorLayoutTest').then((module) => ({ d
 // this to null and never emits the board's chunk.
 const MotionBoard = import.meta.env.DEV ? lazy(() => import('./debug/MotionBoard')) : null
 const AssetInventoryBoard = import.meta.env.DEV ? lazy(() => import('./debug/AssetInventoryBoard')) : null
+// The sound debug panel: dev (or VITE_SOUND_DEBUG=true builds) only, for a browser that opened the site with ?sounddebug.
+const SoundDebugPanel = isSoundDebugOn() ? lazy(() => import('./audio/SoundDebugPanel')) : null
+// The sound designer's page (#/sound-design), behind the same ?sounddebug switch, signed in or not.
+const SoundDesignPage = isSoundDebugOn() ? lazy(() => import('./audio/SoundDesignPage')) : null
 
 // where a signed-in visitor lands when the URL is empty or unknown, signed-out goes to login
 function Landing() {
@@ -57,7 +66,7 @@ function Landing() {
 
 // the temporary sign-in: pick a role (or the admin override), then go to that role's home
 function SignIn() {
-  const { signIn, rejected, signOut, role, admin } = useSession()
+  const { signIn, rejected, notice, signOut, role, admin } = useSession()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<string | null>(null)
   // a shared project's "Sign in" sends ?next=/visit/<slug> so the visitor goes back to it;
@@ -68,8 +77,8 @@ function SignIn() {
   // an admin goes to /admin, everyone else to the page named after their role
   const onSignIn = (role: Role, admin?: boolean) => {
     setProblem(null)
-    signIn(role, { admin }).then((landed) => navigate(next ?? homePath(landed.role, landed.admin)), (error: Error) => setProblem(
-      error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${error.message}`,
+    signIn(role, { admin }).then((landed) => navigate(next ?? homePath(landed.role, landed.admin)), (error: unknown) => setProblem(
+      error instanceof ApiError && error.status === 403 ? 'This account is not set up yet.' : `Could not sign in: ${describeError(error)}`,
     ))
   }
   // Auth0 returns to the hash route the sign-in started from, which is this page, and the
@@ -86,7 +95,7 @@ function SignIn() {
         stranded={rejected !== null}
         onUseAnotherAccount={signOut}
       />
-      {(rejected ?? problem) && <p role="alert" className="sign-in-problem">{rejected ?? problem}</p>}
+      {(rejected ?? problem ?? notice) && <p role="alert" className="sign-in-problem">{rejected ?? problem ?? notice}</p>}
     </>
   )
 }
@@ -169,6 +178,7 @@ function AdminNav({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <SessionProvider>
       <HashRouter>
         <Routes>
@@ -180,12 +190,15 @@ export default function App() {
             <Route index element={<AdminOverviewPage />} />
             <Route path="permissions" element={<AdminPermissionsPage />} />
             <Route path="accounts" element={<AdminAccountsPage />} />
+            <Route path="classes" element={<AdminClassesPage />} />
             <Route path="rooms" element={<AdminRoomsPage />} />
+            <Route path="library" element={<AdminLibraryPage />} />
           </Route>
           <Route path="/teacher" element={<RequireRole role="teacher"><AdminNav><TeacherLayout /></AdminNav></RequireRole>}>
             <Route index element={<TeacherHomePage />} />
             <Route path="review" element={<TeacherReviewPage />} />
             <Route path="results" element={<TeacherResultsPage />} />
+            <Route path="students" element={<TeacherStudentsPage />} />
           </Route>
           <Route path="/teacher/template" element={<RequireRole role="teacher"><AdminNav><Suspense fallback={<p>Loading template setup…</p>}><TeacherTemplateSetupPage /></Suspense></AdminNav></RequireRole>} />
           {/* "Preview as a student" from template setup: the dark preview bar over a student page */}
@@ -197,9 +210,12 @@ export default function App() {
           {import.meta.env.DEV && MotionBoard && <Route path="/motion-board" element={<Suspense fallback={<p>Loading board…</p>}><MotionBoard /></Suspense>} />}
           {import.meta.env.DEV && <Route path="/layout-test" element={<Suspense fallback={<p>Loading layout…</p>}><LayoutTest /></Suspense>} />}
           {import.meta.env.DEV && AssetInventoryBoard && <Route path="/asset-inventory" element={<Suspense fallback={<p>Loading inventory…</p>}><AssetInventoryBoard /></Suspense>} />}
+          {SoundDesignPage && <Route path="/sound-design" element={<Suspense fallback={<p>Loading sounds…</p>}><SoundDesignPage /></Suspense>} />}
           <Route path="*" element={<Landing />} />
         </Routes>
+        {SoundDebugPanel && <Suspense fallback={null}><SoundDebugPanel /></Suspense>}
       </HashRouter>
     </SessionProvider>
+    </ErrorBoundary>
   )
 }
