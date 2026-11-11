@@ -45,9 +45,11 @@ export interface PlayMovementInput {
   pitch: { current: number }
   eyeHeight: { current: number }
   getStartCamera: () => CameraPose
+  /** Height of the room's walkable floor; slab floors sit above 0. */
+  getFloorY?: () => number
 }
 
-export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environmentGroup, yaw, pitch, eyeHeight, getStartCamera }: PlayMovementInput) => {
+export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environmentGroup, yaw, pitch, eyeHeight, getStartCamera, getFloorY = () => 0 }: PlayMovementInput) => {
   let glide: Glide | null = null
 
   // The tap target: a soft disc, a ring and a centre dot, flat on the floor.
@@ -85,7 +87,7 @@ export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environ
   const startGlide = (x: number, z: number, options: Omit<Glide, 'target'>) => {
     const target = keepInRoom(new THREE.Vector3(x, eyeHeight.current, z))
     glide = { target, ...options }
-    marker.position.set(target.x, 0.02, target.z)
+    marker.position.set(target.x, getFloorY() + 0.02, target.z)
   }
 
   const facingFrom = (from: THREE.Vector3, at: THREE.Vector3) => {
@@ -129,8 +131,10 @@ export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environ
       pathDots.count = 0
       return
     }
-    const from = new THREE.Vector3(camera.position.x, 0.02, camera.position.z)
-    const to = new THREE.Vector3(glide.target.x, 0.02, glide.target.z)
+    // drawn just above the room's floor, or a slab floor hides the dots
+    const y = getFloorY() + 0.02
+    const from = new THREE.Vector3(camera.position.x, y, camera.position.z)
+    const to = new THREE.Vector3(glide.target.x, y, glide.target.z)
     // stop at the ring's edge rather than running through it
     const length = Math.max(0, from.distanceTo(to) - 0.33)
     const count = Math.min(MAX_PATH_DOTS, Math.floor(length / PATH_SPACING))
@@ -145,9 +149,9 @@ export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environ
   }
 
   return {
-    /** Tap to go: walk to where the ray meets the floor (y = 0). */
+    /** Tap to go: walk to where the ray meets the room's floor. */
     tapFloor: (ray: THREE.Ray) => {
-      const point = ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3())
+      const point = ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -getFloorY()), new THREE.Vector3())
       if (point) startGlide(point.x, point.z, { showMarker: true })
     },
     /** Tour spots: walk to a spot and turn to face it; onArrive runs once there. */
@@ -156,10 +160,12 @@ export const createPlayMovement = ({ scene, camera, mount, objectsGroup, environ
       if (!spot) return
       startGlide(spot.stand.x, spot.stand.z, { showMarker: false, facing: facingFrom(spot.stand, spot.look), onArrive })
     },
-    /** Walk to `stand` on the floor, turning to face `look` (Tap to go toward a far door). */
-    walkTo: (stand: THREE.Vector3, look: THREE.Vector3) => {
-      const at = new THREE.Vector3(stand.x, eyeHeight.current, stand.z)
-      startGlide(at.x, at.z, { showMarker: true, facing: facingFrom(at, new THREE.Vector3(look.x, eyeHeight.current, look.z)) })
+    /**
+     * Walk to `stand` on the floor like any other tap (Tap to go toward a far door): the
+     * visitor keeps looking where they were looking, so the camera never locks onto the door.
+     */
+    walkTo: (stand: THREE.Vector3) => {
+      startGlide(stand.x, stand.z, { showMarker: true })
     },
     /** A spot's floor marker in viewport pixels, or null when it's behind the visitor. */
     spotScreenPoint: (objectId: string | null) => {

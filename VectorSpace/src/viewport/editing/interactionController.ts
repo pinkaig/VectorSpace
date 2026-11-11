@@ -47,6 +47,8 @@ export interface ViewportInteractionData {
   rotateSpace: 'world' | 'local'
   // the object panel's Snap switch: drags land on the floor grid, 15° and 0.25 steps (snapping.ts)
   snap: boolean
+  // the floor grid's centre ([x, z]), fitted to the loaded environment
+  gridOrigin?: [number, number]
   cameraMode: InteractionCameraMode
   showOctaOrb: boolean
   showAxisIndicator: boolean
@@ -180,6 +182,7 @@ export const createViewportInteractionController = (input: ViewportInteractionIn
   raycaster, pointer, activeCamera, objectsGroup, gizmoGroup, getPointer,
   callbacks: { commitMove: callbacks.commitMove, commitScale: callbacks.commitScale, commitRotate: callbacks.commitRotate },
   getSnap: () => callbacks.getData().snap,
+  getGridOrigin: () => callbacks.getData().gridOrigin ?? [0, 0],
 })
   const pick = (event: PointerEvent) => {
     getPointer(event)

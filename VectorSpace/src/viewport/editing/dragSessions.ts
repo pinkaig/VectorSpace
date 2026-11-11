@@ -39,6 +39,8 @@ export interface DragSessionsInput {
   callbacks: DragCommitCallbacks;
   /** The object panel's Snap switch, read on every move so flipping it mid-drag applies at once. */
   getSnap?: () => boolean;
+  /** The floor grid's centre ([x, z]); ? in the code means [0,0] by default which is the world origin */
+  getGridOrigin?: () => [number, number];
 }
 
 export interface AxisDragParams {
@@ -118,7 +120,7 @@ export const createDragSessions = (input: DragSessionsInput) => {
    */
   const snapPosition = (world: THREE.Vector3, direction?: THREE.Vector3) => {
     if (!snapping()) return world;
-    const [x, , z] = snapToFloorGrid([world.x, world.y, world.z]);
+    const [x, , z] = snapToFloorGrid([world.x, world.y, world.z], input.getGridOrigin?.());
     return new THREE.Vector3(
       !direction || Math.abs(direction.x) > 0.5 ? x : world.x,
       world.y,

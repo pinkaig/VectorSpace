@@ -7,6 +7,10 @@ describe('snapping', () => {
     expect(snapToFloorGrid([0.2, 2, 3.1])).toEqual([0, 2, 3])
   })
 
+  it('counts cells from the grid origin when the grid is fitted to an off-centre room', () => {
+    expect(snapToFloorGrid([1.26, 0.55, -0.74], [0.3, -0.2])).toEqual([1.3, 0.55, -0.7])
+  })
+
   it('turns in 15 degree steps', () => {
     const degrees = (radians: number) => Math.round((radians * 180) / Math.PI)
     expect(degrees(snapAngle((40 * Math.PI) / 180))).toBe(45)

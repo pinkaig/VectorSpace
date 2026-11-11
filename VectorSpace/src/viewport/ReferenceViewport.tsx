@@ -19,7 +19,7 @@ import { SceneObject } from '../project/model'
 import { loadEnvironment } from '../content/environments'
 import { disposeObjectResources, syncArtefacts } from './syncArtefacts'
 import { createRenderScheduler } from './renderScheduler'
-import { FLOOR_BACKGROUND, FLOOR_SIZE, createFloorGrid } from './floorGrid'
+import { FLOOR_BACKGROUND, createFloorGrid, findFloorHeight, floorLayoutFor, type FloorGrid } from './floorGrid'
 
 export type ReferenceAxis = 'top' | 'front' | 'right'
 
@@ -36,18 +36,39 @@ const AXIS_VIEW: Record<ReferenceAxis, { direction: THREE.Vector3; up: THREE.Vec
   front: { direction: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0) },
   right: { direction: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 1, 0) },
 }
-// GridHelper lies flat in the XZ plane by default, which is only useful for the top pane —
+// The floor grid lies flat in the XZ plane, which is only useful for the top pane —
 // front/right look at that plane edge-on and would see just a flat line. Rotate it into the
 // plane each pane actually faces (XY for front, ZY for right). Front/right are pushed back to
-// the far edge of the world grid (rather than through the origin) so the backdrop sits behind
+// the far edge of the room (rather than through the origin) so the backdrop sits behind
 // every object instead of cutting through the middle of whatever's selected.
-const GRID_EDGE = FLOOR_SIZE / 2
-const AXIS_GRID: Record<ReferenceAxis, { rotation: [number, number, number]; position: [number, number, number]; opacity: number }> = {
-  top: { rotation: [0, 0, 0], position: [0, 0, 0], opacity: 1 },
+const AXIS_GRID: Record<ReferenceAxis, { rotation: [number, number, number]; opacity: number }> = {
+  top: { rotation: [0, 0, 0], opacity: 1 },
   // Dimmed relative to top — as a backdrop wall rather than a floor, it would otherwise
   // compete visually with the objects in front of it.
-  front: { rotation: [Math.PI / 2, 0, 0], position: [0, 0, -GRID_EDGE], opacity: 0.6 },
-  right: { rotation: [0, 0, Math.PI / 2], position: [-GRID_EDGE, 0, 0], opacity: 0.6 },
+  front: { rotation: [Math.PI / 2, 0, 0], opacity: 0.6 },
+  right: { rotation: [0, 0, Math.PI / 2], opacity: 0.6 },
+}
+
+/**
+ * Fits the pane's grid to the room. The stood-up grid's own axes are rotated, so the
+ * layout is re-expressed in them: front's grid z is world y (height), right's grid x is
+ * world y. The backdrop then sits on the room's far wall (back for front, left for right).
+ */
+const fitAxisGrid = (floor: FloorGrid, axis: ReferenceAxis, bounds: THREE.Box3 | null, floorY = 0) => {
+  const room = floorLayoutFor(bounds)
+  const height = bounds && !bounds.isEmpty() ? Math.max(bounds.max.y, 2) : room.depth / 2
+  if (axis === 'top') {
+    floor.fit(room)
+    floor.group.position.set(0, floorY, 0)
+  } else if (axis === 'front') {
+    // rotated +90 degrees about x: grid x -> world x, grid z to world y (up)
+    floor.fit({ centerX: room.centerX, centerZ: height / 2, width: room.width, depth: height })
+    floor.group.position.set(0, 0, room.centerZ - room.depth / 2)
+  } else {
+    // rotated +90 degrees about z: grid x -> world y (up), grid z to world z
+    floor.fit({ centerX: height / 2, centerZ: room.centerZ, width: height, depth: room.depth })
+    floor.group.position.set(room.centerX - room.width / 2, 0, 0)
+  }
 }
 const FRUSTUM_HALF_HEIGHT = 9
 const FOCUS = new THREE.Vector3(0, 0.7, 0)
@@ -59,6 +80,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
   const environmentGroupRef = useRef<THREE.Group | null>(null)
   const currentEnvDisposeRef = useRef<(() => void) | null>(null)
   const requestRenderRef = useRef<() => void>(() => {})
+  const fitFloorRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     const mount = mountRef.current
@@ -85,8 +107,12 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     // for the front/right panes.
     const floor = createFloorGrid(AXIS_GRID[axis].opacity)
     floor.group.rotation.set(...AXIS_GRID[axis].rotation)
-    floor.group.position.set(...AXIS_GRID[axis].position)
+    fitAxisGrid(floor, axis, null)
     scene.add(floor.group)
+    fitFloorRef.current = () => {
+      const bounds = new THREE.Box3().setFromObject(environmentGroup)
+      fitAxisGrid(floor, axis, bounds, findFloorHeight(environmentGroup, bounds))
+    }
 
     const objectsGroup = new THREE.Group()
     scene.add(objectsGroup)
@@ -159,6 +185,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
     return () => {
       cancelAnimationFrame(frame)
       requestRenderRef.current = () => {}
+      fitFloorRef.current = () => {}
       observer.disconnect()
       renderer.domElement.removeEventListener('wheel', requestRender)
       controls.dispose()
@@ -182,6 +209,7 @@ export default function ReferenceViewport({ objects, selectedId, environmentId, 
       holder?.add(loaded.group)
       currentEnvDisposeRef.current?.()
       currentEnvDisposeRef.current = loaded.dispose
+      fitFloorRef.current()
       requestRenderRef.current()
     }).catch(() => {
       // Reference panes are secondary; a failed environment load just leaves the grid visible.

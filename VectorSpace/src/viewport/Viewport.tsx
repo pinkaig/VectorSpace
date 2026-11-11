@@ -56,7 +56,7 @@ import { ViewportCrosshair, ViewportHint, ViewportOverlay } from '../viewport/Vi
 import { syncGizmo } from '../viewport/editing/syncGizmo'
 import { loadEnvironmentIntoGroup } from '../viewport/environmentController'
 import { styleRoomSurfaces } from '../content/roomSurfaces'
-import { createFloorGrid, FLOOR_SIZE } from './floorGrid'
+import { createFloorGrid, findFloorHeight, floorLayoutBox, floorLayoutFor } from './floorGrid'
 import { centrePose, createRoomDoors, entrancePose, findDoorway, type DoorSide, type Doorway, type RoomDoor } from './roomDoors'
 import { applyCameraPose, applyViewOrientation, dollyBy, frameBox, frameFloorPlan, frameObject, getCameraPose, realignOrbitUp, snapCameraTo, syncOrthoCamera, updateWalkCamera } from '../viewport/cameraController'
 import { createViewportInteractionController } from '../viewport/editing/interactionController'
@@ -399,6 +399,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
   const markersRef = useRef<ReturnType<typeof createSceneMarkers> | null>(null)
   // the doors: redrawn on the loaded room's outline; the entrance is where a visitor starts
   const refreshDoorsRef = useRef<() => void>(() => {})
+  // Refits the floor grid to the environment that just loaded (floorGrid.ts); set by the setup effect.
+  const fitFloorRef = useRef<() => void>(() => {})
   const entrancePoseRef = useRef<() => CameraPose>(() => dataRef.current.startCamera)
   const cancelGlideRef = useRef<() => void>(() => {})
   // the room now standing in the scene, once it has loaded (null while the next one loads):
@@ -477,7 +479,18 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
     // Editor floor (see floorGrid.ts).
     const floor = createFloorGrid()
     const grid = floor.group
+    // The room's walkable floor, moved up to a slab floor's top when a room loads (fitFloorRef).
+    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
     scene.add(grid)
+    // The grid covers the loaded room's floor and counts its cells from the room's centre.
+    // It also sits on top of the room's floor, which in a slab-built room is above y = 0.
+    fitFloorRef.current = () => {
+      const bounds = new THREE.Box3().setFromObject(environmentGroup)
+      floor.fit(floorLayoutFor(bounds))
+      grid.position.y = findFloorHeight(environmentGroup, bounds)
+      floorPlane.constant = -grid.position.y
+    }
+    fitFloorRef.current()
 
     // Orbit/pan/zoom for arranging content — disabled while walking or dragging/gizmo-manipulating an object.
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -762,6 +775,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       scene, camera, mount, objectsGroup, environmentGroup,
       yaw: yawRef, pitch: pitchRef, eyeHeight: walkHeightRef,
       getStartCamera: () => entrancePoseRef.current(),
+      getFloorY: () => grid.position.y,
     })
     cancelGlideRef.current = playMovement.cancel
     playActionsRef.current = {
@@ -820,6 +834,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
           scaleSpace: dataRef.current.scaleSpace,
           rotateSpace: dataRef.current.rotateSpace,
           snap: dataRef.current.snap,
+          gridOrigin: [floor.layout.centerX, floor.layout.centerZ],
           cameraMode: dataRef.current.cameraMode,
           showOctaOrb: dataRef.current.showOctaOrb,
           showAxisIndicator: dataRef.current.showAxisIndicator,
@@ -895,9 +910,8 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       const known = KNOWN_DOORWAYS.get(key)
       if (known) return known
       const loaded = new THREE.Box3().setFromObject(environmentGroup)
-      const half = FLOOR_SIZE / 2
       const found = loaded.isEmpty()
-        ? findDoorway(null, new THREE.Box3(new THREE.Vector3(-half, 0, -half), new THREE.Vector3(half, 3, half)), side)
+        ? findDoorway(null, floorLayoutBox(floor.layout), side)
         : findDoorway(environmentGroup, loaded, side)
       if (loadedRoomRef.current) KNOWN_DOORWAYS.set(key, found)
       return found
@@ -915,11 +929,9 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       if (mode !== 'play') return start
       if (side && shown?.some((door) => door.side === side)) return entrancePose(doorwayOn(side))
       const loaded = new THREE.Box3().setFromObject(environmentGroup)
-      const half = FLOOR_SIZE / 2
-      const room = loaded.isEmpty() ? new THREE.Box3(new THREE.Vector3(-half, 0, -half), new THREE.Vector3(half, 3, half)) : loaded
+      const room = loaded.isEmpty() ? floorLayoutBox(floor.layout) : loaded
       return centrePose(room, start)
     }
-    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
     let pressAt: { x: number; y: number } | null = null
     const onPickDown = (event: PointerEvent) => { pressAt = event.button === 0 ? { x: event.clientX, y: event.clientY } : null }
     const onPickUp = (event: PointerEvent) => {
@@ -940,7 +952,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
         const away = doorway ? Math.hypot(camera.position.x - doorway.point.x, camera.position.z - doorway.point.z) : 0
         if (doorway && away > DOOR_REACH) {
           if (dataRef.current.playMove !== 'walk') {
-            playMovement.walkTo(doorway.point.clone().addScaledVector(doorway.inward, DOOR_STAND), doorway.point)
+            playMovement.walkTo(doorway.point.clone().addScaledVector(doorway.inward, DOOR_STAND))
           } else {
             showDoorNoticeRef.current(`Walk up to the door to go to ${door!.label}`)
           }
@@ -1154,6 +1166,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       disposeObjectResources(objectsGroup)
       zoneVisuals.dispose()
       gizmoSet.dispose()
+      fitFloorRef.current = () => {}
       floor.dispose()
       renderer.dispose()
       mount.removeChild(renderer.domElement)
@@ -1237,6 +1250,7 @@ const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
       onReady: () => {
         styleRoomSurfaces(holder, surfacesRef.current) // before the wall cut, so the cut lands on the worn materials
         applyWallCut(holder, wallsRef.current)
+        fitFloorRef.current()
         // the doors stand in this room's doorways, and a visitor who came through one starts there
         loadedRoomRef.current = { environmentId, sceneId }
         refreshDoorsRef.current()
